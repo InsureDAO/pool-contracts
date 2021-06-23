@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/libraries/math/BigDiv.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../index.html">all files</a> / <a href="index.html">contracts/libraries/math/</a> BigDiv.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>0/42</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/12</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/1</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>0/42</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">pragma solidity ^0.6.0;
+&nbsp;
+import "./SafeMath.sol";
+&nbsp;
+/**
+ * @title Reduces the size of terms before multiplication, to avoid an overflow, and then
+ * restores the proper size after division.
+ * @notice This effectively allows us to overflow values in the numerator and/or denominator
+ * of a fraction, so long as the end result does not overflow as well.
+ * @dev Results may be off by 1 + 0.000001% for 2x1 calls and 2 + 0.00001% for 2x2 calls.
+ * Do not use if your contract expects very small result values to be accurate.
+ */
+library BigDiv {
+    using SafeMath for uint256;
+&nbsp;
+    /// @notice The max possible value
+    uint256 private constant MAX_UINT = 2**256 - 1;
+&nbsp;
+    /// @notice When multiplying 2 terms &lt;= this value the result won't overflow
+    uint256 private constant MAX_BEFORE_SQUARE = 2**128 - 1;
+&nbsp;
+    /// @notice The max error target is off by 1 plus up to 0.000001% error
+    /// for bigDiv2x1 and that `* 2` for bigDiv2x2
+    uint256 private constant MAX_ERROR = 100000000;
+&nbsp;
+    /// @notice A larger error threshold to use when multiple rounding errors may apply
+    uint256 private constant MAX_ERROR_BEFORE_DIV = MAX_ERROR * 2;
+&nbsp;
+    /**
+     * @notice Returns the approx result of `a * b / d` so long as the result is &lt;= MAX_UINT
+     * @param _numA the first numerator term
+     * @param _numB the second numerator term
+     * @param _den the denominator
+     * @return the approx result with up to off by 1 + MAX_ERROR, rounding down if needed
+     */
+<span class="fstat-no" title="function not covered" >    function bigDiv2x1(</span>
+        uint256 _numA,
+        uint256 _numB,
+        uint256 _den
+    ) internal pure returns (uint256) {
+<span class="cstat-no" title="statement not covered" >        if (_numA == 0 || _numB == 0) {</span>
+            // would div by 0 or underflow if we don't special case 0
+<span class="cstat-no" title="statement not covered" >            return 0;</span>
+        }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        uint256 value;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        if (MAX_UINT / _numA &gt;= _numB) {</span>
+            // a*b does not overflow, return exact math
+<span class="cstat-no" title="statement not covered" >            value = _numA * _numB</span>;
+<span class="cstat-no" title="statement not covered" >            value /= _den</span>;
+<span class="cstat-no" title="statement not covered" >            return value;</span>
+        }
+&nbsp;
+        // Sort numerators
+<span class="cstat-no" title="statement not covered" >        uint256 numMax = _numB;</span>
+<span class="cstat-no" title="statement not covered" >        uint256 numMin = _numA;</span>
+<span class="cstat-no" title="statement not covered" >        if (_numA &gt; _numB) {</span>
+<span class="cstat-no" title="statement not covered" >            numMax = _numA</span>;
+<span class="cstat-no" title="statement not covered" >            numMin = _numB</span>;
+        }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        value = numMax / _den</span>;
+<span class="cstat-no" title="statement not covered" >        if (value &gt; MAX_ERROR) {</span>
+            // _den is small enough to be MAX_ERROR or better w/o a factor
+<span class="cstat-no" title="statement not covered" >            value = value.mul(numMin)</span>;
+<span class="cstat-no" title="statement not covered" >            return value;</span>
+        }
+&nbsp;
+        // formula = ((a / f) * b) / (d / f)
+        // factor &gt;= a / sqrt(MAX) * (b / sqrt(MAX))
+<span class="cstat-no" title="statement not covered" >        uint256 factor = numMin - 1;</span>
+<span class="cstat-no" title="statement not covered" >        factor /= MAX_BEFORE_SQUARE</span>;
+<span class="cstat-no" title="statement not covered" >        factor += 1</span>;
+<span class="cstat-no" title="statement not covered" >        uint256 temp = numMax - 1;</span>
+<span class="cstat-no" title="statement not covered" >        temp /= MAX_BEFORE_SQUARE</span>;
+<span class="cstat-no" title="statement not covered" >        temp += 1</span>;
+<span class="cstat-no" title="statement not covered" >        if (MAX_UINT / factor &gt;= temp) {</span>
+<span class="cstat-no" title="statement not covered" >            factor *= temp</span>;
+<span class="cstat-no" title="statement not covered" >            value = numMax / factor</span>;
+<span class="cstat-no" title="statement not covered" >            if (value &gt; MAX_ERROR_BEFORE_DIV) {</span>
+<span class="cstat-no" title="statement not covered" >                value = value.mul(numMin)</span>;
+<span class="cstat-no" title="statement not covered" >                temp = _den - 1</span>;
+<span class="cstat-no" title="statement not covered" >                temp /= factor</span>;
+<span class="cstat-no" title="statement not covered" >                temp = temp.add(1)</span>;
+<span class="cstat-no" title="statement not covered" >                value /= temp</span>;
+<span class="cstat-no" title="statement not covered" >                return value;</span>
+            }
+        }
+&nbsp;
+        // formula: (a / (d / f)) * (b / f)
+        // factor: b / sqrt(MAX)
+<span class="cstat-no" title="statement not covered" >        factor = numMin - 1</span>;
+<span class="cstat-no" title="statement not covered" >        factor /= MAX_BEFORE_SQUARE</span>;
+<span class="cstat-no" title="statement not covered" >        factor += 1</span>;
+<span class="cstat-no" title="statement not covered" >        value = numMin / factor</span>;
+<span class="cstat-no" title="statement not covered" >        temp = _den - 1</span>;
+<span class="cstat-no" title="statement not covered" >        temp /= factor</span>;
+<span class="cstat-no" title="statement not covered" >        temp += 1</span>;
+<span class="cstat-no" title="statement not covered" >        temp = numMax / temp</span>;
+<span class="cstat-no" title="statement not covered" >        value = value.mul(temp)</span>;
+<span class="cstat-no" title="statement not covered" >        return value;</span>
+    }
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Tue Jun 15 2021 22:31:59 GMT+0900 (Japan Standard Time)
+</div>
+</div>
+<script src="../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../sorter.js"></script>
+</body>
+</html>

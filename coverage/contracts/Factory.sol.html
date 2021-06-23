@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/Factory.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">contracts/</a> Factory.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">48.89% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>22/45</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">41.18% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>14/34</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">50% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>4/8</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">43.48% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>20/46</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">150×</span>
+<span class="cline-any cline-yes">150×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">450×</span>
+<span class="cline-any cline-yes">450×</span>
+<span class="cline-any cline-yes">450×</span>
+<span class="cline-any cline-yes">450×</span>
+<span class="cline-any cline-yes">450×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">187×</span>
+<span class="cline-any cline-yes">187×</span>
+<span class="cline-any cline-yes">187×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">187×</span>
+<span class="cline-any cline-yes">561×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">113×</span>
+<span class="cline-any cline-yes">74×</span>
+<span class="cline-any cline-yes">187×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">187×</span>
+<span class="cline-any cline-yes">187×</span>
+<span class="cline-any cline-yes">187×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">187×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">187×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
+ * @title Factory
+ * @author @kohshiba
+ * @notice This contract is the functory contract that manages functions related to market creation activities.
+ */
+&nbsp;
+pragma solidity ^0.6.0;
+pragma experimental ABIEncoderV2;
+&nbsp;
+import "./libraries/math/SafeMath.sol";
+import "./libraries/utils/Address.sol";
+import "./interfaces/IUniversalMarket.sol";
+import "./interfaces/IRegistry.sol";
+&nbsp;
+contract Factory {
+    using SafeMath for uint256;
+    using Address for address;
+&nbsp;
+    event MarketCreated(
+        address indexed market,
+        address indexed template,
+        string _metaData,
+        string _name,
+        string _symbol,
+        uint8 _decimals,
+        uint256[] conditions,
+        address[] references
+    );
+    event TemplateApproval(
+        IUniversalMarket indexed template,
+        bool indexed approval,
+        bool indexed isOpen
+    );
+    event ReferenceApproval(
+        IUniversalMarket indexed template,
+        uint256 indexed slot,
+        address target,
+        bool approval
+    );
+    event ConditionApproval(
+        IUniversalMarket indexed template,
+        uint256 indexed slot,
+        uint256 target
+    );
+    event CommitNewAdmin(uint256 deadline, address future_admin);
+    event NewAdmin(address admin);
+&nbsp;
+    address[] public markets;
+&nbsp;
+    mapping(address =&gt; bool) public templates;
+    mapping(address =&gt; bool) public approval;
+    mapping(address =&gt; mapping(uint256 =&gt; mapping(address =&gt; bool)))
+        public reflist;
+    mapping(address =&gt; mapping(uint256 =&gt; uint256)) public conditionlist;
+&nbsp;
+    address public registry;
+    address public owner;
+    address public future_owner;
+    uint256 public transfer_ownership_deadline;
+    uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
+&nbsp;
+    constructor(address _registry) public {
+        owner = msg.sender;
+        registry = _registry;
+    }
+&nbsp;
+    /**
+     * @notice A function to approve or disapprove templates.
+     * Only owner of the contract can operate.
+     */
+    function approveTemplate(
+        IUniversalMarket _template,
+        bool _approval,
+        bool _isOpen
+    ) external {
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(msg.sender == owner, "dev: only owner");
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(address(_template) != address(0));
+        templates[address(_template)] = _approval;
+        approval[address(_template)] = _isOpen;
+<span class="cstat-no" title="statement not covered" >        emit TemplateApproval(_template, _approval, _isOpen);</span>
+    }
+&nbsp;
+    /**
+     * @notice A function to preset reference.
+     * Only owner of the contract can operate.
+     */
+<span class="fstat-no" title="function not covered" >    function approveReference(</span>
+        IUniversalMarket _template,
+        uint256 _slot,
+        address _target,
+        bool _approval
+    ) external {
+<span class="cstat-no" title="statement not covered" >        require(msg.sender == owner, "dev: only owner")</span>;
+<span class="cstat-no" title="statement not covered" >        require(templates[address(_template)] == true)</span>;
+<span class="cstat-no" title="statement not covered" >        reflist[address(_template)][_slot][_target] = _approval</span>;
+        emit ReferenceApproval(_template, _slot, _target, _approval);
+    }
+&nbsp;
+    /**
+     * @notice A function to preset reference.
+     * Only owner of the contract can operate.
+     */
+    function setCondition(
+        IUniversalMarket _template,
+        uint256 _slot,
+        uint256 _target
+    ) external {
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(msg.sender == owner, "dev: only owner");
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(templates[address(_template)] == true);
+        conditionlist[address(_template)][_slot] = _target;
+        emit ConditionApproval(_template, _slot, _target);
+    }
+&nbsp;
+    /**
+     * @notice A function to create markets.
+     * This function is market model agnostic.
+     */
+    function createMarket(
+        IUniversalMarket template,
+        string memory _metaData,
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals,
+        uint256[] memory _conditions,
+        address[] memory _references
+    ) public returns (address) {
+        require(templates[address(template)] == true, "UNAUTHORIZED_TEMPLATE");
+        if (approval[address(template)] == false) {
+            require(owner == msg.sender, "UNAUTHORIZED_SENDER");
+        }
+        if (_references.length &gt; 0) {
+            for (uint256 i = 0; i &lt; _references.length; i++) {
+                <span class="missing-if-branch" title="else path not taken" >E</span>require(
+                    reflist[address(template)][i][_references[i]] == true ||
+                        reflist[address(template)][i][address(0)] == true,
+                    "UNAUTHORIZED_REFERENCE"
+                );
+            }
+        }
+&nbsp;
+        if (_conditions.length &gt; 0) {
+            for (uint256 i = 0; i &lt; _conditions.length; i++) {
+                _conditions[i] = conditionlist[address(template)][i];
+            }
+        }
+&nbsp;
+        address _owner = owner;
+&nbsp;
+        IUniversalMarket market =
+            IUniversalMarket(_createClone(address(template)));
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        market.initialize(</span>
+            _owner,
+            _metaData,
+            _name,
+            _symbol,
+            _decimals,
+            _conditions,
+            _references
+        );
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        emit MarketCreated(</span>
+            address(market),
+            address(template),
+            _metaData,
+            _name,
+            _symbol,
+            _decimals,
+            _conditions,
+            _references
+        );
+<span class="cstat-no" title="statement not covered" >        markets.push(address(market))</span>;
+<span class="cstat-no" title="statement not covered" >        IRegistry(registry).supportMarket(address(market))</span>;
+<span class="cstat-no" title="statement not covered" >        return address(market);</span>
+    }
+&nbsp;
+    /**
+     * @notice Template Code for the create clone method:
+     * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1167.md
+     */
+<span class="fstat-no" title="function not covered" >    function _createClone(address target) internal returns (address result) {</span>
+        // convert address to bytes20 for assembly use
+<span class="cstat-no" title="statement not covered" >        bytes20 targetBytes = bytes20(target);</span>
+        assembly {
+            // allocate clone memory
+            let clone := mload(0x40)
+            // store initial portion of the delegation contract code in bytes form
+            mstore(
+                clone,
+                0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000
+            )
+            // store the provided address
+            mstore(add(clone, 0x14), targetBytes)
+            // store the remaining delegation contract code
+            mstore(
+                add(clone, 0x28),
+                0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000
+            )
+            // create the actual delegate contract reference and return its address
+            result := create(0, clone, 0x37)
+        }
+    }
+&nbsp;
+    //----- ownership -----//
+<span class="fstat-no" title="function not covered" >    function commit_transfer_ownership(address _owner) external {</span>
+<span class="cstat-no" title="statement not covered" >        require(msg.sender == owner, "dev: only owner")</span>;
+<span class="cstat-no" title="statement not covered" >        require(transfer_ownership_deadline == 0, "dev: active transfer")</span>;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);</span>
+<span class="cstat-no" title="statement not covered" >        transfer_ownership_deadline = _deadline</span>;
+<span class="cstat-no" title="statement not covered" >        future_owner = _owner</span>;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        emit CommitNewAdmin(_deadline, _owner);</span>
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function apply_transfer_ownership() external {</span>
+<span class="cstat-no" title="statement not covered" >        require(msg.sender == owner, "dev: only owner")</span>;
+<span class="cstat-no" title="statement not covered" >        require(</span>
+            block.timestamp &gt;= transfer_ownership_deadline,
+            "dev: insufficient time"
+        );
+<span class="cstat-no" title="statement not covered" >        require(transfer_ownership_deadline != 0, "dev: no active transfer")</span>;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        transfer_ownership_deadline = 0</span>;
+<span class="cstat-no" title="statement not covered" >        address _owner = future_owner;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        owner = _owner</span>;
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        emit NewAdmin(owner);</span>
+    }
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Tue Jun 15 2021 22:31:59 GMT+0900 (Japan Standard Time)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>
