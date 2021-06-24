@@ -20,7 +20,7 @@ contract Parameters is IParameters {
     event CommitNewAdmin(uint256 deadline, address future_admin);
     event NewAdmin(address admin);
 
-    address private owner;
+    address public owner;
     address public future_owner;
     uint256 public transfer_ownership_deadline;
     uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;

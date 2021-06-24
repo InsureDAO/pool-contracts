@@ -36,9 +36,9 @@ contract Registry {
         markets[_market] = true;
     }
 
-    function setCDS(address _address, address _target) external {
+    function setCDS(address _address, address _cds) external {
         require(msg.sender == owner, "dev: only owner");
-        cds[_address] = _target;
+        cds[_address] = _cds;
     }
 
     function getCDS(address _address) external view returns (address) {
