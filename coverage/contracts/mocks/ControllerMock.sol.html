@@ -20,9 +20,9 @@
     </h1>
     <div class='clearfix'>
       <div class='fl pad1y space-right2'>
-        <span class="strong">0% </span>
+        <span class="strong">100% </span>
         <span class="quiet">Statements</span>
-        <span class='fraction'>0/1</span>
+        <span class='fraction'>7/7</span>
       </div>
       <div class='fl pad1y space-right2'>
         <span class="strong">100% </span>
@@ -30,18 +30,18 @@
         <span class='fraction'>0/0</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">0% </span>
+        <span class="strong">85.71% </span>
         <span class="quiet">Functions</span>
-        <span class='fraction'>0/8</span>
+        <span class='fraction'>6/7</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">0% </span>
+        <span class="strong">100% </span>
         <span class="quiet">Lines</span>
-        <span class='fraction'>0/1</span>
+        <span class='fraction'>7/7</span>
       </div>
     </div>
   </div>
-  <div class='status-line low'></div>
+  <div class='status-line high'></div>
 <pre><table class="coverage">
 <tr><td class="line-count quiet">1
 2
@@ -68,13 +68,37 @@
 23
 24
 25
-26</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">264×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">843×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -82,11 +106,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -94,29 +120,42 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">pragma solidity ^0.6.0;
+import "../mocks/TestERC20Mock.sol";
+import "../interfaces/IVault.sol";
 &nbsp;
 contract Controller {
-<span class="fstat-no" title="function not covered" >    function withdraw(address, uint256) external {}</span>
+    TestERC20Mock public token;
+    IVault public vault;
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function balanceOf(address) external view returns (uint256) {</span>
-<span class="cstat-no" title="statement not covered" >        return 0;</span>
+    constructor(address _token) public {
+        token = TestERC20Mock(_token);
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function earn(address, uint256) external {}</span>
+    function withdraw(address _to, uint256 _amount) external {
+        token.transfer(_to, _amount);
+    }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function want(address) external view returns (address) {}</span>
+    function valueAll() external view returns (uint256) {
+        return token.balanceOf(address(this));
+    }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function rewards() external view returns (address) {}</span>
+    function earn(address, uint256) external {
+        //do something for yield here in real contracts
+    }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function vaults(address) external view returns (address) {}</span>
+    function setVault(address _address) external {
+        vault = IVault(_address);
+    }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function strategies(address) external view returns (address) {}</span>
+    function yield() external {
+        uint256 _amount = vault.utilize();
+        uint256 _mint = (_amount * 5) / 10;
+        token.mint(address(this), _mint);
+    }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function approvedStrategies(address, address)</span>
-        external
-        view
-        returns (bool)
-    {}
+<span class="fstat-no" title="function not covered" >    function migrate(address) external {</span>
+        //do something for yield here in real contracts
+    }
 }
 &nbsp;</pre></td></tr>
 </table></pre>
@@ -124,7 +163,7 @@ contract Controller {
 </div><!-- /wrapper -->
 <div class='footer quiet pad2 space-top1 center small'>
   Code coverage
-  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Tue Jun 15 2021 22:31:59 GMT+0900 (Japan Standard Time)
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Jun 24 2021 16:44:00 GMT+0900 (Japan Standard Time)
 </div>
 </div>
 <script src="../../prettify.js"></script>

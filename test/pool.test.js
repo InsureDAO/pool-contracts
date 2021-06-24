@@ -26,7 +26,7 @@ describe("Pool", function () {
     factory = await Factory.deploy(registry.address);
     fee = await FeeModel.deploy();
     premium = await PremiumModel.deploy();
-    controller = await Contorller.deploy();
+    controller = await Contorller.deploy(dai.address);
     vault = await Vault.deploy(
       dai.address,
       registry.address,

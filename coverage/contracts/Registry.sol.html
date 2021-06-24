@@ -20,24 +20,24 @@
     </h1>
     <div class='clearfix'>
       <div class='fl pad1y space-right2'>
-        <span class="strong">11.11% </span>
+        <span class="strong">44.44% </span>
         <span class="quiet">Statements</span>
-        <span class='fraction'>3/27</span>
+        <span class='fraction'>12/27</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">10% </span>
+        <span class="strong">25% </span>
         <span class="quiet">Branches</span>
-        <span class='fraction'>2/20</span>
+        <span class='fraction'>5/20</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">22.22% </span>
+        <span class="strong">66.67% </span>
         <span class="quiet">Functions</span>
-        <span class='fraction'>2/9</span>
+        <span class='fraction'>6/9</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">11.11% </span>
+        <span class="strong">44.44% </span>
         <span class="quiet">Lines</span>
-        <span class='fraction'>3/27</span>
+        <span class='fraction'>12/27</span>
       </div>
     </div>
   </div>
@@ -153,36 +153,36 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">37×</span>
+<span class="cline-any cline-yes">264×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">38×</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">80×</span>
+<span class="cline-any cline-yes">80×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">364×</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">215×</span>
+<span class="cline-any cline-yes">215×</span>
+<span class="cline-any cline-yes">215×</span>
+<span class="cline-any cline-yes">215×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">41×</span>
+<span class="cline-any cline-yes">41×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">42×</span>
+<span class="cline-any cline-yes">42×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">509×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -245,31 +245,31 @@ contract Registry {
 &nbsp;
     function setFactory(address _factory) external {
         <span class="missing-if-branch" title="else path not taken" >E</span>require(msg.sender == owner);
-<span class="cstat-no" title="statement not covered" >        factory = _factory</span>;
+        factory = _factory;
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function supportMarket(address _market) external {</span>
-        <span class="missing-if-branch" title="if path not taken" >I</span>require(!markets[_market]);
-<span class="cstat-no" title="statement not covered" >        require(msg.sender == factory || msg.sender == owner)</span>;
-<span class="cstat-no" title="statement not covered" >        allMarkets.push(_market)</span>;
-<span class="cstat-no" title="statement not covered" >        markets[_market] = true</span>;
+    function supportMarket(address _market) external {
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(!markets[_market]);
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(msg.sender == factory || msg.sender == owner);
+        allMarkets.push(_market);
+        markets[_market] = true;
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function setCDS(address _address, address _target) external {</span>
-<span class="cstat-no" title="statement not covered" >        require(msg.sender == owner, "dev: only owner")</span>;
-<span class="cstat-no" title="statement not covered" >        cds[_address] = _target</span>;
+    function setCDS(address _address, address _target) external {
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(msg.sender == owner, "dev: only owner");
+        cds[_address] = _target;
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function getCDS(address _address) external view returns (address) {</span>
-<span class="cstat-no" title="statement not covered" >        if (cds[_address] == address(0)) {</span>
-<span class="cstat-no" title="statement not covered" >            return cds[address(0)];</span>
+    function getCDS(address _address) external view returns (address) {
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (cds[_address] == address(0)) {
+            return cds[address(0)];
         } else {
 <span class="cstat-no" title="statement not covered" >            return cds[_address];</span>
         }
     }
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function isListed(address _market) external view returns (bool) {</span>
-<span class="cstat-no" title="statement not covered" >        return markets[_market];</span>
+    function isListed(address _market) external view returns (bool) {
+        return markets[_market];
     }
 &nbsp;
 <span class="fstat-no" title="function not covered" >    function getAllMarkets() external view returns (address[] memory) {</span>
@@ -310,7 +310,7 @@ contract Registry {
 </div><!-- /wrapper -->
 <div class='footer quiet pad2 space-top1 center small'>
   Code coverage
-  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Tue Jun 15 2021 22:31:59 GMT+0900 (Japan Standard Time)
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Jun 24 2021 16:44:00 GMT+0900 (Japan Standard Time)
 </div>
 </div>
 <script src="../prettify.js"></script>

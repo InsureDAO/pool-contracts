@@ -1,5 +1,8 @@
 pragma solidity ^0.6.0;
-
+/**
+ * @author kohshiba
+ * @title InsureDAO vault contract
+ */
 import "./libraries/tokens/IERC20.sol";
 import "./libraries/tokens/SafeERC20.sol";
 import "./libraries/math/SafeMath.sol";
@@ -11,16 +14,17 @@ contract Vault {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
+    /**
+     * Storage
+     */
 
     IERC20 public token;
     IController public controller;
     IRegistry public registry;
 
-    uint256 public min = 9500;
-    uint256 public constant max = 10000;
-
     mapping(address => uint256) public attributions;
     uint256 public totalAttributions;
+    uint256 public debt;
 
     address public owner;
     address public future_owner;
@@ -41,12 +45,23 @@ contract Vault {
         owner = msg.sender;
     }
 
+    /**
+     * Vault Functions
+     */
+
+    /**
+     * @notice A registered contract can deposit collateral and get attribution point in return
+     */
+
     function addValue(
         uint256 _amount,
         address _from,
         address _beneficiary
     ) external returns (uint256 _attributions) {
-        require(IRegistry(registry).isListed(msg.sender), "not registered");
+        require(
+            IRegistry(registry).isListed(msg.sender),
+            "ERROR_ADD-VALUE_BADCONDITOONS"
+        );
         uint256 _pool = valueAll();
         token.safeTransferFrom(_from, address(this), _amount);
         if (totalAttributions == 0) {
@@ -60,6 +75,10 @@ contract Vault {
         );
     }
 
+    /**
+     * @notice an address that has balance in the vault can withdraw underlying value
+     */
+
     function withdrawValue(uint256 _amount, address _to)
         external
         returns (uint256 _attributions)
@@ -67,7 +86,7 @@ contract Vault {
         require(
             attributions[msg.sender] > 0 &&
                 underlyingValue(msg.sender) >= _amount,
-            "check"
+            "ERROR_WITHDRAW-VALUE_BADCONDITOONS"
         );
         _attributions = totalAttributions.mul(_amount).div(valueAll());
         attributions[msg.sender] = attributions[msg.sender].sub(_attributions);
@@ -79,14 +98,18 @@ contract Vault {
         token.transfer(_to, _amount);
     }
 
+    /**
+     * @notice an address that has balance in the vault can transfer underlying value
+     */
+
     function transferValue(uint256 _amount, address _destination) external {
         require(
             attributions[msg.sender] > 0 &&
                 underlyingValue(msg.sender) >= _amount,
-            "exceeds"
+            "ERROR_TRANSFER-VALUE_BADCONDITOONS"
         );
         uint256 _targetAttribution =
-            _amount.mul(valueAll()).div(totalAttributions);
+            _amount.mul(totalAttributions).div(valueAll());
         attributions[msg.sender] = attributions[msg.sender].sub(
             _targetAttribution
         );
@@ -95,11 +118,17 @@ contract Vault {
         );
     }
 
+    /**
+     * @notice an address that has balance in the vault can withdraw value denominated in attribution
+     */
     function withdrawAttribution(uint256 _attribution, address _to)
         external
         returns (uint256 _retVal)
     {
-        require(attributions[msg.sender] > _attribution);
+        require(
+            attributions[msg.sender] > _attribution,
+            "ERROR_WITHDRAW-ATTRIBUTION_BADCONDITOONS"
+        );
         _retVal = _attribution.mul(valueAll()).div(totalAttributions);
         attributions[msg.sender] = attributions[msg.sender].sub(_attribution);
         if (available() < _retVal) {
@@ -109,14 +138,21 @@ contract Vault {
         token.transfer(_to, _retVal);
     }
 
+    /**
+     * @notice an address that has balance in the vault can withdraw all value
+     */
     function withdrawAllAttribution(address _to)
         external
         returns (uint256 _retVal)
     {
-        require(attributions[msg.sender] > 0);
+        require(
+            attributions[msg.sender] > 0,
+            "ERROR_WITHDRAW-ALL-ATTRIBUTION_BADCONDITOONS"
+        );
         _retVal = attributions[msg.sender].mul(valueAll()).div(
             totalAttributions
         );
+
         attributions[msg.sender] = 0;
         if (available() < _retVal) {
             uint256 _shortage = _retVal.sub(available());
@@ -125,40 +161,49 @@ contract Vault {
         token.transfer(_to, _retVal);
     }
 
+    /**
+     * @notice an address that has balance in the vault can transfer value denominated in attribution
+     */
     function transferAttribution(uint256 _amount, address _destination)
         external
     {
         require(
-            attributions[msg.sender] > 0 && attributions[msg.sender] >= _amount
+            attributions[msg.sender] > 0 && attributions[msg.sender] >= _amount,
+            "ERROR_TRANSFER-ATTRIBUTION_BADCONDITOONS"
         );
         attributions[msg.sender] = attributions[msg.sender].sub(_amount);
         attributions[_destination] = attributions[_destination].add(_amount);
     }
 
-    function utilize(address _reserve, uint256 _amount) external {
-        require(msg.sender == address(controller), "!controller");
-        require(_reserve != address(token), "token");
-        IERC20(_reserve).safeTransfer(address(controller), _amount);
+    /**
+     * @notice the controller can utilize all available stored funds
+     */
+    function utilize() external returns (uint256 _amount) {
+        _amount = available();
+        if (_amount > 0) {
+            token.safeTransfer(address(controller), _amount);
+            controller.earn(address(token), _amount);
+        }
     }
 
-    function _unutilize(uint256 _amount) internal {
-        IController(controller).withdraw(address(token), _amount);
-    }
-
-    function earn() public {
-        uint256 _bal = available();
-        token.safeTransfer(address(controller), _bal);
-        IController(controller).earn(address(token), _bal);
-    }
+    /**
+     * @notice get attribution number for the specified address
+     */
 
     function attributionOf(address _target) external view returns (uint256) {
         return attributions[_target];
     }
 
+    /**
+     * @notice get all attribution number for this contract
+     */
     function attributionAll() external view returns (uint256) {
         return totalAttributions;
     }
 
+    /**
+     * @notice Convert attribution number into underlying assset value
+     */
     function attributionValue(uint256 _attribution)
         external
         view
@@ -171,6 +216,9 @@ contract Vault {
         }
     }
 
+    /**
+     * @notice return underlying value of the specified address
+     */
     function underlyingValue(address _target) public view returns (uint256) {
         if (attributions[_target] > 0) {
             return valueAll().mul(attributions[_target]).div(totalAttributions);
@@ -179,32 +227,50 @@ contract Vault {
         }
     }
 
+    /**
+     * @notice return underlying value of this contract
+     */
     function valueAll() public view returns (uint256) {
-        return
-            token.balanceOf(address(this)).add(
-                IController(controller).balanceOf(address(token))
-            );
+        return token.balanceOf(address(this)).add(controller.valueAll());
     }
 
+    /**
+     * @notice admin function to set controller address
+     */
     function setController(address _controller) public {
         require(msg.sender == owner, "dev: only owner");
+        controller.migrate(address(_controller));
         controller = IController(_controller);
     }
 
-    function setMin(uint256 _min) external {
-        require(msg.sender == owner, "dev: only owner");
-        min = _min;
+    /**
+     * @notice internal function to unutilize the funds and keep utilization rate
+     */
+    function _unutilize(uint256 _amount) internal {
+        controller.withdraw(address(this), _amount);
     }
 
+    /**
+     * @notice return how much funds in this contract is available to be utilized
+     */
     function available() public view returns (uint256) {
-        return token.balanceOf(address(this)).mul(min).div(max);
+        return token.balanceOf(address(this));
     }
 
+    /**
+     * @notice return how much price for each attribution
+     */
     function getPricePerFullShare() public view returns (uint256) {
         return valueAll().mul(1e18).div(totalAttributions);
     }
 
-    //----- ownership -----//
+    /**
+     * Ownership Functions
+     */
+
+    /**
+     * @notice Commit ownership change transaction
+     */
     function commit_transfer_ownership(address _owner) external {
         require(msg.sender == owner, "dev: only owner");
         require(transfer_ownership_deadline == 0, "dev: active transfer");
@@ -216,6 +282,9 @@ contract Vault {
         emit CommitNewAdmin(_deadline, _owner);
     }
 
+    /**
+     * @notice Execute ownership change transaction
+     */
     function apply_transfer_ownership() external {
         require(msg.sender == owner, "dev: only owner");
         require(

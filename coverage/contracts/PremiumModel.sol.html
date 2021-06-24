@@ -20,28 +20,28 @@
     </h1>
     <div class='clearfix'>
       <div class='fl pad1y space-right2'>
-        <span class="strong">0% </span>
+        <span class="strong">88.89% </span>
         <span class="quiet">Statements</span>
-        <span class='fraction'>0/9</span>
+        <span class='fraction'>8/9</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">0% </span>
+        <span class="strong">50% </span>
         <span class="quiet">Branches</span>
-        <span class='fraction'>0/2</span>
+        <span class='fraction'>1/2</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">0% </span>
+        <span class="strong">100% </span>
         <span class="quiet">Functions</span>
-        <span class='fraction'>0/2</span>
+        <span class='fraction'>2/2</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">0% </span>
+        <span class="strong">88.89% </span>
         <span class="quiet">Lines</span>
-        <span class='fraction'>0/9</span>
+        <span class='fraction'>8/9</span>
       </div>
     </div>
   </div>
-  <div class='status-line low'></div>
+  <div class='status-line high'></div>
 <pre><table class="coverage">
 <tr><td class="line-count quiet">1
 2
@@ -113,23 +113,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">31×</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">31×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -137,12 +125,24 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">31×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">80×</span>
+<span class="cline-any cline-yes">80×</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">pragma solidity ^0.6.0;
@@ -158,17 +158,17 @@ contract PremiumModel is Ownable {
     uint256 public _multiplier;
     uint256 public _baseRate;
 &nbsp;
-<span class="fstat-no" title="function not covered" >    function getPremium(</span>
+    function getPremium(
         uint256 _amount,
         uint256 _term,
         uint256 _totalLiquidity,
         uint256 _lockedAmount
     ) external view returns (uint256) {
-<span class="cstat-no" title="statement not covered" >        if (_amount == 0) {</span>
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (_amount == 0) {
 <span class="cstat-no" title="statement not covered" >            return 0;</span>
         }
         // 1) Calculate utilization rate
-<span class="cstat-no" title="statement not covered" >        uint256 _util =</span>
+        uint256 _util =
             _lockedAmount
                 .add(_amount)
                 .add(_lockedAmount)
@@ -176,11 +176,11 @@ contract PremiumModel is Ownable {
                 .div(_totalLiquidity)
                 .div(2);
         // 2) Calculate premium
-<span class="cstat-no" title="statement not covered" >        uint256 _premium = _amount.mul(_multiplier).mul(_util).div(1e10);</span>
-<span class="cstat-no" title="statement not covered" >        _premium = _amount.mul(_baseRate).div(1e5).add(_premium)</span>;
-<span class="cstat-no" title="statement not covered" >        _premium = _premium.mul(_term).div(365 days)</span>;
+        uint256 _premium = _amount.mul(_multiplier).mul(_util).div(1e10);
+        _premium = _amount.mul(_baseRate).div(1e5).add(_premium);
+        _premium = _premium.mul(_term).div(365 days);
         // 3) Return premium
-<span class="cstat-no" title="statement not covered" >        return _premium;</span>
+        return _premium;
     }
 &nbsp;
     /**
@@ -188,12 +188,12 @@ contract PremiumModel is Ownable {
      * @param _baseRatePerYear The approximate target base APR, as a mantissa (scaled by 1e18)
      * @param _multiplierPerYear The rate of increase in premium rate wrt utilization (scaled by 1e18)
      */
-<span class="fstat-no" title="function not covered" >    function setPremium(uint256 _baseRatePerYear, uint256 _multiplierPerYear)</span>
+    function setPremium(uint256 _baseRatePerYear, uint256 _multiplierPerYear)
         external
         onlyOwner
     {
-<span class="cstat-no" title="statement not covered" >        _baseRate = _baseRatePerYear</span>;
-<span class="cstat-no" title="statement not covered" >        _multiplier = _multiplierPerYear</span>;
+        _baseRate = _baseRatePerYear;
+        _multiplier = _multiplierPerYear;
     }
 }
 &nbsp;</pre></td></tr>
@@ -202,7 +202,7 @@ contract PremiumModel is Ownable {
 </div><!-- /wrapper -->
 <div class='footer quiet pad2 space-top1 center small'>
   Code coverage
-  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Tue Jun 15 2021 22:31:59 GMT+0900 (Japan Standard Time)
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Jun 24 2021 16:44:00 GMT+0900 (Japan Standard Time)
 </div>
 </div>
 <script src="../prettify.js"></script>

@@ -28,4 +28,6 @@ interface IVault {
         external
         view
         returns (uint256);
+
+    function utilize() external returns (uint256 _amount);
 }
