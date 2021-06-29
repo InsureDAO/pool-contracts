@@ -6,6 +6,9 @@ require("hardhat-contract-sizer");
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
+const fs = require("fs");
+const key = fs.readFileSync(".key").toString().trim();
+const infuraKey = fs.readFileSync(".infuraKey").toString().trim();
 
 module.exports = {
   solidity: "0.6.12",
@@ -13,8 +16,8 @@ module.exports = {
   networks: {
     hardhat: {},
     rinkeby: {
-      url: "https://eth-mainnet.alchemyapi.io/v2/123abc123abc123abc123abc123abcde",
-      //accounts: [privateKey1, privateKey2, ...]
+      url: `https://rinkeby.infura.io/v3/${infuraKey}`,
+      accounts: [`0x${key}`],
     },
   },
   solidity: {

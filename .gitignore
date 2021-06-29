@@ -3,6 +3,7 @@ bin/
 migrations/2_deploy_contracts.js
 .infuraKey
 .mnemonic
+.key
 .soliumignore
 .soliumrc.json
 .DS_Store
