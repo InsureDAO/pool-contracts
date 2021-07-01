@@ -68,6 +68,7 @@ async function main() {
   await factory.approveTemplate(poolTemplate.address, true, false);
   await factory.approveTemplate(indexTemplate.address, true, false);
   await factory.approveTemplate(cdsTemplate.address, true, false);
+  console.log("parameters configured 0");
   await factory.approveReference(
     poolTemplate.address,
     0,
@@ -122,7 +123,7 @@ async function main() {
   await parameters.setFeeModel(ZERO_ADDRESS, fee.address);
   await parameters.setWithdrawable(ZERO_ADDRESS, "86400000");
   console.log("parameters configured 2");
-  await factory.createMarket(
+  let tx = await factory.createMarket(
     poolTemplate.address,
     "Here is metadata.",
     "test-name",
@@ -131,7 +132,8 @@ async function main() {
     [0, 0],
     [parameters.address, vault.address, registry.address]
   );
-  await factory.createMarket(
+  await tx.wait();
+  tx = await factory.createMarket(
     poolTemplate.address,
     "Here is metadata.",
     "test-name",
@@ -140,12 +142,14 @@ async function main() {
     [0, 0],
     [parameters.address, vault.address, registry.address]
   );
+  await tx.wait();
   const marketAddress1 = await factory.markets(0);
   const marketAddress2 = await factory.markets(1);
   market1 = await PoolTemplate.attach(marketAddress1);
   market2 = await PoolTemplate.attach(marketAddress2);
-  console.log("pools deployed");
-  await factory.createMarket(
+  console.log("pool1 deployed to", market1.address);
+  console.log("pool2 deployed to", market2.address);
+  tx = await factory.createMarket(
     cdsTemplate.address,
     "Here is metadata.",
     "test-name",
@@ -154,8 +158,8 @@ async function main() {
     [],
     [parameters.address, vault.address, registry.address, creator.address]
   );
-  console.log("cds deployed");
-  await factory.createMarket(
+  await tx.wait();
+  tx = await factory.createMarket(
     indexTemplate.address,
     "Here is metadata.",
     "test-name",
@@ -164,12 +168,13 @@ async function main() {
     [],
     [parameters.address, vault.address, registry.address]
   );
-  console.log("index deployed");
-
+  await tx.wait();
   const marketAddress3 = await factory.markets(2);
   const marketAddress4 = await factory.markets(3);
   cds = await CDS.attach(marketAddress3);
   index = await IndexTemplate.attach(marketAddress4);
+  console.log("cds deployed to", marketAddress3);
+  console.log("index deployed to", marketAddress4);
   await registry.setCDS(ZERO_ADDRESS, cds.address);
   await index.set(market1.address, "1000");
   await index.set(market2.address, "1000");
