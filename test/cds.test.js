@@ -214,7 +214,7 @@ describe("CDS", function () {
 
     describe("total supply", function () {
       it("returns the total amount of tokens", async function () {
-        expect(await cds.totalSupply()).to.equal("30253");
+        expect(await cds.totalSupply()).to.equal("29700");
       });
     });
 
@@ -227,7 +227,7 @@ describe("CDS", function () {
 
       context("when the requested account has some tokens", function () {
         it("returns the total amount of tokens", async function () {
-          expect(await cds.balanceOf(alice.address)).to.equal("10000");
+          expect(await cds.balanceOf(alice.address)).to.equal("9900");
         });
       });
     });
@@ -237,16 +237,16 @@ describe("CDS", function () {
         context("when the sender does not have enough balance", function () {
           it("reverts", async function () {
             await expect(
-              cds.connect(alice).transfer(tom.address, "10001")
+              cds.connect(alice).transfer(tom.address, "9901")
             ).to.revertedWith("SafeMath: subtraction overflow");
           });
         });
 
         context("when the sender has enough balance", function () {
           it("transfers the requested amount", async function () {
-            await cds.connect(alice).transfer(tom.address, "10000");
+            await cds.connect(alice).transfer(tom.address, "9900");
             expect(await cds.balanceOf(alice.address)).to.equal("0");
-            expect(await cds.balanceOf(tom.address)).to.equal("10000");
+            expect(await cds.balanceOf(tom.address)).to.equal("9900");
           });
         });
       });
@@ -266,15 +266,15 @@ describe("CDS", function () {
       expect(await cds.totalSupply()).to.equal("0");
       expect(await cds.totalLiquidity()).to.equal("0");
       await cds.connect(alice).deposit("10000");
-      await cds.connect(alice).requestWithdraw("10000");
-      expect(await cds.totalSupply()).to.equal("10000");
+      await cds.connect(alice).requestWithdraw("9900");
+      expect(await cds.totalSupply()).to.equal("9900");
       expect(await cds.totalLiquidity()).to.equal("9900");
       expect(await vault.valueAll()).to.equal("10000");
       expect(await vault.totalAttributions()).to.equal("10000");
       expect(await vault.underlyingValue(cds.address)).to.equal("9900");
       expect(await vault.attributions(cds.address)).to.equal("9900");
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
-      await cds.connect(alice).withdraw("10000");
+      await cds.connect(alice).withdraw("9900");
       expect(await cds.totalSupply()).to.equal("0");
       expect(await cds.totalLiquidity()).to.equal("0");
     });
@@ -284,7 +284,7 @@ describe("CDS", function () {
       expect(await cds.totalSupply()).to.equal("0");
       expect(await cds.totalLiquidity()).to.equal("0");
       await cds.connect(alice).deposit("10000");
-      await cds.connect(alice).requestWithdraw("10000");
+      await cds.connect(alice).requestWithdraw("9900");
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(cds.connect(alice).withdraw("20000")).to.revertedWith(
         "ERROR: WITHDRAWAL_BAD_CONDITIONS"
@@ -296,7 +296,7 @@ describe("CDS", function () {
       expect(await cds.totalSupply()).to.equal("0");
       expect(await cds.totalLiquidity()).to.equal("0");
       await cds.connect(alice).deposit("10000");
-      await cds.connect(alice).requestWithdraw("10000");
+      await cds.connect(alice).requestWithdraw("9900");
 
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(cds.connect(alice).withdraw("0")).to.revertedWith(
@@ -309,8 +309,8 @@ describe("CDS", function () {
       expect(await cds.totalSupply()).to.equal("0");
       expect(await cds.totalLiquidity()).to.equal("0");
       await cds.connect(alice).deposit("10000");
-      await cds.connect(alice).requestWithdraw("10000");
-      await expect(cds.connect(alice).withdraw("10000")).to.revertedWith(
+      await cds.connect(alice).requestWithdraw("9900");
+      await expect(cds.connect(alice).withdraw("9900")).to.revertedWith(
         "ERROR: WITHDRAWAL_BAD_CONDITIONS"
       );
     });
@@ -321,7 +321,7 @@ describe("CDS", function () {
       expect(await cds.totalSupply()).to.equal("0");
       expect(await cds.totalLiquidity()).to.equal("0");
       await cds.connect(alice).deposit("10000");
-      await cds.connect(alice).requestWithdraw("10000");
+      await cds.connect(alice).requestWithdraw("9900");
       await index.connect(bob).deposit("10000");
 
       expect(await dai.balanceOf(bob.address)).to.closeTo("90000", "5"); //verify
@@ -332,7 +332,7 @@ describe("CDS", function () {
       );
       //withdrawal also harvest accrued premium
       await ethers.provider.send("evm_increaseTime", [86400 * 10]);
-      await cds.connect(alice).withdraw("10000");
+      await cds.connect(alice).withdraw("9900");
       //Harvested premium is reflected on their account balance
       expect(await dai.balanceOf(alice.address)).to.closeTo("100100", "3"); //verify
     });
@@ -340,8 +340,8 @@ describe("CDS", function () {
     it("DISABLE deposit when locked(withdrawal is possible)", async function () {
       await dai.connect(alice).approve(vault.address, 20000);
       await cds.connect(alice).deposit("10000");
-      await cds.connect(alice).requestWithdraw("10000");
-      expect(await cds.totalSupply()).to.equal("10000");
+      await cds.connect(alice).requestWithdraw("9900");
+      expect(await cds.totalSupply()).to.equal("9900");
       expect(await cds.totalLiquidity()).to.equal("9900");
       await cds.setPaused(true);
       await expect(cds.connect(alice).deposit("10000")).to.revertedWith(
@@ -352,11 +352,11 @@ describe("CDS", function () {
     it("devaluate underlying when cover claim is accepted", async function () {
       await dai.connect(alice).approve(vault.address, 20000);
       await cds.connect(alice).deposit("10000");
-      await cds.connect(alice).requestWithdraw("10000");
-      expect(await cds.totalSupply()).to.equal("10000");
+      await cds.connect(alice).requestWithdraw("9900");
+      expect(await cds.totalSupply()).to.equal("9900");
       expect(await cds.totalLiquidity()).to.equal("9900");
       await index.connect(alice).deposit("1000");
-      expect(await index.totalSupply()).to.equal("1000");
+      expect(await index.totalSupply()).to.equal("970");
       expect(await index.totalLiquidity()).to.equal("970");
       expect(await market1.totalLiquidity()).to.equal("19400");
       expect(await cds.totalLiquidity()).to.equal("9920");
@@ -390,7 +390,7 @@ describe("CDS", function () {
       );
 
       expect(await dai.balanceOf(bob.address)).to.closeTo("104473", "2");
-      expect(await index.totalSupply()).to.equal("1000");
+      expect(await index.totalSupply()).to.equal("970");
       expect(await market1.totalLiquidity()).to.closeTo("0", "1");
       expect(await index.totalLiquidity()).to.closeTo("0", "1");
       expect(await cds.totalLiquidity()).to.closeTo("6415", "1");
@@ -398,7 +398,7 @@ describe("CDS", function () {
 
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
       await market1.resume();
-      await cds.connect(alice).withdraw("10000");
+      await cds.connect(alice).withdraw("9900");
       expect(await dai.balanceOf(alice.address)).to.closeTo("95415", "3"); //verify
       expect(await dai.balanceOf(bob.address)).to.closeTo("104473", "3"); //verify
     });

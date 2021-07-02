@@ -149,11 +149,11 @@ contract CDS is IERC20 {
 
         //Calculate iToken value
         if (_supply > 0 && _totalLiquidity > 0) {
-            _mintAmount = _amount.mul(_supply).div(_totalLiquidity);
+            _mintAmount = _add.mul(_supply).div(_totalLiquidity);
         } else if (_supply > 0 && _totalLiquidity == 0) {
-            _mintAmount = _amount.div(_supply);
+            _mintAmount = _add.div(_supply);
         } else {
-            _mintAmount = _amount;
+            _mintAmount = _add;
         }
 
         emit Deposit(
