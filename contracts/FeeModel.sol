@@ -10,13 +10,8 @@ contract FeeModel is Ownable {
 
     uint256 public _feeRate;
 
-    function getFee(
-        uint256 _amount,
-        uint256 _term,
-        uint256 _totalLiquidity,
-        uint256 _lockedAmount
-    ) external view returns (uint256) {
-        return _amount.mul(_feeRate).mul(_term).div(365 days).div(100000);
+    function getFee(uint256 _premium) external view returns (uint256) {
+        return _premium.mul(_feeRate).div(100000);
     }
 
     function setFee(uint256 _target) external onlyOwner {

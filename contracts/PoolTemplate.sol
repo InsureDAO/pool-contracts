@@ -394,15 +394,15 @@ contract PoolTemplate is IERC20 {
         //Distribute premium and fee
         uint256 _span = _endTime.sub(now);
         uint256 _premium = getPremium(_amount, _span);
-        uint256 _fee = getFee(_amount, _span);
-        uint256 _cost = _premium.add(_fee);
+        uint256 _fee = parameters.getFee(_premium);
+        uint256 _deducted = _premium.add(_fee);
 
         require(
             marketStatus == MarketStatus.Trading &&
                 paused == false &&
                 _amount <= availableBalance() &&
                 _span <= 365 days &&
-                _cost <= _maxCost &&
+                _premium <= _maxCost &&
                 parameters.getMin() <= _span,
             "ERROR: INSURE_BAD_CONDITIONS"
         );
@@ -411,7 +411,7 @@ contract PoolTemplate is IERC20 {
         vault.addValue(_fee, msg.sender, parameters.get_owner());
         //accrue premium
         uint256 _newAttribution =
-            vault.addValue(_premium, msg.sender, address(this));
+            vault.addValue(_deducted, msg.sender, address(this));
 
         //Lock covered amount
         uint256 _id = insurances.length;
@@ -533,19 +533,6 @@ contract PoolTemplate is IERC20 {
                 totalLiquidity(),
                 lockedAmount
             );
-    }
-
-    /**
-     * @notice Get how much fee for the specified amound and span
-     */
-
-    function getFee(uint256 _amount, uint256 _span)
-        public
-        view
-        returns (uint256 fee)
-    {
-        return
-            parameters.getFee(_amount, _span, totalLiquidity(), lockedAmount);
     }
 
     /**

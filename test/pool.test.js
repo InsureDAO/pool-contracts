@@ -63,7 +63,7 @@ describe("Pool", function () {
     );
 
     await premium.setPremium("2000", "50000");
-    await fee.setFee("1000");
+    await fee.setFee("10000");
     await parameters.setPremium2(ZERO_ADDRESS, "2000");
     await parameters.setFee2(ZERO_ADDRESS, "1000");
     await parameters.setGrace(ZERO_ADDRESS, "259200");
@@ -207,18 +207,9 @@ describe("Pool", function () {
       });
     });
     describe("get fee", function () {
-      context("365 days", function () {
+      context("100000", function () {
         it("returns fee", async function () {
-          expect(
-            await parameters.getFee("100000", "31536000", "1000000", "500000")
-          ).to.equal("1000");
-        });
-      });
-      context("30 days", function () {
-        it("returns fee", async function () {
-          expect(
-            await parameters.getFee("100000", "2592000", "1000000", "500000")
-          ).to.equal("82");
+          expect(await parameters.getFee("100000")).to.equal("10000");
         });
       });
     });
@@ -353,12 +344,12 @@ describe("Pool", function () {
       );
       await ethers.provider.send("evm_increaseTime", [86400 * 12]);
       await market.unlock("0");
-      expect(await vault.attributions(market.address)).to.equal("10059");
-      expect(await vault.attributions(creator.address)).to.equal("2");
-      expect(await vault.totalAttributions()).to.equal("10061");
+      expect(await vault.attributions(market.address)).to.equal("10064");
+      expect(await vault.attributions(creator.address)).to.equal("5");
+      expect(await vault.totalAttributions()).to.equal("10069");
       await market.connect(alice).withdraw("10000");
       expect(await market.totalLiquidity()).to.equal("0");
-      expect(await vault.totalAttributions()).to.equal("2");
+      expect(await vault.totalAttributions()).to.equal("5");
     });
 
     it("also decrease withdrawal request when transefered", async function () {
@@ -404,15 +395,15 @@ describe("Pool", function () {
         );
 
       //Alice should have accrued premium paid by Bob
-      expect(await dai.balanceOf(bob.address)).to.closeTo("97203", "3"); //verify
+      expect(await dai.balanceOf(bob.address)).to.closeTo("96765", "3"); //verify
       expect(await market.valueOfUnderlying(alice.address)).to.closeTo(
-        "12698",
+        "12966",
         "1"
       ); //verify
       //additional deposit by Chad, which does not grant any right to withdraw premium before deposit
       await dai.connect(chad).approve(vault.address, 10000);
       await market.connect(chad).deposit("10000");
-      expect(await market.balanceOf(chad.address)).to.closeTo("7875", "3");
+      expect(await market.balanceOf(chad.address)).to.closeTo("7712", "3");
       expect(await market.valueOfUnderlying(chad.address)).to.closeTo(
         "10000",
         "1"
@@ -431,13 +422,13 @@ describe("Pool", function () {
           endTime,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         ); //premium = 3,601//verify
-      expect(await dai.balanceOf(bob.address)).to.closeTo("93600", "5"); //verify
+      expect(await dai.balanceOf(bob.address)).to.closeTo("92610", "5"); //verify
       expect(await market.valueOfUnderlying(alice.address)).to.closeTo(
-        "14656",
+        "15116",
         "5"
       ); //verify
       expect(await market.valueOfUnderlying(chad.address)).to.closeTo(
-        "11543",
+        "11658",
         "5"
       ); //verify
       //withdrawal also harvest accrued premium
@@ -447,7 +438,7 @@ describe("Pool", function () {
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await market.connect(alice).withdraw("10000");
       //Harvested premium is reflected on their account balance
-      expect(await dai.balanceOf(alice.address)).to.closeTo("104658", "5"); //verify
+      expect(await dai.balanceOf(alice.address)).to.closeTo("105115", "5"); //verify
       expect(await dai.balanceOf(chad.address)).to.closeTo("90000", "5"); //verify
     });
 
@@ -532,17 +523,17 @@ describe("Pool", function () {
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );
       expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.closeTo("5060", "1");
+      expect(await market.totalLiquidity()).to.closeTo("5065", "1");
       expect(await market.valueOfUnderlying(alice.address)).to.closeTo(
-        "5060",
+        "5065",
         "1"
       );
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
       await market.resume();
 
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.closeTo("95060", "3"); //verify
-      expect(await dai.balanceOf(bob.address)).to.closeTo("104940", "3"); //verify
+      expect(await dai.balanceOf(alice.address)).to.closeTo("95065", "3"); //verify
+      expect(await dai.balanceOf(bob.address)).to.closeTo("104930", "3"); //verify
 
       //Simulation: full payout
       await market.connect(alice).deposit("10000");
@@ -572,13 +563,13 @@ describe("Pool", function () {
       await market.connect(bob).redeem("1");
 
       expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("60");
-      expect(await market.valueOfUnderlying(alice.address)).to.equal("60");
+      expect(await market.totalLiquidity()).to.equal("65");
+      expect(await market.valueOfUnderlying(alice.address)).to.equal("65");
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
       await market.resume();
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.closeTo("85120", "3"); //verify
-      expect(await dai.balanceOf(bob.address)).to.closeTo("114876", "3"); //verify
+      expect(await dai.balanceOf(alice.address)).to.closeTo("85130", "3"); //verify
+      expect(await dai.balanceOf(bob.address)).to.closeTo("114860", "3"); //verify
     });
   });
 
@@ -617,8 +608,8 @@ describe("Pool", function () {
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.equal("95060");
-      expect(await dai.balanceOf(bob.address)).to.equal("104938");
+      expect(await dai.balanceOf(alice.address)).to.equal("95065");
+      expect(await dai.balanceOf(bob.address)).to.equal("104930");
     });
 
     it("calculate premium", async function () {
@@ -627,14 +618,6 @@ describe("Pool", function () {
       await market.connect(alice).requestWithdraw("10000");
       let duration = 86400 * 365;
       expect(await market.getPremium("1000", duration)).to.equal("45");
-    });
-
-    it("calculate fee", async function () {
-      await dai.connect(alice).approve(vault.address, 20000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
-      let duration = 86400 * 365;
-      expect(await market.getFee("1000", duration)).to.equal("10");
     });
 
     it("allows insurance transfer", async function () {
@@ -667,7 +650,7 @@ describe("Pool", function () {
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
       await market.resume();
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.equal("95060");
+      expect(await dai.balanceOf(alice.address)).to.equal("95065");
       expect(await dai.balanceOf(tom.address)).to.equal("4999");
     });
 
@@ -729,7 +712,7 @@ describe("Pool", function () {
       );
       await market.unlock("0");
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.equal("100059");
+      expect(await dai.balanceOf(alice.address)).to.equal("100064");
     });
 
     it("DISALLOWS getting insured when paused, reporting, or payingout", async function () {
@@ -937,7 +920,7 @@ describe("Pool", function () {
       expect(await market.allInsuranceCount()).to.equal("2");
       expect(await market.getInsuranceCount(bob.address)).to.equal("1");
       expect(await market.getInsuranceCount(chad.address)).to.equal("1");
-      expect(await market.utilizationRate()).to.equal("46663244");
+      expect(await market.utilizationRate()).to.equal("46358199");
     });
   });
 

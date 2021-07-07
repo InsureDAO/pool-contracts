@@ -38,12 +38,7 @@ abstract contract IParameters {
         uint256 _lockedAmount
     ) external view virtual returns (uint256);
 
-    function getFee(
-        uint256 _amount,
-        uint256 _term,
-        uint256 _totalLiquidity,
-        uint256 _lockedAmount
-    ) external view virtual returns (uint256);
+    function getFee(uint256 _amount) external view virtual returns (uint256);
 
     function getLockup() external view virtual returns (uint256);
 

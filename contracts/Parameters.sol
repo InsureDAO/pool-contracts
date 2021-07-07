@@ -195,26 +195,17 @@ contract Parameters is IParameters {
     }
 
     function getFee(
-        uint256 _amount,
-        uint256 _term,
-        uint256 _totalLiquidity,
-        uint256 _lockedAmount
+        uint256 _amount
+        
     ) external view override returns (uint256) {
         if (_fee[msg.sender] == address(0)) {
             return
                 IFeeModel(_fee[address(0)]).getFee(
-                    _amount,
-                    _term,
-                    _totalLiquidity,
-                    _lockedAmount
-                );
+                    _amount        );
         } else {
             return
                 IFeeModel(_fee[msg.sender]).getFee(
-                    _amount,
-                    _term,
-                    _totalLiquidity,
-                    _lockedAmount
+                    _amount
                 );
         }
     }
