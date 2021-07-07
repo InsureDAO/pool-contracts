@@ -20,7 +20,7 @@ contract PremiumModel is Ownable {
         if (_amount == 0) {
             return 0;
         }
-        // 1) Calculate utilization rate
+        // 1) Calculate premium multiplier
         uint256 _util =
             _lockedAmount
                 .add(_amount)
@@ -28,18 +28,19 @@ contract PremiumModel is Ownable {
                 .mul(1e5)
                 .div(_totalLiquidity)
                 .div(2);
-        // 2) Calculate premium
         uint256 _premium = _amount.mul(_multiplier).mul(_util).div(1e10);
+        // 2) add base premium
         _premium = _amount.mul(_baseRate).div(1e5).add(_premium);
+        // 3) adjust premium for daily basis
         _premium = _premium.mul(_term).div(365 days);
-        // 3) Return premium
+        // 4) Return premium
         return _premium;
     }
 
     /**
      * @notice Set a premium model
-     * @param _baseRatePerYear The approximate target base APR, as a mantissa (scaled by 1e18)
-     * @param _multiplierPerYear The rate of increase in premium rate wrt utilization (scaled by 1e18)
+     * @param _baseRatePerYear The approximate target base premium (scaled by 1e5)
+     * @param _multiplierPerYear The rate of mixmum premium(scaled by 1e5)
      */
     function setPremium(uint256 _baseRatePerYear, uint256 _multiplierPerYear)
         external
