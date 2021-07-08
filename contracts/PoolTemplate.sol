@@ -395,7 +395,7 @@ contract PoolTemplate is IERC20 {
         uint256 _span = _endTime.sub(now);
         uint256 _premium = getPremium(_amount, _span);
         uint256 _fee = parameters.getFee(_premium);
-        uint256 _deducted = _premium.add(_fee);
+        uint256 _deducted = _premium.sub(_fee);
 
         require(
             marketStatus == MarketStatus.Trading &&

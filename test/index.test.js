@@ -349,7 +349,7 @@ describe("Index", function () {
       expect(await market1.utilizationRate()).to.equal("99990000");
       expect(await market2.utilizationRate()).to.equal("0");
 
-      expect(await index.withdrawable()).to.equal("2966");
+      expect(await index.withdrawable()).to.equal("2428");
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(index.connect(alice).withdraw("10000")).to.revertedWith(
         "ERROR: WITHDRAWAL_BAD_CONDITIONS"
@@ -375,10 +375,10 @@ describe("Index", function () {
           endTime,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
-      expect(await dai.balanceOf(bob.address)).to.closeTo("96765", "5"); //verify
-      expect(await index.totalLiquidity()).to.closeTo("12966", "5");
+      expect(await dai.balanceOf(bob.address)).to.closeTo("97303", "5"); //verify
+      expect(await index.totalLiquidity()).to.closeTo("12428", "5");
       expect(await market1.pendingPremium(index.address)).to.closeTo(
-        "2966",
+        "2428",
         "5"
       ); //verify
       //withdrawal also harvest accrued premium
@@ -388,7 +388,7 @@ describe("Index", function () {
       await index.connect(alice).withdraw("10000");
 
       //Harvested premium is reflected on their account balance
-      expect(await dai.balanceOf(alice.address)).to.closeTo("102966", "3"); //verify
+      expect(await dai.balanceOf(alice.address)).to.closeTo("102428", "3"); //verify
     });
     it("also transfers lockup period when iToken is transferred", async function () {
       //deposit by Alice
@@ -486,7 +486,7 @@ describe("Index", function () {
           endTime,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
-      expect(await dai.balanceOf(bob.address)).to.closeTo("99930", "2");
+      expect(await dai.balanceOf(bob.address)).to.closeTo("99941", "2");
 
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
@@ -500,7 +500,7 @@ describe("Index", function () {
       );
       expect(await vault.underlyingValue(creator.address)).to.closeTo("5", "1");
       expect(await vault.underlyingValue(market1.address)).to.closeTo(
-        "65",
+        "54",
         "1"
       );
       expect(await market1.totalLiquidity()).to.closeTo("10000", "1");
@@ -512,28 +512,28 @@ describe("Index", function () {
 
       //expect(await dai.balanceOf(bob.address)).to.closeTo("104940", "1");
       expect(await index.totalSupply()).to.equal("10000");
-      expect(await index.totalLiquidity()).to.closeTo("5065", "1");
+      expect(await index.totalLiquidity()).to.closeTo("5054", "1");
 
-      expect(await index.totalAllocatedCredit()).to.closeTo("10128", "2");
+      expect(await index.totalAllocatedCredit()).to.closeTo("10108", "2");
       expect(await market2.allocatedCredit(index.address)).to.closeTo(
-        "5065",
+        "5054",
         "1"
       );
-      expect(await market2.totalLiquidity()).to.closeTo("5065", "1");
-      expect(await market1.totalLiquidity()).to.closeTo("5065", "1");
+      expect(await market2.totalLiquidity()).to.closeTo("5054", "1");
+      expect(await market1.totalLiquidity()).to.closeTo("5054", "1");
       expect(await vault.underlyingValue(index.address)).to.closeTo(
-        "5065",
+        "5054",
         "1"
       );
 
-      expect(await index.totalLiquidity()).to.closeTo("5065", "1");
+      expect(await index.totalLiquidity()).to.closeTo("5054", "1");
 
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
 
       await market1.resume();
       await index.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.closeTo("95064", "3"); //verify
-      expect(await dai.balanceOf(bob.address)).to.closeTo("104931", "3"); //verify
+      expect(await dai.balanceOf(alice.address)).to.closeTo("95054", "3"); //verify
+      expect(await dai.balanceOf(bob.address)).to.closeTo("104941", "3"); //verify
 
       //Simulation: full payout
       await index.connect(alice).deposit("10000");
@@ -562,16 +562,16 @@ describe("Index", function () {
       ]);
       await market1.connect(bob).redeem("1");
       expect(await index.totalSupply()).to.equal("10000");
-      expect(await index.totalLiquidity()).to.closeTo("65", "1");
+      expect(await index.totalLiquidity()).to.closeTo("54", "1");
       expect(await index.valueOfUnderlying(alice.address)).to.closeTo(
-        "65",
+        "54",
         "1"
       );
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
       await market1.resume();
       await index.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.closeTo("85128", "3"); //verify
-      expect(await dai.balanceOf(bob.address)).to.closeTo("114862", "3"); //verify
+      expect(await dai.balanceOf(alice.address)).to.closeTo("85108", "3"); //verify
+      expect(await dai.balanceOf(bob.address)).to.closeTo("114882", "3"); //verify
     });
   });
 
@@ -635,23 +635,23 @@ describe("Index", function () {
         );
       expect(await market1.totalLiquidity()).to.equal("10000");
       expect(await market1.availableBalance()).to.equal("1");
-      expect(await index.withdrawable()).to.equal("80");
+      expect(await index.withdrawable()).to.equal("66");
 
       await index.set(market3.address, "2000");
       expect(await index.totalSupply()).to.equal("10000");
-      expect(await index.totalLiquidity()).to.equal("10080");
+      expect(await index.totalLiquidity()).to.equal("10066");
       expect(await market1.totalLiquidity()).to.equal("9999");
-      expect(await market2.totalLiquidity()).to.closeTo("3387", "1");
+      expect(await market2.totalLiquidity()).to.closeTo("3377", "1");
       expect(await market1.allocatedCredit(index.address)).to.equal("9999");
       expect(await market2.allocatedCredit(index.address)).to.closeTo(
-        "3387",
+        "3377",
         "1"
       );
       expect(await market3.allocatedCredit(index.address)).to.closeTo(
-        "6774",
+        "6755",
         "1"
       );
-      expect(await market3.totalLiquidity()).to.closeTo("6774", "1");
+      expect(await market3.totalLiquidity()).to.closeTo("6755", "1");
     });
     it("allows pool removal", async function () {
       await index.set(market3.address, "1000");
@@ -781,24 +781,24 @@ describe("Index", function () {
         );
       expect(await market1.totalLiquidity()).to.equal("10000");
       expect(await market1.availableBalance()).to.equal("1");
-      expect(await index.withdrawable()).to.equal("80");
+      expect(await index.withdrawable()).to.equal("66");
       await index.setLeverage("2000"); //deleverage
       await index.adjustAlloc();
       expect(await index.totalSupply()).to.equal("10000");
-      expect(await index.totalLiquidity()).to.equal("10080");
+      expect(await index.totalLiquidity()).to.equal("10066");
       expect(await market1.allocatedCredit(index.address)).to.equal("9999");
-      expect(await market2.allocatedCredit(index.address)).to.equal("5080");
-      expect(await market3.allocatedCredit(index.address)).to.equal("5080");
-      expect(await index.totalAllocatedCredit()).to.equal("20159");
-      expect(await vault.valueAll()).to.equal("10087");
-      expect(await vault.totalAttributions()).to.equal("10087");
-      expect(await vault.underlyingValue(index.address)).to.equal("10080");
+      expect(await market2.allocatedCredit(index.address)).to.equal("5066");
+      expect(await market3.allocatedCredit(index.address)).to.equal("5066");
+      expect(await index.totalAllocatedCredit()).to.equal("20131");
+      expect(await vault.valueAll()).to.equal("10073");
+      expect(await vault.totalAttributions()).to.equal("10073");
+      expect(await vault.underlyingValue(index.address)).to.equal("10066");
       expect(await market1.availableBalance()).to.equal("0");
-      expect(await market2.availableBalance()).to.equal("5080");
-      expect(await market3.availableBalance()).to.equal("5080");
+      expect(await market2.availableBalance()).to.equal("5066");
+      expect(await market3.availableBalance()).to.equal("5066");
       expect(await index.leverage()).to.equal("1999");
       expect(await index.withdrawable()).to.equal("0");
-      expect(await vault.attributions(index.address)).to.equal("10080");
+      expect(await vault.attributions(index.address)).to.equal("10066");
     });
   });
 

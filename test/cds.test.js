@@ -376,7 +376,7 @@ describe("CDS", function () {
           endTime,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
-      expect(await dai.balanceOf(bob.address)).to.closeTo("99970", "2");
+      expect(await dai.balanceOf(bob.address)).to.closeTo("99974", "2");
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
@@ -389,18 +389,18 @@ describe("CDS", function () {
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );
 
-      expect(await dai.balanceOf(bob.address)).to.closeTo("104470", "2");
+      expect(await dai.balanceOf(bob.address)).to.closeTo("104474", "2");
       expect(await index.totalSupply()).to.equal("970");
       expect(await market1.totalLiquidity()).to.closeTo("0", "1");
       expect(await index.totalLiquidity()).to.closeTo("0", "1");
-      expect(await cds.totalLiquidity()).to.closeTo("6417", "1");
+      expect(await cds.totalLiquidity()).to.closeTo("6413", "1");
       expect(await vault.underlyingValue(index.address)).to.closeTo("0", "1");
 
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
       await market1.resume();
       await cds.connect(alice).withdraw("9900");
-      expect(await dai.balanceOf(alice.address)).to.closeTo("95415", "3"); //verify
-      expect(await dai.balanceOf(bob.address)).to.closeTo("104470", "3"); //verify
+      expect(await dai.balanceOf(alice.address)).to.closeTo("95415", "5"); //verify
+      expect(await dai.balanceOf(bob.address)).to.closeTo("104470", "5"); //verify
     });
   });
   describe("Admin functions", function () {

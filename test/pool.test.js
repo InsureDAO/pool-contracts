@@ -279,7 +279,6 @@ describe("Pool", function () {
         market.connect(alice).requestWithdraw("100000")
       ).to.revertedWith("ERROR: WITHDRAW_REQUEST_BAD_CONDITIONS");
     });
-
     it("DISABLES withdraw zero balance", async function () {
       await dai.connect(alice).approve(vault.address, 10000);
       await market.connect(alice).deposit("10000");
@@ -291,7 +290,6 @@ describe("Pool", function () {
         "ERROR: WITHDRAWAL_BAD_CONDITIONS"
       );
     });
-
     it("DISABLES withdraw when liquidity is locked for insurance", async function () {
       await dai.connect(alice).approve(vault.address, 10000);
       await market.connect(alice).deposit("10000");
@@ -316,7 +314,6 @@ describe("Pool", function () {
         "ERROR: WITHDRAWAL_BAD_CONDITIONS"
       );
     });
-
     it("allows unlock liquidity only after an insurance period over", async function () {
       await dai.connect(alice).approve(vault.address, 10000);
       await market.connect(alice).deposit("10000");
@@ -344,14 +341,13 @@ describe("Pool", function () {
       );
       await ethers.provider.send("evm_increaseTime", [86400 * 12]);
       await market.unlock("0");
-      expect(await vault.attributions(market.address)).to.equal("10064");
+      expect(await vault.attributions(market.address)).to.equal("10054");
       expect(await vault.attributions(creator.address)).to.equal("5");
-      expect(await vault.totalAttributions()).to.equal("10069");
+      expect(await vault.totalAttributions()).to.equal("10059");
       await market.connect(alice).withdraw("10000");
       expect(await market.totalLiquidity()).to.equal("0");
       expect(await vault.totalAttributions()).to.equal("5");
     });
-
     it("also decrease withdrawal request when transefered", async function () {
       await dai.connect(alice).approve(vault.address, 10000);
       await market.connect(alice).deposit("10000");
@@ -368,7 +364,6 @@ describe("Pool", function () {
       await market.connect(alice).withdraw("5000");
       expect(await market.totalLiquidity()).to.equal("5000");
     });
-
     it("accrues premium after deposit", async function () {
       //deposit by Alice
       await dai.connect(alice).approve(vault.address, 10000);
@@ -395,19 +390,22 @@ describe("Pool", function () {
         );
 
       //Alice should have accrued premium paid by Bob
-      expect(await dai.balanceOf(bob.address)).to.closeTo("96765", "3"); //verify
+      expect(await dai.balanceOf(bob.address)).to.closeTo("97303", "3"); //verify
       expect(await market.valueOfUnderlying(alice.address)).to.closeTo(
-        "12966",
-        "1"
+        "12428",
+        "3"
       ); //verify
+      expect(await market.totalLiquidity()).to.closeTo("12428", "3");
+      expect(await vault.attributions(creator.address)).to.closeTo("269", "3"); //verify
       //additional deposit by Chad, which does not grant any right to withdraw premium before deposit
       await dai.connect(chad).approve(vault.address, 10000);
       await market.connect(chad).deposit("10000");
-      expect(await market.balanceOf(chad.address)).to.closeTo("7712", "3");
+      expect(await market.balanceOf(chad.address)).to.closeTo("8046", "3");
       expect(await market.valueOfUnderlying(chad.address)).to.closeTo(
         "10000",
         "1"
       );
+      expect(await market.totalLiquidity()).to.closeTo("22428", "3");
       //the premium paid second time should be allocated to both Alice and Chad
       //but the premium paid first time should be directly go to Alice
       currentTimestamp = BigNumber.from(
@@ -421,16 +419,17 @@ describe("Pool", function () {
           "10000",
           endTime,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        ); //premium = 3,601//verify
-      expect(await dai.balanceOf(bob.address)).to.closeTo("92610", "5"); //verify
+        ); //premium = 3,543//verify
+      expect(await dai.balanceOf(bob.address)).to.closeTo("93762", "5"); //verify
       expect(await market.valueOfUnderlying(alice.address)).to.closeTo(
-        "15116",
+        "14194",
         "5"
       ); //verify
       expect(await market.valueOfUnderlying(chad.address)).to.closeTo(
-        "11658",
+        "11420",
         "5"
       ); //verify
+      expect(await market.totalLiquidity()).to.closeTo("25616", "3");
       //withdrawal also harvest accrued premium
       await ethers.provider.send("evm_increaseTime", [86400 * 369]);
       await market.connect(alice).requestWithdraw("10000");
@@ -438,7 +437,7 @@ describe("Pool", function () {
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await market.connect(alice).withdraw("10000");
       //Harvested premium is reflected on their account balance
-      expect(await dai.balanceOf(alice.address)).to.closeTo("105115", "5"); //verify
+      expect(await dai.balanceOf(alice.address)).to.closeTo("104193", "5"); //verify
       expect(await dai.balanceOf(chad.address)).to.closeTo("90000", "5"); //verify
     });
 
@@ -512,6 +511,9 @@ describe("Pool", function () {
           endTime,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
+      expect(await dai.balanceOf(bob.address)).to.closeTo("99941", "1"); //verify
+      expect(await vault.attributions(creator.address)).to.closeTo("5", "0"); //verify
+      expect(await vault.attributions(market.address)).to.closeTo("10054", "0"); //verify
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
@@ -523,17 +525,17 @@ describe("Pool", function () {
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );
       expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.closeTo("5065", "1");
+      expect(await market.totalLiquidity()).to.closeTo("5055", "1");
       expect(await market.valueOfUnderlying(alice.address)).to.closeTo(
-        "5065",
+        "5055",
         "1"
       );
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
       await market.resume();
 
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.closeTo("95065", "3"); //verify
-      expect(await dai.balanceOf(bob.address)).to.closeTo("104930", "3"); //verify
+      expect(await dai.balanceOf(alice.address)).to.closeTo("95055", "3"); //verify
+      expect(await dai.balanceOf(bob.address)).to.closeTo("104940", "3"); //verify
 
       //Simulation: full payout
       await market.connect(alice).deposit("10000");
@@ -563,13 +565,13 @@ describe("Pool", function () {
       await market.connect(bob).redeem("1");
 
       expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("65");
-      expect(await market.valueOfUnderlying(alice.address)).to.equal("65");
+      expect(await market.totalLiquidity()).to.equal("55");
+      expect(await market.valueOfUnderlying(alice.address)).to.equal("55");
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
       await market.resume();
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.closeTo("85130", "3"); //verify
-      expect(await dai.balanceOf(bob.address)).to.closeTo("114860", "3"); //verify
+      expect(await dai.balanceOf(alice.address)).to.closeTo("85110", "3"); //verify
+      expect(await dai.balanceOf(bob.address)).to.closeTo("114880", "3"); //verify
     });
   });
 
@@ -608,8 +610,8 @@ describe("Pool", function () {
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.equal("95065");
-      expect(await dai.balanceOf(bob.address)).to.equal("104930");
+      expect(await dai.balanceOf(alice.address)).to.closeTo("95055", "1");
+      expect(await dai.balanceOf(bob.address)).to.closeTo("104940", "1");
     });
 
     it("calculate premium", async function () {
@@ -650,7 +652,7 @@ describe("Pool", function () {
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
       await market.resume();
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.equal("95065");
+      expect(await dai.balanceOf(alice.address)).to.equal("95055");
       expect(await dai.balanceOf(tom.address)).to.equal("4999");
     });
 
@@ -712,7 +714,7 @@ describe("Pool", function () {
       );
       await market.unlock("0");
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.equal("100064");
+      expect(await dai.balanceOf(alice.address)).to.equal("100054");
     });
 
     it("DISALLOWS getting insured when paused, reporting, or payingout", async function () {
@@ -920,7 +922,7 @@ describe("Pool", function () {
       expect(await market.allInsuranceCount()).to.equal("2");
       expect(await market.getInsuranceCount(bob.address)).to.equal("1");
       expect(await market.getInsuranceCount(chad.address)).to.equal("1");
-      expect(await market.utilizationRate()).to.equal("46358199");
+      expect(await market.utilizationRate()).to.equal("46971227");
     });
   });
 
