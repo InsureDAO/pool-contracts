@@ -139,7 +139,7 @@ contract CDS is IERC20 {
         require(paused == false, "ERROR: DEPOSIT_DISABLED");
         require(_amount > 0);
 
-        uint256 _fee = parameters.getFee2(_amount);
+        uint256 _fee = parameters.getFee2(_amount, msg.sender);
         uint256 _add = _amount.sub(_fee);
         uint256 _supply = totalSupply();
         uint256 _totalLiquidity = totalLiquidity();
@@ -193,13 +193,13 @@ contract CDS is IERC20 {
         require(
             paused == false &&
                 withdrawalReq[msg.sender].timestamp.add(
-                    parameters.getLockup()
+                    parameters.getLockup(msg.sender)
                 ) <
                 now &&
                 withdrawalReq[msg.sender]
                     .timestamp
-                    .add(parameters.getLockup())
-                    .add(parameters.getWithdrawable()) >
+                    .add(parameters.getLockup(msg.sender))
+                    .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,

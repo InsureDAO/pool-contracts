@@ -188,7 +188,8 @@ describe("Pool", function () {
               "100000",
               "31536000",
               "1000000",
-              "500000"
+              "500000",
+              ZERO_ADDRESS
             )
           ).to.equal("29500");
         });
@@ -200,7 +201,8 @@ describe("Pool", function () {
               "100000",
               "2592000",
               "1000000",
-              "500000"
+              "500000",
+              ZERO_ADDRESS
             )
           ).to.equal("2424");
         });
@@ -209,18 +211,20 @@ describe("Pool", function () {
     describe("get fee", function () {
       context("100000", function () {
         it("returns fee", async function () {
-          expect(await parameters.getFee("100000")).to.equal("10000");
+          expect(await parameters.getFee("100000", ZERO_ADDRESS)).to.equal(
+            "10000"
+          );
         });
       });
     });
     describe("get lockup", function () {
       it("returns lockup period", async function () {
-        expect(await parameters.getLockup()).to.equal("604800");
+        expect(await parameters.getLockup(ZERO_ADDRESS)).to.equal("604800");
       });
     });
     describe("get grace", function () {
       it("returns garace period", async function () {
-        expect(await parameters.getGrace()).to.equal("259200");
+        expect(await parameters.getGrace(ZERO_ADDRESS)).to.equal("259200");
       });
     });
   });

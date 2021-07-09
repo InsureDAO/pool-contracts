@@ -247,13 +247,13 @@ contract PoolTemplate is IERC20 {
         require(
             marketStatus == MarketStatus.Trading &&
                 withdrawalReq[msg.sender].timestamp.add(
-                    parameters.getLockup()
+                    parameters.getLockup(msg.sender)
                 ) <
                 now &&
                 withdrawalReq[msg.sender]
                     .timestamp
-                    .add(parameters.getLockup())
-                    .add(parameters.getWithdrawable()) >
+                    .add(parameters.getLockup(msg.sender))
+                    .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
                 _retVal <= availableBalance() &&
                 withdrawalReq[msg.sender].amount >= _amount &&
@@ -292,7 +292,7 @@ contract PoolTemplate is IERC20 {
         require(
             insurance.status == true &&
                 marketStatus == MarketStatus.Trading &&
-                insurance.endTime.add(parameters.getGrace()) < now,
+                insurance.endTime.add(parameters.getGrace(msg.sender)) < now,
             "ERROR: UNLOCK_BAD_COINDITIONS"
         );
         insurance.status == false;
@@ -394,7 +394,7 @@ contract PoolTemplate is IERC20 {
         //Distribute premium and fee
         uint256 _span = _endTime.sub(now);
         uint256 _premium = getPremium(_amount, _span);
-        uint256 _fee = parameters.getFee(_premium);
+        uint256 _fee = parameters.getFee(_premium, msg.sender);
         uint256 _deducted = _premium.sub(_fee);
 
         require(
@@ -403,7 +403,7 @@ contract PoolTemplate is IERC20 {
                 _amount <= availableBalance() &&
                 _span <= 365 days &&
                 _premium <= _maxCost &&
-                parameters.getMin() <= _span,
+                parameters.getMin(msg.sender) <= _span,
             "ERROR: INSURE_BAD_CONDITIONS"
         );
 
@@ -531,7 +531,8 @@ contract PoolTemplate is IERC20 {
                 _amount,
                 _span,
                 totalLiquidity(),
-                lockedAmount
+                lockedAmount,
+                msg.sender
             );
     }
 

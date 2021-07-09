@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
-describe("Pool", function () {
+describe("Parameters", function () {
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
   beforeEach(async () => {
@@ -60,12 +60,16 @@ describe("Pool", function () {
       await parameters.setVault(ZERO_ADDRESS, test.address);
       await parameters.setWithdrawable(ZERO_ADDRESS, "1000");
 
-      expect(await parameters.getPremium2("10000")).to.equal("100");
-      expect(await parameters.getFee2(10000)).to.equal("100");
-      expect(await parameters.getGrace()).to.equal("1000");
-      expect(await parameters.getLockup()).to.equal("1000");
-      expect(await parameters.getMin()).to.equal("1000");
-      expect(await parameters.getWithdrawable()).to.equal("1000");
+      expect(await parameters.getPremium2("10000", creator.address)).to.equal(
+        "100"
+      );
+      expect(await parameters.getFee2(10000, creator.address)).to.equal("100");
+      expect(await parameters.getGrace(creator.address)).to.equal("1000");
+      expect(await parameters.getLockup(creator.address)).to.equal("1000");
+      expect(await parameters.getMin(creator.address)).to.equal("1000");
+      expect(await parameters.getWithdrawable(creator.address)).to.equal(
+        "1000"
+      );
       expect(await parameters.getVault(test.address)).to.equal(ZERO_ADDRESS);
     });
 
@@ -78,16 +82,24 @@ describe("Pool", function () {
       await parameters.setVault(test.address, test.address);
       await parameters.setWithdrawable(test.address, "10000");
 
-      expect(await parameters.connect(test).getPremium2("10000")).to.equal(
-        "1000"
-      );
-      expect(await parameters.connect(test).getFee2(10000)).to.equal("1000");
-      expect(await parameters.connect(test).getGrace()).to.equal("10000");
-      expect(await parameters.connect(test).getLockup()).to.equal("10000");
-      expect(await parameters.connect(test).getMin()).to.equal("10000");
-      expect(await parameters.connect(test).getWithdrawable()).to.equal(
+      expect(
+        await parameters.connect(test).getPremium2("10000", test.address)
+      ).to.equal("1000");
+      expect(
+        await parameters.connect(test).getFee2(10000, test.address)
+      ).to.equal("1000");
+      expect(await parameters.connect(test).getGrace(test.address)).to.equal(
         "10000"
       );
+      expect(await parameters.connect(test).getLockup(test.address)).to.equal(
+        "10000"
+      );
+      expect(await parameters.connect(test).getMin(test.address)).to.equal(
+        "10000"
+      );
+      expect(
+        await parameters.connect(test).getWithdrawable(test.address)
+      ).to.equal("10000");
       expect(await parameters.getVault(test.address)).to.equal(test.address);
     });
   });

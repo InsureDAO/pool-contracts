@@ -35,26 +35,39 @@ abstract contract IParameters {
         uint256 _amount,
         uint256 _term,
         uint256 _totalLiquidity,
-        uint256 _lockedAmount
+        uint256 _lockedAmount,
+        address _target
     ) external view virtual returns (uint256);
 
-    function getFee(uint256 _amount) external view virtual returns (uint256);
+    function getFee(uint256 _amount, address _target)
+        external
+        view
+        virtual
+        returns (uint256);
 
-    function getLockup() external view virtual returns (uint256);
+    function getLockup(address _target) external view virtual returns (uint256);
 
-    function getWithdrawable() external view virtual returns (uint256);
+    function getWithdrawable(address _target)
+        external
+        view
+        virtual
+        returns (uint256);
 
-    function getGrace() external view virtual returns (uint256);
+    function getGrace(address _target) external view virtual returns (uint256);
 
     function get_owner() public view virtual returns (address);
 
     function isOwner() public view virtual returns (bool);
 
-    function getMin() external view virtual returns (uint256);
+    function getMin(address _target) external view virtual returns (uint256);
 
-    function getFee2(uint256 _amount) external view virtual returns (uint256);
+    function getFee2(uint256 _amoun, address _targett)
+        external
+        view
+        virtual
+        returns (uint256);
 
-    function getPremium2(uint256 _amount)
+    function getPremium2(uint256 _amount, address _target)
         external
         view
         virtual

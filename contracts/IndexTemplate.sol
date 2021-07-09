@@ -146,8 +146,8 @@ contract IndexTemplate is IERC20 {
         require(locked == false && paused == false, "ERROR: DEPOSIT_DISABLED");
         require(_amount > 0);
 
-        uint256 _cds = parameters.getPremium2(_amount);
-        uint256 _fee = parameters.getFee2(_amount);
+        uint256 _cds = parameters.getPremium2(_amount, msg.sender);
+        uint256 _fee = parameters.getFee2(_amount, msg.sender);
         uint256 _add = _amount.sub(_cds).sub(_fee);
         uint256 _supply = totalSupply();
         uint256 _totalLiquidity = totalLiquidity();
@@ -201,13 +201,13 @@ contract IndexTemplate is IERC20 {
         require(
             locked == false &&
                 withdrawalReq[msg.sender].timestamp.add(
-                    parameters.getLockup()
+                    parameters.getLockup(msg.sender)
                 ) <
                 now &&
                 withdrawalReq[msg.sender]
                     .timestamp
-                    .add(parameters.getLockup())
-                    .add(parameters.getWithdrawable()) >
+                    .add(parameters.getLockup(msg.sender))
+                    .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
                 _retVal <= withdrawable() &&
                 withdrawalReq[msg.sender].amount >= _amount &&

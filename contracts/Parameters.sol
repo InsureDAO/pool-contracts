@@ -9,11 +9,11 @@ pragma experimental ABIEncoderV2;
 
 import "./libraries/math/SafeMath.sol";
 import "./libraries/utils/Address.sol";
-import "./interfaces/IParameters.sol";
+
 import "./interfaces/IPremiumModel.sol";
 import "./interfaces/IFeeModel.sol";
 
-contract Parameters is IParameters {
+contract Parameters {
     using SafeMath for uint256;
     using Address for address;
 
@@ -40,7 +40,7 @@ contract Parameters is IParameters {
         owner = _target;
     }
 
-    function get_owner() public view override returns (address) {
+    function get_owner() public view returns (address) {
         return owner;
     }
 
@@ -49,11 +49,11 @@ contract Parameters is IParameters {
         _;
     }
 
-    function isOwner() public view override returns (bool) {
+    function isOwner() public view returns (bool) {
         return msg.sender == owner;
     }
 
-    function commit_transfer_ownership(address _owner) external override {
+    function commit_transfer_ownership(address _owner) external {
         require(msg.sender == owner, "dev: only owner");
         require(transfer_ownership_deadline == 0, "dev: active transfer");
 
@@ -64,7 +64,7 @@ contract Parameters is IParameters {
         emit CommitNewAdmin(_deadline, _owner);
     }
 
-    function apply_transfer_ownership() external override {
+    function apply_transfer_ownership() external {
         require(msg.sender == owner, "dev: only owner");
         require(
             block.timestamp >= transfer_ownership_deadline,
@@ -80,58 +80,33 @@ contract Parameters is IParameters {
         emit NewAdmin(owner);
     }
 
-    function setVault(address _token, address _vault)
-        external
-        override
-        onlyOwner
-    {
+    function setVault(address _token, address _vault) external onlyOwner {
         require(_vaults[_token] == address(0), "dev: already initialized");
         _vaults[_token] = _vault;
     }
 
-    function setLockup(address _address, uint256 _target)
-        external
-        override
-        onlyOwner
-    {
+    function setLockup(address _address, uint256 _target) external onlyOwner {
         _lockup[_address] = _target;
     }
 
-    function setGrace(address _address, uint256 _target)
-        external
-        override
-        onlyOwner
-    {
+    function setGrace(address _address, uint256 _target) external onlyOwner {
         _grace[_address] = _target;
     }
 
-    function setMindate(address _address, uint256 _target)
-        external
-        override
-        onlyOwner
-    {
+    function setMindate(address _address, uint256 _target) external onlyOwner {
         _min[_address] = _target;
     }
 
-    function setPremium2(address _address, uint256 _target)
-        external
-        override
-        onlyOwner
-    {
+    function setPremium2(address _address, uint256 _target) external onlyOwner {
         _premium2[_address] = _target;
     }
 
-    function setFee2(address _address, uint256 _target)
-        external
-        override
-        onlyOwner
-    {
+    function setFee2(address _address, uint256 _target) external onlyOwner {
         _fee2[_address] = _target;
     }
 
     function setWithdrawable(address _address, uint256 _target)
         external
-        override
         onlyOwner
     {
         _withdawable[_address] = _target;
@@ -139,29 +114,23 @@ contract Parameters is IParameters {
 
     function setPremiumModel(address _address, address _target)
         external
-        override
         onlyOwner
     {
         _premium[_address] = _target;
     }
 
-    function setFeeModel(address _address, address _target)
-        external
-        override
-        onlyOwner
-    {
+    function setFeeModel(address _address, address _target) external onlyOwner {
         _fee[_address] = _target;
     }
 
     function setCondition(bytes32 _reference, bytes32 _target)
         external
-        override
         onlyOwner
     {
         _conditions[_reference] = _target;
     }
 
-    function getVault(address _token) external view override returns (address) {
+    function getVault(address _token) external view returns (address) {
         if (_vaults[_token] == address(0)) {
             return address(0);
         } else {
@@ -173,9 +142,10 @@ contract Parameters is IParameters {
         uint256 _amount,
         uint256 _term,
         uint256 _totalLiquidity,
-        uint256 _lockedAmount
-    ) external view override returns (uint256) {
-        if (_premium[msg.sender] == address(0)) {
+        uint256 _lockedAmount,
+        address _target
+    ) external view returns (uint256) {
+        if (_premium[_target] == address(0)) {
             return
                 IPremiumModel(_premium[address(0)]).getPremium(
                     _amount,
@@ -185,7 +155,7 @@ contract Parameters is IParameters {
                 );
         } else {
             return
-                IPremiumModel(_premium[msg.sender]).getPremium(
+                IPremiumModel(_premium[_target]).getPremium(
                     _amount,
                     _term,
                     _totalLiquidity,
@@ -194,81 +164,75 @@ contract Parameters is IParameters {
         }
     }
 
-    function getFee(
-        uint256 _amount
-        
-    ) external view override returns (uint256) {
-        if (_fee[msg.sender] == address(0)) {
-            return
-                IFeeModel(_fee[address(0)]).getFee(
-                    _amount        );
-        } else {
-            return
-                IFeeModel(_fee[msg.sender]).getFee(
-                    _amount
-                );
-        }
-    }
-
-    function getFee2(uint256 _amount) external view override returns (uint256) {
-        if (_fee2[msg.sender] == 0) {
-            return _amount.mul(_fee2[address(0)]).div(100000);
-        } else {
-            return _amount.mul(_fee2[msg.sender]).div(100000);
-        }
-    }
-
-    function getPremium2(uint256 _amount)
+    function getFee(uint256 _amount, address _target)
         external
         view
-        override
         returns (uint256)
     {
-        if (_premium2[msg.sender] == 0) {
-            return _amount.mul(_premium2[address(0)]).div(100000);
+        if (_fee[_target] == address(0)) {
+            return IFeeModel(_fee[address(0)]).getFee(_amount);
         } else {
-            return _amount.mul(_premium2[msg.sender]).div(100000);
+            return IFeeModel(_fee[_target]).getFee(_amount);
         }
     }
 
-    function getLockup() external view override returns (uint256) {
-        if (_lockup[msg.sender] == 0) {
-            return _lockup[address(0)];
-        } else {
-            return _lockup[msg.sender];
-        }
-    }
-
-    function getWithdrawable() external view override returns (uint256) {
-        if (_withdawable[msg.sender] == 0) {
-            return _withdawable[address(0)];
-        } else {
-            return _withdawable[msg.sender];
-        }
-    }
-
-    function getGrace() external view override returns (uint256) {
-        if (_grace[msg.sender] == 0) {
-            return _grace[address(0)];
-        } else {
-            return _grace[msg.sender];
-        }
-    }
-
-    function getMin() external view override returns (uint256) {
-        if (_min[msg.sender] == 0) {
-            return _min[address(0)];
-        } else {
-            return _min[msg.sender];
-        }
-    }
-
-    function getCondition(bytes32 _reference)
+    function getFee2(uint256 _amount, address _target)
         external
         view
-        override
-        returns (bytes32)
+        returns (uint256)
     {
+        if (_fee2[_target] == 0) {
+            return _amount.mul(_fee2[address(0)]).div(100000);
+        } else {
+            return _amount.mul(_fee2[_target]).div(100000);
+        }
+    }
+
+    function getPremium2(uint256 _amount, address _target)
+        external
+        view
+        returns (uint256)
+    {
+        if (_premium2[_target] == 0) {
+            return _amount.mul(_premium2[address(0)]).div(100000);
+        } else {
+            return _amount.mul(_premium2[_target]).div(100000);
+        }
+    }
+
+    function getLockup(address _target) external view returns (uint256) {
+        if (_lockup[_target] == 0) {
+            return _lockup[address(0)];
+        } else {
+            return _lockup[_target];
+        }
+    }
+
+    function getWithdrawable(address _target) external view returns (uint256) {
+        if (_withdawable[_target] == 0) {
+            return _withdawable[address(0)];
+        } else {
+            return _withdawable[_target];
+        }
+    }
+
+    function getGrace(address _target) external view returns (uint256) {
+        if (_grace[_target] == 0) {
+            return _grace[address(0)];
+        } else {
+            return _grace[_target];
+        }
+    }
+
+    function getMin(address _target) external view returns (uint256) {
+        if (_min[_target] == 0) {
+            return _min[address(0)];
+        } else {
+            return _min[_target];
+        }
+    }
+
+    function getCondition(bytes32 _reference) external view returns (bytes32) {
         return _conditions[_reference];
     }
 }
