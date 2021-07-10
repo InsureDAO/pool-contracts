@@ -636,6 +636,10 @@ contract IndexTemplate is IERC20 {
         }
     }
 
+    function getAllPools() external view returns (address[] memory) {
+        return poolList;
+    }
+
     /**
      * Admin functions
      */

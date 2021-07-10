@@ -113,7 +113,7 @@ async function main() {
   await factory.approveReference(cdsTemplate.address, 3, creator.address, true);
   console.log("parameters configured 1");
   await premium.setPremium("2000", "50000");
-  await fee.setFee("1000");
+  await fee.setFee("10000");
   await parameters.setPremium2(ZERO_ADDRESS, "2000");
   await parameters.setFee2(ZERO_ADDRESS, "1000");
   await parameters.setGrace(ZERO_ADDRESS, "259200");
@@ -176,8 +176,11 @@ async function main() {
   console.log("cds deployed to", marketAddress3);
   console.log("index deployed to", marketAddress4);
   await registry.setCDS(ZERO_ADDRESS, cds.address);
+  await tx.wait();
   await index.set(market1.address, "1000");
+  await tx.wait();
   await index.set(market2.address, "1000");
+  await tx.wait();
   await index.setLeverage("20000");
   console.log("all done");
 }
