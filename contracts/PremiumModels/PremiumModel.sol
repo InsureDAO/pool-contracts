@@ -1,8 +1,8 @@
 pragma solidity ^0.6.0;
 
-import "./libraries/math/SafeMath.sol";
-import "./libraries/utils/Address.sol";
-import "./libraries/utils/Ownable.sol";
+import "../libraries/math/SafeMath.sol";
+import "../libraries/utils/Address.sol";
+import "../libraries/utils/Ownable.sol";
 
 contract PremiumModel is Ownable {
     using SafeMath for uint256;

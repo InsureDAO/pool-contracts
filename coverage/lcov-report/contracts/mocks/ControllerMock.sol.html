@@ -20,9 +20,9 @@
     </h1>
     <div class='clearfix'>
       <div class='fl pad1y space-right2'>
-        <span class="strong">100% </span>
+        <span class="strong">0% </span>
         <span class="quiet">Statements</span>
-        <span class='fraction'>7/7</span>
+        <span class='fraction'>0/7</span>
       </div>
       <div class='fl pad1y space-right2'>
         <span class="strong">100% </span>
@@ -30,18 +30,18 @@
         <span class='fraction'>0/0</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">85.71% </span>
+        <span class="strong">0% </span>
         <span class="quiet">Functions</span>
-        <span class='fraction'>6/7</span>
+        <span class='fraction'>0/7</span>
       </div>
       <div class='fl pad1y space-right2'>
-        <span class="strong">100% </span>
+        <span class="strong">0% </span>
         <span class="quiet">Lines</span>
-        <span class='fraction'>7/7</span>
+        <span class='fraction'>0/7</span>
       </div>
     </div>
   </div>
-  <div class='status-line high'></div>
+  <div class='status-line low'></div>
 <pre><table class="coverage">
 <tr><td class="line-count quiet">1
 2
@@ -90,15 +90,15 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">282×</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">844×</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -106,13 +106,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2×</span>
-<span class="cline-any cline-yes">2×</span>
-<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -127,30 +127,30 @@ contract Controller {
     TestERC20Mock public token;
     IVault public vault;
 &nbsp;
-    constructor(address _token) public {
-        token = TestERC20Mock(_token);
+<span class="fstat-no" title="function not covered" >    constructor(address _token) public {</span>
+<span class="cstat-no" title="statement not covered" >        token = TestERC20Mock(_token)</span>;
     }
 &nbsp;
-    function withdraw(address _to, uint256 _amount) external {
-        token.transfer(_to, _amount);
+<span class="fstat-no" title="function not covered" >    function withdraw(address _to, uint256 _amount) external {</span>
+<span class="cstat-no" title="statement not covered" >        token.transfer(_to, _amount)</span>;
     }
 &nbsp;
-    function valueAll() external view returns (uint256) {
-        return token.balanceOf(address(this));
+<span class="fstat-no" title="function not covered" >    function valueAll() external view returns (uint256) {</span>
+<span class="cstat-no" title="statement not covered" >        return token.balanceOf(address(this));</span>
     }
 &nbsp;
-    function earn(address, uint256) external {
+<span class="fstat-no" title="function not covered" >    function earn(address, uint256) external {</span>
         //do something for yield here in real contracts
     }
 &nbsp;
-    function setVault(address _address) external {
-        vault = IVault(_address);
+<span class="fstat-no" title="function not covered" >    function setVault(address _address) external {</span>
+<span class="cstat-no" title="statement not covered" >        vault = IVault(_address)</span>;
     }
 &nbsp;
-    function yield() external {
-        uint256 _amount = vault.utilize();
-        uint256 _mint = (_amount * 5) / 10;
-        token.mint(address(this), _mint);
+<span class="fstat-no" title="function not covered" >    function yield() external {</span>
+<span class="cstat-no" title="statement not covered" >        uint256 _amount = vault.utilize();</span>
+<span class="cstat-no" title="statement not covered" >        uint256 _mint = (_amount * 5) / 10;</span>
+<span class="cstat-no" title="statement not covered" >        token.mint(address(this), _mint)</span>;
     }
 &nbsp;
 <span class="fstat-no" title="function not covered" >    function migrate(address) external {</span>
@@ -163,7 +163,7 @@ contract Controller {
 </div><!-- /wrapper -->
 <div class='footer quiet pad2 space-top1 center small'>
   Code coverage
-  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Jun 24 2021 19:22:26 GMT+0900 (Japan Standard Time)
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Tue Jul 13 2021 15:51:16 GMT+0900 (GMT+09:00)
 </div>
 </div>
 <script src="../../prettify.js"></script>
