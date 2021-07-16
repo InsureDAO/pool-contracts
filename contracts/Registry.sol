@@ -16,7 +16,7 @@ contract Registry {
     uint256 public transfer_ownership_deadline;
     uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
 
-    mapping(address => address) cds;
+    mapping(address => address) cds; //index => cds
     mapping(address => bool) markets;
     address[] allMarkets;
 

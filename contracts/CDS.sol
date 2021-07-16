@@ -197,9 +197,9 @@ contract CDS is IERC20 {
                 ) <
                 now &&
                 withdrawalReq[msg.sender]
-                    .timestamp
-                    .add(parameters.getLockup(msg.sender))
-                    .add(parameters.getWithdrawable(msg.sender)) >
+                .timestamp
+                .add(parameters.getLockup(msg.sender))
+                .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,
@@ -410,6 +410,13 @@ contract CDS is IERC20 {
      */
     function totalLiquidity() public view returns (uint256 _balance) {
         return vault.underlyingValue(address(this));
+    }
+
+    /**
+     * @notice Get the exchange rate of LP token against underlying asset(scaled by 1e18)
+     */
+    function rate() external view returns (uint256) {
+        return totalLiquidity().mul(1e18).div(_totalSupply);
     }
 
     /**

@@ -97,7 +97,10 @@ contract PoolTemplate is IERC20 {
     address[] public indexList;
 
     ///@notice Market status transition management
-    enum MarketStatus {Trading, Payingout}
+    enum MarketStatus {
+        Trading,
+        Payingout
+    }
     MarketStatus public marketStatus;
 
     ///@notice user status management
@@ -208,8 +211,11 @@ contract PoolTemplate is IERC20 {
 
         _mintAmount = worth(_amount);
 
-        uint256 _newAttribution =
-            vault.addValue(_amount, msg.sender, address(this));
+        uint256 _newAttribution = vault.addValue(
+            _amount,
+            msg.sender,
+            address(this)
+        );
         totalAttributions = totalAttributions.add(_newAttribution);
 
         emit Deposit(
@@ -251,9 +257,9 @@ contract PoolTemplate is IERC20 {
                 ) <
                 now &&
                 withdrawalReq[msg.sender]
-                    .timestamp
-                    .add(parameters.getLockup(msg.sender))
-                    .add(parameters.getWithdrawable(msg.sender)) >
+                .timestamp
+                .add(parameters.getLockup(msg.sender))
+                .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
                 _retVal <= availableBalance() &&
                 withdrawalReq[msg.sender].amount >= _amount &&
@@ -410,20 +416,31 @@ contract PoolTemplate is IERC20 {
         //accrue fee
         vault.addValue(_fee, msg.sender, parameters.get_owner());
         //accrue premium
-        uint256 _newAttribution =
-            vault.addValue(_deducted, msg.sender, address(this));
+        uint256 _newAttribution = vault.addValue(
+            _deducted,
+            msg.sender,
+            address(this)
+        );
 
         //Lock covered amount
         uint256 _id = insurances.length;
         lockedAmount = lockedAmount.add(_amount);
-        Insurance memory _insurance =
-            Insurance(_id, now, _endTime, _amount, _target, msg.sender, true);
+        Insurance memory _insurance = Insurance(
+            _id,
+            now,
+            _endTime,
+            _amount,
+            _target,
+            msg.sender,
+            true
+        );
         insurances.push(_insurance);
         insuranceHoldings[msg.sender].push(_insurance);
 
         //Calculate liquidity
-        uint256 _attributionForIndex =
-            _newAttribution.mul(totalCredit).div(totalLiquidity());
+        uint256 _attributionForIndex = _newAttribution.mul(totalCredit).div(
+            totalLiquidity()
+        );
         totalAttributions = totalAttributions.add(_newAttribution).sub(
             _attributionForIndex
         );
@@ -466,29 +483,36 @@ contract PoolTemplate is IERC20 {
         insurance.status = false;
         lockedAmount = lockedAmount.sub(insurance.amount);
 
-        uint256 _payoutAmount =
-            insurance.amount.mul(_payoutNumerator).div(_payoutDenominator);
-        uint256 _deductionFromIndex =
-            _payoutAmount.mul(totalCredit).mul(1e8).div(totalLiquidity());
+        uint256 _payoutAmount = insurance.amount.mul(_payoutNumerator).div(
+            _payoutDenominator
+        );
+        uint256 _deductionFromIndex = _payoutAmount
+        .mul(totalCredit)
+        .mul(1e8)
+        .div(totalLiquidity());
 
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indexes[indexList[i]].credit > 0) {
-                uint256 _shareOfIndex =
-                    indexes[indexList[i]].credit.mul(1e8).div(
-                        indexes[indexList[i]].credit
-                    );
-                uint256 _redeemAmount =
-                    _divCeil(_deductionFromIndex, _shareOfIndex);
+                uint256 _shareOfIndex = indexes[indexList[i]]
+                .credit
+                .mul(1e8)
+                .div(indexes[indexList[i]].credit);
+                uint256 _redeemAmount = _divCeil(
+                    _deductionFromIndex,
+                    _shareOfIndex
+                );
                 IIndexTemplate(indexList[i]).compensate(_redeemAmount);
             }
         }
 
-        uint256 _paidAttribution =
-            vault.withdrawValue(_payoutAmount, msg.sender);
-        uint256 _indexAttribution =
-            _paidAttribution.mul(_deductionFromIndex).div(1e8).div(
-                _payoutAmount
-            );
+        uint256 _paidAttribution = vault.withdrawValue(
+            _payoutAmount,
+            msg.sender
+        );
+        uint256 _indexAttribution = _paidAttribution
+        .mul(_deductionFromIndex)
+        .div(1e8)
+        .div(_payoutAmount);
         totalAttributions = totalAttributions.sub(
             _paidAttribution.sub(_indexAttribution)
         );
@@ -744,6 +768,16 @@ contract PoolTemplate is IERC20 {
     /**
      * Utilities
      */
+
+    /**
+     * @notice Get the exchange rate of LP token against underlying asset(scaled by 1e18)
+     */
+    function rate() external view returns (uint256) {
+        return
+            vault.attributionValue(totalAttributions).mul(1e18).div(
+                _totalSupply
+            );
+    }
 
     /**
      * @notice Get the underlying balance of the `owner`

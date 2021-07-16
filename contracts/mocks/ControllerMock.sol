@@ -5,12 +5,15 @@ import "../interfaces/IVault.sol";
 contract Controller {
     TestERC20Mock public token;
     IVault public vault;
+    address admin;
 
-    constructor(address _token) public {
+    constructor(address _token, address _admin) public {
         token = TestERC20Mock(_token);
+        admin = _admin;
     }
 
     function withdraw(address _to, uint256 _amount) external {
+        require(msg.sender == admin);
         token.transfer(_to, _amount);
     }
 
@@ -23,10 +26,12 @@ contract Controller {
     }
 
     function setVault(address _address) external {
+        require(msg.sender == admin);
         vault = IVault(_address);
     }
 
     function yield() external {
+        require(msg.sender == admin);
         uint256 _amount = vault.utilize();
         uint256 _mint = (_amount * 5) / 10;
         token.mint(address(this), _mint);
