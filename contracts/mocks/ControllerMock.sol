@@ -13,7 +13,7 @@ contract Controller {
     }
 
     function withdraw(address _to, uint256 _amount) external {
-        require(msg.sender == admin);
+        require(msg.sender == address(vault));
         token.transfer(_to, _amount);
     }
 

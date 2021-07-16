@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
-describe("registry", function () {
+describe("Factory", function () {
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
   beforeEach(async () => {
@@ -24,7 +24,7 @@ describe("registry", function () {
     factory = await Factory.deploy(registry.address);
     fee = await FeeModel.deploy();
     premium = await PremiumModel.deploy();
-    controller = await Contorller.deploy(dai.address);
+    controller = await Contorller.deploy(dai.address, creator.address);
     vault = await Vault.deploy(
       dai.address,
       registry.address,

@@ -25,7 +25,7 @@ describe("Index", function () {
     factory = await Factory.deploy(registry.address);
     fee = await FeeModel.deploy();
     premium = await PremiumModel.deploy();
-    controller = await Contorller.deploy(dai.address);
+    controller = await Contorller.deploy(dai.address, creator.address);
     vault = await Vault.deploy(
       dai.address,
       registry.address,
@@ -282,10 +282,11 @@ describe("Index", function () {
       expect(await market2.availableBalance()).to.equal("10000");
       expect(await index.leverage()).to.equal("2000");
       expect(await index.withdrawable()).to.equal("10000");
+      let bnresult = await BigNumber.from("1000000000000000000");
+      expect(await index.rate()).to.equal(bnresult);
       expect(await vault.attributions(index.address)).to.equal("10000");
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await index.connect(alice).withdraw("10000");
-
       expect(await index.totalSupply()).to.equal("0");
       expect(await index.totalLiquidity()).to.equal("0");
     });
@@ -363,6 +364,8 @@ describe("Index", function () {
       await index.connect(alice).requestWithdraw("10000");
       expect(await index.withdrawable()).to.equal("10000");
       await dai.connect(bob).approve(vault.address, 20000);
+      let bnresult = await BigNumber.from("1000000000000000000");
+      expect(await index.rate()).to.equal(bnresult);
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
@@ -381,6 +384,8 @@ describe("Index", function () {
         "2428",
         "5"
       ); //verify
+      bnresult = await BigNumber.from("1242800000000000000");
+      expect(await index.rate()).to.equal(bnresult);
       //withdrawal also harvest accrued premium
       await ethers.provider.send("evm_increaseTime", [86400 * 369]);
 

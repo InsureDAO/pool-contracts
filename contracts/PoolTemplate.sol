@@ -773,10 +773,14 @@ contract PoolTemplate is IERC20 {
      * @notice Get the exchange rate of LP token against underlying asset(scaled by 1e18)
      */
     function rate() external view returns (uint256) {
-        return
-            vault.attributionValue(totalAttributions).mul(1e18).div(
-                _totalSupply
-            );
+        if (_totalSupply > 0) {
+            return
+                vault.attributionValue(totalAttributions).mul(1e18).div(
+                    _totalSupply
+                );
+        } else {
+            return 0;
+        }
     }
 
     /**

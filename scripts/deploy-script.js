@@ -41,7 +41,7 @@ async function main() {
   const premium = await PremiumModel.deploy();
   await premium.deployed();
   console.log("premium deployed to:", premium.address);
-  const controller = await Contorller.deploy(dai.address);
+  const controller = await Contorller.deploy(dai.address, creator.address);
   await controller.deployed();
   console.log("controller deployed to:", controller.address);
   const vault = await Vault.deploy(
@@ -117,7 +117,7 @@ async function main() {
   await parameters.setPremium2(ZERO_ADDRESS, "2000");
   await parameters.setFee2(ZERO_ADDRESS, "1000");
   await parameters.setGrace(ZERO_ADDRESS, "259200");
-  await parameters.setLockup(ZERO_ADDRESS, "604800");
+  await parameters.setLockup(ZERO_ADDRESS, "7200");
   await parameters.setMindate(ZERO_ADDRESS, "604800");
   await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
   await parameters.setFeeModel(ZERO_ADDRESS, fee.address);
@@ -181,7 +181,7 @@ async function main() {
   await tx.wait();
   await index.set(market2.address, "1000");
   await tx.wait();
-  await index.setLeverage("20000");
+  await index.setLeverage("2000");
   console.log("all done");
 }
 

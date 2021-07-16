@@ -26,7 +26,7 @@ describe("Pool", function () {
     factory = await Factory.deploy(registry.address);
     fee = await FeeModel.deploy();
     premium = await PremiumModel.deploy();
-    controller = await Contorller.deploy(dai.address);
+    controller = await Contorller.deploy(dai.address, creator.address);
     vault = await Vault.deploy(
       dai.address,
       registry.address,
@@ -235,7 +235,10 @@ describe("Pool", function () {
       await market.connect(alice).deposit("10000");
       await market.connect(alice).requestWithdraw("10000");
       expect(await market.totalSupply()).to.equal("10000");
+      expect(await market.totalSupply()).to.equal("10000");
       expect(await market.totalLiquidity()).to.equal("10000");
+      const bnresult = await BigNumber.from(10).pow(18);
+      expect(await market.rate()).to.equal(bnresult);
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await market.connect(alice).withdraw("10000");
       expect(await market.totalSupply()).to.equal("0");
@@ -377,7 +380,8 @@ describe("Pool", function () {
       expect(await market.totalLiquidity()).to.equal("10000");
       expect(await vault.attributions(market.address)).to.equal("10000");
       expect(await vault.totalAttributions()).to.equal("10000");
-
+      let bnresult = await BigNumber.from(10).pow(18);
+      expect(await market.rate()).to.equal(bnresult);
       //apply protection by Bob
       await dai.connect(bob).approve(vault.address, 20000);
       let currentTimestamp = BigNumber.from(
@@ -401,6 +405,8 @@ describe("Pool", function () {
       ); //verify
       expect(await market.totalLiquidity()).to.closeTo("12428", "3");
       expect(await vault.attributions(creator.address)).to.closeTo("269", "3"); //verify
+      bnresult = await BigNumber.from("1242800000000000000");
+      expect(await market.rate()).to.equal(bnresult);
       //additional deposit by Chad, which does not grant any right to withdraw premium before deposit
       await dai.connect(chad).approve(vault.address, 10000);
       await market.connect(chad).deposit("10000");

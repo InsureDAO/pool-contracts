@@ -25,7 +25,7 @@ describe("CDS", function () {
     factory = await Factory.deploy(registry.address);
     fee = await FeeModel.deploy();
     premium = await PremiumModel.deploy();
-    controller = await Contorller.deploy(dai.address);
+    controller = await Contorller.deploy(dai.address, creator.address);
     vault = await Vault.deploy(
       dai.address,
       registry.address,
@@ -273,6 +273,8 @@ describe("CDS", function () {
       expect(await vault.totalAttributions()).to.equal("10000");
       expect(await vault.underlyingValue(cds.address)).to.equal("9900");
       expect(await vault.attributions(cds.address)).to.equal("9900");
+      let bnresult = await BigNumber.from("1000000000000000000");
+      expect(await cds.rate()).to.equal(bnresult);
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await cds.connect(alice).withdraw("9900");
       expect(await cds.totalSupply()).to.equal("0");
@@ -322,8 +324,11 @@ describe("CDS", function () {
       expect(await cds.totalLiquidity()).to.equal("0");
       await cds.connect(alice).deposit("10000");
       await cds.connect(alice).requestWithdraw("9900");
+      let bnresult = await BigNumber.from("1000000000000000000");
+      expect(await cds.rate()).to.equal(bnresult);
       await index.connect(bob).deposit("10000");
-
+      bnresult = await BigNumber.from("1020202020202020202");
+      expect(await cds.rate()).to.equal(bnresult);
       expect(await dai.balanceOf(bob.address)).to.closeTo("90000", "5"); //verify
       expect(await cds.totalLiquidity()).to.closeTo("10100", "5");
       expect(await vault.underlyingValue(creator.address)).to.closeTo(

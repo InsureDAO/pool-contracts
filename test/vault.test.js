@@ -15,7 +15,7 @@ describe("Vault", function () {
     //deploy
     dai = await DAI.deploy();
     registry = await Registry.deploy();
-    controller = await Contorller.deploy(dai.address);
+    controller = await Contorller.deploy(dai.address, creator.address);
     vault = await Vault.deploy(
       dai.address,
       registry.address,
