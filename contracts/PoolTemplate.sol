@@ -394,11 +394,11 @@ contract PoolTemplate is IERC20 {
     function insure(
         uint256 _amount,
         uint256 _maxCost,
-        uint256 _endTime,
+        uint256 _span,
         bytes32 _target
     ) external returns (uint256) {
         //Distribute premium and fee
-        uint256 _span = _endTime.sub(now);
+        uint256 _endTime = _span.add(now);
         uint256 _premium = getPremium(_amount, _span);
         uint256 _fee = parameters.getFee(_premium, msg.sender);
         uint256 _deducted = _premium.sub(_fee);

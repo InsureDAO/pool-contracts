@@ -372,13 +372,13 @@ describe("CDS", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 8);
+      //let endTime = await currentTimestamp.add(86400 * 8);
       await market1
         .connect(bob)
         .insure(
           "9000",
           "10000",
-          endTime,
+          86400 * 8,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       expect(await dai.balanceOf(bob.address)).to.closeTo("99974", "2");

@@ -306,14 +306,14 @@ describe("Pool", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 10);
+      //let endTime = await currentTimestamp.add(86400 * 10);
       await dai.connect(bob).approve(vault.address, 10000);
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 10,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
@@ -334,13 +334,13 @@ describe("Pool", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 8);
+      //let endTime = await currentTimestamp.add(86400 * 8);
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 8,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       await expect(market.unlock("0")).to.revertedWith(
@@ -387,25 +387,25 @@ describe("Pool", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 365);
+      //let endTime = await currentTimestamp.add(86400 * 365);
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 365,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
 
       //Alice should have accrued premium paid by Bob
       expect(await dai.balanceOf(bob.address)).to.closeTo("97303", "3"); //verify
       expect(await market.valueOfUnderlying(alice.address)).to.closeTo(
-        "12428",
-        "3"
+        "12429",
+        "0"
       ); //verify
       expect(await market.totalLiquidity()).to.closeTo("12428", "3");
       expect(await vault.attributions(creator.address)).to.closeTo("269", "3"); //verify
-      bnresult = await BigNumber.from("1242800000000000000");
+      bnresult = await BigNumber.from("1242900000000000000");
       expect(await market.rate()).to.equal(bnresult);
       //additional deposit by Chad, which does not grant any right to withdraw premium before deposit
       await dai.connect(chad).approve(vault.address, 10000);
@@ -421,13 +421,13 @@ describe("Pool", function () {
       currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      endTime = await currentTimestamp.add(86400 * 365);
+      //endTime = await currentTimestamp.add(86400 * 365);
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 365,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         ); //premium = 3,543//verify
       expect(await dai.balanceOf(bob.address)).to.closeTo("93762", "5"); //verify
@@ -512,13 +512,13 @@ describe("Pool", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 8);
+      //let endTime = await currentTimestamp.add(86400 * 8);
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 8,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       expect(await dai.balanceOf(bob.address)).to.closeTo("99941", "1"); //verify
@@ -556,14 +556,14 @@ describe("Pool", function () {
       currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      endTime = await currentTimestamp.add(86400 * 8);
+      //endTime = await currentTimestamp.add(86400 * 8);
 
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 8,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       incident = BigNumber.from(
@@ -597,13 +597,13 @@ describe("Pool", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 8);
+      //let endTime = await currentTimestamp.add(86400 * 8);
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 8,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
 
@@ -640,13 +640,13 @@ describe("Pool", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 8);
+      //let endTime = await currentTimestamp.add(86400 * 8);
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 8,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
 
@@ -676,14 +676,14 @@ describe("Pool", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 8);
+      //let endTime = await currentTimestamp.add(86400 * 8);
       await expect(
         market
           .connect(bob)
           .insure(
             "9999",
             "10000",
-            endTime,
+            86400 * 8,
             "0x4e69636b00000000000000000000000000000000000000000000000000000000"
           )
       ).to.revertedWith("ERROR: INSURE_BAD_CONDITIONS");
@@ -701,13 +701,13 @@ describe("Pool", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 8);
+      //let endTime = await currentTimestamp.add(86400 * 8);
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 8,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       let incident = BigNumber.from(
@@ -737,13 +737,13 @@ describe("Pool", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 8);
+      //let endTime = await currentTimestamp.add(86400 * 8);
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 8,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
 
@@ -757,7 +757,7 @@ describe("Pool", function () {
       currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      endTime = await currentTimestamp.add(86400 * 5);
+      //endTime = await currentTimestamp.add(86400 * 5);
 
       await expect(
         market
@@ -765,7 +765,7 @@ describe("Pool", function () {
           .insure(
             "9999",
             "10000",
-            endTime,
+            86400 * 5,
             "0x4e69636b00000000000000000000000000000000000000000000000000000000"
           )
       ).to.revertedWith("ERROR: INSURE_BAD_CONDITIONS");
@@ -776,14 +776,14 @@ describe("Pool", function () {
       currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      endTime = await currentTimestamp.add(86400 * 8);
+      //endTime = await currentTimestamp.add(86400 * 8);
 
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 8,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       //Cannot get insured when paused
@@ -791,14 +791,14 @@ describe("Pool", function () {
       currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      endTime = await currentTimestamp.add(86400 * 8);
+      //endTime = await currentTimestamp.add(86400 * 8);
       await expect(
         market
           .connect(bob)
           .insure(
             "9999",
             "10000",
-            endTime,
+            86400 * 8,
             "0x4e69636b00000000000000000000000000000000000000000000000000000000"
           )
       ).to.revertedWith("ERROR: INSURE_BAD_CONDITIONS");
@@ -806,14 +806,14 @@ describe("Pool", function () {
       currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      endTime = await currentTimestamp.add(86400 * 8);
+      //endTime = await currentTimestamp.add(86400 * 8);
 
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 8,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
     });
@@ -828,24 +828,24 @@ describe("Pool", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 365);
+      //let endTime = await currentTimestamp.add(86400 * 365);
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 365,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       //Cannot get insured for more than 365 days
-      endTime = await currentTimestamp.add(86400 * 400);
+      //endTime = await currentTimestamp.add(86400 * 400);
       await expect(
         market
           .connect(bob)
           .insure(
             "9999",
             "10000",
-            endTime,
+            86400 * 400,
             "0x4e69636b00000000000000000000000000000000000000000000000000000000"
           )
       ).to.revertedWith("ERROR: INSURE_BAD_CONDITIONS");
@@ -862,13 +862,13 @@ describe("Pool", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 8);
+      //let endTime = await currentTimestamp.add(86400 * 8);
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 8,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       await ethers.provider.send("evm_increaseTime", [86400 * 9]);
@@ -880,13 +880,13 @@ describe("Pool", function () {
       currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      endTime = await currentTimestamp.add(86400 * 8);
+      //endTime = await currentTimestamp.add(86400 * 8);
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 8,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       let incident = BigNumber.from(
@@ -911,14 +911,14 @@ describe("Pool", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 365);
+      //let endTime = await currentTimestamp.add(86400 * 365);
       expect(await market.utilizationRate()).to.equal("0");
       await market
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 365,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       await market
@@ -926,13 +926,13 @@ describe("Pool", function () {
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 365,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       expect(await market.allInsuranceCount()).to.equal("2");
       expect(await market.getInsuranceCount(bob.address)).to.equal("1");
       expect(await market.getInsuranceCount(chad.address)).to.equal("1");
-      expect(await market.utilizationRate()).to.equal("46971227");
+      expect(await market.utilizationRate()).to.equal("46969020");
     });
   });
 

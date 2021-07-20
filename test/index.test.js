@@ -338,19 +338,19 @@ describe("Index", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 365);
+      //let endTime = await currentTimestamp.add(86400 * 365);
       await market1
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 365,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       expect(await market1.utilizationRate()).to.equal("99990000");
       expect(await market2.utilizationRate()).to.equal("0");
 
-      expect(await index.withdrawable()).to.equal("2428");
+      expect(await index.withdrawable()).to.equal("2429");
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(index.connect(alice).withdraw("10000")).to.revertedWith(
         "ERROR: WITHDRAWAL_BAD_CONDITIONS"
@@ -369,13 +369,13 @@ describe("Index", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 365);
+      //let endTime = await currentTimestamp.add(86400 * 365);
       await market1
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 365,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       expect(await dai.balanceOf(bob.address)).to.closeTo("97303", "5"); //verify
@@ -384,7 +384,7 @@ describe("Index", function () {
         "2428",
         "5"
       ); //verify
-      bnresult = await BigNumber.from("1242800000000000000");
+      bnresult = await BigNumber.from("1242900000000000000");
       expect(await index.rate()).to.equal(bnresult);
       //withdrawal also harvest accrued premium
       await ethers.provider.send("evm_increaseTime", [86400 * 369]);
@@ -482,13 +482,13 @@ describe("Index", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 8);
+      //let endTime = await currentTimestamp.add(86400 * 8);
       await market1
         .connect(bob)
         .insure(
           "10000",
           "10000",
-          endTime,
+          86400 * 8,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       expect(await dai.balanceOf(bob.address)).to.closeTo("99941", "2");
@@ -550,13 +550,13 @@ describe("Index", function () {
       currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      endTime = await currentTimestamp.add(86400 * 8);
+      //endTime = await currentTimestamp.add(86400 * 8);
       await market1
         .connect(bob)
         .insure(
           "10000",
           "10000",
-          endTime,
+          86400 * 8,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       incident = BigNumber.from(
@@ -629,13 +629,13 @@ describe("Index", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 10);
+      //let endTime = await currentTimestamp.add(86400 * 10);
       await market1
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 10,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       expect(await market1.totalLiquidity()).to.equal("10000");
@@ -775,13 +775,13 @@ describe("Index", function () {
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      let endTime = await currentTimestamp.add(86400 * 10);
+      //let endTime = await currentTimestamp.add(86400 * 10);
       await market1
         .connect(bob)
         .insure(
           "9999",
           "10000",
-          endTime,
+          86400 * 10,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
       expect(await market1.totalLiquidity()).to.equal("10000");
