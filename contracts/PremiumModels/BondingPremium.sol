@@ -67,6 +67,31 @@ contract BondingPremium is Ownable {
         low_risk_util = 150000; //15% utilization
     }
 
+    function getPremiumRate(
+        uint256 _totalLiquidity,
+        uint256 _lockedAmount
+    ) external view returns (uint256) {
+        // utilization rate (0~1000000) 
+        uint256 _util =
+            _lockedAmount
+                .mul(1e6)
+                .div(_totalLiquidity);
+
+
+        // yearly premium rate
+        uint256 _premiumRate;
+
+        uint256 Q = uint256(1e6).sub(_util).add(a); //(x+a)
+        if(_util < low_risk_util && _totalLiquidity > low_risk_liquidity){ //utilizatio < 10% && totalliquidity > low_risk_border (easily acomplished if leverage applied)
+            _premiumRate = k.mul(365).sub(Q.mul(a).mul(365)).add(Q.mul(low_risk_b)).div(Q);
+        }else{
+            _premiumRate = k.mul(365).sub(Q.mul(a).mul(365)).add(Q.mul(b)).div(Q);
+        }
+
+        //Return premium
+        return _premiumRate;
+    }
+
     function getPremium(
         uint256 _amount,
         uint256 _term,
