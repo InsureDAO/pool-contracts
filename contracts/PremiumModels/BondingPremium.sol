@@ -67,6 +67,7 @@ contract BondingPremium is Ownable {
         low_risk_util = 150000; //15% utilization
     }
 
+
     function getPremiumRate(
         uint256 _totalLiquidity,
         uint256 _lockedAmount
