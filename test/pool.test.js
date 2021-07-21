@@ -927,7 +927,7 @@ describe("Pool", function () {
           "9999",
           "10000",
           86400 * 365,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
+          "0x4e69636b00000000000000000000000000000000000000000000000000000001"
         );
       expect(await market.allInsuranceCount()).to.equal("2");
       expect(await market.getInsuranceCount(bob.address)).to.equal("1");
