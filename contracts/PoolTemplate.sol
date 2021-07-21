@@ -880,6 +880,13 @@ contract PoolTemplate is IERC20 {
     }
 
     /**
+     * @notice total Liquidity of the pool (how much can the pool sell cover)
+     */
+    function getPayoutTargets() external view returns (bytes32[] memory) {
+        return incident.targets;
+    }
+
+    /**
      * Admin functions
      */
 
