@@ -112,6 +112,18 @@ describe('test BondingPremium', () => {
       });
     });
 
+    describe("test getPremiumRate", function () {
+      it("getPremiumRate correctlly", async () => {
+        let total = BigNumber.from("1000000").mul(ten_to_the_18);
+        let locked_amount = BigNumber.from("771863").mul(ten_to_the_18); //77.1863% utilized
+
+        let p_amount = await premium.getPremiumRate(total, locked_amount);
+
+        await expect(p_amount).to.equal(BigNumber.from("400004")); //40.004%
+      });
+
+    });
+
     describe("test getPremium", function () {
       it("getPremium correctlly", async () => {
         let total = BigNumber.from("1000000").mul(ten_to_the_18);
@@ -121,7 +133,7 @@ describe('test BondingPremium', () => {
 
         let p_amount = await premium.getPremium(amount, length, total, locked_amount);
 
-        await expect(p_amount).to.equal(BigNumber.from("400004000000000000"));
+        await expect(p_amount).to.equal(BigNumber.from("400004000000000000")); //40.004% of 1 token
       });
 
       it("low risk getPremium correctlly", async () => {
