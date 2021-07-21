@@ -103,11 +103,15 @@ contract BondingPremium {
             .mul(365)
             .sub(Q.mul(a).mul(365))
             .add(Q.mul(low_risk_b))
-            .div(Q);
+            .div(Q)
+            .div(10); //change 100.0000% to 100.000%
         } else {
-            _premiumRate = k.mul(365).sub(Q.mul(a).mul(365)).add(Q.mul(b)).div(
-                Q
-            );
+            _premiumRate = k
+            .mul(365)
+            .sub(Q.mul(a).mul(365))
+            .add(Q.mul(b))
+            .div(Q)
+            .div(10); //change 100.0000% to 100.000%
         }
 
         //Return premium
@@ -143,9 +147,11 @@ contract BondingPremium {
             .add(Q.mul(low_risk_b))
             .div(Q);
         } else {
-            _premiumRate = k.mul(365).sub(Q.mul(a).mul(365)).add(Q.mul(b)).div(
-                Q
-            );
+            _premiumRate = k
+            .mul(365)
+            .sub(Q.mul(a).mul(365))
+            .add(Q.mul(b))
+            .div(Q);
         }
 
         // calc yearly premium amount

@@ -130,7 +130,7 @@ describe("test BondingPremium", () => {
 
       let p_amount = await premium.getPremiumRate(total, locked_amount);
 
-      await expect(p_amount).to.equal(BigNumber.from("400004")); //40.004%
+      await expect(p_amount).to.equal(BigNumber.from("40000")); //40.000%
     });
   });
 
@@ -148,7 +148,7 @@ describe("test BondingPremium", () => {
         locked_amount
       );
 
-      await expect(p_amount).to.equal(BigNumber.from("400004000000000000")); //40.004% of 1 token
+      await expect(p_amount).to.equal(BigNumber.from("400004000000000000")); //40.0004% of 1 token
     });
 
     it("low risk getPremium correctlly", async () => {
