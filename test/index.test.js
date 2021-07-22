@@ -460,7 +460,7 @@ describe("Index", function () {
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
 
       await market1.resume();
-
+      await index.resume();
       expect(await index.leverage()).to.equal("2000");
       await index.connect(alice).withdraw("10000");
       expect(await dai.balanceOf(alice.address)).to.equal("100000");
@@ -536,6 +536,7 @@ describe("Index", function () {
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
 
       await market1.resume();
+      await index.resume();
       await index.connect(alice).withdraw("10000");
       expect(await dai.balanceOf(alice.address)).to.closeTo("95054", "3"); //verify
       expect(await dai.balanceOf(bob.address)).to.closeTo("104941", "3"); //verify
@@ -574,6 +575,7 @@ describe("Index", function () {
       );
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
       await market1.resume();
+      await index.resume();
       await index.connect(alice).withdraw("10000");
       expect(await dai.balanceOf(alice.address)).to.closeTo("85108", "3"); //verify
       expect(await dai.balanceOf(bob.address)).to.closeTo("114882", "3"); //verify

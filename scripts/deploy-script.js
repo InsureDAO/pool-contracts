@@ -22,7 +22,7 @@ async function main() {
   const Vault = await ethers.getContractFactory("Vault");
   const Registry = await ethers.getContractFactory("Registry");
   const FeeModel = await ethers.getContractFactory("FeeModel");
-  const PremiumModel = await ethers.getContractFactory("PremiumModel");
+  const PremiumModel = await ethers.getContractFactory("BondingPremium");
   const Parameters = await ethers.getContractFactory("Parameters");
   const Contorller = await ethers.getContractFactory("Controller");
   //deploy
@@ -69,50 +69,77 @@ async function main() {
   await factory.approveTemplate(indexTemplate.address, true, false);
   await factory.approveTemplate(cdsTemplate.address, true, false);
   console.log("parameters configured 0");
-  await factory.approveReference(
+  let tx = await factory.approveReference(
     poolTemplate.address,
     0,
     parameters.address,
     true
   );
-  await factory.approveReference(poolTemplate.address, 1, vault.address, true);
-  await factory.approveReference(
+  await tx.wait();
+  tx = await factory.approveReference(
+    poolTemplate.address,
+    1,
+    vault.address,
+    true
+  );
+  await tx.wait();
+  tx = await factory.approveReference(
     poolTemplate.address,
     2,
     registry.address,
     true
   );
-
-  await factory.approveReference(
+  await tx.wait();
+  tx = await factory.approveReference(
     indexTemplate.address,
     0,
     parameters.address,
     true
   );
-  await factory.approveReference(indexTemplate.address, 1, vault.address, true);
-  await factory.approveReference(
+  await tx.wait();
+  tx = await factory.approveReference(
+    indexTemplate.address,
+    1,
+    vault.address,
+    true
+  );
+  await tx.wait();
+  tx = await factory.approveReference(
     indexTemplate.address,
     2,
     registry.address,
     true
   );
-
-  await factory.approveReference(
+  await tx.wait();
+  tx = await factory.approveReference(
     cdsTemplate.address,
     0,
     parameters.address,
     true
   );
-  await factory.approveReference(cdsTemplate.address, 1, vault.address, true);
-  await factory.approveReference(
+  await tx.wait();
+  tx = await factory.approveReference(
+    cdsTemplate.address,
+    1,
+    vault.address,
+    true
+  );
+  await tx.wait();
+  tx = await factory.approveReference(
     cdsTemplate.address,
     2,
     registry.address,
     true
   );
-  await factory.approveReference(cdsTemplate.address, 3, creator.address, true);
+  await tx.wait();
+  tx = await factory.approveReference(
+    cdsTemplate.address,
+    3,
+    creator.address,
+    true
+  );
+  await tx.wait();
   console.log("parameters configured 1");
-  await premium.setPremium("2000", "50000");
   await fee.setFee("10000");
   await parameters.setPremium2(ZERO_ADDRESS, "2000");
   await parameters.setFee2(ZERO_ADDRESS, "1000");
@@ -123,7 +150,7 @@ async function main() {
   await parameters.setFeeModel(ZERO_ADDRESS, fee.address);
   await parameters.setWithdrawable(ZERO_ADDRESS, "86400000");
   console.log("parameters configured 2");
-  let tx = await factory.createMarket(
+  tx = await factory.createMarket(
     poolTemplate.address,
     "Here is metadata.",
     "test-name",
@@ -176,11 +203,8 @@ async function main() {
   console.log("cds deployed to", marketAddress3);
   console.log("index deployed to", marketAddress4);
   await registry.setCDS(ZERO_ADDRESS, cds.address);
-  await tx.wait();
   await index.set(market1.address, "1000");
-  await tx.wait();
   await index.set(market2.address, "1000");
-  await tx.wait();
   await index.setLeverage("2000");
   console.log("all done");
 }

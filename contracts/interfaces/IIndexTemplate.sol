@@ -1,11 +1,9 @@
 pragma solidity ^0.6.0;
 
-abstract contract IIndexTemplate {
-    function compensate(uint256) external virtual;
+interface IIndexTemplate {
+    function compensate(uint256) external;
 
-    function lock() external virtual;
+    function lock(uint256) external;
 
-    function resume() external virtual;
-
-    function adjustAlloc() public virtual;
+    function resume() external;
 }

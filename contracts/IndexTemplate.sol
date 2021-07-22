@@ -43,6 +43,7 @@ contract IndexTemplate is IERC20 {
     bool private initialized;
     bool public paused;
     bool public locked;
+    uint256 public pendingEnd;
     string public metadata;
 
     /// @notice EIP-20 token variables
@@ -428,15 +429,19 @@ contract IndexTemplate is IERC20 {
      * @notice Resume market
      */
     function resume() external {
-        require(pools[msg.sender].allocPoints > 0);
+        require(pendingEnd <= now);
         locked = false;
     }
 
     /**
      * @notice lock market withdrawal
      */
-    function lock() external {
+    function lock(uint256 _pending) external {
         require(pools[msg.sender].allocPoints > 0);
+        uint256 _tempEnd = now.add(_pending);
+        if (pendingEnd < _tempEnd) {
+            pendingEnd = now.add(_pending);
+        }
         locked = true;
     }
 

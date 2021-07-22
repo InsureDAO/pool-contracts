@@ -585,7 +585,9 @@ contract PoolTemplate is IERC20 {
         marketStatus = MarketStatus.Payingout;
         pendingEnd = now.add(_pending);
         for (uint256 i = 0; i < indexList.length; i++) {
-            IIndexTemplate(indexList[i]).lock();
+            if (indexes[indexList[i]].credit > 0) {
+                IIndexTemplate(indexList[i]).lock(_pending);
+            }
         }
         emit MarketStatusChanged(marketStatus);
     }
@@ -599,9 +601,6 @@ contract PoolTemplate is IERC20 {
             "ERROR: UNABLE_TO_RESUME"
         );
         marketStatus = MarketStatus.Trading;
-        for (uint256 i = 0; i < indexList.length; i++) {
-            IIndexTemplate(indexList[i]).resume();
-        }
         emit MarketStatusChanged(marketStatus);
     }
 
