@@ -62,7 +62,7 @@ contract PoolTemplate is IERC20 {
      */
 
     /// @notice Market setting
-    bool private initialized;
+    bool public initialized;
     bool public paused;
     string public metadata;
 
@@ -80,10 +80,10 @@ contract PoolTemplate is IERC20 {
     IVault public vault;
 
     /// @notice Market variables
-    uint256 private totalAttributions; //how much attribution point this pool's original liquidity has
-    uint256 private lockedAmount; //Liquidity locked when utilized
-    uint256 private totalCredit; //Liquidity from index
-    uint256 private attributionPerCredit; //Times 1e12. To avoid overdlow
+    uint256 public totalAttributions; //how much attribution point this pool's original liquidity has
+    uint256 public lockedAmount; //Liquidity locked when utilized
+    uint256 public totalCredit; //Liquidity from index
+    uint256 public attributionPerCredit; //Times 1e12. To avoid overdlow
     uint256 public pendingEnd; //pending time when paying out
 
     /// @notice Market variables for margin account

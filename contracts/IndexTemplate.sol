@@ -40,7 +40,7 @@ contract IndexTemplate is IERC20 {
      */
 
     /// @notice Market setting
-    bool private initialized;
+    bool public initialized;
     bool public paused;
     bool public locked;
     uint256 public pendingEnd;

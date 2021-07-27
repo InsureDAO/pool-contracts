@@ -64,12 +64,16 @@ async function main() {
   await parameters.deployed();
   console.log("parameters deployed to:", parameters.address);
 
-  await registry.setFactory(factory.address);
-  await factory.approveTemplate(poolTemplate.address, true, false);
-  await factory.approveTemplate(indexTemplate.address, true, false);
-  await factory.approveTemplate(cdsTemplate.address, true, false);
+  let tx = await registry.setFactory(factory.address);
+  await tx.wait();
+  tx = await factory.approveTemplate(poolTemplate.address, true, false);
+  await tx.wait();
+  tx = await factory.approveTemplate(indexTemplate.address, true, false);
+  await tx.wait();
+  tx = await factory.approveTemplate(cdsTemplate.address, true, false);
+  await tx.wait();
   console.log("parameters configured 0");
-  let tx = await factory.approveReference(
+  tx = await factory.approveReference(
     poolTemplate.address,
     0,
     parameters.address,
@@ -140,15 +144,24 @@ async function main() {
   );
   await tx.wait();
   console.log("parameters configured 1");
-  await fee.setFee("10000");
-  await parameters.setPremium2(ZERO_ADDRESS, "2000");
-  await parameters.setFee2(ZERO_ADDRESS, "1000");
-  await parameters.setGrace(ZERO_ADDRESS, "259200");
-  await parameters.setLockup(ZERO_ADDRESS, "7200");
-  await parameters.setMindate(ZERO_ADDRESS, "604800");
-  await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
-  await parameters.setFeeModel(ZERO_ADDRESS, fee.address);
-  await parameters.setWithdrawable(ZERO_ADDRESS, "86400000");
+  tx = await fee.setFee("10000");
+  await tx.wait();
+  tx = await parameters.setPremium2(ZERO_ADDRESS, "2000");
+  await tx.wait();
+  tx = await parameters.setFee2(ZERO_ADDRESS, "1000");
+  await tx.wait();
+  tx = await parameters.setGrace(ZERO_ADDRESS, "259200");
+  await tx.wait();
+  tx = await parameters.setLockup(ZERO_ADDRESS, "7200");
+  await tx.wait();
+  tx = await parameters.setMindate(ZERO_ADDRESS, "604800");
+  await tx.wait();
+  tx = await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
+  await tx.wait();
+  tx = await parameters.setFeeModel(ZERO_ADDRESS, fee.address);
+  await tx.wait();
+  tx = await parameters.setWithdrawable(ZERO_ADDRESS, "86400000");
+  await tx.wait();
   console.log("parameters configured 2");
   tx = await factory.createMarket(
     poolTemplate.address,
@@ -202,10 +215,13 @@ async function main() {
   index = await IndexTemplate.attach(marketAddress4);
   console.log("cds deployed to", marketAddress3);
   console.log("index deployed to", marketAddress4);
-  await registry.setCDS(ZERO_ADDRESS, cds.address);
-  await index.set(market1.address, "1000");
-  await index.set(market2.address, "1000");
-  await index.setLeverage("2000");
+  tx = await registry.setCDS(ZERO_ADDRESS, cds.address);
+  await tx.wait();
+  tx = await index.set(market1.address, "1000");
+  await tx.wait();
+  tx = await index.set(market2.address, "1000");
+  await tx.wait();
+  tx = await index.setLeverage("2000");
   console.log("all done");
 }
 
