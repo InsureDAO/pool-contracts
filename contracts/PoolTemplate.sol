@@ -90,7 +90,6 @@ contract PoolTemplate is IERC20 {
     struct IndexInfo {
         uint256 credit;
         uint256 rewardDebt;
-        uint256 lastActionTimestamp;
         bool exist;
     }
     mapping(address => IndexInfo) public indexes;
@@ -330,7 +329,8 @@ contract PoolTemplate is IERC20 {
             indexList.push(msg.sender);
         }
         if (_index.credit > 0) {
-            _pending = _index.credit.mul(attributionPerCredit).div(1e12).sub(
+            _pending = _sub(
+                _index.credit.mul(attributionPerCredit).div(1e12),
                 _index.rewardDebt
             );
             if (_pending > 0) {
@@ -338,7 +338,6 @@ contract PoolTemplate is IERC20 {
             }
         }
         if (_credit > 0) {
-            _index.lastActionTimestamp = now;
             totalCredit = totalCredit.add(_credit);
             indexes[msg.sender].credit = indexes[msg.sender].credit.add(
                 _credit
@@ -366,7 +365,8 @@ contract PoolTemplate is IERC20 {
         );
 
         //calculate acrrued premium
-        _pending = _index.credit.mul(attributionPerCredit).div(1e12).sub(
+        _pending = _sub(
+            _index.credit.mul(attributionPerCredit).div(1e12),
             _index.rewardDebt
         );
 
@@ -806,7 +806,8 @@ contract PoolTemplate is IERC20 {
             return 0;
         } else {
             return
-                _credit.mul(attributionPerCredit).div(1e12).sub(
+                _sub(
+                    _credit.mul(attributionPerCredit).div(1e12),
                     indexes[_index].rewardDebt
                 );
         }
@@ -936,5 +937,16 @@ contract PoolTemplate is IERC20 {
         uint256 c = a / b;
         if (a % b != 0) c = c - 1;
         return c;
+    }
+
+    /**
+     * @notice Internal function for overflow free subtraction
+     */
+    function _sub(uint256 a, uint256 b) internal pure returns (uint256) {
+        if (a < b) {
+            return 0;
+        } else {
+            return a - b;
+        }
     }
 }
