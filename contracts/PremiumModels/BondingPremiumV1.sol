@@ -1,8 +1,7 @@
 pragma solidity ^0.6.0;
 
 import "../libraries/math/SafeMath.sol";
-
-contract BondingPremium {
+contract BondingPremiumV1 {
     using SafeMath for uint256;
 
     event CommitNewAdmin(uint256 deadline, address future_admin);
@@ -127,40 +126,16 @@ contract BondingPremium {
         if (_amount == 0) {
             return 0;
         }
-        // utilization rate (0~1000000)
-        uint256 _util = _lockedAmount
-        .add(_amount)
-        .add(_lockedAmount)
-        .mul(1e6)
-        .div(_totalLiquidity)
-        .div(2);
+        
+        uint256 pi = getPremiumRate(_totalLiquidity, _lockedAmount); //100.000% 1e5
+        uint256 pf = getPremiumRate(_totalLiquidity, _lockedAmount.add(_amount)); //100.000% 1e5
 
-        // yearly premium rate
-        uint256 _premiumRate;
+        uint256 premium_1 = _amount.mul(pi);
+        uint256 premium_2 = _amount.mul(pf.sub(pi).div(2));
+        uint256 _premium = premium_1.add(premium_2);
 
-        uint256 Q = uint256(1e6).sub(_util).add(a); //(x+a)
-        if (_util < low_risk_util && _totalLiquidity > low_risk_liquidity) {
-            //utilizatio < 10% && totalliquidity > low_risk_border (easily acomplished if leverage applied)
-            _premiumRate = k
-            .mul(365)
-            .sub(Q.mul(a).mul(365))
-            .add(Q.mul(low_risk_b))
-            .div(Q);
-        } else {
-            _premiumRate = k
-            .mul(365)
-            .sub(Q.mul(a).mul(365))
-            .add(Q.mul(b))
-            .div(Q);
-        }
+        _premium = _premium.mul(_term).div(365 days).div(1e5);
 
-        // calc yearly premium amount
-        uint256 _premium = _amount.mul(_premiumRate);
-
-        // adjust premium for daily basis
-        _premium = _premium.mul(_term).div(365 days).div(1e6);
-
-        // 4) Return premium
         return _premium;
     }
 

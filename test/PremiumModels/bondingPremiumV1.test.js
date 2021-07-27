@@ -2,13 +2,14 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
-describe.skip("test BondingPremium", () => {
+describe("test BondingPremium", () => {
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
   const YEAR = BigNumber.from("86400").mul(365);
 
   const ten_to_the_18 = BigNumber.from("1000000000000000000");
   const ten_to_the_6 = BigNumber.from("1000000");
+  const ten_to_the_5 = BigNumber.from("100000");
 
   //sqrt
   const ONE = ethers.BigNumber.from(1);
@@ -28,7 +29,7 @@ describe.skip("test BondingPremium", () => {
   beforeEach(async () => {
     [creator, alice] = await ethers.getSigners();
 
-    const BondignPremium = await ethers.getContractFactory("BondingPremium");
+    const BondignPremium = await ethers.getContractFactory("BondingPremiumV1");
 
     premium = await BondignPremium.deploy();
   });
@@ -148,7 +149,7 @@ describe.skip("test BondingPremium", () => {
         locked_amount
       );
 
-      await expect(p_amount).to.equal(BigNumber.from("400004000000000000")); //40.0004% of 1 token
+      await expect(p_amount).to.equal(BigNumber.from("400000000000000000")); //40.000% of 1 token
     });
 
     it("low risk getPremium correctlly", async () => {
@@ -184,12 +185,12 @@ describe.skip("test BondingPremium", () => {
         .mul(365)
         .sub(Q.mul(a).mul(365))
         .add(Q.mul(low_risk_b))
-        .div(Q);
+        .div(Q).div(10);
       let expected = amount
         .mul(_premiumRate)
         .mul(length)
         .div(YEAR)
-        .div(ten_to_the_6);
+        .div(ten_to_the_5);
 
       console.log(expected.mul(100000).div(amount).toNumber()); //17.16% => 9.9977 utilized% in desmos(https://www.desmos.com/calculator/qcvsko1opq)
       await expect(p_amount).to.equal(BigNumber.from(expected));
