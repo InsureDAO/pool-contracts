@@ -4,6 +4,8 @@ const { BigNumber } = require("ethers");
 
 describe.skip("test BondingPremium", () => {
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+  const ten_to_the_18 = BigNumber.from("1000000000000000000");
+  const ten_to_the_6 = BigNumber.from("1000000");
 
   beforeEach(async () => {
     [creator, alice] = await ethers.getSigners();
@@ -16,6 +18,18 @@ describe.skip("test BondingPremium", () => {
   describe("Condition", function () {
     it("contract should be deployed", async () => {
       await expect(premium.address).to.exist;
+    });
+  });
+
+  describe("test getPremiumRate", function () {
+    it("getPremiumRate correctlly", async () => {
+      await premium.setPremium("2000", "50000"); //max 52%
+      let total = BigNumber.from("1000000").mul(ten_to_the_18);
+      let locked_amount = BigNumber.from("771863").mul(ten_to_the_18); //77.1863% utilized
+
+      let p_amount = await premium.getPremiumRate(total, locked_amount);
+
+      await expect(p_amount).to.equal(BigNumber.from("40593")); //40.593%
     });
   });
 

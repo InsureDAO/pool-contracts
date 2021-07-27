@@ -42,7 +42,7 @@ contract CDS is IERC20 {
      */
 
     /// @notice Market setting
-    bool private initialized;
+    bool public initialized;
     bool public paused;
     string public metadata;
 

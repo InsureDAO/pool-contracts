@@ -52,6 +52,24 @@ contract PremiumModel {
         return _premium;
     }
 
+    function getPremiumRate(uint256 _totalLiquidity, uint256 _lockedAmount)
+        external
+        view
+        returns (uint256)
+    {
+        // utilization rate (0~1000000)
+        uint256 _util = _lockedAmount.mul(1e6).div(_totalLiquidity);
+
+        // yearly premium rate
+        uint256 _premiumRate;
+        // Calculate multiplier
+        _premiumRate = _util.mul(_multiplier).div(1e6);
+        // Add base rate
+        _premiumRate = _premiumRate.add(_baseRate);
+        // Return premium
+        return _premiumRate;
+    }
+
     /**
      * @notice Set a premium model
      * @param _baseRatePerYear The approximate target base premium (scaled by 1e5)
