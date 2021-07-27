@@ -22,7 +22,7 @@ async function main() {
   const Vault = await ethers.getContractFactory("Vault");
   const Registry = await ethers.getContractFactory("Registry");
   const FeeModel = await ethers.getContractFactory("FeeModel");
-  const PremiumModel = await ethers.getContractFactory("BondingPremium");
+  const PremiumModel = await ethers.getContractFactory("BondingPremiumV1");
   const Parameters = await ethers.getContractFactory("Parameters");
   const Contorller = await ethers.getContractFactory("Controller");
   //deploy
