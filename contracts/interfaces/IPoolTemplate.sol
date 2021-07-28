@@ -1,12 +1,6 @@
 pragma solidity ^0.6.0;
 
 abstract contract IPoolTemplate {
-    function applyCover(uint256 _pending) external virtual;
-
-    function reportIncident(uint256 _pending, uint256 _incidentTimestamp)
-        external
-        virtual;
-
     function allocateCredit(uint256 _credit)
         external
         virtual
@@ -38,10 +32,4 @@ abstract contract IPoolTemplate {
         view
         virtual
         returns (uint256);
-
-    function worth(uint256 _value)
-        public
-        view
-        virtual
-        returns (uint256 _amount);
 }
