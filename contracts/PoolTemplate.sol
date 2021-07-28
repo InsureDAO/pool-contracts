@@ -120,7 +120,7 @@ contract PoolTemplate is IERC20 {
         bool status;
     }
     Insurance[] public insurances;
-    mapping(address => Insurance[]) public insuranceHoldings;
+    mapping(address => uint256[]) public insuranceHoldings;
 
     struct Incident {
         uint256 payoutNumerator;
@@ -435,7 +435,7 @@ contract PoolTemplate is IERC20 {
             true
         );
         insurances.push(_insurance);
-        insuranceHoldings[msg.sender].push(_insurance);
+        insuranceHoldings[msg.sender].push(_id);
 
         //Calculate liquidity
         uint256 _attributionForIndex = _newAttribution.mul(totalCredit).div(
