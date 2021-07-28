@@ -44,18 +44,16 @@ contract PoolTemplate is IERC20 {
         uint256 amount,
         uint256 payout
     );
-
-    event CreditIncrease(
-        address indexed depositor,
-        uint256 credit
-        //uint256 mint
+    event CoverApplied(
+        uint256 _pending,
+        uint256 _payoutNumerator,
+        uint256 _payoutDenominator,
+        uint256 _incidentTimestamp,
+        bytes32[] _targets,
+        string _memo
     );
-    event CreditDecrease(
-        address indexed withdrawer,
-        //uint256 indexToken,
-        uint256 credit
-        //uint256 impact
-    );
+    event CreditIncrease(address indexed depositor, uint256 credit);
+    event CreditDecrease(address indexed withdrawer, uint256 credit);
     event MarketStatusChanged(MarketStatus statusValue);
     /**
      * Storage
@@ -572,7 +570,8 @@ contract PoolTemplate is IERC20 {
         uint256 _payoutNumerator,
         uint256 _payoutDenominator,
         uint256 _incidentTimestamp,
-        bytes32[] calldata _targets
+        bytes32[] calldata _targets,
+        string calldata _memo
     ) external onlyOwner {
         require(
             marketStatus != MarketStatus.Payingout,
@@ -589,6 +588,14 @@ contract PoolTemplate is IERC20 {
                 IIndexTemplate(indexList[i]).lock(_pending);
             }
         }
+        emit CoverApplied(
+            _pending,
+            _payoutNumerator,
+            _payoutDenominator,
+            _incidentTimestamp,
+            _targets,
+            _memo
+        );
         emit MarketStatusChanged(marketStatus);
     }
 
