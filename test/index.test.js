@@ -448,9 +448,14 @@ describe("Index", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      await market1.applyCover("604800", 5000, 10000, incident, [
-        "0x4e69636b00000000000000000000000000000000000000000000000000000000",
-      ]);
+      await market1.applyCover(
+        "604800",
+        5000,
+        10000,
+        incident,
+        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        "metadata"
+      );
       await expect(index.connect(alice).deposit("10000")).to.revertedWith(
         "ERROR: DEPOSIT_DISABLED"
       );
@@ -496,9 +501,14 @@ describe("Index", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      await market1.applyCover("604800", 5000, 10000, incident, [
-        "0x4e69636b00000000000000000000000000000000000000000000000000000000",
-      ]);
+      await market1.applyCover(
+        "604800",
+        5000,
+        10000,
+        incident,
+        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        "metadata"
+      );
       expect(await vault.underlyingValue(index.address)).to.closeTo(
         "10000",
         "1"
@@ -563,9 +573,14 @@ describe("Index", function () {
       incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      await market1.applyCover("604800", 10000, 10000, incident, [
-        "0x4e69636b00000000000000000000000000000000000000000000000000000000",
-      ]);
+      await market1.applyCover(
+        "604800",
+        10000,
+        10000,
+        incident,
+        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        "metadata"
+      );
       await market1.connect(bob).redeem("1");
       expect(await index.totalSupply()).to.equal("10000");
       expect(await index.totalLiquidity()).to.closeTo("54", "1");

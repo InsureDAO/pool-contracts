@@ -484,9 +484,14 @@ describe("Pool", function () {
         (await ethers.provider.getBlock("latest")).timestamp
       );
       let incident = await currentTimestamp.sub(86400 * 2);
-      await market.applyCover("604800", incident, 10000, 10000, [
-        "0x4e69636b00000000000000000000000000000000000000000000000000000000",
-      ]);
+      await market.applyCover(
+        "604800",
+        incident,
+        10000,
+        10000,
+        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        "metadata"
+      );
       await expect(market.connect(alice).deposit("10000")).to.revertedWith(
         "ERROR: DEPOSIT_DISABLED"
       );
@@ -527,9 +532,14 @@ describe("Pool", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      await market.applyCover("604800", 5000, 10000, incident, [
-        "0x4e69636b00000000000000000000000000000000000000000000000000000000",
-      ]);
+      await market.applyCover(
+        "604800",
+        5000,
+        10000,
+        incident,
+        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        "metadata"
+      );
       await market.connect(bob).redeem("0");
       await expect(market.unlock("0")).to.revertedWith(
         "ERROR: UNLOCK_BAD_COINDITIONS"
@@ -569,9 +579,14 @@ describe("Pool", function () {
       incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      await market.applyCover("604800", 10000, 10000, incident, [
-        "0x4e69636b00000000000000000000000000000000000000000000000000000000",
-      ]);
+      await market.applyCover(
+        "604800",
+        10000,
+        10000,
+        incident,
+        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        "metadata"
+      );
       await market.connect(bob).redeem("1");
 
       expect(await market.totalSupply()).to.equal("10000");
@@ -610,9 +625,14 @@ describe("Pool", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      await market.applyCover("604800", 5000, 10000, incident, [
-        "0x4e69636b00000000000000000000000000000000000000000000000000000000",
-      ]);
+      await market.applyCover(
+        "604800",
+        5000,
+        10000,
+        incident,
+        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        "metadata"
+      );
       await market.connect(bob).redeem("0");
       await ethers.provider.send("evm_increaseTime", [86400 * 12]);
       await market.resume();
@@ -654,9 +674,14 @@ describe("Pool", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      await market.applyCover("604800", 5000, 10000, incident, [
-        "0x4e69636b00000000000000000000000000000000000000000000000000000000",
-      ]);
+      await market.applyCover(
+        "604800",
+        5000,
+        10000,
+        incident,
+        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        "metadata"
+      );
 
       await market.connect(tom).redeem("0");
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
@@ -713,9 +738,14 @@ describe("Pool", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      await market.applyCover("604800", 5000, 10000, incident, [
-        "0x4e69636b00000000000000000000000000000000000000000000000000000000",
-      ]);
+      await market.applyCover(
+        "604800",
+        5000,
+        10000,
+        incident,
+        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        "metadata"
+      );
       await ethers.provider.send("evm_increaseTime", [86400 * 12]);
 
       await market.resume();
@@ -751,9 +781,14 @@ describe("Pool", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      await market.applyCover("604800", 10000, 10000, incident, [
-        "0x4e69636b00000000000000000000000000000000000000000000000000000000",
-      ]);
+      await market.applyCover(
+        "604800",
+        10000,
+        10000,
+        incident,
+        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        "metadata"
+      );
       currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
@@ -892,9 +927,14 @@ describe("Pool", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      await market.applyCover("604800", 5000, 10000, incident, [
-        "0x4e69636b00000000000000000000000000000000000000000000000000000000",
-      ]);
+      await market.applyCover(
+        "604800",
+        5000,
+        10000,
+        incident,
+        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        "metadata"
+      );
       await market.connect(bob).redeem("1");
       await expect(
         market.connect(bob).transferInsurance("1", tom.address)

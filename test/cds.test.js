@@ -385,9 +385,14 @@ describe("CDS", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      await market1.applyCover("604800", 5000, 10000, incident, [
-        "0x4e69636b00000000000000000000000000000000000000000000000000000000",
-      ]);
+      await market1.applyCover(
+        "604800",
+        5000,
+        10000,
+        incident,
+        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        "metadata"
+      );
 
       await market1.connect(bob).redeem("0");
       await expect(market1.connect(alice).unlock("0")).to.revertedWith(
