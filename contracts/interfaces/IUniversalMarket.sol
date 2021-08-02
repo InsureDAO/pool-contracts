@@ -10,4 +10,7 @@ interface IUniversalMarket {
         uint256[] calldata _conditions,
         address[] calldata _references
     ) external returns (bool);
+
+    function setPaused(bool state) external;
+    function changeMetadata(string calldata _metadata) external;
 }
