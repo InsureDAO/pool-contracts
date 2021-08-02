@@ -19,6 +19,16 @@ contract Parameters {
 
     event CommitNewAdmin(uint256 deadline, address future_admin);
     event NewAdmin(address admin);
+    event VaultSet(address token, address vault);
+    event FeeSet(address target, address model);
+    event Fee2Set(address target, uint256 rate);
+    event PremiumSet(address target, address model);
+    event Premium2Set(address target, uint256 rate);
+    event LockupSet(address target, uint256 span);
+    event GraceSet(address target, uint256 span);
+    event MinDateSet(address target, uint256 span);
+    event WithdrawableSet(address target, uint256 span);
+    event ConditionSet(bytes32 ref, bytes32 condition);
 
     address public owner;
     address public future_owner;
@@ -83,26 +93,32 @@ contract Parameters {
     function setVault(address _token, address _vault) external onlyOwner {
         require(_vaults[_token] == address(0), "dev: already initialized");
         _vaults[_token] = _vault;
+        emit VaultSet(_token, _vault);
     }
 
     function setLockup(address _address, uint256 _target) external onlyOwner {
         _lockup[_address] = _target;
+        emit LockupSet(_address, _target);
     }
 
     function setGrace(address _address, uint256 _target) external onlyOwner {
         _grace[_address] = _target;
+        emit GraceSet(_address, _target);
     }
 
     function setMindate(address _address, uint256 _target) external onlyOwner {
         _min[_address] = _target;
+        emit MinDateSet(_address, _target);
     }
 
     function setPremium2(address _address, uint256 _target) external onlyOwner {
         _premium2[_address] = _target;
+        emit Premium2Set(_address, _target);
     }
 
     function setFee2(address _address, uint256 _target) external onlyOwner {
         _fee2[_address] = _target;
+        emit Fee2Set(_address, _target);
     }
 
     function setWithdrawable(address _address, uint256 _target)
@@ -110,6 +126,7 @@ contract Parameters {
         onlyOwner
     {
         _withdawable[_address] = _target;
+        emit WithdrawableSet(_address, _target);
     }
 
     function setPremiumModel(address _address, address _target)
@@ -117,10 +134,12 @@ contract Parameters {
         onlyOwner
     {
         _premium[_address] = _target;
+        emit PremiumSet(_address, _target);
     }
 
     function setFeeModel(address _address, address _target) external onlyOwner {
         _fee[_address] = _target;
+        emit FeeSet(_address, _target);
     }
 
     function setCondition(bytes32 _reference, bytes32 _target)
@@ -128,6 +147,7 @@ contract Parameters {
         onlyOwner
     {
         _conditions[_reference] = _target;
+        emit ConditionSet(_reference, _target);
     }
 
     function getVault(address _token) external view returns (address) {

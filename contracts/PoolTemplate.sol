@@ -55,6 +55,8 @@ contract PoolTemplate is IERC20 {
     event CreditIncrease(address indexed depositor, uint256 credit);
     event CreditDecrease(address indexed withdrawer, uint256 credit);
     event MarketStatusChanged(MarketStatus statusValue);
+    event Paused(bool paused);
+    event MetadataChanged(string metadata);
     /**
      * Storage
      */
@@ -902,6 +904,7 @@ contract PoolTemplate is IERC20 {
      */
     function setPaused(bool state) external onlyOwner {
         paused = state;
+        emit Paused(state);
     }
 
     /**
@@ -909,6 +912,7 @@ contract PoolTemplate is IERC20 {
      */
     function changeMetadata(string calldata _metadata) external onlyOwner {
         metadata = _metadata;
+        emit MetadataChanged(_metadata);
     }
 
     /**

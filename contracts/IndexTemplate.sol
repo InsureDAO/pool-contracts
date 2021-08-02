@@ -29,12 +29,11 @@ contract IndexTemplate is IERC20 {
         uint256 underlying
     );
     event Withdraw(address indexed withdrawer, uint256 amount, uint256 retVal);
-    event Redeemed(
-        uint256 indexed id,
-        address insured,
-        uint256 amount,
-        uint256 payout
-    );
+    event Compensated(address indexed index, uint256 amount);
+    event Paused(bool paused);
+    event MetadataChanged(string metadata);
+    event LeverageSet(uint256 target);
+    event AllocationSet(address pool, uint256 allocPoint);
     /**
      * Storage
      */
@@ -419,6 +418,7 @@ contract IndexTemplate is IERC20 {
             vault.transferValue(_amount, msg.sender);
         }
         adjustAlloc();
+        emit Compensated(msg.sender, _amount);
     }
 
     /**
@@ -664,6 +664,7 @@ contract IndexTemplate is IERC20 {
      */
     function setPaused(bool state) external onlyOwner {
         paused = state;
+        emit Paused(state);
     }
 
     /**
@@ -671,6 +672,7 @@ contract IndexTemplate is IERC20 {
      */
     function changeMetadata(string calldata _metadata) external onlyOwner {
         metadata = _metadata;
+        emit MetadataChanged(_metadata);
     }
 
     /**
@@ -678,6 +680,7 @@ contract IndexTemplate is IERC20 {
      */
     function setLeverage(uint256 _target) external onlyOwner {
         targetLev = _target;
+        emit LeverageSet(_target);
     }
 
     /**
@@ -698,6 +701,7 @@ contract IndexTemplate is IERC20 {
             poolList.push(_pool);
         }
         adjustAlloc();
+        emit AllocationSet(_pool, _allocPoint);
     }
 
     /**

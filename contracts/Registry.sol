@@ -9,6 +9,9 @@ contract Registry {
 
     event CommitNewAdmin(uint256 deadline, address future_admin);
     event NewAdmin(address admin);
+    event NewMarketRegistered(address market);
+    event FactorySet(address factory);
+    event CDSSet(address target, address cds);
 
     address public factory;
     address public owner;
@@ -27,6 +30,7 @@ contract Registry {
     function setFactory(address _factory) external {
         require(msg.sender == owner);
         factory = _factory;
+        emit FactorySet(_factory);
     }
 
     function supportMarket(address _market) external {
@@ -34,11 +38,13 @@ contract Registry {
         require(msg.sender == factory || msg.sender == owner);
         allMarkets.push(_market);
         markets[_market] = true;
+        emit NewMarketRegistered(_market);
     }
 
     function setCDS(address _address, address _cds) external {
         require(msg.sender == owner, "dev: only owner");
         cds[_address] = _cds;
+        emit CDSSet(_address, _cds);
     }
 
     function getCDS(address _address) external view returns (address) {

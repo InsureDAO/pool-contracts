@@ -979,8 +979,14 @@ describe("Pool", function () {
   describe("Admin functions", function () {
     it("allows changing metadata", async function () {
       expect(await market.metadata()).to.equal("Here is metadata.");
-      await market.changeMetadata("new metadata");
-      expect(await market.metadata()).to.equal("new metadata");
+      const latest = `{
+            subject: "これは日本語だよ　这个是中文　TEST TEXTS",
+            options: [“Yes”, “No”],
+            description: "The website is compliant. This will release the funds to Alice."
+          }`;
+
+      await market.changeMetadata(latest);
+      expect(await market.metadata()).to.equal(latest);
     });
   });
 });

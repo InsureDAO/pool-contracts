@@ -29,14 +29,9 @@ contract CDS is IERC20 {
         uint256 underlying
     );
     event Withdraw(address indexed withdrawer, uint256 amount, uint256 retVal);
-
-    event Redeemed(
-        uint256 indexed id,
-        address insured,
-        uint256 amount,
-        uint256 payout
-    );
-
+    event Compensated(address indexed index, uint256 amount);
+    event Paused(bool paused);
+    event MetadataChanged(string metadata);
     /**
      * Storage
      */
@@ -239,6 +234,7 @@ contract CDS is IERC20 {
             //mint and swap for the shortage
             minter.emergency_mint(_shortage);
         }
+        emit Compensated(msg.sender, _amount);
     }
 
     /**
@@ -447,6 +443,7 @@ contract CDS is IERC20 {
      */
     function changeMetadata(string calldata _metadata) external onlyOwner {
         metadata = _metadata;
+        emit MetadataChanged(_metadata);
     }
 
     /**
@@ -454,6 +451,7 @@ contract CDS is IERC20 {
      */
     function setPaused(bool state) external onlyOwner {
         paused = state;
+        emit Paused(state);
     }
 
     /**

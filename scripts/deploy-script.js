@@ -28,7 +28,7 @@ async function main() {
   //deploy
   const dai = await DAI.deploy(creator.address);
   await dai.deployed();
-  console.log("dai deployed to:", dai.address);
+  console.log("usdc deployed to:", dai.address);
   const registry = await Registry.deploy();
   await registry.deployed();
   console.log("registry deployed to:", registry.address);
@@ -183,12 +183,25 @@ async function main() {
     [parameters.address, vault.address, registry.address]
   );
   await tx.wait();
+  tx = await factory.createMarket(
+    poolTemplate.address,
+    "Here is metadata.",
+    "test-name",
+    "test-symbol",
+    18,
+    [0, 0],
+    [parameters.address, vault.address, registry.address]
+  );
+  await tx.wait();
   const marketAddress1 = await factory.markets(0);
   const marketAddress2 = await factory.markets(1);
+  const marketAddress3 = await factory.markets(2);
   market1 = await PoolTemplate.attach(marketAddress1);
   market2 = await PoolTemplate.attach(marketAddress2);
+  market3 = await PoolTemplate.attach(marketAddress3);
   console.log("pool1 deployed to", market1.address);
   console.log("pool2 deployed to", market2.address);
+  console.log("pool3 deployed to", market3.address);
   tx = await factory.createMarket(
     cdsTemplate.address,
     "Here is metadata.",
@@ -209,17 +222,19 @@ async function main() {
     [parameters.address, vault.address, registry.address]
   );
   await tx.wait();
-  const marketAddress3 = await factory.markets(2);
   const marketAddress4 = await factory.markets(3);
-  cds = await CDS.attach(marketAddress3);
-  index = await IndexTemplate.attach(marketAddress4);
-  console.log("cds deployed to", marketAddress3);
-  console.log("index deployed to", marketAddress4);
+  const marketAddress5 = await factory.markets(4);
+  cds = await CDS.attach(marketAddress4);
+  index = await IndexTemplate.attach(marketAddress5);
+  console.log("cds deployed to", marketAddress4);
+  console.log("index deployed to", marketAddress5);
   tx = await registry.setCDS(ZERO_ADDRESS, cds.address);
   await tx.wait();
   tx = await index.set(market1.address, "1000");
   await tx.wait();
   tx = await index.set(market2.address, "1000");
+  await tx.wait();
+  tx = await index.set(market3.address, "1000");
   await tx.wait();
   tx = await index.setLeverage("2000");
   console.log("all done");

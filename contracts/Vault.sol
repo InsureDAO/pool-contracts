@@ -33,6 +33,7 @@ contract Vault {
 
     event CommitNewAdmin(uint256 deadline, address future_admin);
     event NewAdmin(address admin);
+    event ControllerSet(address controller);
 
     constructor(
         address _token,
@@ -108,8 +109,9 @@ contract Vault {
                 underlyingValue(msg.sender) >= _amount,
             "ERROR_TRANSFER-VALUE_BADCONDITOONS"
         );
-        uint256 _targetAttribution =
-            _amount.mul(totalAttributions).div(valueAll());
+        uint256 _targetAttribution = _amount.mul(totalAttributions).div(
+            valueAll()
+        );
         attributions[msg.sender] = attributions[msg.sender].sub(
             _targetAttribution
         );
@@ -241,6 +243,7 @@ contract Vault {
         require(msg.sender == owner, "dev: only owner");
         controller.migrate(address(_controller));
         controller = IController(_controller);
+        emit ControllerSet(_controller);
     }
 
     /**
