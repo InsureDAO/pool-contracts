@@ -292,30 +292,34 @@ contract IndexTemplate is IERC20 {
      * Withdrawable is limited to the amount which does not break the balance of credit allocation
      */
     function withdrawable() public view returns (uint256 _retVal) {
-        uint256 _lowest;
-        for (uint256 i = 0; i < poolList.length; i++) {
-            if (pools[poolList[i]].allocPoints > 0) {
-                uint256 _utilization = IPoolTemplate(poolList[i])
-                .utilizationRate();
-                if (i == 0) {
-                    _lowest = _utilization;
-                }
-                if (_utilization > _lowest) {
-                    _lowest = _utilization;
+        if (totalLiquidity() > 0) {
+            uint256 _lowest;
+            for (uint256 i = 0; i < poolList.length; i++) {
+                if (pools[poolList[i]].allocPoints > 0) {
+                    uint256 _utilization = IPoolTemplate(poolList[i])
+                    .utilizationRate();
+                    if (i == 0) {
+                        _lowest = _utilization;
+                    }
+                    if (_utilization > _lowest) {
+                        _lowest = _utilization;
+                    }
                 }
             }
-        }
-        if (leverage() > targetLev) {
-            _retVal = 0;
-        } else if (_lowest == 0) {
-            _retVal = totalLiquidity();
+            if (leverage() > targetLev) {
+                _retVal = 0;
+            } else if (_lowest == 0) {
+                _retVal = totalLiquidity();
+            } else {
+                _retVal = (1e8 - _lowest)
+                .mul(totalLiquidity())
+                .div(1e8)
+                .mul(1e3)
+                .div(leverage())
+                .add(_accruedPremiums());
+            }
         } else {
-            _retVal = (1e8 - _lowest)
-            .mul(totalLiquidity())
-            .div(1e8)
-            .mul(1e3)
-            .div(leverage())
-            .add(_accruedPremiums());
+            _retVal = 0;
         }
     }
 

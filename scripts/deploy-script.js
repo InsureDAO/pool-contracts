@@ -160,7 +160,7 @@ async function main() {
   await tx.wait();
   tx = await parameters.setFeeModel(ZERO_ADDRESS, fee.address);
   await tx.wait();
-  tx = await parameters.setWithdrawable(ZERO_ADDRESS, "86400000");
+  tx = await parameters.setWithdrawable(ZERO_ADDRESS, "604800");
   await tx.wait();
   console.log("parameters configured 2");
   tx = await factory.createMarket(
