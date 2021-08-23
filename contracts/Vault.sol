@@ -256,6 +256,7 @@ contract Vault {
      */
     function _unutilize(uint256 _amount) internal {
         controller.withdraw(address(this), _amount);
+        balance = balance.add(_amount);
     }
 
     /**
