@@ -28,6 +28,7 @@ contract Vault {
 
     address public owner;
     address public future_owner;
+    uint256 public balance;
     uint256 public transfer_ownership_deadline;
     uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
 
@@ -63,11 +64,12 @@ contract Vault {
             IRegistry(registry).isListed(msg.sender),
             "ERROR_ADD-VALUE_BADCONDITOONS"
         );
-        uint256 _pool = valueAll();
         token.safeTransferFrom(_from, address(this), _amount);
+        balance = balance.add(_amount);
         if (totalAttributions == 0) {
             _attributions = _amount;
         } else {
+            uint256 _pool = valueAll();
             _attributions = _amount.mul(totalAttributions).div(_pool);
         }
         totalAttributions = totalAttributions.add(_attributions);
@@ -96,7 +98,8 @@ contract Vault {
             uint256 _shortage = _amount.sub(available());
             _unutilize(_shortage);
         }
-        token.transfer(_to, _amount);
+        balance = balance.sub(_amount);
+        token.safeTransfer(_to, _amount);
     }
 
     /**
@@ -127,17 +130,7 @@ contract Vault {
         external
         returns (uint256 _retVal)
     {
-        require(
-            attributions[msg.sender] > _attribution,
-            "ERROR_WITHDRAW-ATTRIBUTION_BADCONDITOONS"
-        );
-        _retVal = _attribution.mul(valueAll()).div(totalAttributions);
-        attributions[msg.sender] = attributions[msg.sender].sub(_attribution);
-        if (available() < _retVal) {
-            uint256 _shortage = _retVal.sub(available());
-            _unutilize(_shortage);
-        }
-        token.transfer(_to, _retVal);
+        _retVal = _withdrawAttribution(_attribution, _to);
     }
 
     /**
@@ -145,6 +138,16 @@ contract Vault {
      */
     function withdrawAllAttribution(address _to)
         external
+        returns (uint256 _retVal)
+    {
+        _retVal = _withdrawAttribution(attributions[msg.sender], _to);
+    }
+
+    /**
+     * @notice an address that has balance in the vault can withdraw all value
+     */
+    function _withdrawAttribution(uint256 _attribution, address _to)
+        internal
         returns (uint256 _retVal)
     {
         require(
@@ -160,7 +163,8 @@ contract Vault {
             uint256 _shortage = _retVal.sub(available());
             _unutilize(_shortage);
         }
-        token.transfer(_to, _retVal);
+        balance = balance.sub(_retVal);
+        token.safeTransfer(_to, _retVal);
     }
 
     /**
@@ -184,6 +188,7 @@ contract Vault {
         _amount = available();
         if (_amount > 0) {
             token.safeTransfer(address(controller), _amount);
+            balance = balance.sub(_amount);
             controller.earn(address(token), _amount);
         }
     }
@@ -233,7 +238,7 @@ contract Vault {
      * @notice return underlying value of this contract
      */
     function valueAll() public view returns (uint256) {
-        return token.balanceOf(address(this)).add(controller.valueAll());
+        return balance.add(controller.valueAll());
     }
 
     /**
@@ -257,7 +262,7 @@ contract Vault {
      * @notice return how much funds in this contract is available to be utilized
      */
     function available() public view returns (uint256) {
-        return token.balanceOf(address(this));
+        return balance;
     }
 
     /**
