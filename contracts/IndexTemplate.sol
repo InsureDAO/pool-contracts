@@ -693,6 +693,10 @@ contract IndexTemplate is IERC20 {
      * @notice Change allocation point for each pool
      */
     function set(address _pool, uint256 _allocPoint) public onlyOwner {
+        require(
+            registry.isListed(_pool),
+            "ERROR:UNREGISTERED_POOL"
+        );
         if (totalAllocPoint > 0) {
             totalAllocPoint = totalAllocPoint.sub(pools[_pool].allocPoints).add(
                 _allocPoint
