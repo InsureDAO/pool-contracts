@@ -347,9 +347,10 @@ contract IndexTemplate is IERC20 {
             );
             uint256 _available = IPoolTemplate(poolList[i]).availableBalance();
             if (
-                _current > _target &&
-                _current.sub(_target) > _available &&
-                _available != 0
+                (_current > _target &&
+                    _current.sub(_target) > _available &&
+                    _available != 0) ||
+                IPoolTemplate(poolList[i]).paused() == true
             ) {
                 IPoolTemplate(poolList[i]).withdrawCredit(_available);
                 totalAllocatedCredit = totalAllocatedCredit.sub(_available);
@@ -693,10 +694,7 @@ contract IndexTemplate is IERC20 {
      * @notice Change allocation point for each pool
      */
     function set(address _pool, uint256 _allocPoint) public onlyOwner {
-        require(
-            registry.isListed(_pool),
-            "ERROR:UNREGISTERED_POOL"
-        );
+        require(registry.isListed(_pool), "ERROR:UNREGISTERED_POOL");
         if (totalAllocPoint > 0) {
             totalAllocPoint = totalAllocPoint.sub(pools[_pool].allocPoints).add(
                 _allocPoint

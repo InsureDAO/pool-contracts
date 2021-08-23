@@ -32,4 +32,6 @@ abstract contract IPoolTemplate {
         view
         virtual
         returns (uint256);
+
+    function paused() public view virtual returns (bool);
 }
