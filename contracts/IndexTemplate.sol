@@ -685,6 +685,7 @@ contract IndexTemplate is IERC20 {
      */
     function setLeverage(uint256 _target) external onlyOwner {
         targetLev = _target;
+        adjustAlloc();
         emit LeverageSet(_target);
     }
 
