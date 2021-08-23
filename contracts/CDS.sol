@@ -95,6 +95,7 @@ contract CDS is IERC20 {
         address[] calldata _references
     ) external returns (bool) {
         require(
+            initialized == false&&
             bytes(_metaData).length > 10 &&
                 bytes(_name).length > 0 &&
                 bytes(_symbol).length > 0 &&
