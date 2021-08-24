@@ -360,8 +360,7 @@ contract PoolTemplate is IERC20 {
         require(
             IRegistry(registry).isListed(msg.sender) &&
                 _index.credit >= _credit &&
-                _credit <= availableBalance() &&
-                _credit > 0,
+                _credit <= availableBalance(),
             "ERROR: DEALLOCATE_BAD_CONDITIONS"
         );
 
@@ -372,9 +371,13 @@ contract PoolTemplate is IERC20 {
         );
 
         //Withdraw liquidity
-        totalCredit = totalCredit.sub(_credit);
-        indexes[msg.sender].credit = indexes[msg.sender].credit.sub(_credit);
-        emit CreditDecrease(msg.sender, _credit);
+        if (_credit > 0) {
+            totalCredit = totalCredit.sub(_credit);
+            indexes[msg.sender].credit = indexes[msg.sender].credit.sub(
+                _credit
+            );
+            emit CreditDecrease(msg.sender, _credit);
+        }
 
         //withdraw acrrued premium
         if (_pending > 0) {

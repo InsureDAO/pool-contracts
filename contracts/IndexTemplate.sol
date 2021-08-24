@@ -3,7 +3,6 @@ pragma solidity ^0.6.0;
  * @author kohshiba
  * @title InsureDAO market template contract
  */
-
 import "./libraries/math/SafeMath.sol";
 import "./libraries/utils/Address.sol";
 import "./libraries/tokens/IERC20.sol";
@@ -337,6 +336,7 @@ contract IndexTemplate is IERC20 {
         address[] memory _poolList = new address[](poolList.length); // log which pool has exceeded
         uint256 _allocatable = _targetCredit;
         uint256 _allocatablePoints = totalAllocPoint;
+
         //Check each pool and if current credit allocation > target & it is impossble to adjust, then withdraw all availablle credit
         for (uint256 i = 0; i < poolList.length; i++) {
             uint256 _target = _targetCredit
@@ -346,10 +346,9 @@ contract IndexTemplate is IERC20 {
                 address(this)
             );
             uint256 _available = IPoolTemplate(poolList[i]).availableBalance();
+
             if (
-                (_current > _target &&
-                    _current.sub(_target) > _available &&
-                    _available != 0) ||
+                (_current > _target && _current.sub(_target) > _available) ||
                 IPoolTemplate(poolList[i]).paused() == true
             ) {
                 IPoolTemplate(poolList[i]).withdrawCredit(_available);

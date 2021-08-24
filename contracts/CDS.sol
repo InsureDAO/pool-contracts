@@ -3,7 +3,6 @@ pragma solidity ^0.6.0;
  * @author kohshiba
  * @title InsureDAO cds contract template contract
  */
-
 import "./libraries/math/SafeMath.sol";
 import "./libraries/utils/Address.sol";
 import "./libraries/tokens/IERC20.sol";
@@ -95,8 +94,8 @@ contract CDS is IERC20 {
         address[] calldata _references
     ) external returns (bool) {
         require(
-            initialized == false&&
-            bytes(_metaData).length > 10 &&
+            initialized == false &&
+                bytes(_metaData).length > 10 &&
                 bytes(_name).length > 0 &&
                 bytes(_symbol).length > 0 &&
                 _decimals > 0 &&

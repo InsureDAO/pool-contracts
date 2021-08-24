@@ -64,14 +64,14 @@ contract Vault {
             IRegistry(registry).isListed(msg.sender),
             "ERROR_ADD-VALUE_BADCONDITOONS"
         );
-        token.safeTransferFrom(_from, address(this), _amount);
-        balance = balance.add(_amount);
         if (totalAttributions == 0) {
             _attributions = _amount;
         } else {
             uint256 _pool = valueAll();
             _attributions = _amount.mul(totalAttributions).div(_pool);
         }
+        token.safeTransferFrom(_from, address(this), _amount);
+        balance = balance.add(_amount);
         totalAttributions = totalAttributions.add(_attributions);
         attributions[_beneficiary] = attributions[_beneficiary].add(
             _attributions

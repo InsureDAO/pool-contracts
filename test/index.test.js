@@ -805,7 +805,7 @@ describe("Index", function () {
       expect(await market1.availableBalance()).to.equal("1");
       expect(await index.withdrawable()).to.equal("66");
       await index.setLeverage("2000"); //deleverage
-      await index.adjustAlloc();
+      //await index.adjustAlloc();
       expect(await index.totalSupply()).to.equal("10000");
       expect(await index.totalLiquidity()).to.equal("10066");
       expect(await market1.allocatedCredit(index.address)).to.equal("9999");
