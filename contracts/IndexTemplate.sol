@@ -237,9 +237,8 @@ contract IndexTemplate is IERC20 {
             );
             uint256 _available = IPoolTemplate(poolList[i]).availableBalance();
             if (
-                _current > _target &&
-                _current.sub(_target) > _available &&
-                _available != 0
+                (_current > _target && _current.sub(_target) > _available) ||
+                IPoolTemplate(poolList[i]).paused() == true
             ) {
                 IPoolTemplate(poolList[i]).withdrawCredit(_available);
                 totalAllocatedCredit = totalAllocatedCredit.sub(_available);

@@ -718,6 +718,50 @@ describe("Index", function () {
       expect(await index.withdrawable()).to.equal("10000");
       expect(await vault.attributions(index.address)).to.equal("10000");
     });
+    it("mimics pool removal if the pool is paused", async function () {
+      await index.set(market3.address, "1000");
+      await dai.connect(alice).approve(vault.address, 10000);
+      await dai.connect(bob).approve(vault.address, 10000);
+      expect(await index.totalSupply()).to.equal("0");
+      expect(await index.totalLiquidity()).to.equal("0");
+      await index.connect(alice).deposit("10000");
+
+      //before remomval
+      expect(await index.totalSupply()).to.equal("10000");
+      expect(await index.totalLiquidity()).to.equal("10000");
+      expect(await market1.allocatedCredit(index.address)).to.equal("6666");
+      expect(await market2.allocatedCredit(index.address)).to.equal("6666");
+      expect(await market3.allocatedCredit(index.address)).to.equal("6666");
+      expect(await index.totalAllocatedCredit()).to.equal("19998");
+      expect(await vault.valueAll()).to.equal("10000");
+      expect(await vault.totalAttributions()).to.equal("10000");
+      expect(await vault.underlyingValue(index.address)).to.equal("10000");
+      expect(await market1.availableBalance()).to.equal("6666");
+      expect(await market2.availableBalance()).to.equal("6666");
+      expect(await market3.availableBalance()).to.equal("6666");
+      expect(await index.leverage()).to.equal("1999");
+      expect(await index.withdrawable()).to.equal("10000");
+      expect(await vault.attributions(index.address)).to.equal("10000");
+
+      //after remomval
+      await market3.setPaused(true);
+      await index.adjustAlloc();
+      expect(await index.totalSupply()).to.equal("10000");
+      expect(await index.totalLiquidity()).to.equal("10000");
+      expect(await market1.allocatedCredit(index.address)).to.equal("10000");
+      expect(await market2.allocatedCredit(index.address)).to.equal("10000");
+      expect(await market3.allocatedCredit(index.address)).to.equal("0");
+      expect(await index.totalAllocatedCredit()).to.equal("20000");
+      expect(await vault.valueAll()).to.equal("10000");
+      expect(await vault.totalAttributions()).to.equal("10000");
+      expect(await vault.underlyingValue(index.address)).to.equal("10000");
+      expect(await market1.availableBalance()).to.equal("10000");
+      expect(await market2.availableBalance()).to.equal("10000");
+      expect(await market3.availableBalance()).to.equal("0");
+      expect(await index.leverage()).to.equal("2000");
+      expect(await index.withdrawable()).to.equal("10000");
+      expect(await vault.attributions(index.address)).to.equal("10000");
+    });
     it("allows leverage rate increment", async function () {
       await index.set(market3.address, "1000");
       await dai.connect(alice).approve(vault.address, 10000);
