@@ -274,6 +274,23 @@ contract Vault {
     }
 
     /**
+     * @notice withdraw redundant token stored in this contract
+     */
+    function withdrawRedundant(address _token, address _to) external {
+        require(msg.sender == owner, "dev: only owner");
+        if (
+            _token == address(token) && balance > token.balanceOf(address(this))
+        ) {
+            uint256 _redundant = balance.sub(token.balanceOf(address(this)));
+            token.safeTransfer(_to, _redundant);
+        }
+        IERC20(_token).safeTransfer(
+            _to,
+            IERC20(_token).balanceOf(address(this))
+        );
+    }
+
+    /**
      * Ownership Functions
      */
 
