@@ -279,15 +279,16 @@ contract Vault {
     function withdrawRedundant(address _token, address _to) external {
         require(msg.sender == owner, "dev: only owner");
         if (
-            _token == address(token) && balance > token.balanceOf(address(this))
+            _token == address(token) && balance < token.balanceOf(address(this))
         ) {
-            uint256 _redundant = balance.sub(token.balanceOf(address(this)));
+            uint256 _redundant = token.balanceOf(address(this)).sub(balance);
             token.safeTransfer(_to, _redundant);
+        } else if (IERC20(_token).balanceOf(address(this)) > 0) {
+            IERC20(_token).safeTransfer(
+                _to,
+                IERC20(_token).balanceOf(address(this))
+            );
         }
-        IERC20(_token).safeTransfer(
-            _to,
-            IERC20(_token).balanceOf(address(this))
-        );
     }
 
     /**
