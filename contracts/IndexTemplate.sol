@@ -62,7 +62,7 @@ contract IndexTemplate is IERC20 {
     uint256 public totalAllocatedCredit;
     mapping(address => uint256) public allocPoints;
     uint256 public totalAllocPoint;
-    address[10] public poolList;
+    address[] public poolList;
     uint256 public targetLev; //1x = 1e3
 
     ///@notice user status management
@@ -658,7 +658,7 @@ contract IndexTemplate is IERC20 {
         }
     }
 
-    function getAllPools() external view returns (address[10] memory) {
+    function getAllPools() external view returns (address[] memory) {
         return poolList;
     }
 
@@ -696,12 +696,21 @@ contract IndexTemplate is IERC20 {
      */
     function set(uint256 _index, address _pool, uint256 _allocPoint) public onlyOwner {
         require(registry.isListed(_pool), "ERROR:UNREGISTERED_POOL");
-        if(poolList[_index] != address(0) && poolList[_index] != _pool){
-            uint256 _current = IPoolTemplate(poolList[_index]).allocatedCredit(
-                address(this)
-            );
-            IPoolTemplate(poolList[_index]).withdrawCredit(_current);
+        require(_index <= parameters.getMaxList(address(this)),"ERROR: EXCEEEDED_MAX_INDEX");
+        //create a new pool or replace existing
+        if(poolList.length <= _index){
+            require(poolList.length ==_index,"ERROR: BAD_INDEX");
+            poolList.push(_pool);
+        }else{
+            if(poolList[_index] != address(0) && poolList[_index] != _pool){
+                uint256 _current = IPoolTemplate(poolList[_index]).allocatedCredit(
+                    address(this)
+                );
+                IPoolTemplate(poolList[_index]).withdrawCredit(_current);
+            }
+            poolList[_index] = _pool;
         }
+        
         if (totalAllocPoint > 0) {
             totalAllocPoint = totalAllocPoint.sub(allocPoints[_pool]).add(
                 _allocPoint
@@ -709,7 +718,6 @@ contract IndexTemplate is IERC20 {
         } else {
             totalAllocPoint = _allocPoint;
         }
-        poolList[_index] = _pool;
         allocPoints[_pool] = _allocPoint;
         adjustAlloc();
         emit AllocationSet(_index, _pool, _allocPoint);

@@ -108,6 +108,7 @@ describe("Index", function () {
     await premium.setPremium("2000", "50000");
     await fee.setFee("10000");
     await parameters.setGrace(ZERO_ADDRESS, "259200");
+    await parameters.setMaxList(ZERO_ADDRESS, "10");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
     await parameters.setMindate(ZERO_ADDRESS, "604800");
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);

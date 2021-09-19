@@ -111,6 +111,7 @@ describe("CDS", function () {
     await parameters.setPremium2(ZERO_ADDRESS, "2000");
     await parameters.setFee2(ZERO_ADDRESS, "1000");
     await parameters.setGrace(ZERO_ADDRESS, "259200");
+    await parameters.setMaxList(ZERO_ADDRESS, "10");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
     await parameters.setMindate(ZERO_ADDRESS, "604800");
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
