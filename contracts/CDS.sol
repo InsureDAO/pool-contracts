@@ -95,7 +95,8 @@ contract CDS is IERC20 {
         address[] calldata _references
     ) external returns (bool) {
         require(
-            bytes(_metaData).length > 10 &&
+            initialized == false &&
+                bytes(_metaData).length > 10 &&
                 bytes(_name).length > 0 &&
                 bytes(_symbol).length > 0 &&
                 _decimals > 0 &&
@@ -192,9 +193,9 @@ contract CDS is IERC20 {
                 ) <
                 now &&
                 withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) >
+                    .timestamp
+                    .add(parameters.getLockup(msg.sender))
+                    .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,
