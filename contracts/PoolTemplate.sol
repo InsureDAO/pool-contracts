@@ -248,7 +248,7 @@ contract PoolTemplate is IERC20 {
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
         uint256 _supply = totalSupply();
         uint256 _liquidity = vault.attributionValue(totalAttributions);
-        _retVal = _divFloor(_amount.mul(_liquidity), _supply);
+        _retVal = _divMinus(_amount.mul(_liquidity), _supply);
         require(
             marketStatus == MarketStatus.Trading &&
                 withdrawalReq[msg.sender].timestamp.add(
@@ -256,9 +256,9 @@ contract PoolTemplate is IERC20 {
                 ) <
                 now &&
                 withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) >
+                    .timestamp
+                    .add(parameters.getLockup(msg.sender))
+                    .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
                 _retVal <= availableBalance() &&
                 withdrawalReq[msg.sender].amount >= _amount &&
@@ -487,16 +487,16 @@ contract PoolTemplate is IERC20 {
             _payoutDenominator
         );
         uint256 _deductionFromIndex = _payoutAmount
-        .mul(totalCredit)
-        .mul(1e8)
-        .div(totalLiquidity());
+            .mul(totalCredit)
+            .mul(1e8)
+            .div(totalLiquidity());
 
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indexes[indexList[i]].credit > 0) {
                 uint256 _shareOfIndex = indexes[indexList[i]]
-                .credit
-                .mul(1e8)
-                .div(indexes[indexList[i]].credit);
+                    .credit
+                    .mul(1e8)
+                    .div(indexes[indexList[i]].credit);
                 uint256 _redeemAmount = _divCeil(
                     _deductionFromIndex,
                     _shareOfIndex
@@ -510,9 +510,9 @@ contract PoolTemplate is IERC20 {
             msg.sender
         );
         uint256 _indexAttribution = _paidAttribution
-        .mul(_deductionFromIndex)
-        .div(1e8)
-        .div(_payoutAmount);
+            .mul(_deductionFromIndex)
+            .div(1e8)
+            .div(_payoutAmount);
         totalAttributions = totalAttributions.sub(
             _paidAttribution.sub(_indexAttribution)
         );
@@ -941,12 +941,12 @@ contract PoolTemplate is IERC20 {
     }
 
     /**
-     * @notice Internal function for safe division
+     * @notice Internal function to prevent liquidity to go zero
      */
-    function _divFloor(uint256 a, uint256 b) internal pure returns (uint256) {
+    function _divMinus(uint256 a, uint256 b) internal pure returns (uint256) {
         require(b > 0);
         uint256 c = a / b;
-        if (a % b != 0) c = c - 1;
+        if (a % b != 0 && c != 0) c = c - 1;
         return c;
     }
 
