@@ -192,9 +192,9 @@ contract CDS is IERC20 {
                 ) <
                 now &&
                 withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) >
+                    .timestamp
+                    .add(parameters.getLockup(msg.sender))
+                    .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,
@@ -330,6 +330,10 @@ contract CDS is IERC20 {
         public
         returns (bool)
     {
+        require(
+            _allowances[msg.sender][spender] >= subtractedValue,
+            "ERC20: decreased allowance below zero"
+        );
         _approve(
             msg.sender,
             spender,
