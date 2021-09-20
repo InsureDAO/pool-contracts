@@ -128,7 +128,7 @@ contract Vault {
         returns (uint256 _retVal)
     {
         require(
-            attributions[msg.sender] > _attribution,
+            attributions[msg.sender] >= _attribution,
             "ERROR_WITHDRAW-ATTRIBUTION_BADCONDITOONS"
         );
         _retVal = _attribution.mul(valueAll()).div(totalAttributions);
