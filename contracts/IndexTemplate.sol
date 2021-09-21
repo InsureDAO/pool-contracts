@@ -3,7 +3,6 @@ pragma solidity ^0.6.0;
  * @author kohshiba
  * @title InsureDAO market template contract
  */
-
 import "./libraries/math/SafeMath.sol";
 import "./libraries/utils/Address.sol";
 import "./libraries/tokens/IERC20.sol";
@@ -76,6 +75,10 @@ contract IndexTemplate is IERC20 {
         uint256 amount;
     }
     mapping(address => Withdrawal) public withdrawalReq;
+
+    ///@notice magic numbers
+    uint256 public constant LEVERAGE_DIVISOR = 1e3;
+    uint256 public constant UTILIZATION_RATE_LENGTH = 1e8;
 
     /**
      * @notice Throws if called by any account other than the owner.
@@ -204,9 +207,9 @@ contract IndexTemplate is IERC20 {
                 ) <
                 now &&
                 withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) >
+                    .timestamp
+                    .add(parameters.getLockup(msg.sender))
+                    .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
                 _retVal <= withdrawable() &&
                 withdrawalReq[msg.sender].amount >= _amount &&
@@ -223,15 +226,17 @@ contract IndexTemplate is IERC20 {
 
         //Check current leverage rate and get updated target total credit allocation
         uint256 _liquidityAfter = totalLiquidity().sub(_retVal);
-        uint256 _targetCredit = targetLev.mul(_liquidityAfter).div(1e3); //Allocatable credit
+        uint256 _targetCredit = targetLev.mul(_liquidityAfter).div(
+            LEVERAGE_DIVISOR
+        ); //Allocatable credit
         address[] memory _poolList = new address[](poolList.length); // log which pool has exceeded
         uint256 _allocatable = _targetCredit;
         uint256 _allocatablePoints = totalAllocPoint;
         //Check each pool and if current credit allocation > target & it is impossble to adjust, then withdraw all availablle credit
         for (uint256 i = 0; i < poolList.length; i++) {
             uint256 _target = _targetCredit
-            .mul(pools[poolList[i]].allocPoints)
-            .div(totalAllocPoint);
+                .mul(pools[poolList[i]].allocPoints)
+                .div(totalAllocPoint);
             uint256 _current = IPoolTemplate(poolList[i]).allocatedCredit(
                 address(this)
             );
@@ -255,14 +260,14 @@ contract IndexTemplate is IERC20 {
             if (_poolList[i] != address(0)) {
                 //Target credit allocation for a pool
                 uint256 _target = _allocatable
-                .mul(pools[poolList[i]].allocPoints)
-                .div(_allocatablePoints);
+                    .mul(pools[poolList[i]].allocPoints)
+                    .div(_allocatablePoints);
                 //get how much has been allocated for a pool
                 uint256 _current = IPoolTemplate(poolList[i]).allocatedCredit(
                     address(this)
                 );
                 uint256 _available = IPoolTemplate(poolList[i])
-                .availableBalance();
+                    .availableBalance();
                 if (_current > _target && _available != 0) {
                     //if allocated credit is higher than the target, try to decrease
                     uint256 _decrease = _current.sub(_target);
@@ -297,7 +302,7 @@ contract IndexTemplate is IERC20 {
             for (uint256 i = 0; i < poolList.length; i++) {
                 if (pools[poolList[i]].allocPoints > 0) {
                     uint256 _utilization = IPoolTemplate(poolList[i])
-                    .utilizationRate();
+                        .utilizationRate();
                     if (i == 0) {
                         _lowest = _utilization;
                     }
@@ -311,12 +316,12 @@ contract IndexTemplate is IERC20 {
             } else if (_lowest == 0) {
                 _retVal = totalLiquidity();
             } else {
-                _retVal = (1e8 - _lowest)
-                .mul(totalLiquidity())
-                .div(1e8)
-                .mul(1e3)
-                .div(leverage())
-                .add(_accruedPremiums());
+                _retVal = (UTILIZATION_RATE_LENGTH - _lowest)
+                    .mul(totalLiquidity())
+                    .mul(LEVERAGE_DIVISOR)
+                    .div(UTILIZATION_RATE_LENGTH)
+                    .div(leverage())
+                    .add(_accruedPremiums());
             }
         } else {
             _retVal = 0;
@@ -332,15 +337,18 @@ contract IndexTemplate is IERC20 {
      */
     function adjustAlloc() public {
         //Check current leverage rate and get target total credit allocation
-        uint256 _targetCredit = targetLev.mul(totalLiquidity()).div(1e3); //Allocatable credit
+        uint256 _targetCredit = targetLev.mul(totalLiquidity()).div(
+            LEVERAGE_DIVISOR
+        ); //Allocatable credit
+
         address[] memory _poolList = new address[](poolList.length); // log which pool has exceeded
         uint256 _allocatable = _targetCredit;
         uint256 _allocatablePoints = totalAllocPoint;
         //Check each pool and if current credit allocation > target & it is impossble to adjust, then withdraw all availablle credit
         for (uint256 i = 0; i < poolList.length; i++) {
             uint256 _target = _targetCredit
-            .mul(pools[poolList[i]].allocPoints)
-            .div(totalAllocPoint);
+                .mul(pools[poolList[i]].allocPoints)
+                .div(totalAllocPoint);
             uint256 _current = IPoolTemplate(poolList[i]).allocatedCredit(
                 address(this)
             );
@@ -364,15 +372,15 @@ contract IndexTemplate is IERC20 {
             if (_poolList[i] != address(0)) {
                 //Target credit allocation for a pool
                 uint256 _target = _allocatable
-                .mul(pools[poolList[i]].allocPoints)
-                .div(_allocatablePoints);
+                    .mul(pools[poolList[i]].allocPoints)
+                    .div(_allocatablePoints);
                 //get how much has been allocated for a pool
                 uint256 _current = IPoolTemplate(poolList[i]).allocatedCredit(
                     address(this)
                 );
 
                 uint256 _available = IPoolTemplate(poolList[i])
-                .availableBalance();
+                    .availableBalance();
                 if (_current > _target && _available != 0) {
                     //if allocated credit is higher than the target, try to decrease
                     uint256 _decrease = _current.sub(_target);
@@ -619,7 +627,10 @@ contract IndexTemplate is IERC20 {
     function leverage() public view returns (uint256 _rate) {
         //check current leverage rate
         if (totalLiquidity() > 0) {
-            return totalAllocatedCredit.mul(1e3).div(totalLiquidity());
+            return
+                totalAllocatedCredit.mul(LEVERAGE_DIVISOR).div(
+                    totalLiquidity()
+                );
         } else {
             return 0;
         }
@@ -693,8 +704,8 @@ contract IndexTemplate is IERC20 {
     function set(address _pool, uint256 _allocPoint) public onlyOwner {
         if (totalAllocPoint > 0) {
             totalAllocPoint = totalAllocPoint.sub(pools[_pool].allocPoints).add(
-                _allocPoint
-            );
+                    _allocPoint
+                );
         } else {
             totalAllocPoint = _allocPoint;
         }
