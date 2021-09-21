@@ -318,7 +318,7 @@ describe("Pool", function () {
         );
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(market.connect(alice).withdraw("10000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: INSUFFICIENT_LIQUIDITY_TO_WITHDRAW"
       );
     });
     it("allows unlock liquidity only after an insurance period over", async function () {
@@ -497,7 +497,7 @@ describe("Pool", function () {
       );
 
       await expect(market.connect(alice).withdraw("10000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_PENDING"
       );
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
       await market.resume();
@@ -711,7 +711,7 @@ describe("Pool", function () {
             86400 * 8,
             "0x4e69636b00000000000000000000000000000000000000000000000000000000"
           )
-      ).to.revertedWith("ERROR: INSURE_BAD_CONDITIONS");
+      ).to.revertedWith("ERROR: INSURE_EXCEEDED_AVAILABLE_BALANCE");
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await market.connect(alice).withdraw("100");
       expect(await dai.balanceOf(alice.address)).to.equal("100000");
@@ -750,7 +750,7 @@ describe("Pool", function () {
 
       await market.resume();
       await expect(market.connect(bob).redeem("0")).to.revertedWith(
-        "ERROR: INSURANCE_NOT_APPLICABLE"
+        "ERROR: NO_APPLICABLE_INCIDENT"
       );
       await market.unlock("0");
       await market.connect(alice).withdraw("10000");
@@ -836,7 +836,7 @@ describe("Pool", function () {
             86400 * 8,
             "0x4e69636b00000000000000000000000000000000000000000000000000000000"
           )
-      ).to.revertedWith("ERROR: INSURE_BAD_CONDITIONS");
+      ).to.revertedWith("ERROR: INSURE_MARKET_PENDING");
       await market.setPaused(false);
       currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
