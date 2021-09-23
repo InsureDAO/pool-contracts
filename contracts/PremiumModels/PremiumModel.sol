@@ -1,7 +1,7 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.8.0;
 
-import "../libraries/math/SafeMath.sol";
-import "../libraries/utils/Address.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 contract PremiumModel {
     using SafeMath for uint256;
@@ -38,11 +38,11 @@ contract PremiumModel {
         }
         // 1) Calculate premium multiplier
         uint256 _util = _lockedAmount
-        .add(_amount)
-        .add(_lockedAmount)
-        .mul(1e5)
-        .div(_totalLiquidity)
-        .div(2);
+            .add(_amount)
+            .add(_lockedAmount)
+            .mul(1e5)
+            .div(_totalLiquidity)
+            .div(2);
         uint256 _premium = _amount.mul(_multiplier).mul(_util).div(1e10);
         // 2) add base premium
         _premium = _amount.mul(_baseRate).div(1e5).add(_premium);

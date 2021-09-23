@@ -238,7 +238,7 @@ describe("Index", function () {
           it("reverts", async function () {
             await expect(
               index.connect(alice).transfer(tom.address, "10001")
-            ).to.revertedWith("SafeMath: subtraction overflow");
+            ).to.reverted;
           });
         });
 

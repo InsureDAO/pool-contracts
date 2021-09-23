@@ -238,7 +238,7 @@ describe("CDS", function () {
           it("reverts", async function () {
             await expect(
               cds.connect(alice).transfer(tom.address, "9901")
-            ).to.revertedWith("SafeMath: subtraction overflow");
+            ).to.reverted;
           });
         });
 

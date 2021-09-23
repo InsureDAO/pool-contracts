@@ -1,12 +1,13 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.8.0;
 
 /**
  * @author kohshiba
  * @title InsureDAO pool template contract
  */
-import "./libraries/math/SafeMath.sol";
-import "./libraries/utils/Address.sol";
-import "./libraries/tokens/IERC20.sol";
+
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IParameters.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
@@ -238,7 +239,7 @@ contract PoolTemplate is IERC20 {
             _balance >= _amount && _amount > 0,
             "ERROR: WITHDRAW_REQUEST_BAD_CONDITIONS"
         );
-        withdrawalReq[msg.sender].timestamp = now;
+        withdrawalReq[msg.sender].timestamp = block.timestamp;
         withdrawalReq[msg.sender].amount = _amount;
     }
 
@@ -254,12 +255,12 @@ contract PoolTemplate is IERC20 {
                 withdrawalReq[msg.sender].timestamp.add(
                     parameters.getLockup(msg.sender)
                 ) <
-                now &&
+                block.timestamp &&
                 withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) >
-                now &&
+                    .timestamp
+                    .add(parameters.getLockup(msg.sender))
+                    .add(parameters.getWithdrawable(msg.sender)) >
+                block.timestamp &&
                 _retVal <= availableBalance() &&
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,
@@ -297,7 +298,8 @@ contract PoolTemplate is IERC20 {
         require(
             insurance.status == true &&
                 marketStatus == MarketStatus.Trading &&
-                insurance.endTime.add(parameters.getGrace(msg.sender)) < now,
+                insurance.endTime.add(parameters.getGrace(msg.sender)) <
+                block.timestamp,
             "ERROR: UNLOCK_BAD_COINDITIONS"
         );
         insurance.status == false;
@@ -398,7 +400,7 @@ contract PoolTemplate is IERC20 {
         bytes32 _target
     ) external returns (uint256) {
         //Distribute premium and fee
-        uint256 _endTime = _span.add(now);
+        uint256 _endTime = _span.add(block.timestamp);
         uint256 _premium = getPremium(_amount, _span);
         uint256 _fee = parameters.getFee(_premium, msg.sender);
         uint256 _deducted = _premium.sub(_fee);
@@ -427,7 +429,7 @@ contract PoolTemplate is IERC20 {
         lockedAmount = lockedAmount.add(_amount);
         Insurance memory _insurance = Insurance(
             _id,
-            now,
+            block.timestamp,
             _endTime,
             _amount,
             _target,
@@ -450,7 +452,14 @@ contract PoolTemplate is IERC20 {
             );
         }
 
-        emit Insured(_id, _amount, _target, now, _endTime, msg.sender);
+        emit Insured(
+            _id,
+            _amount,
+            _target,
+            block.timestamp,
+            _endTime,
+            msg.sender
+        );
 
         return _id;
     }
@@ -487,16 +496,16 @@ contract PoolTemplate is IERC20 {
             _payoutDenominator
         );
         uint256 _deductionFromIndex = _payoutAmount
-        .mul(totalCredit)
-        .mul(1e8)
-        .div(totalLiquidity());
+            .mul(totalCredit)
+            .mul(1e8)
+            .div(totalLiquidity());
 
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indexes[indexList[i]].credit > 0) {
                 uint256 _shareOfIndex = indexes[indexList[i]]
-                .credit
-                .mul(1e8)
-                .div(indexes[indexList[i]].credit);
+                    .credit
+                    .mul(1e8)
+                    .div(indexes[indexList[i]].credit);
                 uint256 _redeemAmount = _divCeil(
                     _deductionFromIndex,
                     _shareOfIndex
@@ -510,9 +519,9 @@ contract PoolTemplate is IERC20 {
             msg.sender
         );
         uint256 _indexAttribution = _paidAttribution
-        .mul(_deductionFromIndex)
-        .div(1e8)
-        .div(_payoutAmount);
+            .mul(_deductionFromIndex)
+            .div(1e8)
+            .div(_payoutAmount);
         totalAttributions = totalAttributions.sub(
             _paidAttribution.sub(_indexAttribution)
         );
@@ -534,7 +543,7 @@ contract PoolTemplate is IERC20 {
         require(
             _to != address(0) &&
                 insurance.insured == msg.sender &&
-                insurance.endTime >= now &&
+                insurance.endTime >= block.timestamp &&
                 insurance.status == true,
             "ERROR: INSURANCE_TRANSFER_BAD_CONDITIONS"
         );
@@ -584,7 +593,7 @@ contract PoolTemplate is IERC20 {
         incident.incidentTimestamp = _incidentTimestamp;
         incident.targets = _targets;
         marketStatus = MarketStatus.Payingout;
-        pendingEnd = now.add(_pending);
+        pendingEnd = block.timestamp.add(_pending);
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indexes[indexList[i]].credit > 0) {
                 IIndexTemplate(indexList[i]).lock(_pending);
@@ -606,7 +615,8 @@ contract PoolTemplate is IERC20 {
      */
     function resume() external {
         require(
-            marketStatus == MarketStatus.Payingout && pendingEnd < now,
+            marketStatus == MarketStatus.Payingout &&
+                pendingEnd < block.timestamp,
             "ERROR: UNABLE_TO_RESUME"
         );
         marketStatus = MarketStatus.Trading;

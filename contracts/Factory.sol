@@ -4,11 +4,11 @@
  * @notice This contract is the functory contract that manages functions related to market creation activities.
  */
 
-pragma solidity ^0.6.0;
+pragma solidity 0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "./libraries/math/SafeMath.sol";
-import "./libraries/utils/Address.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IUniversalMarket.sol";
 import "./interfaces/IRegistry.sol";
 
@@ -146,8 +146,9 @@ contract Factory {
 
         address _owner = owner;
 
-        IUniversalMarket market =
-            IUniversalMarket(_createClone(address(template)));
+        IUniversalMarket market = IUniversalMarket(
+            _createClone(address(template))
+        );
 
         market.initialize(
             _owner,

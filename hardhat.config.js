@@ -11,7 +11,7 @@ const key = fs.readFileSync(".key").toString().trim();
 const infuraKey = fs.readFileSync(".infuraKey").toString().trim();
 
 module.exports = {
-  solidity: "0.6.12",
+  solidity: "0.8.0",
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {},
@@ -21,7 +21,7 @@ module.exports = {
     },
   },
   solidity: {
-    version: "0.6.12",
+    version: "0.8.0",
     settings: {
       optimizer: {
         enabled: true,

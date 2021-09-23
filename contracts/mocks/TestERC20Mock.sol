@@ -1,6 +1,6 @@
-pragma solidity ^0.6.0;
+pragma solidity ^0.8.0;
 
-import "../libraries/tokens/ERC20.sol";
+import "../libraries/ERC20.sol";
 
 contract TestERC20Mock is ERC20 {
     string public name = "DAI";

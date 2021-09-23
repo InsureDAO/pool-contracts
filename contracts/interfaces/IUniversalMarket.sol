@@ -1,4 +1,4 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.8.0;
 
 interface IUniversalMarket {
     function initialize(
@@ -12,5 +12,6 @@ interface IUniversalMarket {
     ) external returns (bool);
 
     function setPaused(bool state) external;
+
     function changeMetadata(string calldata _metadata) external;
 }

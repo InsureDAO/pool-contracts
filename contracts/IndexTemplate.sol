@@ -1,12 +1,11 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.8.0;
 /**
  * @author kohshiba
  * @title InsureDAO market template contract
  */
-
-import "./libraries/math/SafeMath.sol";
-import "./libraries/utils/Address.sol";
-import "./libraries/tokens/IERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IParameters.sol";
@@ -186,7 +185,7 @@ contract IndexTemplate is IERC20 {
             _balance >= _amount && _amount > 0,
             "ERROR: WITHDRAW_REQUEST_BAD_CONDITIONS"
         );
-        withdrawalReq[msg.sender].timestamp = now;
+        withdrawalReq[msg.sender].timestamp = block.timestamp;
         withdrawalReq[msg.sender].amount = _amount;
     }
 
@@ -202,12 +201,12 @@ contract IndexTemplate is IERC20 {
                 withdrawalReq[msg.sender].timestamp.add(
                     parameters.getLockup(msg.sender)
                 ) <
-                now &&
+                block.timestamp &&
                 withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) >
-                now &&
+                    .timestamp
+                    .add(parameters.getLockup(msg.sender))
+                    .add(parameters.getWithdrawable(msg.sender)) >
+                block.timestamp &&
                 _retVal <= withdrawable() &&
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,
@@ -230,8 +229,8 @@ contract IndexTemplate is IERC20 {
         //Check each pool and if current credit allocation > target & it is impossble to adjust, then withdraw all availablle credit
         for (uint256 i = 0; i < poolList.length; i++) {
             uint256 _target = _targetCredit
-            .mul(pools[poolList[i]].allocPoints)
-            .div(totalAllocPoint);
+                .mul(pools[poolList[i]].allocPoints)
+                .div(totalAllocPoint);
             uint256 _current = IPoolTemplate(poolList[i]).allocatedCredit(
                 address(this)
             );
@@ -255,14 +254,14 @@ contract IndexTemplate is IERC20 {
             if (_poolList[i] != address(0)) {
                 //Target credit allocation for a pool
                 uint256 _target = _allocatable
-                .mul(pools[poolList[i]].allocPoints)
-                .div(_allocatablePoints);
+                    .mul(pools[poolList[i]].allocPoints)
+                    .div(_allocatablePoints);
                 //get how much has been allocated for a pool
                 uint256 _current = IPoolTemplate(poolList[i]).allocatedCredit(
                     address(this)
                 );
                 uint256 _available = IPoolTemplate(poolList[i])
-                .availableBalance();
+                    .availableBalance();
                 if (_current > _target && _available != 0) {
                     //if allocated credit is higher than the target, try to decrease
                     uint256 _decrease = _current.sub(_target);
@@ -297,7 +296,7 @@ contract IndexTemplate is IERC20 {
             for (uint256 i = 0; i < poolList.length; i++) {
                 if (pools[poolList[i]].allocPoints > 0) {
                     uint256 _utilization = IPoolTemplate(poolList[i])
-                    .utilizationRate();
+                        .utilizationRate();
                     if (i == 0) {
                         _lowest = _utilization;
                     }
@@ -312,11 +311,11 @@ contract IndexTemplate is IERC20 {
                 _retVal = totalLiquidity();
             } else {
                 _retVal = (1e8 - _lowest)
-                .mul(totalLiquidity())
-                .div(1e8)
-                .mul(1e3)
-                .div(leverage())
-                .add(_accruedPremiums());
+                    .mul(totalLiquidity())
+                    .div(1e8)
+                    .mul(1e3)
+                    .div(leverage())
+                    .add(_accruedPremiums());
             }
         } else {
             _retVal = 0;
@@ -339,8 +338,8 @@ contract IndexTemplate is IERC20 {
         //Check each pool and if current credit allocation > target & it is impossble to adjust, then withdraw all availablle credit
         for (uint256 i = 0; i < poolList.length; i++) {
             uint256 _target = _targetCredit
-            .mul(pools[poolList[i]].allocPoints)
-            .div(totalAllocPoint);
+                .mul(pools[poolList[i]].allocPoints)
+                .div(totalAllocPoint);
             uint256 _current = IPoolTemplate(poolList[i]).allocatedCredit(
                 address(this)
             );
@@ -364,15 +363,15 @@ contract IndexTemplate is IERC20 {
             if (_poolList[i] != address(0)) {
                 //Target credit allocation for a pool
                 uint256 _target = _allocatable
-                .mul(pools[poolList[i]].allocPoints)
-                .div(_allocatablePoints);
+                    .mul(pools[poolList[i]].allocPoints)
+                    .div(_allocatablePoints);
                 //get how much has been allocated for a pool
                 uint256 _current = IPoolTemplate(poolList[i]).allocatedCredit(
                     address(this)
                 );
 
                 uint256 _available = IPoolTemplate(poolList[i])
-                .availableBalance();
+                    .availableBalance();
                 if (_current > _target && _available != 0) {
                     //if allocated credit is higher than the target, try to decrease
                     uint256 _decrease = _current.sub(_target);
@@ -433,7 +432,7 @@ contract IndexTemplate is IERC20 {
      * @notice Resume market
      */
     function resume() external {
-        require(pendingEnd <= now);
+        require(pendingEnd <= block.timestamp);
         locked = false;
     }
 
@@ -442,9 +441,9 @@ contract IndexTemplate is IERC20 {
      */
     function lock(uint256 _pending) external {
         require(pools[msg.sender].allocPoints > 0);
-        uint256 _tempEnd = now.add(_pending);
+        uint256 _tempEnd = block.timestamp.add(_pending);
         if (pendingEnd < _tempEnd) {
-            pendingEnd = now.add(_pending);
+            pendingEnd = block.timestamp.add(_pending);
         }
         locked = true;
     }
@@ -693,8 +692,8 @@ contract IndexTemplate is IERC20 {
     function set(address _pool, uint256 _allocPoint) public onlyOwner {
         if (totalAllocPoint > 0) {
             totalAllocPoint = totalAllocPoint.sub(pools[_pool].allocPoints).add(
-                _allocPoint
-            );
+                    _allocPoint
+                );
         } else {
             totalAllocPoint = _allocPoint;
         }

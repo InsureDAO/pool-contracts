@@ -156,7 +156,7 @@ describe("Pool", function () {
           it("reverts", async function () {
             await expect(
               market.connect(alice).transfer(tom.address, "10001")
-            ).to.revertedWith("SafeMath: subtraction overflow");
+            ).to.reverted;
           });
         });
 
