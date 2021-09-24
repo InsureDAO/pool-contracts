@@ -1,10 +1,61 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
+const { MerkleTree } = require("merkletreejs");
+const keccak256 = require("keccak256");
 
 describe("Pool", function () {
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-
+  const short = [
+    "0x4e69636b00000000000000000000000000000000000000000000000000000000",
+  ];
+  const wrong = [
+    "0x4e69636b0000000000000000000000000000000000000000000000000000000f",
+    "0x4e69636b0000000000000000000000000000000000000000000000000000000s",
+    "0x4e69636b0000000000000000000000000000000000000000000000000000000a",
+  ];
+  const long = [
+    "0x4e69636b00000000000000000000000000000000000000000000000000000000",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000001",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000002",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000003",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000004",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000005",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000006",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000007",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000008",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000009",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000010",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000011",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000021",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000031",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000041",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000051",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000061",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000071",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000081",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000091",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000101",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000201",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000301",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000401",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000501",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000601",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000701",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000801",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000901",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001001",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001101",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001201",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001301",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001401",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001501",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001601",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001701",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001801",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001901",
+    "0x4e69636b00000000000000000000000000000000000000000000000000002001",
+  ];
   beforeEach(async () => {
     //import
     [creator, alice, bob, chad, tom] = await ethers.getSigners();
@@ -484,18 +535,25 @@ describe("Pool", function () {
         (await ethers.provider.getBlock("latest")).timestamp
       );
       let incident = await currentTimestamp.sub(86400 * 2);
+
+      const tree = await new MerkleTree(short, keccak256, {
+        hashLeaves: true,
+        sortPairs: true,
+      });
+      const root = tree.getHexRoot();
+      const node = keccak256(tree[0]);
       await market.applyCover(
         "604800",
         incident,
         10000,
         10000,
-        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        root,
+        short,
         "metadata"
       );
       await expect(market.connect(alice).deposit("10000")).to.revertedWith(
         "ERROR: DEPOSIT_DISABLED"
       );
-
       await expect(market.connect(alice).withdraw("10000")).to.revertedWith(
         "ERROR: WITHDRAWAL_BAD_CONDITIONS"
       );
@@ -532,15 +590,23 @@ describe("Pool", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
+      const tree = await new MerkleTree(short, keccak256, {
+        hashLeaves: true,
+        sortPairs: true,
+      });
+      const root = await tree.getHexRoot();
+      const leaf = keccak256(short[0]);
+      const proof = await tree.getHexProof(leaf);
       await market.applyCover(
         "604800",
         5000,
         10000,
         incident,
-        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        root,
+        short,
         "metadata"
       );
-      await market.connect(bob).redeem("0");
+      await market.connect(bob).redeem("0", proof);
       await expect(market.unlock("0")).to.revertedWith(
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );
@@ -584,10 +650,11 @@ describe("Pool", function () {
         10000,
         10000,
         incident,
-        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        root,
+        short,
         "metadata"
       );
-      await market.connect(bob).redeem("1");
+      await market.connect(bob).redeem("1", proof);
 
       expect(await market.totalSupply()).to.equal("10000");
       expect(await market.totalLiquidity()).to.equal("55");
@@ -625,15 +692,30 @@ describe("Pool", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
-      await market.applyCover(
+      const tree = await new MerkleTree(long, keccak256, {
+        hashLeaves: true,
+        sortPairs: true,
+      });
+      const root = await tree.getHexRoot();
+      const leaf = keccak256(long[0]);
+      const proof = await tree.getHexProof(leaf);
+      let tx = await market.applyCover(
         "604800",
         5000,
         10000,
         incident,
-        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        root,
+        long,
         "metadata"
       );
-      await market.connect(bob).redeem("0");
+      let receipt = await tx.wait();
+      console.log(
+        receipt.events?.filter((x) => {
+          return x.event == "CoverApplied";
+        })
+      );
+
+      await market.connect(bob).redeem("0", proof);
       await ethers.provider.send("evm_increaseTime", [86400 * 12]);
       await market.resume();
       await expect(market.unlock("0")).to.revertedWith(
@@ -674,23 +756,77 @@ describe("Pool", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
+      const tree = await new MerkleTree(long, keccak256, {
+        hashLeaves: true,
+        sortPairs: true,
+      });
+      const root = await tree.getHexRoot();
+      const leaf = keccak256(long[0]);
+      const proof = await tree.getHexProof(leaf);
       await market.applyCover(
         "604800",
         5000,
         10000,
         incident,
-        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        root,
+        long,
         "metadata"
       );
 
-      await market.connect(tom).redeem("0");
+      await market.connect(tom).redeem("0", proof);
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
       await market.resume();
       await market.connect(alice).withdraw("10000");
       expect(await dai.balanceOf(alice.address)).to.equal("95055");
       expect(await dai.balanceOf(tom.address)).to.equal("4999");
     });
+    it("DISALLOWS redemption when insurance is not a target", async function () {
+      await dai.connect(alice).approve(vault.address, 20000);
+      await dai.connect(bob).approve(vault.address, 10000);
+      await market.connect(alice).deposit("10000");
+      await market.connect(alice).requestWithdraw("10000");
 
+      let currentTimestamp = BigNumber.from(
+        (await ethers.provider.getBlock("latest")).timestamp
+      );
+      //let endTime = await currentTimestamp.add(86400 * 8);
+      await market
+        .connect(bob)
+        .insure(
+          "9999",
+          "10000",
+          86400 * 8,
+          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
+        );
+      let incident = BigNumber.from(
+        (await ethers.provider.getBlock("latest")).timestamp
+      );
+      const tree = await new MerkleTree(wrong, keccak256, {
+        hashLeaves: true,
+        sortPairs: true,
+      });
+      const root = await tree.getHexRoot();
+      const leaf = keccak256(wrong[0]);
+      const proof = await tree.getHexProof(leaf);
+      await market.applyCover(
+        "604800",
+        5000,
+        10000,
+        incident,
+        root,
+        long,
+        "metadata"
+      );
+      await ethers.provider.send("evm_increaseTime", [86400 * 12]);
+
+      await market.resume();
+      await expect(market.connect(bob).redeem("0", proof)).to.revertedWith(
+        "ERROR: INSURANCE_NOT_APPLICABLE"
+      );
+      await market.unlock("0");
+      await market.connect(alice).withdraw("10000");
+      expect(await dai.balanceOf(alice.address)).to.equal("100054");
+    });
     it("DISALLOWS getting insured when there is not enough liquidity", async function () {
       await dai.connect(alice).approve(vault.address, 20000);
       await market.connect(alice).deposit("100");
@@ -738,18 +874,26 @@ describe("Pool", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
+      const tree = await new MerkleTree(long, keccak256, {
+        hashLeaves: true,
+        sortPairs: true,
+      });
+      const root = await tree.getHexRoot();
+      const leaf = keccak256(long[0]);
+      const proof = await tree.getHexProof(leaf);
       await market.applyCover(
         "604800",
         5000,
         10000,
         incident,
-        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        root,
+        long,
         "metadata"
       );
       await ethers.provider.send("evm_increaseTime", [86400 * 12]);
 
       await market.resume();
-      await expect(market.connect(bob).redeem("0")).to.revertedWith(
+      await expect(market.connect(bob).redeem("0", proof)).to.revertedWith(
         "ERROR: INSURANCE_NOT_APPLICABLE"
       );
       await market.unlock("0");
@@ -781,12 +925,20 @@ describe("Pool", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
+      const tree = await new MerkleTree(long, keccak256, {
+        hashLeaves: true,
+        sortPairs: true,
+      });
+      const root = await tree.getHexRoot();
+      const leaf = keccak256(long[0]);
+      const proof = await tree.getHexProof(leaf);
       await market.applyCover(
         "604800",
         10000,
         10000,
         incident,
-        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        root,
+        long,
         "metadata"
       );
       currentTimestamp = BigNumber.from(
@@ -927,15 +1079,23 @@ describe("Pool", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
+      const tree = await new MerkleTree(long, keccak256, {
+        hashLeaves: true,
+        sortPairs: true,
+      });
+      const root = await tree.getHexRoot();
+      const leaf = keccak256(long[0]);
+      const proof = await tree.getHexProof(leaf);
       await market.applyCover(
         "604800",
         5000,
         10000,
         incident,
-        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        root,
+        long,
         "metadata"
       );
-      await market.connect(bob).redeem("1");
+      await market.connect(bob).redeem("1", proof);
       await expect(
         market.connect(bob).transferInsurance("1", tom.address)
       ).to.revertedWith("ERROR: INSURANCE_TRANSFER_BAD_CONDITIONS");

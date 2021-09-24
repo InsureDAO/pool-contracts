@@ -5,6 +5,7 @@ pragma solidity 0.8.7;
  * @title InsureDAO pool template contract
  */
 
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -46,12 +47,13 @@ contract PoolTemplate is IERC20 {
         uint256 payout
     );
     event CoverApplied(
-        uint256 _pending,
-        uint256 _payoutNumerator,
-        uint256 _payoutDenominator,
-        uint256 _incidentTimestamp,
-        bytes32[] _targets,
-        string _memo
+        uint256 pending,
+        uint256 payoutNumerator,
+        uint256 payoutDenominator,
+        uint256 incidentTimestamp,
+        bytes32 merkleRoot,
+        bytes32[] rawdata,
+        string memo
     );
     event CreditIncrease(address indexed depositor, uint256 credit);
     event CreditDecrease(address indexed withdrawer, uint256 credit);
@@ -127,7 +129,7 @@ contract PoolTemplate is IERC20 {
         uint256 payoutNumerator;
         uint256 payoutDenominator;
         uint256 incidentTimestamp;
-        bytes32[] targets;
+        bytes32 merkleRoot;
     }
     Incident public incident;
 
@@ -467,18 +469,13 @@ contract PoolTemplate is IERC20 {
     /**
      * @notice Redeem an insurance policy
      */
-    function redeem(uint256 _id) external {
+    function redeem(uint256 _id, bytes32[] calldata _merkleProof) external {
         Insurance storage insurance = insurances[_id];
 
         uint256 _payoutNumerator = incident.payoutNumerator;
         uint256 _payoutDenominator = incident.payoutDenominator;
         uint256 _incidentTimestamp = incident.incidentTimestamp;
-        bytes32[] memory _targets = incident.targets;
-        bool isTarget;
-
-        for (uint256 i = 0; i < _targets.length; i++) {
-            if (_targets[i] == insurance.target) isTarget = true;
-        }
+        bytes32 _targets = incident.merkleRoot;
 
         require(
             insurance.status == true &&
@@ -486,7 +483,11 @@ contract PoolTemplate is IERC20 {
                 marketStatus == MarketStatus.Payingout &&
                 insurance.startTime <= _incidentTimestamp &&
                 insurance.endTime >= _incidentTimestamp &&
-                isTarget == true,
+                MerkleProof.verify(
+                    _merkleProof,
+                    _targets,
+                    keccak256(abi.encodePacked(insurance.target))
+                ),
             "ERROR: INSURANCE_NOT_APPLICABLE"
         );
         insurance.status = false;
@@ -581,7 +582,8 @@ contract PoolTemplate is IERC20 {
         uint256 _payoutNumerator,
         uint256 _payoutDenominator,
         uint256 _incidentTimestamp,
-        bytes32[] calldata _targets,
+        bytes32 _merkleRoot,
+        bytes32[] calldata _rawdata,
         string calldata _memo
     ) external onlyOwner {
         require(
@@ -591,7 +593,7 @@ contract PoolTemplate is IERC20 {
         incident.payoutNumerator = _payoutNumerator;
         incident.payoutDenominator = _payoutDenominator;
         incident.incidentTimestamp = _incidentTimestamp;
-        incident.targets = _targets;
+        incident.merkleRoot = _merkleRoot;
         marketStatus = MarketStatus.Payingout;
         pendingEnd = block.timestamp.add(_pending);
         for (uint256 i = 0; i < indexList.length; i++) {
@@ -604,7 +606,8 @@ contract PoolTemplate is IERC20 {
             _payoutNumerator,
             _payoutDenominator,
             _incidentTimestamp,
-            _targets,
+            _merkleRoot,
+            _rawdata,
             _memo
         );
         emit MarketStatusChanged(marketStatus);
@@ -896,13 +899,6 @@ contract PoolTemplate is IERC20 {
      */
     function totalLiquidity() public view returns (uint256 _balance) {
         return vault.attributionValue(totalAttributions).add(totalCredit);
-    }
-
-    /**
-     * @notice Get payout target arrays for frontend / external contracts
-     */
-    function getPayoutTargets() external view returns (bytes32[] memory) {
-        return incident.targets;
     }
 
     /**

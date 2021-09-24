@@ -24,6 +24,8 @@
     "fs": "^0.0.1-security",
     "ganache-cli": "^6.10.1",
     "hardhat-contract-sizer": "^2.0.3",
+    "keccak256": "^1.0.3",
+    "merkletreejs": "^0.2.24",
     "mocha": "^8.1.1",
     "solc": "0.6.0"
   },
