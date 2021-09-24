@@ -6,7 +6,7 @@ pragma solidity ^0.6.0;
 
 import "./libraries/math/SafeMath.sol";
 import "./libraries/utils/Address.sol";
-import "./libraries/tokens/IERC20.sol";
+import "./libraries/tokens/IERC20Metadata.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IParameters.sol";
@@ -80,26 +80,18 @@ contract CDS is IERC20 {
     /**
      * @notice Initialize market
      * This function registers market conditions.
-     * references[0] = parameter
-     * references[1] = vault address
-     * references[2] = registry
+     * references[0] = underlying token address
+     * references[1] = registry
+     * references[2] = parameter
      * references[3] = minter
      */
     function initialize(
-        address _owner,
         string calldata _metaData,
-        string calldata _name,
-        string calldata _symbol,
-        uint8 _decimals,
         uint256[] calldata _conditions,
         address[] calldata _references
     ) external returns (bool) {
         require(
             bytes(_metaData).length > 10 &&
-                bytes(_name).length > 0 &&
-                bytes(_symbol).length > 0 &&
-                _decimals > 0 &&
-                _owner != address(0) &&
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
                 _references[2] != address(0) &&
@@ -109,13 +101,13 @@ contract CDS is IERC20 {
 
         initialized = true;
 
-        name = _name;
-        symbol = _symbol;
-        decimals = _decimals;
+        name = "InsureDAO-CDS";
+        symbol = "iCDS";
+        decimals = IERC20Metadata(_references[0]).decimals();
 
-        parameters = IParameters(_references[0]);
-        vault = IVault(_references[1]);
-        registry = IRegistry(_references[2]);
+        parameters = IParameters(_references[2]);
+        vault = IVault(parameters.getVault(_references[0]));
+        registry = IRegistry(_references[1]);
         minter = IMinter(_references[3]);
 
         metadata = _metaData;
@@ -192,9 +184,9 @@ contract CDS is IERC20 {
                 ) <
                 now &&
                 withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) >
+                    .timestamp
+                    .add(parameters.getLockup(msg.sender))
+                    .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,

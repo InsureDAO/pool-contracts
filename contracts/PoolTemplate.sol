@@ -6,7 +6,7 @@ pragma solidity ^0.6.0;
  */
 import "./libraries/math/SafeMath.sol";
 import "./libraries/utils/Address.sol";
-import "./libraries/tokens/IERC20.sol";
+import "./libraries/tokens/IERC20Metadata.sol";
 import "./interfaces/IParameters.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
@@ -65,6 +65,7 @@ contract PoolTemplate is IERC20 {
     bool public initialized;
     bool public paused;
     string public metadata;
+    uint256 public target;
 
     /// @notice EIP-20 token variables
     string public name;
@@ -148,44 +149,47 @@ contract PoolTemplate is IERC20 {
     /**
      * @notice Initialize market
      * This function registers market conditions.
-     * references[0] = parameter
-     * references[1] = vault address
+     * references[0] = target governance token address
+     * references[1] = underlying token address
      * references[2] = registry
+     * references[3] = parameter
      */
     function initialize(
-        address _owner,
         string calldata _metaData,
-        string calldata _name,
-        string calldata _symbol,
-        uint8 _decimals,
         uint256[] calldata _conditions,
         address[] calldata _references
     ) external returns (bool) {
         require(
-            bytes(_metaData).length > 10 &&
-                bytes(_name).length > 0 &&
-                bytes(_symbol).length > 0 &&
-                _decimals > 0 &&
-                _owner != address(0) &&
+            bytes(_metaData).length > 0 &&
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
-                _conditions[0] <= _conditions[1],
+                _references[2] != address(0) &&
+                _references[3] != address(0),
             "ERROR: INITIALIZATION_BAD_CONDITIONS"
         );
         initialized = true;
 
-        name = _name;
-        symbol = _symbol;
-        decimals = _decimals;
+        name = string(
+            abi.encodePacked(
+                "InsureDAO-",
+                IERC20Metadata(_references[1]).name(),
+                "-PoolInsurance"
+            )
+        );
+        symbol = string(
+            abi.encodePacked("i-", IERC20Metadata(_references[1]).name())
+        );
+        decimals = IERC20Metadata(_references[0]).decimals();
 
-        parameters = IParameters(_references[0]);
-        vault = IVault(_references[1]);
         registry = IRegistry(_references[2]);
+        parameters = IParameters(_references[3]);
+        vault = IVault(parameters.getVault(_references[1]));
 
         metadata = _metaData;
 
         marketStatus = MarketStatus.Trading;
 
+        target = _conditions[0];
         if (_conditions[1] > 0) {
             deposit(_conditions[1]);
         }
@@ -256,9 +260,9 @@ contract PoolTemplate is IERC20 {
                 ) <
                 now &&
                 withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) >
+                    .timestamp
+                    .add(parameters.getLockup(msg.sender))
+                    .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
                 _retVal <= availableBalance() &&
                 withdrawalReq[msg.sender].amount >= _amount &&
@@ -487,16 +491,16 @@ contract PoolTemplate is IERC20 {
             _payoutDenominator
         );
         uint256 _deductionFromIndex = _payoutAmount
-        .mul(totalCredit)
-        .mul(1e8)
-        .div(totalLiquidity());
+            .mul(totalCredit)
+            .mul(1e8)
+            .div(totalLiquidity());
 
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indexes[indexList[i]].credit > 0) {
                 uint256 _shareOfIndex = indexes[indexList[i]]
-                .credit
-                .mul(1e8)
-                .div(indexes[indexList[i]].credit);
+                    .credit
+                    .mul(1e8)
+                    .div(indexes[indexList[i]].credit);
                 uint256 _redeemAmount = _divCeil(
                     _deductionFromIndex,
                     _shareOfIndex
@@ -510,9 +514,9 @@ contract PoolTemplate is IERC20 {
             msg.sender
         );
         uint256 _indexAttribution = _paidAttribution
-        .mul(_deductionFromIndex)
-        .div(1e8)
-        .div(_payoutAmount);
+            .mul(_deductionFromIndex)
+            .div(1e8)
+            .div(_payoutAmount);
         totalAttributions = totalAttributions.sub(
             _paidAttribution.sub(_indexAttribution)
         );
