@@ -22,6 +22,7 @@ contract Parameters {
     event VaultSet(address token, address vault);
     event FeeSet(address target, address model);
     event Fee2Set(address target, uint256 rate);
+    event MaxListSet(address target, uint256 max);
     event PremiumSet(address target, address model);
     event Premium2Set(address target, uint256 rate);
     event LockupSet(address target, uint256 span);
@@ -43,6 +44,7 @@ contract Parameters {
     mapping(address => uint256) private _grace;
     mapping(address => uint256) private _lockup;
     mapping(address => uint256) private _min;
+    mapping(address => uint256) private _maxList;
     mapping(address => uint256) private _withdawable;
     mapping(bytes32 => bytes32) private _conditions;
 
@@ -140,6 +142,11 @@ contract Parameters {
     function setFeeModel(address _address, address _target) external onlyOwner {
         _fee[_address] = _target;
         emit FeeSet(_address, _target);
+    }
+
+    function setMaxList(address _address, uint256 _target) external onlyOwner {
+        _maxList[_address] = _target;
+        emit MaxListSet(_address, _target);
     }
 
     function setCondition(bytes32 _reference, bytes32 _target)
@@ -249,6 +256,14 @@ contract Parameters {
             return _min[address(0)];
         } else {
             return _min[_target];
+        }
+    }
+
+    function getMaxList(address _target) external view returns (uint256) {
+        if (_maxList[_target] == 0) {
+            return _maxList[address(0)];
+        } else {
+            return _maxList[_target];
         }
     }
 

@@ -25,6 +25,8 @@ abstract contract IParameters {
         external
         virtual;
 
+    function setMaxList(address _address, uint256 _target) external virtual;
+
     function setFeeModel(address _address, address _target) external virtual;
 
     function setCondition(bytes32 _reference, bytes32 _target) external virtual;
@@ -60,6 +62,12 @@ abstract contract IParameters {
     function isOwner() public view virtual returns (bool);
 
     function getMin(address _target) external view virtual returns (uint256);
+
+    function getMaxList(address _target)
+        external
+        view
+        virtual
+        returns (uint256);
 
     function getFee2(uint256 _amoun, address _targett)
         external

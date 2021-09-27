@@ -209,7 +209,7 @@ describe("CDS", function () {
 
     await registry.setCDS(ZERO_ADDRESS, cds.address);
 
-    await index.set(market1.address, "1000");
+    await index.set("0", market1.address, "1000");
     await index.setLeverage("20000");
   });
   describe("Condition", function () {
