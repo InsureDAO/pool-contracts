@@ -80,7 +80,7 @@ contract PoolTemplate is IERC20 {
     IVault public vault;
 
     /// @notice Market variables
-    uint256 public totalAttributions; //how much attribution point this pool's original liquidity has
+    uint256 public ownAttributions; //how much attribution point this pool's original liquidity has
     uint256 public lockedAmount; //Liquidity locked when utilized
     uint256 public totalCredit; //Liquidity from index
     uint256 public attributionPerCredit; //Times 1e12. To avoid overdlow
@@ -215,7 +215,7 @@ contract PoolTemplate is IERC20 {
             msg.sender,
             address(this)
         );
-        totalAttributions = totalAttributions.add(_newAttribution);
+        ownAttributions = ownAttributions.add(_newAttribution);
 
         emit Deposit(
             msg.sender,
@@ -247,7 +247,7 @@ contract PoolTemplate is IERC20 {
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
         uint256 _supply = totalSupply();
-        uint256 _liquidity = vault.attributionValue(totalAttributions);
+        uint256 _liquidity = vault.attributionValue(ownAttributions);
         _retVal = _divFloor(_amount.mul(_liquidity), _supply);
         require(
             marketStatus == MarketStatus.Trading &&
@@ -256,9 +256,9 @@ contract PoolTemplate is IERC20 {
                 ) <
                 now &&
                 withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) >
+                    .timestamp
+                    .add(parameters.getLockup(msg.sender))
+                    .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
                 _retVal <= availableBalance() &&
                 withdrawalReq[msg.sender].amount >= _amount &&
@@ -275,7 +275,7 @@ contract PoolTemplate is IERC20 {
 
         //Withdraw liquidity
         uint256 _deductAttribution = vault.withdrawValue(_retVal, msg.sender);
-        totalAttributions = totalAttributions.sub(_deductAttribution);
+        ownAttributions = ownAttributions.sub(_deductAttribution);
 
         emit Withdraw(msg.sender, _amount, _retVal);
     }
@@ -441,7 +441,7 @@ contract PoolTemplate is IERC20 {
         uint256 _attributionForIndex = _newAttribution.mul(totalCredit).div(
             totalLiquidity()
         );
-        totalAttributions = totalAttributions.add(_newAttribution).sub(
+        ownAttributions = ownAttributions.add(_newAttribution).sub(
             _attributionForIndex
         );
         if (totalCredit > 0) {
@@ -487,16 +487,16 @@ contract PoolTemplate is IERC20 {
             _payoutDenominator
         );
         uint256 _deductionFromIndex = _payoutAmount
-        .mul(totalCredit)
-        .mul(1e8)
-        .div(totalLiquidity());
+            .mul(totalCredit)
+            .mul(1e8)
+            .div(totalLiquidity());
 
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indexes[indexList[i]].credit > 0) {
                 uint256 _shareOfIndex = indexes[indexList[i]]
-                .credit
-                .mul(1e8)
-                .div(indexes[indexList[i]].credit);
+                    .credit
+                    .mul(1e8)
+                    .div(indexes[indexList[i]].credit);
                 uint256 _redeemAmount = _divCeil(
                     _deductionFromIndex,
                     _shareOfIndex
@@ -510,10 +510,10 @@ contract PoolTemplate is IERC20 {
             msg.sender
         );
         uint256 _indexAttribution = _paidAttribution
-        .mul(_deductionFromIndex)
-        .div(1e8)
-        .div(_payoutAmount);
-        totalAttributions = totalAttributions.sub(
+            .mul(_deductionFromIndex)
+            .div(1e8)
+            .div(_payoutAmount);
+        ownAttributions = ownAttributions.sub(
             _paidAttribution.sub(_indexAttribution)
         );
         emit Redeemed(
@@ -783,7 +783,7 @@ contract PoolTemplate is IERC20 {
     function rate() external view returns (uint256) {
         if (_totalSupply > 0) {
             return
-                vault.attributionValue(totalAttributions).mul(1e18).div(
+                vault.attributionValue(ownAttributions).mul(1e18).div(
                     _totalSupply
                 );
         } else {
@@ -800,7 +800,7 @@ contract PoolTemplate is IERC20 {
             return 0;
         } else {
             return
-                _balance.mul(vault.attributionValue(totalAttributions)).div(
+                _balance.mul(vault.attributionValue(ownAttributions)).div(
                     totalSupply()
                 );
         }
@@ -827,11 +827,11 @@ contract PoolTemplate is IERC20 {
      */
     function worth(uint256 _value) public view returns (uint256 _amount) {
         uint256 _supply = totalSupply();
-        if (_supply > 0 && totalAttributions > 0) {
+        if (_supply > 0 && ownAttributions > 0) {
             _amount = _value.mul(_supply).div(
-                vault.attributionValue(totalAttributions)
+                vault.attributionValue(ownAttributions)
             );
-        } else if (_supply > 0 && totalAttributions == 0) {
+        } else if (_supply > 0 && ownAttributions == 0) {
             _amount = _value.div(_supply);
         } else {
             _amount = _value;
@@ -885,7 +885,7 @@ contract PoolTemplate is IERC20 {
      * @notice total Liquidity of the pool (how much can the pool sell cover)
      */
     function totalLiquidity() public view returns (uint256 _balance) {
-        return vault.attributionValue(totalAttributions).add(totalCredit);
+        return vault.attributionValue(ownAttributions).add(totalCredit);
     }
 
     /**
