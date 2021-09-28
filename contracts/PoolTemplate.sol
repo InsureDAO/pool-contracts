@@ -189,8 +189,6 @@ contract PoolTemplate is IERC20 {
         if (_conditions[1] > 0) {
             deposit(_conditions[1]);
         }
-
-        return true;
     }
 
     /**

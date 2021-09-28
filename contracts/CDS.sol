@@ -119,8 +119,6 @@ contract CDS is IERC20 {
         minter = IMinter(_references[3]);
 
         metadata = _metaData;
-
-        return true;
     }
 
     /**
@@ -192,9 +190,9 @@ contract CDS is IERC20 {
                 ) <
                 now &&
                 withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) >
+                    .timestamp
+                    .add(parameters.getLockup(msg.sender))
+                    .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,
