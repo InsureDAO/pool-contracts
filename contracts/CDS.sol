@@ -68,7 +68,7 @@ contract CDS is IERC20 {
     modifier onlyOwner() {
         require(
             msg.sender == parameters.get_owner(),
-            "Ownable: caller is not the owner"
+            "Restricted: caller is not allowed to operate"
         );
         _;
     }
@@ -192,9 +192,9 @@ contract CDS is IERC20 {
                 ) <
                 now &&
                 withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) >
+                    .timestamp
+                    .add(parameters.getLockup(msg.sender))
+                    .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,

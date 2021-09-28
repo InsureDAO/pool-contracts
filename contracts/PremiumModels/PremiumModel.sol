@@ -19,7 +19,7 @@ contract PremiumModel {
     uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
 
     modifier onlyOwner() {
-        require(isOwner(), "Ownable: caller is not the owner");
+        require(isOwner(), "Restricted: caller is not allowed to operate");
         _;
     }
 
@@ -38,11 +38,11 @@ contract PremiumModel {
         }
         // 1) Calculate premium multiplier
         uint256 _util = _lockedAmount
-        .add(_amount)
-        .add(_lockedAmount)
-        .mul(1e5)
-        .div(_totalLiquidity)
-        .div(2);
+            .add(_amount)
+            .add(_lockedAmount)
+            .mul(1e5)
+            .div(_totalLiquidity)
+            .div(2);
         uint256 _premium = _amount.mul(_multiplier).mul(_util).div(1e10);
         // 2) add base premium
         _premium = _amount.mul(_baseRate).div(1e5).add(_premium);
@@ -91,8 +91,7 @@ contract PremiumModel {
         return msg.sender == owner;
     }
 
-    function commit_transfer_ownership(address _owner) external {
-        require(msg.sender == owner, "dev: only owner");
+    function commit_transfer_ownership(address _owner) external onlyOwner {
         require(transfer_ownership_deadline == 0, "dev: active transfer");
 
         uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
@@ -102,8 +101,7 @@ contract PremiumModel {
         emit CommitNewAdmin(_deadline, _owner);
     }
 
-    function apply_transfer_ownership() external {
-        require(msg.sender == owner, "dev: only owner");
+    function apply_transfer_ownership() external onlyOwner {
         require(
             block.timestamp >= transfer_ownership_deadline,
             "dev: insufficient time"

@@ -23,6 +23,17 @@ contract Registry {
     mapping(address => bool) markets;
     address[] allMarkets;
 
+    /**
+     * @notice Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(
+            msg.sender == owner,
+            "Restricted: caller is not allowed to operate"
+        );
+        _;
+    }
+
     constructor() public {
         owner = msg.sender;
     }
@@ -41,8 +52,7 @@ contract Registry {
         emit NewMarketRegistered(_market);
     }
 
-    function setCDS(address _address, address _cds) external {
-        require(msg.sender == owner, "dev: only owner");
+    function setCDS(address _address, address _cds) external onlyOwner {
         cds[_address] = _cds;
         emit CDSSet(_address, _cds);
     }
@@ -64,8 +74,7 @@ contract Registry {
     }
 
     //----- ownership -----//
-    function commit_transfer_ownership(address _owner) external {
-        require(msg.sender == owner, "dev: only owner");
+    function commit_transfer_ownership(address _owner) external onlyOwner {
         require(transfer_ownership_deadline == 0, "dev: active transfer");
 
         uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
@@ -75,8 +84,7 @@ contract Registry {
         emit CommitNewAdmin(_deadline, _owner);
     }
 
-    function apply_transfer_ownership() external {
-        require(msg.sender == owner, "dev: only owner");
+    function apply_transfer_ownership() external onlyOwner {
         require(
             block.timestamp >= transfer_ownership_deadline,
             "dev: insufficient time"

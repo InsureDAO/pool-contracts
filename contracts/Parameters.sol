@@ -55,7 +55,7 @@ contract Parameters {
     }
 
     modifier onlyOwner() {
-        require(isOwner(), "Ownable: caller is not the owner");
+        require(isOwner(), "Restricted: caller is not allowed to operate");
         _;
     }
 
@@ -63,8 +63,7 @@ contract Parameters {
         return msg.sender == owner;
     }
 
-    function commit_transfer_ownership(address _owner) external {
-        require(msg.sender == owner, "dev: only owner");
+    function commit_transfer_ownership(address _owner) external onlyOwner {
         require(transfer_ownership_deadline == 0, "dev: active transfer");
 
         uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
@@ -74,8 +73,7 @@ contract Parameters {
         emit CommitNewAdmin(_deadline, _owner);
     }
 
-    function apply_transfer_ownership() external {
-        require(msg.sender == owner, "dev: only owner");
+    function apply_transfer_ownership() external onlyOwner {
         require(
             block.timestamp >= transfer_ownership_deadline,
             "dev: insufficient time"

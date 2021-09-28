@@ -23,13 +23,13 @@ describe("registry", function () {
     it("test_commit_owner_only", async () => {
       await expect(
         registry.connect(alice).commit_transfer_ownership(alice.address)
-      ).to.revertedWith("dev: only owner");
+      ).to.revertedWith("Restricted: caller is not allowed to operate");
     });
 
     it("test_apply_owner_only", async () => {
       await expect(
         registry.connect(alice).apply_transfer_ownership()
-      ).to.revertedWith("dev: only owner");
+      ).to.revertedWith("Restricted: caller is not allowed to operate");
     });
 
     //test

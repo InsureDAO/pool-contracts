@@ -35,6 +35,17 @@ contract Vault {
     event NewAdmin(address admin);
     event ControllerSet(address controller);
 
+    /**
+     * @notice Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(
+            msg.sender == owner,
+            "Restricted: caller is not allowed to operate"
+        );
+        _;
+    }
+
     constructor(
         address _token,
         address _registry,
@@ -239,8 +250,7 @@ contract Vault {
     /**
      * @notice admin function to set controller address
      */
-    function setController(address _controller) public {
-        require(msg.sender == owner, "dev: only owner");
+    function setController(address _controller) public onlyOwner {
         controller.migrate(address(_controller));
         controller = IController(_controller);
         emit ControllerSet(_controller);
@@ -274,8 +284,7 @@ contract Vault {
     /**
      * @notice Commit ownership change transaction
      */
-    function commit_transfer_ownership(address _owner) external {
-        require(msg.sender == owner, "dev: only owner");
+    function commit_transfer_ownership(address _owner) external onlyOwner {
         require(transfer_ownership_deadline == 0, "dev: active transfer");
 
         uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
@@ -288,8 +297,7 @@ contract Vault {
     /**
      * @notice Execute ownership change transaction
      */
-    function apply_transfer_ownership() external {
-        require(msg.sender == owner, "dev: only owner");
+    function apply_transfer_ownership() external onlyOwner {
         require(
             block.timestamp >= transfer_ownership_deadline,
             "dev: insufficient time"

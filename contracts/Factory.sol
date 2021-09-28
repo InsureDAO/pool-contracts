@@ -59,6 +59,17 @@ contract Factory {
     uint256 public transfer_ownership_deadline;
     uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
 
+    /**
+     * @notice Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(
+            msg.sender == owner,
+            "Restricted: caller is not allowed to operate"
+        );
+        _;
+    }
+
     constructor(address _registry) public {
         owner = msg.sender;
         registry = _registry;
@@ -72,8 +83,7 @@ contract Factory {
         IUniversalMarket _template,
         bool _approval,
         bool _isOpen
-    ) external {
-        require(msg.sender == owner, "dev: only owner");
+    ) external onlyOwner {
         require(address(_template) != address(0));
         templates[address(_template)] = _approval;
         approval[address(_template)] = _isOpen;
@@ -89,8 +99,7 @@ contract Factory {
         uint256 _slot,
         address _target,
         bool _approval
-    ) external {
-        require(msg.sender == owner, "dev: only owner");
+    ) external onlyOwner {
         require(templates[address(_template)] == true);
         reflist[address(_template)][_slot][_target] = _approval;
         emit ReferenceApproval(_template, _slot, _target, _approval);
@@ -104,8 +113,7 @@ contract Factory {
         IUniversalMarket _template,
         uint256 _slot,
         uint256 _target
-    ) external {
-        require(msg.sender == owner, "dev: only owner");
+    ) external onlyOwner {
         require(templates[address(_template)] == true);
         conditionlist[address(_template)][_slot] = _target;
         emit ConditionApproval(_template, _slot, _target);
@@ -146,8 +154,9 @@ contract Factory {
 
         address _owner = owner;
 
-        IUniversalMarket market =
-            IUniversalMarket(_createClone(address(template)));
+        IUniversalMarket market = IUniversalMarket(
+            _createClone(address(template))
+        );
 
         market.initialize(
             _owner,
@@ -202,8 +211,7 @@ contract Factory {
     }
 
     //----- ownership -----//
-    function commit_transfer_ownership(address _owner) external {
-        require(msg.sender == owner, "dev: only owner");
+    function commit_transfer_ownership(address _owner) external onlyOwner {
         require(transfer_ownership_deadline == 0, "dev: active transfer");
 
         uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
@@ -213,8 +221,7 @@ contract Factory {
         emit CommitNewAdmin(_deadline, _owner);
     }
 
-    function apply_transfer_ownership() external {
-        require(msg.sender == owner, "dev: only owner");
+    function apply_transfer_ownership() external onlyOwner {
         require(
             block.timestamp >= transfer_ownership_deadline,
             "dev: insufficient time"

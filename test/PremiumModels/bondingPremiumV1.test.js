@@ -78,7 +78,7 @@ describe("test BondingPremium", () => {
       let k = BigNumber.from("302927736472"); //arbitrary
 
       await expect(premium.connect(alice).setPremium(b, k)).to.revertedWith(
-        "Ownable: caller is not the owner"
+        "Restricted: caller is not allowed to operate"
       );
     });
   });
@@ -120,7 +120,7 @@ describe("test BondingPremium", () => {
       );
       await expect(
         premium.connect(alice).setOptions(0, 0, 0, 0)
-      ).to.revertedWith("Ownable: caller is not the owner");
+      ).to.revertedWith("Restricted: caller is not allowed to operate");
     });
   });
 
@@ -185,7 +185,8 @@ describe("test BondingPremium", () => {
         .mul(365)
         .sub(Q.mul(a).mul(365))
         .add(Q.mul(low_risk_b))
-        .div(Q).div(10);
+        .div(Q)
+        .div(10);
       let expected = amount
         .mul(_premiumRate)
         .mul(length)
@@ -229,13 +230,13 @@ describe("test BondingPremium", () => {
     it("test_commit_owner_only", async () => {
       await expect(
         premium.connect(alice).commit_transfer_ownership(alice.address)
-      ).to.revertedWith("dev: only owner");
+      ).to.revertedWith("Restricted: caller is not allowed to operate");
     });
 
     it("test_apply_owner_only", async () => {
       await expect(
         premium.connect(alice).apply_transfer_ownership()
-      ).to.revertedWith("dev: only owner");
+      ).to.revertedWith("Restricted: caller is not allowed to operate");
     });
 
     //test
