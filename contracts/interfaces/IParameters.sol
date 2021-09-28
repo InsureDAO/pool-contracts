@@ -1,9 +1,9 @@
 pragma solidity 0.8.7;
 
 abstract contract IParameters {
-    function commit_transfer_ownership(address _owner) external virtual;
+    function commitTransferOwnership(address _owner) external virtual;
 
-    function apply_transfer_ownership() external virtual;
+    function applyTransferOwnership() external virtual;
 
     function setVault(address _token, address _vault) external virtual;
 
@@ -55,7 +55,7 @@ abstract contract IParameters {
 
     function getGrace(address _target) external view virtual returns (uint256);
 
-    function get_owner() public view virtual returns (address);
+    function getOwner() public view virtual returns (address);
 
     function isOwner() public view virtual returns (bool);
 

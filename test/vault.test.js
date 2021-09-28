@@ -46,7 +46,7 @@ describe("Vault", function () {
 
     it("test_apply_owner_only", async () => {
       await expect(
-        vault.connect(alice).apply_transfer_ownership()
+        vault.connect(alice).applyTransferOwnership()
       ).to.revertedWith("dev: only owner");
     });
 
@@ -58,17 +58,17 @@ describe("Vault", function () {
       expect(await vault.future_owner()).to.equal(alice.address);
     });
 
-    it("test_apply_transfer_ownership", async () => {
+    it("test_applyTransferOwnership", async () => {
       await vault.commit_transfer_ownership(alice.address);
       await ethers.provider.send("evm_increaseTime", [86400 * 4]);
-      await vault.apply_transfer_ownership();
+      await vault.applyTransferOwnership();
 
       expect(await vault.owner()).to.equal(alice.address);
       expect(await vault.future_owner()).to.equal(alice.address);
     });
 
     it("test_apply_without_commit", async () => {
-      await expect(vault.apply_transfer_ownership()).to.revertedWith(
+      await expect(vault.applyTransferOwnership()).to.revertedWith(
         "dev: no active transfer"
       );
     });

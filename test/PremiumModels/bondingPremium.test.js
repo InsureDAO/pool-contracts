@@ -233,7 +233,7 @@ describe.skip("test BondingPremium", () => {
 
     it("test_apply_owner_only", async () => {
       await expect(
-        premium.connect(alice).apply_transfer_ownership()
+        premium.connect(alice).applyTransferOwnership()
       ).to.revertedWith("dev: only owner");
     });
 
@@ -245,17 +245,17 @@ describe.skip("test BondingPremium", () => {
       expect(await premium.future_owner()).to.equal(alice.address);
     });
 
-    it("test_apply_transfer_ownership", async () => {
+    it("test_applyTransferOwnership", async () => {
       await premium.commit_transfer_ownership(alice.address);
       await ethers.provider.send("evm_increaseTime", [86400 * 4]);
-      await premium.apply_transfer_ownership();
+      await premium.applyTransferOwnership();
 
       expect(await premium.owner()).to.equal(alice.address);
       expect(await premium.future_owner()).to.equal(alice.address);
     });
 
     it("test_apply_without_commit", async () => {
-      await expect(premium.apply_transfer_ownership()).to.revertedWith(
+      await expect(premium.applyTransferOwnership()).to.revertedWith(
         "dev: no active transfer"
       );
     });

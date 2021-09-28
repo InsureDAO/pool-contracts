@@ -203,7 +203,7 @@ contract Factory {
     }
 
     //----- ownership -----//
-    function commit_transfer_ownership(address _owner) external {
+    function commitTransferOwnership(address _owner) external {
         require(msg.sender == owner, "dev: only owner");
         require(transfer_ownership_deadline == 0, "dev: active transfer");
 
@@ -214,7 +214,7 @@ contract Factory {
         emit CommitNewAdmin(_deadline, _owner);
     }
 
-    function apply_transfer_ownership() external {
+    function applyTransferOwnership() external {
         require(msg.sender == owner, "dev: only owner");
         require(
             block.timestamp >= transfer_ownership_deadline,

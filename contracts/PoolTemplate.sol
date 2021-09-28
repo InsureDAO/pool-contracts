@@ -137,7 +137,7 @@ contract PoolTemplate is IERC20 {
      */
     modifier onlyOwner() {
         require(
-            msg.sender == parameters.get_owner(),
+            msg.sender == parameters.getOwner(),
             "Ownable: caller is not the owner"
         );
         _;
@@ -417,7 +417,7 @@ contract PoolTemplate is IERC20 {
         );
 
         //accrue fee
-        vault.addValue(_fee, msg.sender, parameters.get_owner());
+        vault.addValue(_fee, msg.sender, parameters.getOwner());
         //accrue premium
         uint256 _newAttribution = vault.addValue(
             _deducted,

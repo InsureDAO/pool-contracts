@@ -67,7 +67,7 @@ contract CDS is IERC20 {
      */
     modifier onlyOwner() {
         require(
-            msg.sender == parameters.get_owner(),
+            msg.sender == parameters.getOwner(),
             "Ownable: caller is not the owner"
         );
         _;
@@ -140,7 +140,7 @@ contract CDS is IERC20 {
         uint256 _totalLiquidity = totalLiquidity();
         //deposit and pay fees
         vault.addValue(_add, msg.sender, address(this));
-        vault.addValue(_fee, msg.sender, parameters.get_owner());
+        vault.addValue(_fee, msg.sender, parameters.getOwner());
 
         //Calculate iToken value
         if (_supply > 0 && _totalLiquidity > 0) {

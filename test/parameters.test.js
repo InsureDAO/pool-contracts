@@ -22,7 +22,7 @@ describe("Parameters", function () {
 
     it("test_apply_owner_only", async () => {
       await expect(
-        parameters.connect(alice).apply_transfer_ownership()
+        parameters.connect(alice).applyTransferOwnership()
       ).to.revertedWith("dev: only owner");
     });
 
@@ -34,17 +34,17 @@ describe("Parameters", function () {
       expect(await parameters.future_owner()).to.equal(alice.address);
     });
 
-    it("test_apply_transfer_ownership", async () => {
+    it("test_applyTransferOwnership", async () => {
       await parameters.commit_transfer_ownership(alice.address);
       await ethers.provider.send("evm_increaseTime", [86400 * 4]);
-      await parameters.apply_transfer_ownership();
+      await parameters.applyTransferOwnership();
 
       expect(await parameters.owner()).to.equal(alice.address);
       expect(await parameters.future_owner()).to.equal(alice.address);
     });
 
     it("test_apply_without_commit", async () => {
-      await expect(parameters.apply_transfer_ownership()).to.revertedWith(
+      await expect(parameters.applyTransferOwnership()).to.revertedWith(
         "dev: no active transfer"
       );
     });

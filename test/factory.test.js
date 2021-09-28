@@ -99,7 +99,7 @@ describe("Factory", function () {
 
     it("test_apply_owner_only", async () => {
       await expect(
-        registry.connect(alice).apply_transfer_ownership()
+        registry.connect(alice).applyTransferOwnership()
       ).to.revertedWith("dev: only owner");
     });
 
@@ -111,17 +111,17 @@ describe("Factory", function () {
       expect(await registry.future_owner()).to.equal(alice.address);
     });
 
-    it("test_apply_transfer_ownership", async () => {
+    it("test_applyTransferOwnership", async () => {
       await registry.commit_transfer_ownership(alice.address);
       await ethers.provider.send("evm_increaseTime", [86400 * 4]);
-      await registry.apply_transfer_ownership();
+      await registry.applyTransferOwnership();
 
       expect(await registry.owner()).to.equal(alice.address);
       expect(await registry.future_owner()).to.equal(alice.address);
     });
 
     it("test_apply_without_commit", async () => {
-      await expect(registry.apply_transfer_ownership()).to.revertedWith(
+      await expect(registry.applyTransferOwnership()).to.revertedWith(
         "dev: no active transfer"
       );
     });
