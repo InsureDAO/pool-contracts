@@ -146,8 +146,9 @@ contract Factory {
 
         address _owner = owner;
 
-        IUniversalMarket market =
-            IUniversalMarket(_createClone(address(template)));
+        IUniversalMarket market = IUniversalMarket(
+            _createClone(address(template))
+        );
 
         market.initialize(
             _owner,
@@ -205,6 +206,7 @@ contract Factory {
     function commit_transfer_ownership(address _owner) external {
         require(msg.sender == owner, "dev: only owner");
         require(transfer_ownership_deadline == 0, "dev: active transfer");
+        require(_owner != address(0), "dev: address zero");
 
         uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
         transfer_ownership_deadline = _deadline;

@@ -66,6 +66,7 @@ contract Parameters {
     function commit_transfer_ownership(address _owner) external {
         require(msg.sender == owner, "dev: only owner");
         require(transfer_ownership_deadline == 0, "dev: active transfer");
+        require(_owner != address(0), "dev: address zero");
 
         uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
         transfer_ownership_deadline = _deadline;
@@ -92,6 +93,7 @@ contract Parameters {
 
     function setVault(address _token, address _vault) external onlyOwner {
         require(_vaults[_token] == address(0), "dev: already initialized");
+        require(_vault != address(0), "dev: zero address");
         _vaults[_token] = _vault;
         emit VaultSet(_token, _vault);
     }
@@ -133,11 +135,13 @@ contract Parameters {
         external
         onlyOwner
     {
+        require(_target != address(0), "dev: zero address");
         _premium[_address] = _target;
         emit PremiumSet(_address, _target);
     }
 
     function setFeeModel(address _address, address _target) external onlyOwner {
+        require(_target != address(0), "dev: zero address");
         _fee[_address] = _target;
         emit FeeSet(_address, _target);
     }

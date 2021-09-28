@@ -38,11 +38,11 @@ contract PremiumModel {
         }
         // 1) Calculate premium multiplier
         uint256 _util = _lockedAmount
-        .add(_amount)
-        .add(_lockedAmount)
-        .mul(1e5)
-        .div(_totalLiquidity)
-        .div(2);
+            .add(_amount)
+            .add(_lockedAmount)
+            .mul(1e5)
+            .div(_totalLiquidity)
+            .div(2);
         uint256 _premium = _amount.mul(_multiplier).mul(_util).div(1e10);
         // 2) add base premium
         _premium = _amount.mul(_baseRate).div(1e5).add(_premium);
@@ -94,6 +94,7 @@ contract PremiumModel {
     function commit_transfer_ownership(address _owner) external {
         require(msg.sender == owner, "dev: only owner");
         require(transfer_ownership_deadline == 0, "dev: active transfer");
+        require(_owner != address(0), "dev: address zero");
 
         uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
         transfer_ownership_deadline = _deadline;

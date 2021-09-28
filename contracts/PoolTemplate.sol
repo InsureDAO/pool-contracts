@@ -256,9 +256,9 @@ contract PoolTemplate is IERC20 {
                 ) <
                 now &&
                 withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) >
+                    .timestamp
+                    .add(parameters.getLockup(msg.sender))
+                    .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
                 _retVal <= availableBalance() &&
                 withdrawalReq[msg.sender].amount >= _amount &&
@@ -487,16 +487,16 @@ contract PoolTemplate is IERC20 {
             _payoutDenominator
         );
         uint256 _deductionFromIndex = _payoutAmount
-        .mul(totalCredit)
-        .mul(1e8)
-        .div(totalLiquidity());
+            .mul(totalCredit)
+            .mul(1e8)
+            .div(totalLiquidity());
 
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indexes[indexList[i]].credit > 0) {
                 uint256 _shareOfIndex = indexes[indexList[i]]
-                .credit
-                .mul(1e8)
-                .div(indexes[indexList[i]].credit);
+                    .credit
+                    .mul(1e8)
+                    .div(indexes[indexList[i]].credit);
                 uint256 _redeemAmount = _divCeil(
                     _deductionFromIndex,
                     _shareOfIndex
@@ -510,9 +510,9 @@ contract PoolTemplate is IERC20 {
             msg.sender
         );
         uint256 _indexAttribution = _paidAttribution
-        .mul(_deductionFromIndex)
-        .div(1e8)
-        .div(_payoutAmount);
+            .mul(_deductionFromIndex)
+            .div(1e8)
+            .div(_payoutAmount);
         totalAttributions = totalAttributions.sub(
             _paidAttribution.sub(_indexAttribution)
         );
@@ -903,8 +903,10 @@ contract PoolTemplate is IERC20 {
      * @notice Pause the market and disable new deposit
      */
     function setPaused(bool state) external onlyOwner {
-        paused = state;
-        emit Paused(state);
+        if (state != paused) {
+            paused = state;
+            emit Paused(state);
+        }
     }
 
     /**
