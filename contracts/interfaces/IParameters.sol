@@ -13,9 +13,9 @@ abstract contract IParameters {
 
     function setMindate(address _address, uint256 _target) external virtual;
 
-    function setPremium2(address _address, uint256 _target) external virtual;
+    function setCDSPremium(address _address, uint256 _target) external virtual;
 
-    function setFee2(address _address, uint256 _target) external virtual;
+    function setDepositFee(address _address, uint256 _target) external virtual;
 
     function setWithdrawable(address _address, uint256 _target)
         external
@@ -61,13 +61,13 @@ abstract contract IParameters {
 
     function getMin(address _target) external view virtual returns (uint256);
 
-    function getFee2(uint256 _amoun, address _targett)
+    function getDepositFee(uint256 _amoun, address _targett)
         external
         view
         virtual
         returns (uint256);
 
-    function getPremium2(uint256 _amount, address _target)
+    function getCDSPremium(uint256 _amount, address _target)
         external
         view
         virtual

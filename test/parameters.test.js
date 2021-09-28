@@ -51,8 +51,8 @@ describe("Parameters", function () {
   });
   describe("parameters functions", function () {
     it("registers universal params", async () => {
-      await parameters.setPremium2(ZERO_ADDRESS, "1000");
-      await parameters.setFee2(ZERO_ADDRESS, "1000");
+      await parameters.setCDSPremium(ZERO_ADDRESS, "1000");
+      await parameters.setDepositFee(ZERO_ADDRESS, "1000");
       await parameters.setGrace(ZERO_ADDRESS, "1000");
       await parameters.setLockup(ZERO_ADDRESS, "1000");
       await parameters.setMindate(ZERO_ADDRESS, "1000");
@@ -60,10 +60,12 @@ describe("Parameters", function () {
       await parameters.setVault(ZERO_ADDRESS, test.address);
       await parameters.setWithdrawable(ZERO_ADDRESS, "1000");
 
-      expect(await parameters.getPremium2("10000", creator.address)).to.equal(
+      expect(await parameters.getCDSPremium("10000", creator.address)).to.equal(
         "100"
       );
-      expect(await parameters.getFee2(10000, creator.address)).to.equal("100");
+      expect(await parameters.getDepositFee(10000, creator.address)).to.equal(
+        "100"
+      );
       expect(await parameters.getGrace(creator.address)).to.equal("1000");
       expect(await parameters.getLockup(creator.address)).to.equal("1000");
       expect(await parameters.getMin(creator.address)).to.equal("1000");
@@ -74,8 +76,8 @@ describe("Parameters", function () {
     });
 
     it("registers specific params for the specifed address", async () => {
-      await parameters.setPremium2(test.address, "10000");
-      await parameters.setFee2(test.address, "10000");
+      await parameters.setCDSPremium(ZERO_ADDRESS, "10000");
+      await parameters.setDepositFee(ZERO_ADDRESS, "10000");
       await parameters.setGrace(test.address, "10000");
       await parameters.setLockup(test.address, "10000");
       await parameters.setMindate(test.address, "10000");
@@ -83,10 +85,10 @@ describe("Parameters", function () {
       await parameters.setWithdrawable(test.address, "10000");
 
       expect(
-        await parameters.connect(test).getPremium2("10000", test.address)
+        await parameters.connect(test).getCDSPremium("10000", test.address)
       ).to.equal("1000");
       expect(
-        await parameters.connect(test).getFee2(10000, test.address)
+        await parameters.connect(test).getDepositFee(10000, test.address)
       ).to.equal("1000");
       expect(await parameters.connect(test).getGrace(test.address)).to.equal(
         "10000"

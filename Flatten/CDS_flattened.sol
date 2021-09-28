@@ -110,7 +110,6 @@ library SafeMath {
     }
 }
 
-
 // File contracts/libraries/utils/Address.sol
 
 pragma solidity ^0.6.0;
@@ -142,7 +141,6 @@ library Address {
         return size > 0;
     }
 }
-
 
 // File contracts/libraries/tokens/IERC20.sol
 
@@ -236,7 +234,6 @@ interface IERC20 {
     );
 }
 
-
 // File contracts/interfaces/IVault.sol
 
 pragma solidity ^0.6.0;
@@ -273,7 +270,6 @@ interface IVault {
     function utilize() external returns (uint256 _amount);
 }
 
-
 // File contracts/interfaces/IRegistry.sol
 
 pragma solidity ^0.6.0;
@@ -285,7 +281,6 @@ interface IRegistry {
 
     function getCDS(address _address) external view returns (address);
 }
-
 
 // File contracts/interfaces/IParameters.sol
 
@@ -346,7 +341,7 @@ abstract contract IParameters {
 
     function isOwner() public view virtual returns (bool);
 
-    function getMin() external view virtual returns (uint256);
+    function getMinInsuranceSpan() external view virtual returns (uint256);
 
     function getFee2(uint256 _amount) external view virtual returns (uint256);
 
@@ -363,7 +358,6 @@ abstract contract IParameters {
         returns (bytes32);
 }
 
-
 // File contracts/interfaces/ICDS.sol
 
 pragma solidity ^0.6.0;
@@ -376,7 +370,6 @@ interface ICDS {
     function resume() external;
 }
 
-
 // File contracts/interfaces/IMinter.sol
 
 pragma solidity ^0.6.0;
@@ -386,21 +379,14 @@ interface IMinter {
     function emergency_mint(uint256 _amount) external returns (bool);
 }
 
-
 // File contracts/CDS.sol
 
 pragma solidity ^0.6.0;
+
 /**
  * @author kohshiba
  * @title InsureDAO cds contract template contract
  */
-
-
-
-
-
-
-
 
 contract CDS is IERC20 {
     using Address for address;
