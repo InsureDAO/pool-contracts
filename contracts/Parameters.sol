@@ -19,16 +19,16 @@ contract Parameters {
 
     event CommitNewAdmin(uint256 deadline, address future_admin);
     event NewAdmin(address admin);
-    event VaultSet(address token, address vault);
-    event FeeSet(address target, address model);
-    event Fee2Set(address target, uint256 rate);
-    event PremiumSet(address target, address model);
-    event Premium2Set(address target, uint256 rate);
-    event LockupSet(address target, uint256 span);
-    event GraceSet(address target, uint256 span);
-    event MinDateSet(address target, uint256 span);
-    event WithdrawableSet(address target, uint256 span);
-    event ConditionSet(bytes32 ref, bytes32 condition);
+    event VaultSet(address indexed token, address vault);
+    event FeeSet(address indexed target, address model);
+    event Fee2Set(address indexed target, uint256 rate);
+    event PremiumSet(address indexed target, address model);
+    event Premium2Set(address indexed target, uint256 rate);
+    event LockupSet(address indexed target, uint256 span);
+    event GraceSet(address indexed target, uint256 span);
+    event MinDateSet(address indexed target, uint256 span);
+    event WithdrawableSet(address indexed target, uint256 span);
+    event ConditionSet(bytes32 indexed ref, bytes32 condition);
 
     address public owner;
     address public future_owner;

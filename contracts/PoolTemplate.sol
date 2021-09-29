@@ -20,12 +20,11 @@ contract PoolTemplate is IERC20 {
      * EVENTS
      */
 
-    event Deposit(
-        address indexed depositor,
+    event Deposit(address indexed depositor, uint256 amount, uint256 mint);
+    event WithdrawRequested(
+        address indexed withdrawer,
         uint256 amount,
-        uint256 mint,
-        uint256 balance,
-        uint256 underlying
+        uint256 time
     );
     event Withdraw(address indexed withdrawer, uint256 amount, uint256 retVal);
     event Unlocked(uint256 indexed id, uint256 amount);
@@ -35,7 +34,8 @@ contract PoolTemplate is IERC20 {
         bytes32 target,
         uint256 startTime,
         uint256 endTime,
-        address insured
+        address insured,
+        uint256 premium
     );
     event Redeemed(
         uint256 indexed id,
@@ -52,6 +52,7 @@ contract PoolTemplate is IERC20 {
         bytes32[] _targets,
         string _memo
     );
+    event TransferInsurance(uint256 indexed id, address from, address to);
     event CreditIncrease(address indexed depositor, uint256 credit);
     event CreditDecrease(address indexed withdrawer, uint256 credit);
     event MarketStatusChanged(MarketStatus statusValue);
@@ -217,13 +218,7 @@ contract PoolTemplate is IERC20 {
         );
         totalAttributions = totalAttributions.add(_newAttribution);
 
-        emit Deposit(
-            msg.sender,
-            _amount,
-            _mintAmount,
-            balanceOf(msg.sender),
-            valueOfUnderlying(msg.sender)
-        );
+        emit Deposit(msg.sender, _amount, _mintAmount);
 
         //mint iToken
         _mint(msg.sender, _mintAmount);
@@ -240,6 +235,7 @@ contract PoolTemplate is IERC20 {
         );
         withdrawalReq[msg.sender].timestamp = now;
         withdrawalReq[msg.sender].amount = _amount;
+        emit WithdrawRequested(msg.sender, _amount, now);
     }
 
     /**
@@ -450,7 +446,15 @@ contract PoolTemplate is IERC20 {
             );
         }
 
-        emit Insured(_id, _amount, _target, now, _endTime, msg.sender);
+        emit Insured(
+            _id,
+            _amount,
+            _target,
+            now,
+            _endTime,
+            msg.sender,
+            _premium
+        );
 
         return _id;
     }
@@ -540,6 +544,7 @@ contract PoolTemplate is IERC20 {
         );
 
         insurance.insured = _to;
+        emit TransferInsurance(_id, msg.sender, _to);
     }
 
     /**

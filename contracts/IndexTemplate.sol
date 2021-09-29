@@ -21,19 +21,20 @@ contract IndexTemplate is IERC20 {
      * EVENTS
      */
 
-    event Deposit(
-        address indexed depositor,
+    event Deposit(address indexed depositor, uint256 amount, uint256 mint);
+    event WithdrawRequested(
+        address indexed withdrawer,
         uint256 amount,
-        uint256 mint,
-        uint256 balance,
-        uint256 underlying
+        uint256 time
     );
     event Withdraw(address indexed withdrawer, uint256 amount, uint256 retVal);
     event Compensated(address indexed index, uint256 amount);
     event Paused(bool paused);
+    event Resumed();
+    event Locked();
     event MetadataChanged(string metadata);
     event LeverageSet(uint256 target);
-    event AllocationSet(address pool, uint256 allocPoint);
+    event AllocationSet(address indexed pool, uint256 allocPoint);
     /**
      * Storage
      */
@@ -165,13 +166,7 @@ contract IndexTemplate is IERC20 {
         } else {
             _mintAmount = _add;
         }
-        emit Deposit(
-            msg.sender,
-            _amount,
-            _mintAmount,
-            balanceOf(msg.sender),
-            valueOfUnderlying(msg.sender)
-        );
+        emit Deposit(msg.sender, _amount, _mintAmount);
         //mint iToken
         _mint(msg.sender, _mintAmount);
         adjustAlloc();
@@ -188,6 +183,7 @@ contract IndexTemplate is IERC20 {
         );
         withdrawalReq[msg.sender].timestamp = now;
         withdrawalReq[msg.sender].amount = _amount;
+        emit WithdrawRequested(msg.sender, _amount, now);
     }
 
     /**
@@ -435,6 +431,7 @@ contract IndexTemplate is IERC20 {
     function resume() external {
         require(pendingEnd <= now);
         locked = false;
+        emit Resumed();
     }
 
     /**
@@ -447,6 +444,7 @@ contract IndexTemplate is IERC20 {
             pendingEnd = now.add(_pending);
         }
         locked = true;
+        event Locked();
     }
 
     /**
