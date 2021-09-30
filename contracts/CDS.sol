@@ -7,6 +7,7 @@ pragma solidity 0.8.7;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
@@ -68,7 +69,7 @@ contract CDS is IERC20 {
     modifier onlyOwner() {
         require(
             msg.sender == parameters.getOwner(),
-            "Ownable: caller is not the owner"
+            "Restricted: caller is not allowed to operate"
         );
         _;
     }
@@ -159,7 +160,7 @@ contract CDS is IERC20 {
         );
         withdrawalReq[msg.sender].timestamp = block.timestamp;
         withdrawalReq[msg.sender].amount = _amount;
-        emit WithdrawRequested(msg.sender, _amount, now);
+        emit WithdrawRequested(msg.sender, _amount, block.timestamp);
     }
 
     /**
@@ -180,11 +181,7 @@ contract CDS is IERC20 {
                     .timestamp
                     .add(parameters.getLockup(msg.sender))
                     .add(parameters.getWithdrawable(msg.sender)) >
-<<<<<<< HEAD
                 block.timestamp &&
-=======
-                now &&
->>>>>>> QSP-BP-8
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,
             "ERROR: WITHDRAWAL_BAD_CONDITIONS"

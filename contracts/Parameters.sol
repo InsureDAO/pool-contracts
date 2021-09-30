@@ -29,6 +29,7 @@ contract Parameters {
     event MinDateSet(address indexed target, uint256 span);
     event WithdrawableSet(address indexed target, uint256 span);
     event ConditionSet(bytes32 indexed ref, bytes32 condition);
+    event MaxListSet(address target, uint256 max);
 
     address public owner;
     address public future_owner;
@@ -64,7 +65,7 @@ contract Parameters {
         return msg.sender == owner;
     }
 
-    function commit_transfer_ownership(address _owner) external onlyOwner {
+    function commitTransferOwnership(address _owner) external onlyOwner {
         require(transfer_ownership_deadline == 0, "dev: active transfer");
         require(_owner != address(0), "dev: address zero");
 
@@ -75,7 +76,7 @@ contract Parameters {
         emit CommitNewAdmin(_deadline, _owner);
     }
 
-    function apply_transfer_ownership() external onlyOwner {
+    function applyTransferOwnership() external onlyOwner {
         require(
             block.timestamp >= transfer_ownership_deadline,
             "dev: insufficient time"

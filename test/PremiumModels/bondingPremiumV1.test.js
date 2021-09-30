@@ -229,31 +229,26 @@ describe("test BondingPremium", () => {
     //revert test
     it("test_commit_owner_only", async () => {
       await expect(
-        premium.connect(alice).commit_transfer_ownership(alice.address)
+        premium.connect(alice).commitTransferOwnership(alice.address)
       ).to.revertedWith("Restricted: caller is not allowed to operate");
     });
 
     it("test_apply_owner_only", async () => {
       await expect(
-<<<<<<< HEAD
-        premium.connect(alice).apply_transfer_ownership()
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
-=======
         premium.connect(alice).applyTransferOwnership()
-      ).to.revertedWith("dev: only owner");
->>>>>>> QSP-BP-3
+      ).to.revertedWith("Restricted: caller is not allowed to operate");
     });
 
     //test
-    it("test_commit_transfer_ownership", async () => {
-      await premium.commit_transfer_ownership(alice.address);
+    it("test_commitTransferOwnership", async () => {
+      await premium.commitTransferOwnership(alice.address);
 
       expect(await premium.owner()).to.equal(creator.address);
       expect(await premium.future_owner()).to.equal(alice.address);
     });
 
     it("test_applyTransferOwnership", async () => {
-      await premium.commit_transfer_ownership(alice.address);
+      await premium.commitTransferOwnership(alice.address);
       await ethers.provider.send("evm_increaseTime", [86400 * 4]);
       await premium.applyTransferOwnership();
 

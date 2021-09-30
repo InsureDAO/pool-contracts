@@ -173,13 +173,13 @@ describe("CDS", function () {
     await factory.createMarket(
       cdsTemplate.address,
       "Here is metadata.",
-      [],
+      [0],
       [dai.address, registry.address, parameters.address, minter.address]
     );
     await factory.createMarket(
       indexTemplate.address,
       "Here is metadata.",
-      [],
+      [0],
       [dai.address, registry.address, parameters.address]
     );
     const marketAddress3 = await factory.markets(2);

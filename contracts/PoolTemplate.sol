@@ -7,7 +7,7 @@ pragma solidity 0.8.7;
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 import "./interfaces/IParameters.sol";
@@ -147,7 +147,7 @@ contract PoolTemplate is IERC20 {
     modifier onlyOwner() {
         require(
             msg.sender == parameters.getOwner(),
-            "Ownable: caller is not the owner"
+            "Restricted: caller is not allowed to operate"
         );
         _;
     }
@@ -247,7 +247,7 @@ contract PoolTemplate is IERC20 {
         );
         withdrawalReq[msg.sender].timestamp = block.timestamp;
         withdrawalReq[msg.sender].amount = _amount;
-        emit WithdrawRequested(msg.sender, _amount, now);
+        emit WithdrawRequested(msg.sender, _amount, block.timestamp);
     }
 
     /**
@@ -257,7 +257,7 @@ contract PoolTemplate is IERC20 {
         uint256 _supply = totalSupply();
 
         uint256 _liquidity = vault.attributionValue(ownAttributions);
-        _retVal = _divFloor(_amount.mul(_liquidity), _supply);
+        _retVal = _divMinus(_amount.mul(_liquidity), _supply);
 
         require(
             marketStatus == MarketStatus.Trading,
@@ -272,7 +272,6 @@ contract PoolTemplate is IERC20 {
                     .timestamp
                     .add(parameters.getLockup(msg.sender))
                     .add(parameters.getWithdrawable(msg.sender)) >
-
                 block.timestamp &&
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,
@@ -480,7 +479,7 @@ contract PoolTemplate is IERC20 {
             _target,
             block.timestamp,
             _endTime,
-            msg.sender
+            msg.sender,
             _premium
         );
 
@@ -549,7 +548,6 @@ contract PoolTemplate is IERC20 {
             .div(1e8)
             .div(_payoutAmount);
         ownAttributions = ownAttributions.sub(
-
             _paidAttribution.sub(_indexAttribution)
         );
         emit Redeemed(

@@ -40,31 +40,26 @@ describe("Vault", function () {
     //revert test
     it("test_commit_owner_only", async () => {
       await expect(
-        vault.connect(alice).commit_transfer_ownership(alice.address)
+        vault.connect(alice).commitTransferOwnership(alice.address)
       ).to.revertedWith("Restricted: caller is not allowed to operate");
     });
 
     it("test_apply_owner_only", async () => {
       await expect(
-<<<<<<< HEAD
-        vault.connect(alice).apply_transfer_ownership()
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
-=======
         vault.connect(alice).applyTransferOwnership()
-      ).to.revertedWith("dev: only owner");
->>>>>>> QSP-BP-3
+      ).to.revertedWith("Restricted: caller is not allowed to operate");
     });
 
     //test
-    it("test_commit_transfer_ownership", async () => {
-      await vault.commit_transfer_ownership(alice.address);
+    it("test_commitTransferOwnership", async () => {
+      await vault.commitTransferOwnership(alice.address);
 
       expect(await vault.owner()).to.equal(creator.address);
       expect(await vault.future_owner()).to.equal(alice.address);
     });
 
     it("test_applyTransferOwnership", async () => {
-      await vault.commit_transfer_ownership(alice.address);
+      await vault.commitTransferOwnership(alice.address);
       await ethers.provider.send("evm_increaseTime", [86400 * 4]);
       await vault.applyTransferOwnership();
 

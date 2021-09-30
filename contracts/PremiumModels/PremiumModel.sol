@@ -91,7 +91,7 @@ contract PremiumModel {
         return msg.sender == owner;
     }
 
-    function commit_transfer_ownership(address _owner) external onlyOwner {
+    function commitTransferOwnership(address _owner) external onlyOwner {
         require(transfer_ownership_deadline == 0, "dev: active transfer");
         require(_owner != address(0), "dev: address zero");
 
@@ -102,7 +102,7 @@ contract PremiumModel {
         emit CommitNewAdmin(_deadline, _owner);
     }
 
-    function apply_transfer_ownership() external onlyOwner {
+    function applyTransferOwnership() external onlyOwner {
         require(
             block.timestamp >= transfer_ownership_deadline,
             "dev: insufficient time"

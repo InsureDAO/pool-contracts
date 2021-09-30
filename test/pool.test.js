@@ -815,7 +815,7 @@ describe("Pool", function () {
 
       await market.resume();
       await expect(market.connect(bob).redeem("0", proof)).to.revertedWith(
-        "ERROR: INSURANCE_NOT_APPLICABLE"
+        "ERROR: NO_APPLICABLE_INCIDENT"
       );
       await market.unlock("0");
       await market.connect(alice).withdraw("10000");
@@ -887,13 +887,9 @@ describe("Pool", function () {
       await ethers.provider.send("evm_increaseTime", [86400 * 12]);
 
       await market.resume();
-<<<<<<< HEAD
-      await expect(market.connect(bob).redeem("0")).to.revertedWith(
-        "ERROR: NO_APPLICABLE_INCIDENT"
-=======
+
       await expect(market.connect(bob).redeem("0", proof)).to.revertedWith(
-        "ERROR: INSURANCE_NOT_APPLICABLE"
->>>>>>> QSP-3-1
+        "ERROR: NO_APPLICABLE_INCIDENT"
       );
       await market.unlock("0");
       await market.connect(alice).withdraw("10000");

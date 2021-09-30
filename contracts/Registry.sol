@@ -98,7 +98,8 @@ contract Registry {
     }
 
     //----- ownership -----//
-    function commit_transfer_ownership(address _owner) exterve transfer");
+    function commitTransferOwnership(address _owner) external onlyOwner {
+        require(transfer_ownership_deadline == 0, "dev: active transfer");
         require(_owner != address(0), "dev: address zero");
 
         uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
@@ -108,8 +109,7 @@ contract Registry {
         emit CommitNewAdmin(_deadline, _owner);
     }
 
-
-    function apply_transfer_ownership() external onlyOwner {
+    function applyTransferOwnership() external onlyOwner {
         require(
             block.timestamp >= transfer_ownership_deadline,
             "dev: insufficient time"

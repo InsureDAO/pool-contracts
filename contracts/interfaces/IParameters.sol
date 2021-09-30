@@ -63,17 +63,13 @@ abstract contract IParameters {
 
     function getMin(address _target) external view virtual returns (uint256);
 
-<<<<<<< HEAD
     function getMaxList(address _target)
         external
         view
         virtual
         returns (uint256);
 
-    function getFee2(uint256 _amoun, address _targett)
-=======
     function getDepositFee(uint256 _amoun, address _targett)
->>>>>>> QSP-BP-3
         external
         view
         virtual

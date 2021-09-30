@@ -6,6 +6,7 @@ pragma solidity 0.8.7;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
@@ -34,7 +35,11 @@ contract IndexTemplate is IERC20 {
     event Locked();
     event MetadataChanged(string metadata);
     event LeverageSet(uint256 target);
-    event AllocationSet(uint256 indexed _index, address indexed pool, uint256 allocPoint);
+    event AllocationSet(
+        uint256 indexed _index,
+        address indexed pool,
+        uint256 allocPoint
+    );
 
     /**
      * Storage
@@ -84,7 +89,7 @@ contract IndexTemplate is IERC20 {
     modifier onlyOwner() {
         require(
             msg.sender == parameters.getOwner(),
-            "Ownable: caller is not the owner"
+            "Restricted: caller is not allowed to operate"
         );
         _;
     }
@@ -175,7 +180,7 @@ contract IndexTemplate is IERC20 {
         );
         withdrawalReq[msg.sender].timestamp = block.timestamp;
         withdrawalReq[msg.sender].amount = _amount;
-        emit WithdrawRequested(msg.sender, _amount, now);
+        emit WithdrawRequested(msg.sender, _amount, block.timestamp);
     }
 
     /**
@@ -392,7 +397,7 @@ contract IndexTemplate is IERC20 {
             pendingEnd = block.timestamp.add(_pending);
         }
         locked = true;
-        event Locked();
+        emit Locked();
     }
 
     /**
