@@ -84,7 +84,7 @@ contract PoolTemplate is IERC20 {
     uint256 public totalAttributions; //how much attribution point this pool's original liquidity has
     uint256 public lockedAmount; //Liquidity locked when utilized
     uint256 public totalCredit; //Liquidity from index
-    uint256 public attributionPerCredit; //Times 1e12. To avoid overdlow
+    uint256 public attributionPerCredit; //Times CREDIT_DECIMALS. To avoid overdlow
     uint256 public pendingEnd; //pending time when paying out
 
     /// @notice Market variables for margin account
@@ -130,6 +130,11 @@ contract PoolTemplate is IERC20 {
         bytes32[] targets;
     }
     Incident public incident;
+
+    ///@notice magic numbers
+    uint256 public constant LEVERAGE_DIVISOR = 1e3;
+    uint256 public constant UTILIZATION_RATE_SCALE = 1e8;
+    uint256 public constant CREDIT_DECIMALS = 1e12;
 
     /**
      * @notice Throws if called by any account other than the owner.
@@ -342,7 +347,7 @@ contract PoolTemplate is IERC20 {
         }
         if (_index.credit > 0) {
             _pending = _sub(
-                _index.credit.mul(attributionPerCredit).div(1e12),
+                _index.credit.mul(attributionPerCredit).div(CREDIT_DECIMALS),
                 _index.rewardDebt
             );
             if (_pending > 0) {
@@ -356,8 +361,9 @@ contract PoolTemplate is IERC20 {
             );
             emit CreditIncrease(msg.sender, _credit);
         }
-
-        _index.rewardDebt = _index.credit.mul(attributionPerCredit).div(1e12);
+        _index.rewardDebt = _index.credit.mul(attributionPerCredit).div(
+            CREDIT_DECIMALS
+        );
     }
 
     /**
@@ -378,7 +384,7 @@ contract PoolTemplate is IERC20 {
 
         //calculate acrrued premium
         _pending = _sub(
-            _index.credit.mul(attributionPerCredit).div(1e12),
+            _index.credit.mul(attributionPerCredit).div(CREDIT_DECIMALS),
             _index.rewardDebt
         );
 
@@ -391,7 +397,7 @@ contract PoolTemplate is IERC20 {
         if (_pending > 0) {
             vault.transferAttribution(_pending, msg.sender);
             _index.rewardDebt = _index.credit.mul(attributionPerCredit).div(
-                1e12
+                CREDIT_DECIMALS
             );
         }
     }
@@ -463,7 +469,7 @@ contract PoolTemplate is IERC20 {
         );
         if (totalCredit > 0) {
             attributionPerCredit = attributionPerCredit.add(
-                _attributionForIndex.mul(1e12).div(totalCredit)
+                _attributionForIndex.mul(CREDIT_DECIMALS).div(totalCredit)
             );
         }
 
@@ -836,7 +842,7 @@ contract PoolTemplate is IERC20 {
         } else {
             return
                 _sub(
-                    _credit.mul(attributionPerCredit).div(1e12),
+                    _credit.mul(attributionPerCredit).div(CREDIT_DECIMALS),
                     indexes[_index].rewardDebt
                 );
         }
@@ -891,11 +897,12 @@ contract PoolTemplate is IERC20 {
     }
 
     /**
-     * @notice Returns the utilization rate for this pool (should be divided by 1e10 to XX.XXX%)
+     * @notice Returns the utilization rate for this pool. Scaled by 1e8 (100% = 1e8)
      */
     function utilizationRate() public view returns (uint256 _rate) {
         if (lockedAmount > 0) {
-            return lockedAmount.mul(1e8).div(totalLiquidity());
+            return
+                lockedAmount.mul(UTILIZATION_RATE_SCALE).div(totalLiquidity());
         } else {
             return 0;
         }

@@ -3,7 +3,6 @@ pragma solidity ^0.6.0;
  * @author kohshiba
  * @title InsureDAO market template contract
  */
-
 import "./libraries/math/SafeMath.sol";
 import "./libraries/utils/Address.sol";
 import "./libraries/tokens/IERC20Metadata.sol";
@@ -76,6 +75,10 @@ contract IndexTemplate is IERC20 {
         uint256 amount;
     }
     mapping(address => Withdrawal) public withdrawalReq;
+
+    ///@notice magic numbers
+    uint256 public constant LEVERAGE_DIVISOR = 1e3;
+    uint256 public constant UTILIZATION_RATE_LENGTH = 1e8;
 
     /**
      * @notice Throws if called by any account other than the owner.
@@ -220,7 +223,9 @@ contract IndexTemplate is IERC20 {
 
         //Check current leverage rate and get updated target total credit allocation
         uint256 _liquidityAfter = totalLiquidity().sub(_retVal);
-        uint256 _targetCredit = targetLev.mul(_liquidityAfter).div(1e3); //Allocatable credit
+        uint256 _targetCredit = targetLev.mul(_liquidityAfter).div(
+            LEVERAGE_DIVISOR
+        ); //Allocatable credit
         address[] memory _poolList = new address[](poolList.length); // log which pool has exceeded
         uint256 _allocatable = _targetCredit;
         uint256 _allocatablePoints = totalAllocPoint;
@@ -308,10 +313,10 @@ contract IndexTemplate is IERC20 {
             } else if (_lowest == 0) {
                 _retVal = totalLiquidity();
             } else {
-                _retVal = (1e8 - _lowest)
+                _retVal = (UTILIZATION_RATE_LENGTH - _lowest)
                     .mul(totalLiquidity())
-                    .mul(1e3)
-                    .div(1e8)
+                    .mul(LEVERAGE_DIVISOR)
+                    .div(UTILIZATION_RATE_LENGTH)
                     .div(leverage())
                     .add(_accruedPremiums());
             }
@@ -329,7 +334,10 @@ contract IndexTemplate is IERC20 {
      */
     function adjustAlloc() public {
         //Check current leverage rate and get target total credit allocation
-        uint256 _targetCredit = targetLev.mul(totalLiquidity()).div(1e3); //Allocatable credit
+        uint256 _targetCredit = targetLev.mul(totalLiquidity()).div(
+            LEVERAGE_DIVISOR
+        ); //Allocatable credit
+
         address[] memory _poolList = new address[](poolList.length); // log which pool has exceeded
         uint256 _allocatable = _targetCredit;
         uint256 _allocatablePoints = totalAllocPoint;
@@ -616,7 +624,10 @@ contract IndexTemplate is IERC20 {
     function leverage() public view returns (uint256 _rate) {
         //check current leverage rate
         if (totalLiquidity() > 0) {
-            return totalAllocatedCredit.mul(1e3).div(totalLiquidity());
+            return
+                totalAllocatedCredit.mul(LEVERAGE_DIVISOR).div(
+                    totalLiquidity()
+                );
         } else {
             return 0;
         }
