@@ -320,6 +320,10 @@ contract CDS is IERC20 {
         public
         returns (bool)
     {
+        require(
+            _allowances[msg.sender][spender] >= subtractedValue,
+            "ERC20: decreased allowance below zero"
+        );
         _approve(
             msg.sender,
             spender,

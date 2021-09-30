@@ -223,8 +223,8 @@ contract IndexTemplate is IERC20 {
 
         //Check current leverage rate and get updated target total credit allocation
         uint256 _liquidityAfter = totalLiquidity().sub(_retVal);
-        _adjustAlloc(_liquidityAfter);
 
+        _adjustAlloc(_liquidityAfter);
         //Withdraw liquidity
         vault.withdrawValue(_retVal, msg.sender);
 
@@ -495,6 +495,10 @@ contract IndexTemplate is IERC20 {
         public
         returns (bool)
     {
+        require(
+            _allowances[msg.sender][spender] >= subtractedValue,
+            "ERC20: decreased allowance below zero"
+        );
         _approve(
             msg.sender,
             spender,
