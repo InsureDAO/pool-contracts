@@ -16,6 +16,7 @@ contract FeeModel {
     address public future_owner;
     uint256 public transfer_ownership_deadline;
     uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
+    uint256 public constant MAX_RATE = 30000;
 
     modifier onlyOwner() {
         require(isOwner(), "Restricted: caller is not allowed to operate");
@@ -31,6 +32,7 @@ contract FeeModel {
     }
 
     function setFee(uint256 _target) external onlyOwner {
+        require(_target <= MAX_RATE, "ERROR: MAX_RATE_EXCEEDED");
         _feeRate = _target;
     }
 
