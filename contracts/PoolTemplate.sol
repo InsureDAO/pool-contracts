@@ -86,7 +86,7 @@ contract PoolTemplate is IERC20 {
     IVault public vault;
 
     /// @notice Market variables
-    uint256 public totalAttributions; //how much attribution point this pool's original liquidity has
+    uint256 public ownAttributions; //how much attribution point this pool's original liquidity has
     uint256 public lockedAmount; //Liquidity locked when utilized
     uint256 public totalCredit; //Liquidity from index
     uint256 public attributionPerCredit; //Times CREDIT_DECIMALS. To avoid overdlow
@@ -230,7 +230,7 @@ contract PoolTemplate is IERC20 {
             msg.sender,
             address(this)
         );
-        totalAttributions = totalAttributions.add(_newAttribution);
+        ownAttributions = ownAttributions.add(_newAttribution);
 
         emit Deposit(msg.sender, _amount, _mintAmount);
 
@@ -257,8 +257,9 @@ contract PoolTemplate is IERC20 {
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
         uint256 _supply = totalSupply();
-        uint256 _liquidity = vault.attributionValue(totalAttributions);
-        _retVal = _divMinus(_amount.mul(_liquidity), _supply);
+
+        uint256 _liquidity = vault.attributionValue(ownAttributions);
+        _retVal = _divFloor(_amount.mul(_liquidity), _supply);
 
         require(
             marketStatus == MarketStatus.Trading,
@@ -273,6 +274,7 @@ contract PoolTemplate is IERC20 {
                     .timestamp
                     .add(parameters.getLockup(msg.sender))
                     .add(parameters.getWithdrawable(msg.sender)) >
+
                 block.timestamp &&
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,
@@ -292,7 +294,7 @@ contract PoolTemplate is IERC20 {
 
         //Withdraw liquidity
         uint256 _deductAttribution = vault.withdrawValue(_retVal, msg.sender);
-        totalAttributions = totalAttributions.sub(_deductAttribution);
+        ownAttributions = ownAttributions.sub(_deductAttribution);
 
         emit Withdraw(msg.sender, _amount, _retVal);
     }
@@ -465,7 +467,7 @@ contract PoolTemplate is IERC20 {
         uint256 _attributionForIndex = _newAttribution.mul(totalCredit).div(
             totalLiquidity()
         );
-        totalAttributions = totalAttributions.add(_newAttribution).sub(
+        ownAttributions = ownAttributions.add(_newAttribution).sub(
             _attributionForIndex
         );
         if (totalCredit > 0) {
@@ -548,7 +550,8 @@ contract PoolTemplate is IERC20 {
             .mul(_deductionFromIndex)
             .div(1e8)
             .div(_payoutAmount);
-        totalAttributions = totalAttributions.sub(
+        ownAttributions = ownAttributions.sub(
+
             _paidAttribution.sub(_indexAttribution)
         );
         emit Redeemed(
@@ -830,7 +833,7 @@ contract PoolTemplate is IERC20 {
     function rate() external view returns (uint256) {
         if (_totalSupply > 0) {
             return
-                vault.attributionValue(totalAttributions).mul(1e18).div(
+                vault.attributionValue(ownAttributions).mul(1e18).div(
                     _totalSupply
                 );
         } else {
@@ -847,7 +850,7 @@ contract PoolTemplate is IERC20 {
             return 0;
         } else {
             return
-                _balance.mul(vault.attributionValue(totalAttributions)).div(
+                _balance.mul(vault.attributionValue(ownAttributions)).div(
                     totalSupply()
                 );
         }
@@ -874,11 +877,11 @@ contract PoolTemplate is IERC20 {
      */
     function worth(uint256 _value) public view returns (uint256 _amount) {
         uint256 _supply = totalSupply();
-        if (_supply > 0 && totalAttributions > 0) {
+        if (_supply > 0 && ownAttributions > 0) {
             _amount = _value.mul(_supply).div(
-                vault.attributionValue(totalAttributions)
+                vault.attributionValue(ownAttributions)
             );
-        } else if (_supply > 0 && totalAttributions == 0) {
+        } else if (_supply > 0 && ownAttributions == 0) {
             _amount = _value.div(_supply);
         } else {
             _amount = _value;
@@ -933,7 +936,7 @@ contract PoolTemplate is IERC20 {
      * @notice total Liquidity of the pool (how much can the pool sell cover)
      */
     function totalLiquidity() public view returns (uint256 _balance) {
-        return vault.attributionValue(totalAttributions).add(totalCredit);
+        return vault.attributionValue(ownAttributions).add(totalCredit);
     }
 
     /**
