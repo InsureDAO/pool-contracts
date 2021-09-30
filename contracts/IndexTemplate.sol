@@ -314,8 +314,8 @@ contract IndexTemplate is IERC20 {
             } else {
                 _retVal = (1e8 - _lowest)
                     .mul(totalLiquidity())
-                    .div(1e8)
                     .mul(1e3)
+                    .div(1e8)
                     .div(leverage())
                     .add(_accruedPremiums());
             }
