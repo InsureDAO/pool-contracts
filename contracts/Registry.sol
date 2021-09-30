@@ -16,7 +16,7 @@ contract Registry {
     );
     event NewMarketRegistered(address market);
     event FactorySet(address factory);
-    event CDSSet(address target, address cds);
+    event CDSSet(address indexed target, address cds);
 
     address public factory;
     address public owner;
