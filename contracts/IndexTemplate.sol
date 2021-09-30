@@ -6,7 +6,7 @@ pragma solidity ^0.6.0;
 
 import "./libraries/math/SafeMath.sol";
 import "./libraries/utils/Address.sol";
-import "./libraries/tokens/IERC20.sol";
+import "./libraries/tokens/IERC20Metadata.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IParameters.sol";
@@ -95,25 +95,18 @@ contract IndexTemplate is IERC20 {
     /**
      * @notice Initialize market
      * This function registers market conditions.
-     * references[0] = paramteres
-     * references[1] = vault
+     * references[0] = underlying token address
+     * references[1] = registry
+     * references[2] = parameter
      */
     function initialize(
-        address _owner,
         string calldata _metaData,
-        string calldata _name,
-        string calldata _symbol,
-        uint8 _decimals,
         uint256[] calldata _conditions,
         address[] calldata _references
     ) external returns (bool) {
         require(
             initialized == false &&
-                bytes(_metaData).length > 10 &&
-                bytes(_name).length > 0 &&
-                bytes(_symbol).length > 0 &&
-                _decimals > 0 &&
-                _owner != address(0) &&
+            bytes(_metaData).length > 0 &&
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
                 _references[2] != address(0),
@@ -122,13 +115,13 @@ contract IndexTemplate is IERC20 {
 
         initialized = true;
 
-        name = _name;
-        symbol = _symbol;
-        decimals = _decimals;
+        name = "InsureDAO-Index";
+        symbol = "iIndex";
+        decimals = IERC20Metadata(_references[0]).decimals();
 
-        parameters = IParameters(_references[0]);
-        vault = IVault(_references[1]);
-        registry = IRegistry(_references[2]);
+        parameters = IParameters(_references[2]);
+        vault = IVault(parameters.getVault(_references[0]));
+        registry = IRegistry(_references[1]);
 
         metadata = _metaData;
 
@@ -314,8 +307,13 @@ contract IndexTemplate is IERC20 {
             } else {
                 _retVal = (1e8 - _lowest)
                     .mul(totalLiquidity())
+<<<<<<< HEAD
                     .mul(1e3)
                     .div(1e8)
+=======
+                    .div(1e8)
+                    .mul(1e3)
+>>>>>>> QSP-18
                     .div(leverage())
                     .add(_accruedPremiums());
             }

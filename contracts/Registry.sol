@@ -9,6 +9,11 @@ contract Registry {
 
     event CommitNewAdmin(uint256 deadline, address future_admin);
     event NewAdmin(address admin);
+    event ExistenceSet(
+        address indexed target,
+        uint256 indexed typeId,
+        bytes32 indexed hashId
+    );
     event NewMarketRegistered(address market);
     event FactorySet(address factory);
     event CDSSet(address target, address cds);
@@ -21,6 +26,7 @@ contract Registry {
 
     mapping(address => address) cds; //index => cds
     mapping(address => bool) markets;
+    mapping(bytes32 => bool) existence;
     address[] allMarkets;
 
     /**
@@ -54,13 +60,15 @@ contract Registry {
         emit NewMarketRegistered(_market);
     }
 
-<<<<<<< HEAD
+    function setExistence(address _target, uint256 _typeId) external {
+        require(msg.sender == factory || msg.sender == owner);
+        bytes32 _hashId = keccak256(abi.encodePacked(_target, _typeId));
+        existence[_hashId] = true;
+        emit ExistenceSet(_target, _typeId, _hashId);
+    }
+
     function setCDS(address _address, address _cds) external onlyOwner {
-=======
-    function setCDS(address _address, address _cds) external {
-        require(msg.sender == owner, "dev: only owner");
         require(_cds != address(0), "dev: zero address");
->>>>>>> QSP-15
         cds[_address] = _cds;
         emit CDSSet(_address, _cds);
     }
@@ -71,6 +79,14 @@ contract Registry {
         } else {
             return cds[_address];
         }
+    }
+
+    function confirmExistence(address _target, uint256 _typeId)
+        external
+        view
+        returns (bool)
+    {
+        return existence[keccak256(abi.encodePacked(_target, _typeId))];
     }
 
     function isListed(address _market) external view returns (bool) {

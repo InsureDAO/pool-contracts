@@ -40,23 +40,19 @@ describe("Factory", function () {
 
     await registry.setFactory(factory.address);
 
-    await factory.approveTemplate(poolTemplate.address, true, false);
-    await factory.approveReference(
-      poolTemplate.address,
-      0,
-      parameters.address,
-      true
-    );
-    await factory.approveReference(
-      poolTemplate.address,
-      1,
-      vault.address,
-      true
-    );
+    await factory.approveTemplate(poolTemplate.address, true, false, true);
+    await factory.approveReference(poolTemplate.address, 0, dai.address, true);
+    await factory.approveReference(poolTemplate.address, 1, dai.address, true);
     await factory.approveReference(
       poolTemplate.address,
       2,
       registry.address,
+      true
+    );
+    await factory.approveReference(
+      poolTemplate.address,
+      3,
+      parameters.address,
       true
     );
 
@@ -70,20 +66,40 @@ describe("Factory", function () {
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
     await parameters.setFeeModel(ZERO_ADDRESS, fee.address);
     await parameters.setWithdrawable(ZERO_ADDRESS, "2592000");
+    await parameters.setVault(dai.address, vault.address);
 
     await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
-      "test-name",
-      "test-symbol",
-      18,
-      [0, 0],
-      [parameters.address, vault.address, registry.address]
+      [1, 0],
+      [dai.address, dai.address, registry.address, parameters.address]
     );
     const marketAddress = await factory.markets(0);
     market = await PoolTemplate.attach(marketAddress);
   });
 
+  describe("duplicate market", function () {
+    it("Should revert when it's not allowed", async () => {
+      await factory.approveTemplate(poolTemplate.address, true, false, false);
+      await expect(
+        factory.createMarket(
+          poolTemplate.address,
+          "Here is metadata.",
+          [1, 0],
+          [dai.address, dai.address, registry.address, parameters.address]
+        )
+      ).to.revertedWith("DUPLICATE_MARKET");
+    });
+    it("Should not revert when it's not allowed", async () => {
+      await factory.approveTemplate(poolTemplate.address, true, false, true);
+      factory.createMarket(
+        poolTemplate.address,
+        "Here is metadata.",
+        [1, 0],
+        [dai.address, dai.address, registry.address, parameters.address]
+      );
+    });
+  });
   describe("Condition", function () {
     it("Should contracts be deployed", async () => {
       expect(registry.address).to.exist;

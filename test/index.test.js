@@ -43,58 +43,49 @@ describe("Index", function () {
 
     await registry.setFactory(factory.address);
 
-    await factory.approveTemplate(poolTemplate.address, true, false);
-    await factory.approveTemplate(indexTemplate.address, true, false);
-    await factory.approveTemplate(cdsTemplate.address, true, false);
+    await factory.approveTemplate(poolTemplate.address, true, false, true);
+    await factory.approveTemplate(indexTemplate.address, true, false, true);
+    await factory.approveTemplate(cdsTemplate.address, true, false, true);
 
-    await factory.approveReference(
-      poolTemplate.address,
-      0,
-      parameters.address,
-      true
-    );
-    await factory.approveReference(
-      poolTemplate.address,
-      1,
-      vault.address,
-      true
-    );
+    await factory.approveReference(poolTemplate.address, 0, dai.address, true);
+    await factory.approveReference(poolTemplate.address, 1, dai.address, true);
     await factory.approveReference(
       poolTemplate.address,
       2,
       registry.address,
       true
     );
-
     await factory.approveReference(
-      indexTemplate.address,
-      0,
+      poolTemplate.address,
+      3,
       parameters.address,
       true
     );
-    await factory.approveReference(
-      indexTemplate.address,
-      1,
-      vault.address,
-      true
-    );
+
     await factory.approveReference(
       indexTemplate.address,
       2,
+      parameters.address,
+      true
+    );
+    await factory.approveReference(indexTemplate.address, 0, dai.address, true);
+    await factory.approveReference(
+      indexTemplate.address,
+      1,
       registry.address,
       true
     );
 
     await factory.approveReference(
       cdsTemplate.address,
-      0,
+      2,
       parameters.address,
       true
     );
-    await factory.approveReference(cdsTemplate.address, 1, vault.address, true);
+    await factory.approveReference(cdsTemplate.address, 0, dai.address, true);
     await factory.approveReference(
       cdsTemplate.address,
-      2,
+      1,
       registry.address,
       true
     );
@@ -113,25 +104,19 @@ describe("Index", function () {
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
     await parameters.setFeeModel(ZERO_ADDRESS, fee.address);
     await parameters.setWithdrawable(ZERO_ADDRESS, "86400000");
+    await parameters.setVault(dai.address, vault.address);
 
     await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
-      "test-name",
-      "test-symbol",
-      18,
-      [0, 0],
-      [parameters.address, vault.address, registry.address]
+      [1, 0],
+      [dai.address, dai.address, registry.address, parameters.address]
     );
-
     await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
-      "test-name",
-      "test-symbol",
-      18,
-      [0, 0],
-      [parameters.address, vault.address, registry.address]
+      [1, 0],
+      [dai.address, dai.address, registry.address, parameters.address]
     );
     const marketAddress1 = await factory.markets(0);
     const marketAddress2 = await factory.markets(1);
@@ -141,20 +126,14 @@ describe("Index", function () {
     await factory.createMarket(
       cdsTemplate.address,
       "Here is metadata.",
-      "test-name",
-      "test-symbol",
-      18,
       [],
-      [parameters.address, vault.address, registry.address, minter.address]
+      [dai.address, registry.address, parameters.address, minter.address]
     );
     await factory.createMarket(
       indexTemplate.address,
       "Here is metadata.",
-      "test-name",
-      "test-symbol",
-      18,
       [],
-      [parameters.address, vault.address, registry.address]
+      [dai.address, registry.address, parameters.address]
     );
     const marketAddress3 = await factory.markets(2);
     const marketAddress4 = await factory.markets(3);
@@ -604,11 +583,8 @@ describe("Index", function () {
       await factory.createMarket(
         poolTemplate.address,
         "Here is metadata.",
-        "test-name",
-        "test-symbol",
-        18,
-        [0, 0],
-        [parameters.address, vault.address, registry.address]
+        [1, 0],
+        [dai.address, dai.address, registry.address, parameters.address]
       );
       const marketAddress5 = await factory.markets(4);
       market3 = await PoolTemplate.attach(marketAddress5);

@@ -20,16 +20,14 @@ contract Factory {
         address indexed market,
         address indexed template,
         string _metaData,
-        string _name,
-        string _symbol,
-        uint8 _decimals,
         uint256[] conditions,
         address[] references
     );
     event TemplateApproval(
         IUniversalMarket indexed template,
-        bool indexed approval,
-        bool indexed isOpen
+        bool approval,
+        bool isOpen,
+        bool duplicate
     );
     event ReferenceApproval(
         IUniversalMarket indexed template,
@@ -47,8 +45,12 @@ contract Factory {
 
     address[] public markets;
 
-    mapping(address => bool) public templates;
-    mapping(address => bool) public approval;
+    struct Template {
+        bool isOpen;
+        bool approval;
+        bool allowDuplicate;
+    }
+    mapping(address => Template) public templates;
     mapping(address => mapping(uint256 => mapping(address => bool)))
         public reflist;
     mapping(address => mapping(uint256 => uint256)) public conditionlist;
@@ -82,12 +84,14 @@ contract Factory {
     function approveTemplate(
         IUniversalMarket _template,
         bool _approval,
-        bool _isOpen
+        bool _isOpen,
+        bool _duplicate
     ) external onlyOwner {
         require(address(_template) != address(0));
-        templates[address(_template)] = _approval;
-        approval[address(_template)] = _isOpen;
-        emit TemplateApproval(_template, _approval, _isOpen);
+        templates[address(_template)].approval = _approval;
+        templates[address(_template)].isOpen = _approval;
+        templates[address(_template)].allowDuplicate = _duplicate;
+        emit TemplateApproval(_template, _approval, _isOpen, _duplicate);
     }
 
     /**
@@ -100,7 +104,8 @@ contract Factory {
         address _target,
         bool _approval
     ) external onlyOwner {
-        require(templates[address(_template)] == true);
+        require(msg.sender == owner, "dev: only owner");
+        require(templates[address(_template)].approval == true);
         reflist[address(_template)][_slot][_target] = _approval;
         emit ReferenceApproval(_template, _slot, _target, _approval);
     }
@@ -114,7 +119,7 @@ contract Factory {
         uint256 _slot,
         uint256 _target
     ) external onlyOwner {
-        require(templates[address(_template)] == true);
+        require(templates[address(_template)].approval == true);
         conditionlist[address(_template)][_slot] = _target;
         emit ConditionApproval(_template, _slot, _target);
     }
@@ -126,14 +131,14 @@ contract Factory {
     function createMarket(
         IUniversalMarket template,
         string memory _metaData,
-        string memory _name,
-        string memory _symbol,
-        uint8 _decimals,
         uint256[] memory _conditions,
         address[] memory _references
     ) public returns (address) {
-        require(templates[address(template)] == true, "UNAUTHORIZED_TEMPLATE");
-        if (approval[address(template)] == false) {
+        require(
+            templates[address(template)].approval == true,
+            "UNAUTHORIZED_TEMPLATE"
+        );
+        if (templates[address(template)].isOpen == false) {
             require(owner == msg.sender, "UNAUTHORIZED_SENDER");
         }
         if (_references.length > 0) {
@@ -148,38 +153,41 @@ contract Factory {
 
         if (_conditions.length > 0) {
             for (uint256 i = 0; i < _conditions.length; i++) {
-                _conditions[i] = conditionlist[address(template)][i];
+                if (conditionlist[address(template)][i] > 0) {
+                    _conditions[i] = conditionlist[address(template)][i];
+                }
             }
         }
-
-        address _owner = owner;
 
         IUniversalMarket market = IUniversalMarket(
             _createClone(address(template))
         );
 
-        market.initialize(
-            _owner,
-            _metaData,
-            _name,
-            _symbol,
-            _decimals,
-            _conditions,
-            _references
-        );
+        market.initialize(_metaData, _conditions, _references);
 
         emit MarketCreated(
             address(market),
             address(template),
             _metaData,
-            _name,
-            _symbol,
-            _decimals,
             _conditions,
             _references
         );
         markets.push(address(market));
         IRegistry(registry).supportMarket(address(market));
+
+        if (
+            IRegistry(registry).confirmExistence(
+                _references[0],
+                _conditions[0]
+            ) == false
+        ) {
+            IRegistry(registry).setExistence(_references[0], _conditions[0]);
+        } else {
+            if (templates[address(template)].allowDuplicate == false) {
+                revert("DUPLICATE_MARKET");
+            }
+        }
+
         return address(market);
     }
 
