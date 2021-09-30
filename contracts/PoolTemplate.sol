@@ -904,8 +904,10 @@ contract PoolTemplate is IERC20 {
      * @notice Pause the market and disable new deposit
      */
     function setPaused(bool state) external onlyOwner {
-        paused = state;
-        emit Paused(state);
+        if (state != paused) {
+            paused = state;
+            emit Paused(state);
+        }
     }
 
     /**

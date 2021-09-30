@@ -40,6 +40,7 @@ contract Registry {
 
     function setFactory(address _factory) external {
         require(msg.sender == owner);
+        require(_factory != address(0), "dev: zero address");
         factory = _factory;
         emit FactorySet(_factory);
     }
@@ -47,12 +48,19 @@ contract Registry {
     function supportMarket(address _market) external {
         require(!markets[_market]);
         require(msg.sender == factory || msg.sender == owner);
+        require(_market != address(0), "dev: zero address");
         allMarkets.push(_market);
         markets[_market] = true;
         emit NewMarketRegistered(_market);
     }
 
+<<<<<<< HEAD
     function setCDS(address _address, address _cds) external onlyOwner {
+=======
+    function setCDS(address _address, address _cds) external {
+        require(msg.sender == owner, "dev: only owner");
+        require(_cds != address(0), "dev: zero address");
+>>>>>>> QSP-15
         cds[_address] = _cds;
         emit CDSSet(_address, _cds);
     }
@@ -76,6 +84,7 @@ contract Registry {
     //----- ownership -----//
     function commit_transfer_ownership(address _owner) external onlyOwner {
         require(transfer_ownership_deadline == 0, "dev: active transfer");
+        require(_owner != address(0), "dev: address zero");
 
         uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
         transfer_ownership_deadline = _deadline;
