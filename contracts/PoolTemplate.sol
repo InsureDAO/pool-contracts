@@ -254,21 +254,28 @@ contract PoolTemplate is IERC20 {
         uint256 _supply = totalSupply();
         uint256 _liquidity = vault.attributionValue(totalAttributions);
         _retVal = _divMinus(_amount.mul(_liquidity), _supply);
+
         require(
-            marketStatus == MarketStatus.Trading &&
-                withdrawalReq[msg.sender].timestamp.add(
-                    parameters.getLockup(msg.sender)
-                ) <
+            marketStatus == MarketStatus.Trading,
+            "ERROR: WITHDRAWAL_PENDING"
+        );
+        require(
+            withdrawalReq[msg.sender].timestamp.add(
+                parameters.getLockup(msg.sender)
+            ) <
                 now &&
                 withdrawalReq[msg.sender]
                     .timestamp
                     .add(parameters.getLockup(msg.sender))
                     .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
-                _retVal <= availableBalance() &&
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,
             "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        );
+        require(
+            _retVal <= availableBalance(),
+            "ERROR: INSUFFICIENT_LIQUIDITY_TO_WITHDRAW"
         );
         //reduce requested amount
         withdrawalReq[msg.sender].amount = withdrawalReq[msg.sender].amount.sub(
@@ -326,7 +333,7 @@ contract PoolTemplate is IERC20 {
     {
         require(
             IRegistry(registry).isListed(msg.sender),
-            "ERROR: ALLOCATE_BAD_CONDITIONS"
+            "ERROR: ALLOCATE_CREDIT_BAD_CONDITIONS"
         );
         IndexInfo storage _index = indexes[msg.sender];
         if (indexes[msg.sender].exist == false) {
@@ -366,7 +373,7 @@ contract PoolTemplate is IERC20 {
                 _index.credit >= _credit &&
                 _credit <= availableBalance() &&
                 _credit > 0,
-            "ERROR: DEALLOCATE_BAD_CONDITIONS"
+            "ERROR: WITHDRAW_CREDIT_BAD_CONDITIONS"
         );
 
         //calculate acrrued premium
@@ -409,13 +416,18 @@ contract PoolTemplate is IERC20 {
         uint256 _deducted = _premium.sub(_fee);
 
         require(
-            marketStatus == MarketStatus.Trading &&
-                paused == false &&
-                _amount <= availableBalance() &&
-                _span <= 365 days &&
-                _premium <= _maxCost &&
-                parameters.getMin(msg.sender) <= _span,
+            _amount <= availableBalance(),
+            "ERROR: INSURE_EXCEEDED_AVAILABLE_BALANCE"
+        );
+        require(_premium <= _maxCost, "ERROR: INSURE_EXCEEDED_MAX_COST");
+        require(
+            _span <= 365 days && parameters.getMin(msg.sender) <= _span,
             "ERROR: INSURE_BAD_CONDITIONS"
+        );
+
+        require(
+            marketStatus == MarketStatus.Trading && paused == false,
+            "ERROR: INSURE_MARKET_PENDING"
         );
 
         //accrue fee
@@ -475,11 +487,14 @@ contract PoolTemplate is IERC20 {
         for (uint256 i = 0; i < _targets.length; i++) {
             if (_targets[i] == insurance.target) isTarget = true;
         }
-
+        require(insurance.status == true, "ERROR: INSURANCE_NOT_ACTIVE");
         require(
-            insurance.status == true &&
-                insurance.insured == msg.sender &&
-                marketStatus == MarketStatus.Payingout &&
+            marketStatus == MarketStatus.Payingout,
+            "ERROR: NO_APPLICABLE_INCIDENT"
+        );
+        require(insurance.insured == msg.sender, "ERROR: NOT_YOUR_INSURANCE");
+        require(
+            marketStatus == MarketStatus.Payingout &&
                 insurance.startTime <= _incidentTimestamp &&
                 insurance.endTime >= _incidentTimestamp &&
                 isTarget == true,

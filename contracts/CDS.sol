@@ -177,12 +177,10 @@ contract CDS is IERC20 {
         _retVal = vault.underlyingValue(address(this)).mul(_amount).div(
             totalSupply()
         );
-
         require(
-            paused == false &&
-                withdrawalReq[msg.sender].timestamp.add(
-                    parameters.getLockup(msg.sender)
-                ) <
+            withdrawalReq[msg.sender].timestamp.add(
+                parameters.getLockup(msg.sender)
+            ) <
                 now &&
                 withdrawalReq[msg.sender]
                     .timestamp
@@ -193,7 +191,6 @@ contract CDS is IERC20 {
                 _amount > 0,
             "ERROR: WITHDRAWAL_BAD_CONDITIONS"
         );
-
         //reduce requested amount
         withdrawalReq[msg.sender].amount = withdrawalReq[msg.sender].amount.sub(
             _amount

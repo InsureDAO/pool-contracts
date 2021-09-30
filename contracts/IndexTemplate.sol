@@ -106,7 +106,7 @@ contract IndexTemplate is IERC20 {
     ) external returns (bool) {
         require(
             initialized == false &&
-            bytes(_metaData).length > 0 &&
+                bytes(_metaData).length > 0 &&
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
                 _references[2] != address(0),
@@ -191,21 +191,24 @@ contract IndexTemplate is IERC20 {
         //Calculate underlying value
         _retVal = totalLiquidity().mul(_amount).div(totalSupply());
 
+        require(locked == false, "ERROR: WITHDRAWAL_PENDING");
         require(
-            locked == false &&
-                withdrawalReq[msg.sender].timestamp.add(
-                    parameters.getLockup(msg.sender)
-                ) <
+            withdrawalReq[msg.sender].timestamp.add(
+                parameters.getLockup(msg.sender)
+            ) <
                 now &&
                 withdrawalReq[msg.sender]
                     .timestamp
                     .add(parameters.getLockup(msg.sender))
                     .add(parameters.getWithdrawable(msg.sender)) >
                 now &&
-                _retVal <= withdrawable() &&
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,
             "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        );
+        require(
+            _retVal <= withdrawable(),
+            "ERROR: INSUFFICIENT_LIQUIDITY_TO_WITHDRAW"
         );
 
         //reduce requested amount
@@ -307,13 +310,8 @@ contract IndexTemplate is IERC20 {
             } else {
                 _retVal = (1e8 - _lowest)
                     .mul(totalLiquidity())
-<<<<<<< HEAD
                     .mul(1e3)
                     .div(1e8)
-=======
-                    .div(1e8)
-                    .mul(1e3)
->>>>>>> QSP-18
                     .div(leverage())
                     .add(_accruedPremiums());
             }

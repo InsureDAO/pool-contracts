@@ -332,7 +332,7 @@ describe("Index", function () {
       expect(await index.withdrawable()).to.equal("2429");
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(index.connect(alice).withdraw("10000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: INSUFFICIENT_LIQUIDITY_TO_WITHDRAW"
       );
     });
     it("accrues premium after deposit", async function () {
@@ -439,7 +439,7 @@ describe("Index", function () {
         "ERROR: DEPOSIT_DISABLED"
       );
       await expect(index.connect(alice).withdraw("10000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_PENDING"
       );
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
 
