@@ -1,4 +1,4 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.8.7;
 
 interface IIndexTemplate {
     function compensate(uint256) external;

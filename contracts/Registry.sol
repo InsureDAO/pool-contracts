@@ -1,7 +1,7 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.8.7;
 
-import "./libraries/utils/Address.sol";
-import "./libraries/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 contract Registry {
     using SafeMath for uint256;

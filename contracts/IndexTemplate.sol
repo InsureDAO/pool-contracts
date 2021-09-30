@@ -1,11 +1,12 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.8.7;
 /**
  * @author kohshiba
  * @title InsureDAO market template contract
  */
-import "./libraries/math/SafeMath.sol";
-import "./libraries/utils/Address.sol";
-import "./libraries/tokens/IERC20Metadata.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+
 import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IParameters.sol";
@@ -183,7 +184,7 @@ contract IndexTemplate is IERC20 {
             _balance >= _amount && _amount > 0,
             "ERROR: WITHDRAW_REQUEST_BAD_CONDITIONS"
         );
-        withdrawalReq[msg.sender].timestamp = now;
+        withdrawalReq[msg.sender].timestamp = block.timestamp;
         withdrawalReq[msg.sender].amount = _amount;
     }
 
@@ -196,15 +197,16 @@ contract IndexTemplate is IERC20 {
 
         require(locked == false, "ERROR: WITHDRAWAL_PENDING");
         require(
-            withdrawalReq[msg.sender].timestamp.add(
-                parameters.getLockup(msg.sender)
-            ) <
-                now &&
+            locked == false &&
+                withdrawalReq[msg.sender].timestamp.add(
+                    parameters.getLockup(msg.sender)
+                ) <
+                block.timestamp &&
                 withdrawalReq[msg.sender]
                     .timestamp
                     .add(parameters.getLockup(msg.sender))
                     .add(parameters.getWithdrawable(msg.sender)) >
-                now &&
+                block.timestamp &&
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,
             "ERROR: WITHDRAWAL_BAD_CONDITIONS"
@@ -386,7 +388,7 @@ contract IndexTemplate is IERC20 {
      * @notice Resume market
      */
     function resume() external {
-        require(pendingEnd <= now);
+        require(pendingEnd <= block.timestamp);
         locked = false;
     }
 
@@ -395,9 +397,9 @@ contract IndexTemplate is IERC20 {
      */
     function lock(uint256 _pending) external {
         require(pools[msg.sender].allocPoints > 0);
-        uint256 _tempEnd = now.add(_pending);
+        uint256 _tempEnd = block.timestamp.add(_pending);
         if (pendingEnd < _tempEnd) {
-            pendingEnd = now.add(_pending);
+            pendingEnd = block.timestamp.add(_pending);
         }
         locked = true;
     }

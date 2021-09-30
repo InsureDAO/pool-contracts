@@ -1,4 +1,4 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.8.7;
 
 abstract contract IParameters {
     function commit_transfer_ownership(address _owner) external virtual;

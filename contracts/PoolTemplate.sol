@@ -1,12 +1,14 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.8.7;
 
 /**
  * @author kohshiba
  * @title InsureDAO pool template contract
  */
-import "./libraries/math/SafeMath.sol";
-import "./libraries/utils/Address.sol";
-import "./libraries/tokens/IERC20Metadata.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+
 import "./interfaces/IParameters.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
@@ -45,12 +47,13 @@ contract PoolTemplate is IERC20 {
         uint256 payout
     );
     event CoverApplied(
-        uint256 _pending,
-        uint256 _payoutNumerator,
-        uint256 _payoutDenominator,
-        uint256 _incidentTimestamp,
-        bytes32[] _targets,
-        string _memo
+        uint256 pending,
+        uint256 payoutNumerator,
+        uint256 payoutDenominator,
+        uint256 incidentTimestamp,
+        bytes32 merkleRoot,
+        bytes32[] rawdata,
+        string memo
     );
     event CreditIncrease(address indexed depositor, uint256 credit);
     event CreditDecrease(address indexed withdrawer, uint256 credit);
@@ -127,7 +130,7 @@ contract PoolTemplate is IERC20 {
         uint256 payoutNumerator;
         uint256 payoutDenominator;
         uint256 incidentTimestamp;
-        bytes32[] targets;
+        bytes32 merkleRoot;
     }
     Incident public incident;
 
@@ -248,7 +251,7 @@ contract PoolTemplate is IERC20 {
             _balance >= _amount && _amount > 0,
             "ERROR: WITHDRAW_REQUEST_BAD_CONDITIONS"
         );
-        withdrawalReq[msg.sender].timestamp = now;
+        withdrawalReq[msg.sender].timestamp = block.timestamp;
         withdrawalReq[msg.sender].amount = _amount;
     }
 
@@ -268,12 +271,12 @@ contract PoolTemplate is IERC20 {
             withdrawalReq[msg.sender].timestamp.add(
                 parameters.getLockup(msg.sender)
             ) <
-                now &&
+                block.timestamp &&
                 withdrawalReq[msg.sender]
                     .timestamp
                     .add(parameters.getLockup(msg.sender))
                     .add(parameters.getWithdrawable(msg.sender)) >
-                now &&
+                block.timestamp &&
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,
             "ERROR: WITHDRAWAL_BAD_CONDITIONS"
@@ -314,7 +317,8 @@ contract PoolTemplate is IERC20 {
         require(
             insurance.status == true &&
                 marketStatus == MarketStatus.Trading &&
-                insurance.endTime.add(parameters.getGrace(msg.sender)) < now,
+                insurance.endTime.add(parameters.getGrace(msg.sender)) <
+                block.timestamp,
             "ERROR: UNLOCK_BAD_COINDITIONS"
         );
         insurance.status == false;
@@ -416,7 +420,7 @@ contract PoolTemplate is IERC20 {
         bytes32 _target
     ) external returns (uint256) {
         //Distribute premium and fee
-        uint256 _endTime = _span.add(now);
+        uint256 _endTime = _span.add(block.timestamp);
         uint256 _premium = getPremium(_amount, _span);
         uint256 _fee = parameters.getFee(_premium, msg.sender);
         uint256 _deducted = _premium.sub(_fee);
@@ -450,7 +454,7 @@ contract PoolTemplate is IERC20 {
         lockedAmount = lockedAmount.add(_amount);
         Insurance memory _insurance = Insurance(
             _id,
-            now,
+            block.timestamp,
             _endTime,
             _amount,
             _target,
@@ -473,7 +477,14 @@ contract PoolTemplate is IERC20 {
             );
         }
 
-        emit Insured(_id, _amount, _target, now, _endTime, msg.sender);
+        emit Insured(
+            _id,
+            _amount,
+            _target,
+            block.timestamp,
+            _endTime,
+            msg.sender
+        );
 
         return _id;
     }
@@ -481,19 +492,15 @@ contract PoolTemplate is IERC20 {
     /**
      * @notice Redeem an insurance policy
      */
-    function redeem(uint256 _id) external {
+    function redeem(uint256 _id, bytes32[] calldata _merkleProof) external {
         Insurance storage insurance = insurances[_id];
+        require(insurance.status == true, "ERROR: INSURANCE_NOT_ACTIVE");
 
         uint256 _payoutNumerator = incident.payoutNumerator;
         uint256 _payoutDenominator = incident.payoutDenominator;
         uint256 _incidentTimestamp = incident.incidentTimestamp;
-        bytes32[] memory _targets = incident.targets;
-        bool isTarget;
+        bytes32 _targets = incident.merkleRoot;
 
-        for (uint256 i = 0; i < _targets.length; i++) {
-            if (_targets[i] == insurance.target) isTarget = true;
-        }
-        require(insurance.status == true, "ERROR: INSURANCE_NOT_ACTIVE");
         require(
             marketStatus == MarketStatus.Payingout,
             "ERROR: NO_APPLICABLE_INCIDENT"
@@ -503,7 +510,11 @@ contract PoolTemplate is IERC20 {
             marketStatus == MarketStatus.Payingout &&
                 insurance.startTime <= _incidentTimestamp &&
                 insurance.endTime >= _incidentTimestamp &&
-                isTarget == true,
+                MerkleProof.verify(
+                    _merkleProof,
+                    _targets,
+                    keccak256(abi.encodePacked(insurance.target))
+                ),
             "ERROR: INSURANCE_NOT_APPLICABLE"
         );
         insurance.status = false;
@@ -560,7 +571,7 @@ contract PoolTemplate is IERC20 {
         require(
             _to != address(0) &&
                 insurance.insured == msg.sender &&
-                insurance.endTime >= now &&
+                insurance.endTime >= block.timestamp &&
                 insurance.status == true,
             "ERROR: INSURANCE_TRANSFER_BAD_CONDITIONS"
         );
@@ -598,7 +609,8 @@ contract PoolTemplate is IERC20 {
         uint256 _payoutNumerator,
         uint256 _payoutDenominator,
         uint256 _incidentTimestamp,
-        bytes32[] calldata _targets,
+        bytes32 _merkleRoot,
+        bytes32[] calldata _rawdata,
         string calldata _memo
     ) external onlyOwner {
         require(
@@ -608,9 +620,9 @@ contract PoolTemplate is IERC20 {
         incident.payoutNumerator = _payoutNumerator;
         incident.payoutDenominator = _payoutDenominator;
         incident.incidentTimestamp = _incidentTimestamp;
-        incident.targets = _targets;
+        incident.merkleRoot = _merkleRoot;
         marketStatus = MarketStatus.Payingout;
-        pendingEnd = now.add(_pending);
+        pendingEnd = block.timestamp.add(_pending);
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indexes[indexList[i]].credit > 0) {
                 IIndexTemplate(indexList[i]).lock(_pending);
@@ -621,7 +633,8 @@ contract PoolTemplate is IERC20 {
             _payoutNumerator,
             _payoutDenominator,
             _incidentTimestamp,
-            _targets,
+            _merkleRoot,
+            _rawdata,
             _memo
         );
         emit MarketStatusChanged(marketStatus);
@@ -632,7 +645,8 @@ contract PoolTemplate is IERC20 {
      */
     function resume() external {
         require(
-            marketStatus == MarketStatus.Payingout && pendingEnd < now,
+            marketStatus == MarketStatus.Payingout &&
+                pendingEnd < block.timestamp,
             "ERROR: UNABLE_TO_RESUME"
         );
         marketStatus = MarketStatus.Trading;
@@ -921,13 +935,6 @@ contract PoolTemplate is IERC20 {
      */
     function totalLiquidity() public view returns (uint256 _balance) {
         return vault.attributionValue(totalAttributions).add(totalCredit);
-    }
-
-    /**
-     * @notice Get payout target arrays for frontend / external contracts
-     */
-    function getPayoutTargets() external view returns (bytes32[] memory) {
-        return incident.targets;
     }
 
     /**

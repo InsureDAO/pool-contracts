@@ -1,4 +1,4 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.8.7;
 
 interface IRegistry {
     function supportMarket(address _market) external;

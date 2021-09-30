@@ -1,6 +1,6 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.8.7;
 
-import "../libraries/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract BondingPremium {
     using SafeMath for uint256;
