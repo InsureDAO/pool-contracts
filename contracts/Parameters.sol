@@ -153,11 +153,7 @@ contract Parameters {
     }
 
     function getVault(address _token) external view returns (address) {
-        if (_vaults[_token] == address(0)) {
-            return address(0);
-        } else {
-            return _vaults[_token];
-        }
+        return _vaults[_token];
     }
 
     function getPremium(
