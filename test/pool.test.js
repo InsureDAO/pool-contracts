@@ -111,8 +111,8 @@ describe("Pool", function () {
 
     await premium.setPremium("2000", "50000");
     await fee.setFee("10000");
-    await parameters.setPremium2(ZERO_ADDRESS, "2000");
-    await parameters.setFee2(ZERO_ADDRESS, "1000");
+    await parameters.setCDSPremium(ZERO_ADDRESS, "2000");
+    await parameters.setDepositFee(ZERO_ADDRESS, "1000");
     await parameters.setGrace(ZERO_ADDRESS, "259200");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
     await parameters.setMindate(ZERO_ADDRESS, "604800");

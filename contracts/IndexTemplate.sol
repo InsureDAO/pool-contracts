@@ -83,8 +83,8 @@ contract IndexTemplate is IERC20 {
      */
     modifier onlyOwner() {
         require(
-            msg.sender == parameters.get_owner(),
-            "Restricted: caller is not allowed to operate"
+            msg.sender == parameters.getOwner(),
+            "Ownable: caller is not the owner"
         );
         _;
     }
@@ -140,8 +140,8 @@ contract IndexTemplate is IERC20 {
         require(locked == false && paused == false, "ERROR: DEPOSIT_DISABLED");
         require(_amount > 0);
 
-        uint256 _cds = parameters.getPremium2(_amount, msg.sender);
-        uint256 _fee = parameters.getFee2(_amount, msg.sender);
+        uint256 _cds = parameters.getCDSPremium(_amount, msg.sender);
+        uint256 _fee = parameters.getDepositFee(_amount, msg.sender);
         uint256 _add = _amount.sub(_cds).sub(_fee);
         uint256 _supply = totalSupply();
         uint256 _totalLiquidity = totalLiquidity();
@@ -151,7 +151,7 @@ contract IndexTemplate is IERC20 {
             msg.sender,
             address(registry.getCDS(address(this)))
         );
-        vault.addValue(_fee, msg.sender, parameters.get_owner());
+        vault.addValue(_fee, msg.sender, parameters.getOwner());
 
         if (_supply > 0 && _totalLiquidity > 0) {
             _mintAmount = _add.mul(_supply).div(_totalLiquidity);

@@ -7,6 +7,7 @@ pragma solidity 0.8.7;
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import "@openzeppelin/contracts/utils/Address.sol";
 
 import "./interfaces/IParameters.sol";
@@ -145,8 +146,8 @@ contract PoolTemplate is IERC20 {
      */
     modifier onlyOwner() {
         require(
-            msg.sender == parameters.get_owner(),
-            "Restricted: caller is not allowed to operate"
+            msg.sender == parameters.getOwner(),
+            "Ownable: caller is not the owner"
         );
         _;
     }
@@ -437,7 +438,7 @@ contract PoolTemplate is IERC20 {
         );
 
         //accrue fee
-        vault.addValue(_fee, msg.sender, parameters.get_owner());
+        vault.addValue(_fee, msg.sender, parameters.getOwner());
         //accrue premium
         uint256 _newAttribution = vault.addValue(
             _deducted,

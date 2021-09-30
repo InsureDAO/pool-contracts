@@ -38,8 +38,8 @@ contract Parameters {
     mapping(address => address) private _vaults;
     mapping(address => address) private _fee;
     mapping(address => address) private _premium;
-    mapping(address => uint256) private _fee2;
-    mapping(address => uint256) private _premium2;
+    mapping(address => uint256) private _depositFee;
+    mapping(address => uint256) private _CDSPremium;
     mapping(address => uint256) private _grace;
     mapping(address => uint256) private _lockup;
     mapping(address => uint256) private _min;
@@ -51,7 +51,7 @@ contract Parameters {
         owner = _target;
     }
 
-    function get_owner() public view returns (address) {
+    function getOwner() public view returns (address) {
         return owner;
     }
 
@@ -112,13 +112,19 @@ contract Parameters {
         emit MinDateSet(_address, _target);
     }
 
-    function setPremium2(address _address, uint256 _target) external onlyOwner {
-        _premium2[_address] = _target;
+    function setCDSPremium(address _address, uint256 _target)
+        external
+        onlyOwner
+    {
+        _CDSPremium[_address] = _target;
         emit Premium2Set(_address, _target);
     }
 
-    function setFee2(address _address, uint256 _target) external onlyOwner {
-        _fee2[_address] = _target;
+    function setDepositFee(address _address, uint256 _target)
+        external
+        onlyOwner
+    {
+        _depositFee[_address] = _target;
         emit Fee2Set(_address, _target);
     }
 
@@ -200,27 +206,27 @@ contract Parameters {
         }
     }
 
-    function getFee2(uint256 _amount, address _target)
+    function getDepositFee(uint256 _amount, address _target)
         external
         view
         returns (uint256)
     {
-        if (_fee2[_target] == 0) {
-            return _amount.mul(_fee2[address(0)]).div(100000);
+        if (_depositFee[_target] == 0) {
+            return _amount.mul(_depositFee[address(0)]).div(100000);
         } else {
-            return _amount.mul(_fee2[_target]).div(100000);
+            return _amount.mul(_depositFee[_target]).div(100000);
         }
     }
 
-    function getPremium2(uint256 _amount, address _target)
+    function getCDSPremium(uint256 _amount, address _target)
         external
         view
         returns (uint256)
     {
-        if (_premium2[_target] == 0) {
-            return _amount.mul(_premium2[address(0)]).div(100000);
+        if (_CDSPremium[_target] == 0) {
+            return _amount.mul(_CDSPremium[address(0)]).div(100000);
         } else {
-            return _amount.mul(_premium2[_target]).div(100000);
+            return _amount.mul(_CDSPremium[_target]).div(100000);
         }
     }
 

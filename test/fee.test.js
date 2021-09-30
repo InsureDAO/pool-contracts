@@ -28,9 +28,15 @@ describe("test BondingPremium", () => {
     });
 
     it("test_apply_owner_only", async () => {
+<<<<<<< HEAD
       await expect(
         fee.connect(alice).apply_transfer_ownership()
       ).to.revertedWith("Restricted: caller is not allowed to operate");
+=======
+      await expect(fee.connect(alice).applyTransferOwnership()).to.revertedWith(
+        "dev: only owner"
+      );
+>>>>>>> QSP-BP-3
     });
 
     //test
@@ -41,17 +47,17 @@ describe("test BondingPremium", () => {
       expect(await fee.future_owner()).to.equal(alice.address);
     });
 
-    it("test_apply_transfer_ownership", async () => {
+    it("test_applyTransferOwnership", async () => {
       await fee.commit_transfer_ownership(alice.address);
       await ethers.provider.send("evm_increaseTime", [86400 * 4]);
-      await fee.apply_transfer_ownership();
+      await fee.applyTransferOwnership();
 
       expect(await fee.owner()).to.equal(alice.address);
       expect(await fee.future_owner()).to.equal(alice.address);
     });
 
     it("test_apply_without_commit", async () => {
-      await expect(fee.apply_transfer_ownership()).to.revertedWith(
+      await expect(fee.applyTransferOwnership()).to.revertedWith(
         "dev: no active transfer"
       );
     });

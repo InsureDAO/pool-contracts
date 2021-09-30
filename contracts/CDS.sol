@@ -67,8 +67,8 @@ contract CDS is IERC20 {
      */
     modifier onlyOwner() {
         require(
-            msg.sender == parameters.get_owner(),
-            "Restricted: caller is not allowed to operate"
+            msg.sender == parameters.getOwner(),
+            "Ownable: caller is not the owner"
         );
         _;
     }
@@ -127,13 +127,13 @@ contract CDS is IERC20 {
         require(paused == false, "ERROR: DEPOSIT_DISABLED");
         require(_amount > 0);
 
-        uint256 _fee = parameters.getFee2(_amount, msg.sender);
+        uint256 _fee = parameters.getDepositFee(_amount, msg.sender);
         uint256 _add = _amount.sub(_fee);
         uint256 _supply = totalSupply();
         uint256 _totalLiquidity = totalLiquidity();
         //deposit and pay fees
         vault.addValue(_add, msg.sender, address(this));
-        vault.addValue(_fee, msg.sender, parameters.get_owner());
+        vault.addValue(_fee, msg.sender, parameters.getOwner());
 
         //Calculate iToken value
         if (_supply > 0 && _totalLiquidity > 0) {

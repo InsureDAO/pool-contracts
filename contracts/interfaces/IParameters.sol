@@ -1,9 +1,9 @@
 pragma solidity 0.8.7;
 
 abstract contract IParameters {
-    function commit_transfer_ownership(address _owner) external virtual;
+    function commitTransferOwnership(address _owner) external virtual;
 
-    function apply_transfer_ownership() external virtual;
+    function applyTransferOwnership() external virtual;
 
     function setVault(address _token, address _vault) external virtual;
 
@@ -13,9 +13,9 @@ abstract contract IParameters {
 
     function setMindate(address _address, uint256 _target) external virtual;
 
-    function setPremium2(address _address, uint256 _target) external virtual;
+    function setCDSPremium(address _address, uint256 _target) external virtual;
 
-    function setFee2(address _address, uint256 _target) external virtual;
+    function setDepositFee(address _address, uint256 _target) external virtual;
 
     function setWithdrawable(address _address, uint256 _target)
         external
@@ -57,12 +57,13 @@ abstract contract IParameters {
 
     function getGrace(address _target) external view virtual returns (uint256);
 
-    function get_owner() public view virtual returns (address);
+    function getOwner() public view virtual returns (address);
 
     function isOwner() public view virtual returns (bool);
 
     function getMin(address _target) external view virtual returns (uint256);
 
+<<<<<<< HEAD
     function getMaxList(address _target)
         external
         view
@@ -70,12 +71,15 @@ abstract contract IParameters {
         returns (uint256);
 
     function getFee2(uint256 _amoun, address _targett)
+=======
+    function getDepositFee(uint256 _amoun, address _targett)
+>>>>>>> QSP-BP-3
         external
         view
         virtual
         returns (uint256);
 
-    function getPremium2(uint256 _amount, address _target)
+    function getCDSPremium(uint256 _amount, address _target)
         external
         view
         virtual

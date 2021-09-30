@@ -83,7 +83,7 @@ contract PremiumModel {
         _multiplier = _multiplierPerYear;
     }
 
-    function get_owner() public view returns (address) {
+    function getOwner() public view returns (address) {
         return owner;
     }
 

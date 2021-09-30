@@ -204,7 +204,7 @@ contract BondingPremium {
         }
     }
 
-    function get_owner() public view returns (address) {
+    function getOwner() public view returns (address) {
         return owner;
     }
 
