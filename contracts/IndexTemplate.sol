@@ -519,7 +519,10 @@ contract IndexTemplate is IERC20 {
             sender != address(0) && recipient != address(0),
             "ERC20: TRANSFER_BAD_CONDITIONS"
         );
-
+        require(
+            _balances[sender] >= amount,
+            "ERC20: transfer amount exceeds balance"
+        );
         _beforeTokenTransfer(sender, amount);
 
         _balances[sender] = _balances[sender].sub(amount);
