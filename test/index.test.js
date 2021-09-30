@@ -141,6 +141,7 @@ describe("Index", function () {
 
     await premium.setPremium("2000", "50000");
     await fee.setFee("10000");
+    await parameters.setMaxList(ZERO_ADDRESS, "10");
     await parameters.setGrace(ZERO_ADDRESS, "259200");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
     await parameters.setMindate(ZERO_ADDRESS, "604800");
@@ -185,8 +186,8 @@ describe("Index", function () {
 
     await registry.setCDS(ZERO_ADDRESS, cds.address);
 
-    await index.set(market1.address, "1000");
-    await index.set(market2.address, "1000");
+    await index.set("0", market1.address, "1000");
+    await index.set("1", market2.address, "1000");
     await index.setLeverage("2000");
   });
 
@@ -658,7 +659,7 @@ describe("Index", function () {
 
       //Case1: Add when no liquidity is locked
       //Expected results: Reallocaet liquidity market1: 5000, market2: 5000, market3: 10000
-      await index.set(market3.address, "2000");
+      await index.set("2", market3.address, "2000");
       expect(await index.totalSupply()).to.equal("10000");
       expect(await index.totalLiquidity()).to.equal("10000");
       expect(await market1.allocatedCredit(index.address)).to.equal("5000");
@@ -674,7 +675,7 @@ describe("Index", function () {
       expect(await index.leverage()).to.equal("2000");
       expect(await index.withdrawable()).to.equal("10000");
       expect(await vault.attributions(index.address)).to.equal("10000");
-      await index.set(market3.address, "0");
+      await index.set("2", market3.address, "0");
 
       //Case2: Add when liquidity is locked(market1 has locked 50% of index liquidity )
       expect(await index.totalLiquidity()).to.equal("10000");
@@ -695,7 +696,7 @@ describe("Index", function () {
       expect(await market1.availableBalance()).to.equal("1");
       expect(await index.withdrawable()).to.equal("66");
 
-      await index.set(market3.address, "2000");
+      await index.set("2", market3.address, "2000");
       expect(await index.totalSupply()).to.equal("10000");
       expect(await index.totalLiquidity()).to.equal("10066");
       expect(await market1.totalLiquidity()).to.equal("9999");
@@ -712,7 +713,7 @@ describe("Index", function () {
       expect(await market3.totalLiquidity()).to.closeTo("6755", "1");
     });
     it("allows pool removal", async function () {
-      await index.set(market3.address, "1000");
+      await index.set("2", market3.address, "1000");
       await dai.connect(alice).approve(vault.address, 10000);
       await dai.connect(bob).approve(vault.address, 10000);
       expect(await index.totalSupply()).to.equal("0");
@@ -737,7 +738,7 @@ describe("Index", function () {
       expect(await vault.attributions(index.address)).to.equal("10000");
 
       //after remomval
-      await index.set(market3.address, "0");
+      await index.set("2", market3.address, "0");
       expect(await index.totalSupply()).to.equal("10000");
       expect(await index.totalLiquidity()).to.equal("10000");
       expect(await market1.allocatedCredit(index.address)).to.equal("10000");
@@ -755,7 +756,7 @@ describe("Index", function () {
       expect(await vault.attributions(index.address)).to.equal("10000");
     });
     it("allows leverage rate increment", async function () {
-      await index.set(market3.address, "1000");
+      await index.set("2", market3.address, "1000");
       await dai.connect(alice).approve(vault.address, 10000);
       await dai.connect(bob).approve(vault.address, 10000);
       expect(await index.totalSupply()).to.equal("0");
@@ -799,7 +800,7 @@ describe("Index", function () {
       expect(await vault.attributions(index.address)).to.equal("10000");
     });
     it("allows leverage rate decrement", async function () {
-      await index.set(market3.address, "1000");
+      await index.set("2", market3.address, "1000");
       await dai.connect(alice).approve(vault.address, 10000);
       await dai.connect(bob).approve(vault.address, 10000);
       expect(await index.totalSupply()).to.equal("0");
