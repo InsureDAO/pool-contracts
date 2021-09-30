@@ -112,8 +112,6 @@ contract CDS is IERC20 {
         minter = IMinter(_references[3]);
 
         metadata = _metaData;
-
-        return true;
     }
 
     /**
@@ -182,7 +180,11 @@ contract CDS is IERC20 {
                     .timestamp
                     .add(parameters.getLockup(msg.sender))
                     .add(parameters.getWithdrawable(msg.sender)) >
+<<<<<<< HEAD
                 block.timestamp &&
+=======
+                now &&
+>>>>>>> QSP-BP-8
                 withdrawalReq[msg.sender].amount >= _amount &&
                 _amount > 0,
             "ERROR: WITHDRAWAL_BAD_CONDITIONS"

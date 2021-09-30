@@ -125,8 +125,6 @@ contract IndexTemplate is IERC20 {
         registry = IRegistry(_references[1]);
 
         metadata = _metaData;
-
-        return true;
     }
 
     /**
@@ -217,7 +215,6 @@ contract IndexTemplate is IERC20 {
 
         //Check current leverage rate and get updated target total credit allocation
         uint256 _liquidityAfter = totalLiquidity().sub(_retVal);
-
         _adjustAlloc(_liquidityAfter);
         //Withdraw liquidity
         vault.withdrawValue(_retVal, msg.sender);
