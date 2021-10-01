@@ -287,25 +287,28 @@ contract IndexTemplate is IERC20 {
         uint256 _allocatablePoints = totalAllocPoint;
         //Check each pool and if current credit allocation > target & it is impossble to adjust, then withdraw all availablle credit
         for (uint256 i = 0; i < poolList.length; i++) {
-            uint256 _target = _targetCredit.mul(allocPoints[poolList[i]]).div(
-                totalAllocPoint
-            );
-            uint256 _current = IPoolTemplate(poolList[i]).allocatedCredit(
-                address(this)
-            );
-            uint256 _available = IPoolTemplate(poolList[i]).availableBalance();
-            if (
-                _current > _target &&
-                _current.sub(_target) > _available &&
-                _available != 0
-            ) {
-                IPoolTemplate(poolList[i]).withdrawCredit(_available);
-                totalAllocatedCredit = totalAllocatedCredit.sub(_available);
-                _poolList[i] = address(0);
-                _allocatable -= _current.sub(_available);
-                _allocatablePoints -= allocPoints[poolList[i]];
-            } else {
-                _poolList[i] = poolList[i];
+            if (poolList[i] != address(0)) {
+                uint256 _target = _targetCredit
+                    .mul(allocPoints[poolList[i]])
+                    .div(totalAllocPoint);
+                uint256 _current = IPoolTemplate(poolList[i]).allocatedCredit(
+                    address(this)
+                );
+                uint256 _available = IPoolTemplate(poolList[i])
+                    .availableBalance();
+                if (
+                    (_current > _target &&
+                        _current.sub(_target) > _available) ||
+                    IPoolTemplate(poolList[i]).paused() == true
+                ) {
+                    IPoolTemplate(poolList[i]).withdrawCredit(_available);
+                    totalAllocatedCredit = totalAllocatedCredit.sub(_available);
+                    _poolList[i] = address(0);
+                    _allocatable -= _current.sub(_available);
+                    _allocatablePoints -= allocPoints[poolList[i]];
+                } else {
+                    _poolList[i] = poolList[i];
+                }
             }
         }
         //Check pools that was not falling under the previous criteria, then adjust to meet the target credit allocation.
@@ -647,6 +650,7 @@ contract IndexTemplate is IERC20 {
      */
     function setLeverage(uint256 _target) external onlyOwner {
         targetLev = _target;
+        adjustAlloc();
         emit LeverageSet(_target);
     }
 
@@ -707,9 +711,11 @@ contract IndexTemplate is IERC20 {
      */
     function _accruedPremiums() internal view returns (uint256 _totalValue) {
         for (uint256 i = 0; i < poolList.length; i++) {
-            _totalValue = _totalValue.add(
-                IPoolTemplate(poolList[i]).pendingPremium(address(this))
-            );
+            if (allocPoints[poolList[i]] > 0) {
+                _totalValue = _totalValue.add(
+                    IPoolTemplate(poolList[i]).pendingPremium(address(this))
+                );
+            }
         }
     }
 }

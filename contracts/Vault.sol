@@ -28,6 +28,7 @@ contract Vault {
     uint256 public debt;
 
     address public owner;
+    uint256 public balance;
     address public future_owner;
     uint256 public transfer_ownership_deadline;
     uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
@@ -75,13 +76,14 @@ contract Vault {
             IRegistry(registry).isListed(msg.sender),
             "ERROR_ADD-VALUE_BADCONDITOONS"
         );
-        uint256 _pool = valueAll();
-        token.safeTransferFrom(_from, address(this), _amount);
         if (totalAttributions == 0) {
             _attributions = _amount;
         } else {
+            uint256 _pool = valueAll();
             _attributions = _amount.mul(totalAttributions).div(_pool);
         }
+        token.safeTransferFrom(_from, address(this), _amount);
+        balance = balance.add(_amount);
         totalAttributions = totalAttributions.add(_attributions);
         attributions[_beneficiary] = attributions[_beneficiary].add(
             _attributions
@@ -108,7 +110,8 @@ contract Vault {
             uint256 _shortage = _amount.sub(available());
             _unutilize(_shortage);
         }
-        token.transfer(_to, _amount);
+        balance = balance.sub(_amount);
+        token.safeTransfer(_to, _amount);
     }
 
     /**
@@ -139,17 +142,7 @@ contract Vault {
         external
         returns (uint256 _retVal)
     {
-        require(
-            attributions[msg.sender] >= _attribution,
-            "ERROR_WITHDRAW-ATTRIBUTION_BADCONDITOONS"
-        );
-        _retVal = _attribution.mul(valueAll()).div(totalAttributions);
-        attributions[msg.sender] = attributions[msg.sender].sub(_attribution);
-        if (available() < _retVal) {
-            uint256 _shortage = _retVal.sub(available());
-            _unutilize(_shortage);
-        }
-        token.transfer(_to, _retVal);
+        _retVal = _withdrawAttribution(_attribution, _to);
     }
 
     /**
@@ -159,6 +152,16 @@ contract Vault {
         external
         returns (uint256 _retVal)
     {
+        _retVal = _withdrawAttribution(attributions[msg.sender], _to);
+    }
+
+    /**
+     * @notice an address that has balance in the vault can withdraw all value
+     */
+    function _withdrawAttribution(uint256 _attribution, address _to)
+        internal
+        returns (uint256 _retVal)
+    {
         require(
             attributions[msg.sender] > 0,
             "ERROR_WITHDRAW-ALL-ATTRIBUTION_BADCONDITOONS"
@@ -166,13 +169,13 @@ contract Vault {
         _retVal = attributions[msg.sender].mul(valueAll()).div(
             totalAttributions
         );
-
         attributions[msg.sender] = 0;
         if (available() < _retVal) {
             uint256 _shortage = _retVal.sub(available());
             _unutilize(_shortage);
         }
-        token.transfer(_to, _retVal);
+        balance = balance.sub(_retVal);
+        token.safeTransfer(_to, _retVal);
     }
 
     /**
@@ -196,6 +199,7 @@ contract Vault {
         _amount = available();
         if (_amount > 0) {
             token.safeTransfer(address(controller), _amount);
+            balance = balance.sub(_amount);
             controller.earn(address(token), _amount);
         }
     }
@@ -245,7 +249,7 @@ contract Vault {
      * @notice return underlying value of this contract
      */
     function valueAll() public view returns (uint256) {
-        return token.balanceOf(address(this)).add(controller.valueAll());
+        return balance.add(controller.valueAll());
     }
 
     /**
@@ -262,13 +266,14 @@ contract Vault {
      */
     function _unutilize(uint256 _amount) internal {
         controller.withdraw(address(this), _amount);
+        balance = balance.add(_amount);
     }
 
     /**
      * @notice return how much funds in this contract is available to be utilized
      */
     function available() public view returns (uint256) {
-        return token.balanceOf(address(this));
+        return balance;
     }
 
     /**
@@ -276,6 +281,24 @@ contract Vault {
      */
     function getPricePerFullShare() public view returns (uint256) {
         return valueAll().mul(1e18).div(totalAttributions);
+    }
+
+    /**
+     * @notice withdraw redundant token stored in this contract
+     */
+    function withdrawRedundant(address _token, address _to) external {
+        require(msg.sender == owner, "dev: only owner");
+        if (
+            _token == address(token) && balance < token.balanceOf(address(this))
+        ) {
+            uint256 _redundant = token.balanceOf(address(this)).sub(balance);
+            token.safeTransfer(_to, _redundant);
+        } else if (IERC20(_token).balanceOf(address(this)) > 0) {
+            IERC20(_token).safeTransfer(
+                _to,
+                IERC20(_token).balanceOf(address(this))
+            );
+        }
     }
 
     /**

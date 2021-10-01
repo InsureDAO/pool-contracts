@@ -14,6 +14,7 @@ describe("Vault", function () {
     const Contorller = await ethers.getContractFactory("Controller");
     //deploy
     dai = await DAI.deploy();
+    tokenA = await DAI.deploy();
     registry = await Registry.deploy();
     controller = await Contorller.deploy(dai.address, creator.address);
     vault = await Vault.deploy(
@@ -24,7 +25,7 @@ describe("Vault", function () {
 
     //set up
     await dai.mint(alice.address, (100000).toString());
-
+    await tokenA.mint(alice.address, (100000).toString());
     await controller.setVault(vault.address);
 
     await registry.supportMarket(alice.address);
@@ -99,6 +100,26 @@ describe("Vault", function () {
       await vault.connect(bob).transferAttribution(10000, chad.address);
       await vault.connect(chad).withdrawAllAttribution(chad.address);
       expect(await dai.balanceOf(chad.address)).to.equal(15000);
+    });
+
+    it("doesn't count direct transfer", async () => {
+      await dai.connect(alice).transfer(vault.address, 10000);
+      expect(await vault.balance()).to.equal(0);
+      expect(await dai.balanceOf(vault.address)).to.equal(10000);
+      await vault
+        .connect(creator)
+        .withdrawRedundant(dai.address, creator.address);
+      expect(await dai.balanceOf(creator.address)).to.equal(10000);
+    });
+
+    it("withdraw redundant token balance", async () => {
+      await tokenA.connect(alice).transfer(vault.address, 10000);
+      expect(await vault.balance()).to.equal(0);
+      expect(await tokenA.balanceOf(vault.address)).to.equal(10000);
+      await vault
+        .connect(creator)
+        .withdrawRedundant(tokenA.address, creator.address);
+      expect(await tokenA.balanceOf(creator.address)).to.equal(10000);
     });
   });
 });

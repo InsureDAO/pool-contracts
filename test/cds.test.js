@@ -152,6 +152,7 @@ describe("CDS", function () {
     await parameters.setFeeModel(ZERO_ADDRESS, fee.address);
     await parameters.setWithdrawable(ZERO_ADDRESS, "86400000");
     await parameters.setVault(dai.address, vault.address);
+    await parameters.setMaxList(ZERO_ADDRESS, "10");
 
     await factory.createMarket(
       poolTemplate.address,
