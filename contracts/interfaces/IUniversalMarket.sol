@@ -5,7 +5,7 @@ interface IUniversalMarket {
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external returns (bool);
+    ) external;
 
     function setPaused(bool state) external;
 

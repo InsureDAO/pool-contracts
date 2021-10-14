@@ -3,6 +3,7 @@ pragma solidity 0.8.7;
 /**
  * @author kohshiba
  * @title InsureDAO pool template contract
+ * SPDX-License-Identifier: GPL-3.0
  */
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -89,14 +90,25 @@ contract PoolTemplate is IERC20 {
     uint256 public ownAttributions; //how much attribution point this pool's original liquidity has
     uint256 public lockedAmount; //Liquidity locked when utilized
     uint256 public totalCredit; //Liquidity from index
-    uint256 public attributionPerCredit; //Times CREDIT_DECIMALS. To avoid overdlow
+    uint256 public rewardPerCredit; //Times CREDIT_DECIMALS. To avoid overdlow
     uint256 public pendingEnd; //pending time when paying out
 
     /// @notice Market variables for margin account
     struct IndexInfo {
-        uint256 credit;
-        uint256 rewardDebt;
-        bool exist;
+        uint256 credit; //How many credit (equal to liquidity) the index has allocated
+        uint256 rewardDebt; // Reward debt. *See explanation below.
+        bool exist; //true if the index has allocated credit
+        //
+        // We do some fancy math here. Basically, any point in time, the amount of premium
+        // entitled to an index but is pending to be distributed is:
+        //
+        //   pending reward = (index.credit * rewardPerCredit) - index.rewardDebt
+        //
+        // When the pool receives premium, it updates rewardPerCredit
+        //
+        // Whenever an index deposits, withdraws credit to a pool, Here's what happens:
+        //   1. The index receives the pending reward sent to the index vault.
+        //   2. The index's rewardDebt get updated.
     }
     mapping(address => IndexInfo) public indexes;
     address[] public indexList;
@@ -108,7 +120,7 @@ contract PoolTemplate is IERC20 {
     }
     MarketStatus public marketStatus;
 
-    ///@notice user status management
+    ///@notice user's withdrawal status management
     struct Withdrawal {
         uint256 timestamp;
         uint256 amount;
@@ -117,17 +129,18 @@ contract PoolTemplate is IERC20 {
 
     ///@notice insurance status management
     struct Insurance {
-        uint256 id;
-        uint256 startTime;
-        uint256 endTime;
-        uint256 amount;
-        bytes32 target;
-        address insured;
-        bool status;
+        uint256 id; //each insuance has their own id
+        uint256 startTime; //timestamp of starttime
+        uint256 endTime; //timestamp of endtime
+        uint256 amount; //insured amount
+        bytes32 target; //target id in bytes32
+        address insured; //the address holds the right to get insured
+        bool status; //true if insurance is not expired or redeemed
     }
     Insurance[] public insurances;
     mapping(address => uint256[]) public insuranceHoldings;
 
+    ///@notice incident status management
     struct Incident {
         uint256 payoutNumerator;
         uint256 payoutDenominator;
@@ -163,12 +176,17 @@ contract PoolTemplate is IERC20 {
      * references[1] = underlying token address
      * references[2] = registry
      * references[3] = parameter
+     * conditions[0] = target id
+     * conditions[1] = minimim deposit amount
+     * @param _metaData arbitrary string to store market information
+     * @param _conditions array of conditions
+     * @param _references array of references
      */
     function initialize(
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external returns (bool) {
+    ) external {
         require(
             initialized == false &&
                 bytes(_metaData).length > 0 &&
@@ -212,6 +230,8 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice A provider supplies token to the pool and receives iTokens
+     * @param _amount amount of token to deposit
+     * @return _mintAmount the amount of iToken minted from the transaction
      */
     function deposit(uint256 _amount) public returns (uint256 _mintAmount) {
         require(
@@ -238,6 +258,7 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Provider request withdrawal of collateral
+     * @param _amount amount of iToken to burn
      */
     function requestWithdraw(uint256 _amount) external {
         uint256 _balance = balanceOf(msg.sender);
@@ -252,6 +273,8 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Provider burns iToken and receives collatral from the pool
+     * @param _amount amount of iToken to burn
+     * @return _retVal the amount underlying token returned
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
         uint256 _supply = totalSupply();
@@ -298,6 +321,7 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Unlocks an array of insurances
+     * @param _ids array of ids to unlock
      */
     function unlockBatch(uint256[] calldata _ids) external {
         for (uint256 i = 0; i < _ids.length; i++) {
@@ -307,6 +331,7 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Unlock funds locked in the expired insurance
+     * @param _id id of the insurance policy to unclock liquidity
      */
     function unlock(uint256 _id) public {
         Insurance storage insurance = insurances[_id];
@@ -330,6 +355,8 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Allocate credit from indexes. Allocated credits are treated as equivalent to deposited real token.
+     * @param _credit credit (liquidity amount) to be added to this pool
+     * @return _pending pending preium for the caller index
      */
 
     function allocateCredit(uint256 _credit)
@@ -347,7 +374,7 @@ contract PoolTemplate is IERC20 {
         }
         if (_index.credit > 0) {
             _pending = _sub(
-                _index.credit.mul(attributionPerCredit).div(CREDIT_DECIMALS),
+                _index.credit.mul(rewardPerCredit).div(CREDIT_DECIMALS),
                 _index.rewardDebt
             );
             if (_pending > 0) {
@@ -361,13 +388,15 @@ contract PoolTemplate is IERC20 {
             );
             emit CreditIncrease(msg.sender, _credit);
         }
-        _index.rewardDebt = _index.credit.mul(attributionPerCredit).div(
+        _index.rewardDebt = _index.credit.mul(rewardPerCredit).div(
             CREDIT_DECIMALS
         );
     }
 
     /**
      * @notice An index withdraw credit and earn accrued premium
+     * @param _credit credit (liquidity amount) to be withdrawn from this pool
+     * @return _pending pending preium for the caller index
      */
     function withdrawCredit(uint256 _credit)
         external
@@ -383,7 +412,7 @@ contract PoolTemplate is IERC20 {
 
         //calculate acrrued premium
         _pending = _sub(
-            _index.credit.mul(attributionPerCredit).div(CREDIT_DECIMALS),
+            _index.credit.mul(rewardPerCredit).div(CREDIT_DECIMALS),
             _index.rewardDebt
         );
 
@@ -399,7 +428,7 @@ contract PoolTemplate is IERC20 {
         //withdraw acrrued premium
         if (_pending > 0) {
             vault.transferAttribution(_pending, msg.sender);
-            _index.rewardDebt = _index.credit.mul(attributionPerCredit).div(
+            _index.rewardDebt = _index.credit.mul(rewardPerCredit).div(
                 CREDIT_DECIMALS
             );
         }
@@ -411,6 +440,11 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Get insured for the specified amount for specified span
+     * @param _amount target amount to get covered
+     * @param _maxCost maxmum cost to pay for the premium. revert if the premium is hifger
+     * @param _span length to get covered(e.g. 7 days)
+     * @param _target target id
+     * @return id of the insurance policy
      */
     function insure(
         uint256 _amount,
@@ -471,7 +505,7 @@ contract PoolTemplate is IERC20 {
             _attributionForIndex
         );
         if (totalCredit > 0) {
-            attributionPerCredit = attributionPerCredit.add(
+            rewardPerCredit = rewardPerCredit.add(
                 _attributionForIndex.mul(CREDIT_DECIMALS).div(totalCredit)
             );
         }
@@ -491,6 +525,9 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Redeem an insurance policy
+     * @param _id the id of the insurance policy
+     * @param _merkleProof merkle proof (similar to "verify" function of MerkleProof.sol of OpenZeppelin
+     * Ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/MerkleProof.sol
      */
     function redeem(uint256 _id, bytes32[] calldata _merkleProof) external {
         Insurance storage insurance = insurances[_id];
@@ -564,6 +601,8 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Transfers an active insurance
+     * @param _id id of the insurance policy
+     * @param _to receipient of of the policy
      */
     function transferInsurance(uint256 _id, address _to) external {
         Insurance storage insurance = insurances[_id];
@@ -582,6 +621,8 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Get how much premium for the specified amound and span
+     * @param _amount amount to get insured
+     * @param _span span to get covered
      */
     function getPremium(uint256 _amount, uint256 _span)
         public
@@ -604,6 +645,15 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Decision to make a payout
+     * @param _pending length to allow policy holders to redeem their policy
+     * @param _payoutNumerator Numerator of the payout *See below
+     * @param _payoutDenominator Denominator of the payout *See below
+     * @param _incidentTimestamp Unixtimestamp of the incident
+     * @param _merkleRoot Merkle root of the payout id list
+     * @param _rawdata raw data before the data set is coverted to merkle tree
+     * @param _memo additional note for the payout report
+     * payout ratio is determined by numerator/denominator
+     * e.g. 50/100 = 50% payout
      */
     function applyCover(
         uint256 _pending,
@@ -828,6 +878,7 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Get the exchange rate of LP token against underlying asset(scaled by 1e18)
+     * @return The value against the underlying token balance.
      */
     function rate() external view returns (uint256) {
         if (_totalSupply > 0) {
@@ -842,6 +893,8 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Get the underlying balance of the `owner`
+     * @param _owner the target address to look up value
+     * @return The balance of underlying token for the specified address
      */
     function valueOfUnderlying(address _owner) public view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
@@ -857,6 +910,8 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Get the accrued value for an index
+     * @param _index the address of index
+     * @return The pending premium for the specified index
      */
     function pendingPremium(address _index) external view returns (uint256) {
         uint256 _credit = indexes[_index].credit;
@@ -865,7 +920,7 @@ contract PoolTemplate is IERC20 {
         } else {
             return
                 _sub(
-                    _credit.mul(attributionPerCredit).div(CREDIT_DECIMALS),
+                    _credit.mul(rewardPerCredit).div(CREDIT_DECIMALS),
                     indexes[_index].rewardDebt
                 );
         }
@@ -873,6 +928,8 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Get token number for the specified underlying value
+     * @param _value amount of iToken
+     * @return _amount The balance of underlying token for the specified amount
      */
     function worth(uint256 _value) public view returns (uint256 _amount) {
         uint256 _supply = totalSupply();
@@ -889,6 +946,8 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Get allocated credit
+     * @param _index address of an index
+     * @return The balance of credit allocated by the specified index
      */
     function allocatedCredit(address _index) public view returns (uint256) {
         return indexes[_index].credit;
@@ -896,6 +955,7 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Get the number of total insurances
+     * @return Number of insurance policies to date
      */
     function allInsuranceCount() public view returns (uint256) {
         return insurances.length;
@@ -903,6 +963,8 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Get the underlying balance of the `owner`
+     * @param _user account address
+     * @return Number of insurance policies to date for the specified user
      */
     function getInsuranceCount(address _user) public view returns (uint256) {
         return insuranceHoldings[_user].length;
@@ -910,6 +972,7 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Returns the amount of underlying token available for withdrawals
+     * @return _balance available liquidity of this pool
      */
     function availableBalance() public view returns (uint256 _balance) {
         if (totalLiquidity() > 0) {
@@ -921,6 +984,7 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Returns the utilization rate for this pool. Scaled by 1e8 (100% = 1e8)
+     * @return _rate utilization rate
      */
     function utilizationRate() public view returns (uint256 _rate) {
         if (lockedAmount > 0) {
@@ -933,6 +997,7 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice total Liquidity of the pool (how much can the pool sell cover)
+     * @return _balance total liquidity of this pool
      */
     function totalLiquidity() public view returns (uint256 _balance) {
         return vault.attributionValue(ownAttributions).add(totalCredit);
@@ -943,17 +1008,19 @@ contract PoolTemplate is IERC20 {
      */
 
     /**
-     * @notice Pause the market and disable new deposit
+     * @notice Used for changing settlementFeeRecipient
+     * @param _state true to set paused and vice versa
      */
-    function setPaused(bool state) external onlyOwner {
-        if (state != paused) {
-            paused = state;
-            emit Paused(state);
+    function setPaused(bool _state) external onlyOwner {
+        if (paused != _state) {
+            paused = _state;
+            emit Paused(_state);
         }
     }
 
     /**
      * @notice Change metadata string
+     * @param _metadata new metadata string
      */
     function changeMetadata(string calldata _metadata) external onlyOwner {
         metadata = _metadata;
@@ -966,6 +1033,8 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Internal function to offset withdraw request and latest balance
+     * @param _from the account who send
+     * @param _amount the amount of token to offset
      */
     function _beforeTokenTransfer(address _from, uint256 _amount) internal {
         //withdraw request operation

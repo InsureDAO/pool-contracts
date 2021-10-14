@@ -2,6 +2,7 @@
  * @title Factory
  * @author @kohshiba
  * @notice This contract is the functory contract that manages functions related to market creation activities.
+ * SPDX-License-Identifier: GPL-3.0
  */
 
 pragma solidity 0.8.7;
@@ -46,14 +47,31 @@ contract Factory {
     address[] public markets;
 
     struct Template {
-        bool isOpen;
-        bool approval;
-        bool allowDuplicate;
+        bool isOpen; //true if the market allows anyone to create a market
+        bool approval; //true if the market exists
+        bool allowDuplicate; //true if the market with same ID is allowed
     }
     mapping(address => Template) public templates;
+    //mapping of authorized market template address
+
     mapping(address => mapping(uint256 => mapping(address => bool)))
         public reflist;
+    //Authorized reference(address) list for market market template
+    //Each template has different set of references
+    //true if that address is authorized within the template
+    // Example reference list for pool template v1
+    // references[0] = target governance token address
+    // references[1] = underlying token address
+    // references[2] = registry
+    // references[3] = parameter
+
     mapping(address => mapping(uint256 => uint256)) public conditionlist;
+    //Authorized condition(uint256) list for market temaplate
+    //Each template has different set of conditions
+    //true if that address is authorized within the template
+    // Example condition list for pool template v1
+    // conditions[0] = target id
+    // conditions[1] = minimim deposit amount
 
     address public registry;
     address public owner;
@@ -80,6 +98,10 @@ contract Factory {
     /**
      * @notice A function to approve or disapprove templates.
      * Only owner of the contract can operate.
+     * @param _template template address, which must be registered
+     * @param _approval true if a market is allowed to create based on the template
+     * @param _isOpen true if anyone can create a market based on the template
+     * @param _duplicate true if a market with duplicate target id is allowed
      */
     function approveTemplate(
         IUniversalMarket _template,
@@ -97,6 +119,10 @@ contract Factory {
     /**
      * @notice A function to preset reference.
      * Only owner of the contract can operate.
+     * @param _template template address, which must be registered
+     * @param _slot the index within reference array
+     * @param _target the reference  address
+     * @param _approval true if the reference is approved
      */
     function approveReference(
         IUniversalMarket _template,
@@ -113,6 +139,9 @@ contract Factory {
     /**
      * @notice A function to preset reference.
      * Only owner of the contract can operate.
+     * @param _template template address, which must be registered
+     * @param _slot the index within condition array
+     * @param _target the condition uint
      */
     function setCondition(
         IUniversalMarket _template,
@@ -127,25 +156,30 @@ contract Factory {
     /**
      * @notice A function to create markets.
      * This function is market model agnostic.
+     * @param _template template address, which must be registered
+     * @param _metaData arbitrary string to store market information
+     * @param _conditions array of conditions
+     * @param _references array of references
+     * @return created market address
      */
     function createMarket(
-        IUniversalMarket template,
+        IUniversalMarket _template,
         string memory _metaData,
         uint256[] memory _conditions,
         address[] memory _references
     ) public returns (address) {
         require(
-            templates[address(template)].approval == true,
+            templates[address(_template)].approval == true,
             "UNAUTHORIZED_TEMPLATE"
         );
-        if (templates[address(template)].isOpen == false) {
+        if (templates[address(_template)].isOpen == false) {
             require(owner == msg.sender, "UNAUTHORIZED_SENDER");
         }
         if (_references.length > 0) {
             for (uint256 i = 0; i < _references.length; i++) {
                 require(
-                    reflist[address(template)][i][_references[i]] == true ||
-                        reflist[address(template)][i][address(0)] == true,
+                    reflist[address(_template)][i][_references[i]] == true ||
+                        reflist[address(_template)][i][address(0)] == true,
                     "UNAUTHORIZED_REFERENCE"
                 );
             }
@@ -153,21 +187,21 @@ contract Factory {
 
         if (_conditions.length > 0) {
             for (uint256 i = 0; i < _conditions.length; i++) {
-                if (conditionlist[address(template)][i] > 0) {
-                    _conditions[i] = conditionlist[address(template)][i];
+                if (conditionlist[address(_template)][i] > 0) {
+                    _conditions[i] = conditionlist[address(_template)][i];
                 }
             }
         }
 
         IUniversalMarket market = IUniversalMarket(
-            _createClone(address(template))
+            _createClone(address(_template))
         );
 
         market.initialize(_metaData, _conditions, _references);
 
         emit MarketCreated(
             address(market),
-            address(template),
+            address(_template),
             _metaData,
             _conditions,
             _references
@@ -183,7 +217,7 @@ contract Factory {
         ) {
             IRegistry(registry).setExistence(_references[0], _conditions[0]);
         } else {
-            if (templates[address(template)].allowDuplicate == false) {
+            if (templates[address(_template)].allowDuplicate == false) {
                 revert("DUPLICATE_MARKET");
             }
         }
@@ -219,7 +253,11 @@ contract Factory {
     }
 
     //----- ownership -----//
-
+    /**
+     * @notice commit new owner address.
+     * actutal change occurs after ADMIN_ACTIONS_DELAY passed.
+     * @param _owner new owner address
+     */
     function commitTransferOwnership(address _owner) external onlyOwner {
         require(transfer_ownership_deadline == 0, "dev: active transfer");
         require(_owner != address(0), "dev: address zero");
@@ -231,6 +269,9 @@ contract Factory {
         emit CommitNewAdmin(_deadline, _owner);
     }
 
+    /**
+     * @notice apply transfer of ownership.
+     */
     function applyTransferOwnership() external onlyOwner {
         require(
             block.timestamp >= transfer_ownership_deadline,

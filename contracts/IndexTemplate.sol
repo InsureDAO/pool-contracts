@@ -2,6 +2,7 @@ pragma solidity 0.8.7;
 /**
  * @author kohshiba
  * @title InsureDAO market template contract
+ * SPDX-License-Identifier: GPL-3.0
  */
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -66,11 +67,14 @@ contract IndexTemplate is IERC20 {
     IRegistry public registry;
 
     /// @notice Market variables for margin account
-    uint256 public totalAllocatedCredit;
-    mapping(address => uint256) public allocPoints;
-    uint256 public totalAllocPoint;
-    address[] public poolList;
+    uint256 public totalAllocatedCredit; //total allocated credit(liquidity)
+    mapping(address => uint256) public allocPoints; //allocation point for each pool
+    uint256 public totalAllocPoint; //total allocation point
+    address[] public poolList; //list of all pools
     uint256 public targetLev; //1x = 1e3
+    //The allocated credits are regarded as liquidity in each underlying pool
+    //Credit amount(liquidity) will be determined by the following math
+    //credit for a pool = total liquidity of this pool * leverage rate * allocation point for a pool / total allocation point
 
     ///@notice user status management
     struct Withdrawal {
@@ -104,12 +108,15 @@ contract IndexTemplate is IERC20 {
      * references[0] = underlying token address
      * references[1] = registry
      * references[2] = parameter
+     * @param _metaData arbitrary string to store market information
+     * @param _conditions array of conditions
+     * @param _references array of references
      */
     function initialize(
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external returns (bool) {
+    ) external {
         require(
             initialized == false &&
                 bytes(_metaData).length > 0 &&
@@ -138,6 +145,8 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice A provider supplies collateral to the pool and receives iTokens
+     * @param _amount amount of token to deposit
+     * @return _mintAmount the amount of iToken minted from the transaction
      */
     function deposit(uint256 _amount) public returns (uint256 _mintAmount) {
         require(locked == false && paused == false, "ERROR: DEPOSIT_DISABLED");
@@ -171,6 +180,7 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice Provider request withdrawal of collateral
+     * @param _amount amount of iToken to burn
      */
     function requestWithdraw(uint256 _amount) external {
         uint256 _balance = balanceOf(msg.sender);
@@ -185,6 +195,8 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice Provider burns iToken and receives collatral from the pool
+     * @param _amount amount of iToken to burn
+     * @return _retVal the amount underlying token returned
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
         //Calculate underlying value
@@ -230,6 +242,7 @@ contract IndexTemplate is IERC20 {
     /**
      * @notice Get how much can a user withdraw from this index
      * Withdrawable is limited to the amount which does not break the balance of credit allocation
+     * @return _retVal withdrawable amount
      */
     function withdrawable() public view returns (uint256 _retVal) {
         if (totalLiquidity() > 0) {
@@ -392,6 +405,7 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice lock market withdrawal
+     * @param _pending pending span length in unix timestamp
      */
     function lock(uint256 _pending) external {
         require(allocPoints[msg.sender] > 0);
@@ -576,6 +590,7 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice get the current leverage rate 1e3x
+     * @return _rate leverage rate
      */
     function leverage() public view returns (uint256 _rate) {
         //check current leverage rate
@@ -591,6 +606,7 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice total Liquidity of the pool (how much can the pool sell cover)
+     * @return _balance total liquidity of the pool
      */
     function totalLiquidity() public view returns (uint256 _balance) {
         return vault.underlyingValue(address(this)).add(_accruedPremiums());
@@ -598,6 +614,7 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice Get the exchange rate of LP token against underlying asset(scaled by 1e18)
+     * @return The value against the underlying token balance.
      */
     function rate() external view returns (uint256) {
         if (_totalSupply > 0) {
@@ -609,6 +626,8 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice Get the underlying balance of the `owner`
+     * @param _owner the target address to look up value
+     * @return The balance of underlying token for the specified address
      */
     function valueOfUnderlying(address _owner) public view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
@@ -619,6 +638,10 @@ contract IndexTemplate is IERC20 {
         }
     }
 
+    /**
+     * @notice Get all underlying pools
+     * @return pool array
+     */
     function getAllPools() external view returns (address[] memory) {
         return poolList;
     }
@@ -629,16 +652,18 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice Used for changing settlementFeeRecipient
+     * @param _state true to set paused and vice versa
      */
-    function setPaused(bool state) external onlyOwner {
-        if (state != paused) {
-            paused = state;
-            emit Paused(state);
+    function setPaused(bool _state) external onlyOwner {
+        if (paused != _state) {
+            paused = _state;
+            emit Paused(_state);
         }
     }
 
     /**
      * @notice Change metadata string
+     * @param _metadata new metadata string
      */
     function changeMetadata(string calldata _metadata) external onlyOwner {
         metadata = _metadata;
@@ -647,6 +672,7 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice Change target leverate rate for this index x 1e3
+     * @param _target new leverage rate
      */
     function setLeverage(uint256 _target) external onlyOwner {
         targetLev = _target;
@@ -656,6 +682,9 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice Change allocation point for each pool
+     * @param _index target id of the underlying pool
+     * @param _pool address of pool
+     * @param _allocPoint new allocation point
      */
     function set(
         uint256 _index,
@@ -696,7 +725,9 @@ contract IndexTemplate is IERC20 {
      */
 
     /**
-     * @notice Internal function to offset deposit time stamp when transfer iToken
+     * @notice Internal function to offset withdraw request and latest balance
+     * @param _from the account who send
+     * @param _amount the amount of token to offset
      */
     function _beforeTokenTransfer(address _from, uint256 _amount) internal {
         //withdraw request operation
@@ -708,6 +739,7 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice Get the total equivalent value of credit to token
+     * @return _totalValue accrued but yet claimed premium within underlying pools
      */
     function _accruedPremiums() internal view returns (uint256 _totalValue) {
         for (uint256 i = 0; i < poolList.length; i++) {

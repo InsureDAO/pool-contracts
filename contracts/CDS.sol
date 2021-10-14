@@ -2,6 +2,7 @@ pragma solidity 0.8.7;
 /**
  * @author kohshiba
  * @title InsureDAO cds contract template contract
+ * SPDX-License-Identifier: GPL-3.0
  */
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -85,12 +86,15 @@ contract CDS is IERC20 {
      * references[1] = registry
      * references[2] = parameter
      * references[3] = minter
+     * @param _metaData arbitrary string to store market information
+     * @param _conditions array of conditions
+     * @param _references array of references
      */
     function initialize(
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external returns (bool) {
+    ) external {
         require(
             initialized == false &&
                 bytes(_metaData).length > 0 &&
@@ -121,6 +125,7 @@ contract CDS is IERC20 {
 
     /**
      * @notice A provider supplies collatral to the pool and receives iTokens
+     * @param _amount amount of token to deposit
      */
     function deposit(uint256 _amount) public returns (uint256 _mintAmount) {
         require(paused == false, "ERROR: DEPOSIT_DISABLED");
@@ -151,6 +156,7 @@ contract CDS is IERC20 {
 
     /**
      * @notice Provider request withdrawal of collateral
+     * @param _amount amount of iToken to burn
      */
     function requestWithdraw(uint256 _amount) external {
         uint256 _balance = balanceOf(msg.sender);
@@ -165,6 +171,8 @@ contract CDS is IERC20 {
 
     /**
      * @notice Provider burns iToken and receives collatral from the pool
+     * @param _amount amount of iToken to burn
+     * @return _retVal the amount underlying token returned
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
         //Calculate underlying value
@@ -205,6 +213,7 @@ contract CDS is IERC20 {
 
     /**
      * @notice Compensate the shortage if an index is insolvent
+     * @param _amount amount of underlier token to compensate shortage within index
      */
     function compensate(uint256 _amount) external {
         require(registry.isListed(msg.sender));
@@ -395,13 +404,15 @@ contract CDS is IERC20 {
 
     /**
      * @notice total Liquidity of the pool (how much can the pool sell cover)
+     * @return _balance available liquidity of this pool
      */
     function totalLiquidity() public view returns (uint256 _balance) {
         return vault.underlyingValue(address(this));
     }
 
     /**
-     * @notice Get the exchange rate of LP token against underlying asset(scaled by 1e18)
+     * @notice Get the exchange rate of LP token against underlying asset(scaled by 1e18, if 1e18, the value of iToken vs underlier is 1:1)
+     * @return The value against the underlying token balance.
      */
     function rate() external view returns (uint256) {
         if (_totalSupply > 0) {
@@ -413,6 +424,8 @@ contract CDS is IERC20 {
 
     /**
      * @notice Get the underlying balance of the `owner`
+     * @param _owner the target address to look up value
+     * @return The balance of underlying token for the specified address
      */
     function valueOfUnderlying(address _owner) public view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
@@ -432,6 +445,7 @@ contract CDS is IERC20 {
 
     /**
      * @notice Change metadata string
+     * @param _metadata new metadata string
      */
     function changeMetadata(string calldata _metadata) external onlyOwner {
         metadata = _metadata;
@@ -440,11 +454,12 @@ contract CDS is IERC20 {
 
     /**
      * @notice Used for changing settlementFeeRecipient
+     * @param _state true to set paused and vice versa
      */
-    function setPaused(bool state) external onlyOwner {
-        if (state != paused) {
-            paused = state;
-            emit Paused(state);
+    function setPaused(bool _state) external onlyOwner {
+        if (paused != _state) {
+            paused = _state;
+            emit Paused(_state);
         }
     }
 
@@ -453,7 +468,9 @@ contract CDS is IERC20 {
      */
 
     /**
-     * @notice Internal function to offset deposit time stamp when transfer iToken
+     * @notice Internal function to offset request balance
+     * @param _from the account who send
+     * @param _amount the amount of token to offset
      */
     function _beforeTokenTransfer(address _from, uint256 _amount) internal {
         //withdraw request operation
