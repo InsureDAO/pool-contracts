@@ -1,6 +1,6 @@
 pragma solidity 0.8.7;
 /**
- * @author kohshiba
+ * @author InsureDAO
  * @title InsureDAO market template contract
  * SPDX-License-Identifier: GPL-3.0
  */

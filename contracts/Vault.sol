@@ -1,7 +1,8 @@
 pragma solidity 0.8.7;
 /**
- * @author kohshiba
+ * @author InsureDAO
  * @title InsureDAO vault contract
+ * SPDX-License-Identifier: GPL-3.0
  */
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -65,6 +66,10 @@ contract Vault {
 
     /**
      * @notice A registered contract can deposit collateral and get attribution point in return
+     * @param  _amount amount of token to deposit
+     * @param _from sender's address
+     * @param _beneficiary beneficiary's address
+     * @return _attributions attribution amount generated from the transaction
      */
 
     function addValue(
@@ -92,6 +97,9 @@ contract Vault {
 
     /**
      * @notice an address that has balance in the vault can withdraw underlying value
+     * @param _amount amount of token to withdraw
+     * @param _to address to get underlying token
+     * @return _attributions amount of attributions burnet
      */
 
     function withdrawValue(uint256 _amount, address _to)
@@ -116,6 +124,8 @@ contract Vault {
 
     /**
      * @notice an address that has balance in the vault can transfer underlying value
+     * @param _amount sender of value
+     * @param _destination reciepient of value
      */
 
     function transferValue(uint256 _amount, address _destination) external {
@@ -137,6 +147,9 @@ contract Vault {
 
     /**
      * @notice an address that has balance in the vault can withdraw value denominated in attribution
+     * @param _attribution amount of attribution to burn
+     * @param _to beneficiary's address
+     * @return _retVal number of token withdrawn from the transaction
      */
     function withdrawAttribution(uint256 _attribution, address _to)
         external
@@ -147,6 +160,8 @@ contract Vault {
 
     /**
      * @notice an address that has balance in the vault can withdraw all value
+     * @param _to beneficiary's address
+     * @return _retVal number of token withdrawn from the transaction
      */
     function withdrawAllAttribution(address _to)
         external
@@ -157,6 +172,9 @@ contract Vault {
 
     /**
      * @notice an address that has balance in the vault can withdraw all value
+     * @param _attribution amount of attribution to burn
+     * @param _to beneficiary's address
+     * @return _retVal number of token withdrawn from the transaction
      */
     function _withdrawAttribution(uint256 _attribution, address _to)
         internal
@@ -180,6 +198,8 @@ contract Vault {
 
     /**
      * @notice an address that has balance in the vault can transfer value denominated in attribution
+     * @param _amount amount of attribution to transfer
+     * @param _destination reciepient of attribution
      */
     function transferAttribution(uint256 _amount, address _destination)
         external
@@ -194,6 +214,7 @@ contract Vault {
 
     /**
      * @notice the controller can utilize all available stored funds
+     * @return _amount amount of token utilized
      */
     function utilize() external returns (uint256 _amount) {
         _amount = available();
@@ -206,6 +227,8 @@ contract Vault {
 
     /**
      * @notice get attribution number for the specified address
+     * @param _target target address
+     * @return amount of attritbution
      */
 
     function attributionOf(address _target) external view returns (uint256) {
@@ -214,6 +237,7 @@ contract Vault {
 
     /**
      * @notice get all attribution number for this contract
+     * @return amount of all attribution
      */
     function attributionAll() external view returns (uint256) {
         return totalAttributions;
@@ -221,6 +245,8 @@ contract Vault {
 
     /**
      * @notice Convert attribution number into underlying assset value
+     * @param _attribution amount of attribution
+     * @return token value of input attribution
      */
     function attributionValue(uint256 _attribution)
         external
@@ -236,6 +262,8 @@ contract Vault {
 
     /**
      * @notice return underlying value of the specified address
+     * @param _target target address
+     * @return token value of target address
      */
     function underlyingValue(address _target) public view returns (uint256) {
         if (attributions[_target] > 0) {
@@ -247,6 +275,7 @@ contract Vault {
 
     /**
      * @notice return underlying value of this contract
+     * @return all token value of the vault
      */
     function valueAll() public view returns (uint256) {
         return balance.add(controller.valueAll());
@@ -254,6 +283,7 @@ contract Vault {
 
     /**
      * @notice admin function to set controller address
+     * @param _controller address of the controller
      */
     function setController(address _controller) public onlyOwner {
         controller.migrate(address(_controller));
@@ -263,6 +293,7 @@ contract Vault {
 
     /**
      * @notice internal function to unutilize the funds and keep utilization rate
+     * @param _amount amount to withdraw from controller
      */
     function _unutilize(uint256 _amount) internal {
         controller.withdraw(address(this), _amount);
@@ -271,6 +302,7 @@ contract Vault {
 
     /**
      * @notice return how much funds in this contract is available to be utilized
+     * @return available balance to utilize
      */
     function available() public view returns (uint256) {
         return balance;
@@ -278,6 +310,7 @@ contract Vault {
 
     /**
      * @notice return how much price for each attribution
+     * @return value of one share of attribution
      */
     function getPricePerFullShare() public view returns (uint256) {
         return valueAll().mul(1e18).div(totalAttributions);
@@ -285,6 +318,8 @@ contract Vault {
 
     /**
      * @notice withdraw redundant token stored in this contract
+     * @param _token token address
+     * @param _to beneficiary's address
      */
     function withdrawRedundant(address _token, address _to) external {
         require(msg.sender == owner, "dev: only owner");
@@ -307,6 +342,7 @@ contract Vault {
 
     /**
      * @notice Commit ownership change transaction
+     * @param _owner new owner address
      */
 
     function commitTransferOwnership(address _owner) external onlyOwner {

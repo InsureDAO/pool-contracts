@@ -1,6 +1,6 @@
 /**
  * @title Parameters
- * @author @kohshiba
+ * @author @InsureDAO
  * @notice This contract manages parameters of markets.
  * SPDX-License-Identifier: GPL-3.0
  */

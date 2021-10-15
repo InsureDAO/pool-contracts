@@ -1,6 +1,6 @@
 /**
  * @title Factory
- * @author @kohshiba
+ * @author @InsureDAO
  * @notice This contract is the functory contract that manages functions related to market creation activities.
  * SPDX-License-Identifier: GPL-3.0
  */
