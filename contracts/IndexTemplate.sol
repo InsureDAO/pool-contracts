@@ -98,6 +98,10 @@ contract IndexTemplate is IERC20 {
         _;
     }
 
+    constructor() public {
+        initialized = true;
+    }
+
     /**
      * Initialize interaction
      */

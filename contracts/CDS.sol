@@ -75,6 +75,10 @@ contract CDS is IERC20 {
         _;
     }
 
+    constructor() public {
+        initialized = true;
+    }
+
     /**
      * Initialize interaction
      */
