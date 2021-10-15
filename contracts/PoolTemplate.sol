@@ -90,7 +90,7 @@ contract PoolTemplate is IERC20 {
     uint256 public ownAttributions; //how much attribution point this pool's original liquidity has
     uint256 public lockedAmount; //Liquidity locked when utilized
     uint256 public totalCredit; //Liquidity from index
-    uint256 public rewardPerCredit; //Times CREDIT_DECIMALS. To avoid overdlow
+    uint256 public rewardPerCredit; //Times REWARD_DECIMALS. To avoid overdlow
     uint256 public pendingEnd; //pending time when paying out
 
     /// @notice Market variables for margin account
@@ -152,7 +152,7 @@ contract PoolTemplate is IERC20 {
     ///@notice magic numbers
     uint256 public constant LEVERAGE_DIVISOR = 1e3;
     uint256 public constant UTILIZATION_RATE_SCALE = 1e8;
-    uint256 public constant CREDIT_DECIMALS = 1e12;
+    uint256 public constant REWARD_DECIMALS = 1e12;
 
     /**
      * @notice Throws if called by any account other than the owner.
@@ -374,7 +374,7 @@ contract PoolTemplate is IERC20 {
         }
         if (_index.credit > 0) {
             _pending = _sub(
-                _index.credit.mul(rewardPerCredit).div(CREDIT_DECIMALS),
+                _index.credit.mul(rewardPerCredit).div(REWARD_DECIMALS),
                 _index.rewardDebt
             );
             if (_pending > 0) {
@@ -389,7 +389,7 @@ contract PoolTemplate is IERC20 {
             emit CreditIncrease(msg.sender, _credit);
         }
         _index.rewardDebt = _index.credit.mul(rewardPerCredit).div(
-            CREDIT_DECIMALS
+            REWARD_DECIMALS
         );
     }
 
@@ -412,7 +412,7 @@ contract PoolTemplate is IERC20 {
 
         //calculate acrrued premium
         _pending = _sub(
-            _index.credit.mul(rewardPerCredit).div(CREDIT_DECIMALS),
+            _index.credit.mul(rewardPerCredit).div(REWARD_DECIMALS),
             _index.rewardDebt
         );
 
@@ -429,7 +429,7 @@ contract PoolTemplate is IERC20 {
         if (_pending > 0) {
             vault.transferAttribution(_pending, msg.sender);
             _index.rewardDebt = _index.credit.mul(rewardPerCredit).div(
-                CREDIT_DECIMALS
+                REWARD_DECIMALS
             );
         }
     }
@@ -506,7 +506,7 @@ contract PoolTemplate is IERC20 {
         );
         if (totalCredit > 0) {
             rewardPerCredit = rewardPerCredit.add(
-                _attributionForIndex.mul(CREDIT_DECIMALS).div(totalCredit)
+                _attributionForIndex.mul(REWARD_DECIMALS).div(totalCredit)
             );
         }
 
@@ -920,7 +920,7 @@ contract PoolTemplate is IERC20 {
         } else {
             return
                 _sub(
-                    _credit.mul(rewardPerCredit).div(CREDIT_DECIMALS),
+                    _credit.mul(rewardPerCredit).div(REWARD_DECIMALS),
                     indexes[_index].rewardDebt
                 );
         }
