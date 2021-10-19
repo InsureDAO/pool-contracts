@@ -28,8 +28,9 @@ contract Vault {
     uint256 public totalAttributions;
     uint256 public debt;
 
-    address public owner;
-    uint256 public balance;
+    address public owner; //owner of the contract
+    address public keeper; //keeper can operate utilize(), if address zero, anyone can operate.
+    uint256 public balance; //balance of underlying token
     address public future_owner;
     uint256 public transfer_ownership_deadline;
     uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
@@ -217,11 +218,24 @@ contract Vault {
      * @return _amount amount of token utilized
      */
     function utilize() external returns (uint256 _amount) {
+        if (keeper != address(0)) {
+            require(msg.sender == keeper, "ERROR_NOT_KEEPER");
+        }
         _amount = available();
         if (_amount > 0) {
             token.safeTransfer(address(controller), _amount);
             balance = balance.sub(_amount);
             controller.earn(address(token), _amount);
+        }
+    }
+
+    /**
+     * @notice the controller can utilize all available stored funds
+     * @param _keeper keeper address
+     */
+    function setKeeper(address _keeper) external returns (uint256 _amount) {
+        if (keeper != _keeper) {
+            keeper = _keeper;
         }
     }
 
