@@ -4,6 +4,7 @@ const { BigNumber } = require("ethers");
 
 describe("Vault", function () {
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+  const NULL_ADDRESS = "0xffffffffffffffffffffffffffffffffffffffff";
 
   beforeEach(async () => {
     //import
@@ -88,6 +89,25 @@ describe("Vault", function () {
       );
       await vault.connect(alice).withdrawAllAttribution(alice.address);
       expect(await dai.balanceOf(alice.address)).to.equal(105000);
+    });
+
+    it("DISALLOWS controller to call utilize when disabled", async () => {
+      await vault.connect(alice).addValue(10000, alice.address, alice.address);
+      await vault.connect(creator).setKeeper(NULL_ADDRESS);
+      await expect(controller.yield()).to.revertedWith("ERROR_NOT_KEEPER");
+    });
+
+    it("allows only keeper to call utilize when address is set", async () => {
+      await vault.connect(alice).addValue(10000, alice.address, alice.address);
+      await vault.connect(creator).setKeeper(controller.address);
+      await controller.yield();
+      expect(await vault.underlyingValue(alice.address)).to.equal(15000);
+      expect(await vault.getPricePerFullShare()).to.equal(
+        "1500000000000000000"
+      );
+      await expect(vault.connect(alice).utilize()).to.revertedWith(
+        "ERROR_NOT_KEEPER"
+      );
     });
 
     it("allows transfer value", async () => {
