@@ -154,7 +154,7 @@ contract IndexTemplate is IERC20 {
      */
     function deposit(uint256 _amount) public returns (uint256 _mintAmount) {
         require(locked == false && paused == false, "ERROR: DEPOSIT_DISABLED");
-        require(_amount > 0);
+        require(_amount > 0, "ERROR: DEPOSIT_ZERO");
 
         uint256 _cds = parameters.getCDSPremium(_amount, msg.sender);
         uint256 _fee = parameters.getDepositFee(_amount, msg.sender);
@@ -188,10 +188,8 @@ contract IndexTemplate is IERC20 {
      */
     function requestWithdraw(uint256 _amount) external {
         uint256 _balance = balanceOf(msg.sender);
-        require(
-            _balance >= _amount && _amount > 0,
-            "ERROR: WITHDRAW_REQUEST_BAD_CONDITIONS"
-        );
+        require(_balance >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
+        require(_amount > 0, "ERROR: REQUEST_ZERO");
         withdrawalReq[msg.sender].timestamp = block.timestamp;
         withdrawalReq[msg.sender].amount = _amount;
         emit WithdrawRequested(msg.sender, _amount, block.timestamp);
@@ -208,23 +206,26 @@ contract IndexTemplate is IERC20 {
 
         require(locked == false, "ERROR: WITHDRAWAL_PENDING");
         require(
-            locked == false &&
-                withdrawalReq[msg.sender].timestamp.add(
-                    parameters.getLockup(msg.sender)
-                ) <
-                block.timestamp &&
-                withdrawalReq[msg.sender]
-                    .timestamp
-                    .add(parameters.getLockup(msg.sender))
-                    .add(parameters.getWithdrawable(msg.sender)) >
-                block.timestamp &&
-                withdrawalReq[msg.sender].amount >= _amount &&
-                _amount > 0,
-            "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+            withdrawalReq[msg.sender].timestamp.add(
+                parameters.getLockup(msg.sender)
+            ) < block.timestamp,
+            "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
+            withdrawalReq[msg.sender]
+                .timestamp
+                .add(parameters.getLockup(msg.sender))
+                .add(parameters.getWithdrawable(msg.sender)) > block.timestamp,
+            "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
+        );
+        require(
+            withdrawalReq[msg.sender].amount >= _amount,
+            "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
+        );
+        require(_amount > 0, "ERROR: WITHDRAWAL_ZERO");
+        require(
             _retVal <= withdrawable(),
-            "ERROR: INSUFFICIENT_LIQUIDITY_TO_WITHDRAW"
+            "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
         );
 
         //reduce requested amount
@@ -372,7 +373,10 @@ contract IndexTemplate is IERC20 {
      * 2) If this pool is unable to cover a compesation, compensate from the CDS pool
      */
     function compensate(uint256 _amount) external {
-        require(allocPoints[msg.sender] > 0);
+        require(
+            allocPoints[msg.sender] > 0,
+            "ERROR_COMPENSATE_UNAUTHORIZED_CALLER"
+        );
         if (vault.underlyingValue(address(this)) >= _amount) {
             //When the deposited value without earned premium is enough to cover
             vault.transferValue(_amount, msg.sender);

@@ -133,7 +133,7 @@ contract CDS is IERC20 {
      */
     function deposit(uint256 _amount) public returns (uint256 _mintAmount) {
         require(paused == false, "ERROR: DEPOSIT_DISABLED");
-        require(_amount > 0);
+        require(_amount > 0, "ERROR: DEPOSIT_ZERO");
 
         uint256 _fee = parameters.getDepositFee(_amount, msg.sender);
         uint256 _add = _amount.sub(_fee);
@@ -164,10 +164,8 @@ contract CDS is IERC20 {
      */
     function requestWithdraw(uint256 _amount) external {
         uint256 _balance = balanceOf(msg.sender);
-        require(
-            _balance >= _amount && _amount > 0,
-            "ERROR: WITHDRAW_REQUEST_BAD_CONDITIONS"
-        );
+        require(_balance >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
+        require(_amount > 0, "ERROR: REQUEST_ZERO");
         withdrawalReq[msg.sender].timestamp = block.timestamp;
         withdrawalReq[msg.sender].amount = _amount;
         emit WithdrawRequested(msg.sender, _amount, block.timestamp);
@@ -183,21 +181,25 @@ contract CDS is IERC20 {
         _retVal = vault.underlyingValue(address(this)).mul(_amount).div(
             totalSupply()
         );
+        require(paused == false, "ERROR: WITHDRAWAL_PENDING");
         require(
-            paused == false &&
-                withdrawalReq[msg.sender].timestamp.add(
-                    parameters.getLockup(msg.sender)
-                ) <
-                block.timestamp &&
-                withdrawalReq[msg.sender]
-                    .timestamp
-                    .add(parameters.getLockup(msg.sender))
-                    .add(parameters.getWithdrawable(msg.sender)) >
-                block.timestamp &&
-                withdrawalReq[msg.sender].amount >= _amount &&
-                _amount > 0,
-            "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+            withdrawalReq[msg.sender].timestamp.add(
+                parameters.getLockup(msg.sender)
+            ) < block.timestamp,
+            "ERROR: WITHDRAWAL_QUEUE"
         );
+        require(
+            withdrawalReq[msg.sender]
+                .timestamp
+                .add(parameters.getLockup(msg.sender))
+                .add(parameters.getWithdrawable(msg.sender)) > block.timestamp,
+            "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
+        );
+        require(
+            withdrawalReq[msg.sender].amount >= _amount,
+            "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
+        );
+        require(_amount > 0, "ERROR: WITHDRAWAL_ZERO");
         //reduce requested amount
         withdrawalReq[msg.sender].amount = withdrawalReq[msg.sender].amount.sub(
             _amount

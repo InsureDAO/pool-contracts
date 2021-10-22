@@ -323,7 +323,7 @@ describe("Index", function () {
       expect(await index.withdrawable()).to.equal("10000");
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(index.connect(alice).withdraw("100000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
       );
     });
     it("DISABLES withdraw zero balance", async function () {
@@ -336,7 +336,7 @@ describe("Index", function () {
       expect(await index.withdrawable()).to.equal("10000");
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(index.connect(alice).withdraw("0")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_ZERO"
       );
     });
     it("DISABLES withdraw until lockup period ends", async function () {
@@ -347,7 +347,7 @@ describe("Index", function () {
       await index.connect(alice).requestWithdraw("10000");
       expect(await index.withdrawable()).to.equal("10000");
       await expect(index.connect(alice).withdraw("10000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_QUEUE"
       );
     });
     it("DISABLES withdraw when liquidity is locked for insurance", async function () {
@@ -376,7 +376,7 @@ describe("Index", function () {
       expect(await index.withdrawable()).to.equal("2429");
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(index.connect(alice).withdraw("10000")).to.revertedWith(
-        "ERROR: INSUFFICIENT_LIQUIDITY_TO_WITHDRAW"
+        "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
       );
     });
     it("accrues premium after deposit", async function () {
@@ -431,14 +431,14 @@ describe("Index", function () {
       await index.connect(alice).transfer(tom.address, "10000");
       await index.connect(tom).requestWithdraw("10000");
       await expect(index.connect(alice).withdraw("10000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_QUEUE"
       );
       await expect(index.connect(tom).withdraw("10000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_QUEUE"
       );
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(index.connect(alice).withdraw("10000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
       );
       await index.connect(tom).withdraw("10000");
       expect(await dai.balanceOf(tom.address)).to.equal("10000");

@@ -239,11 +239,10 @@ contract PoolTemplate is IERC20 {
      */
     function deposit(uint256 _amount) public returns (uint256 _mintAmount) {
         require(
-            marketStatus == MarketStatus.Trading &&
-                paused == false &&
-                _amount > 0,
+            marketStatus == MarketStatus.Trading && paused == false,
             "ERROR: DEPOSIT_DISABLED"
         );
+        require(_amount > 0, "ERROR: DEPOSIT_ZERO");
 
         _mintAmount = worth(_amount);
 
@@ -266,10 +265,8 @@ contract PoolTemplate is IERC20 {
      */
     function requestWithdraw(uint256 _amount) external {
         uint256 _balance = balanceOf(msg.sender);
-        require(
-            _balance >= _amount && _amount > 0,
-            "ERROR: WITHDRAW_REQUEST_BAD_CONDITIONS"
-        );
+        require(_balance >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
+        require(_amount > 0, "ERROR: REQUEST_ZERO");
         withdrawalReq[msg.sender].timestamp = block.timestamp;
         withdrawalReq[msg.sender].amount = _amount;
         emit WithdrawRequested(msg.sender, _amount, block.timestamp);
@@ -293,20 +290,24 @@ contract PoolTemplate is IERC20 {
         require(
             withdrawalReq[msg.sender].timestamp.add(
                 parameters.getLockup(msg.sender)
-            ) <
-                block.timestamp &&
-                withdrawalReq[msg.sender]
-                    .timestamp
-                    .add(parameters.getLockup(msg.sender))
-                    .add(parameters.getWithdrawable(msg.sender)) >
-                block.timestamp &&
-                withdrawalReq[msg.sender].amount >= _amount &&
-                _amount > 0,
-            "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+            ) < block.timestamp,
+            "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
+            withdrawalReq[msg.sender]
+                .timestamp
+                .add(parameters.getLockup(msg.sender))
+                .add(parameters.getWithdrawable(msg.sender)) > block.timestamp,
+            "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
+        );
+        require(
+            withdrawalReq[msg.sender].amount >= _amount,
+            "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
+        );
+        require(_amount > 0, "ERROR: WITHDRAWAL_ZERO");
+        require(
             _retVal <= availableBalance(),
-            "ERROR: INSUFFICIENT_LIQUIDITY_TO_WITHDRAW"
+            "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
         );
         //reduce requested amount
         withdrawalReq[msg.sender].amount = withdrawalReq[msg.sender].amount.sub(
@@ -467,15 +468,17 @@ contract PoolTemplate is IERC20 {
             "ERROR: INSURE_EXCEEDED_AVAILABLE_BALANCE"
         );
         require(_premium <= _maxCost, "ERROR: INSURE_EXCEEDED_MAX_COST");
+        require(_span <= 365 days, "ERROR: INSURE_EXCEEDED_MAX_SPAN");
         require(
-            _span <= 365 days && parameters.getMin(msg.sender) <= _span,
-            "ERROR: INSURE_BAD_CONDITIONS"
+            parameters.getMin(msg.sender) <= _span,
+            "ERROR: INSURE_SPAN_BELOW_MIN"
         );
 
         require(
-            marketStatus == MarketStatus.Trading && paused == false,
+            marketStatus == MarketStatus.Trading,
             "ERROR: INSURE_MARKET_PENDING"
         );
+        require(paused == false, "ERROR: INSURE_MARKET_PAUSED");
 
         //accrue fee
         vault.addValue(_fee, msg.sender, parameters.getOwner());

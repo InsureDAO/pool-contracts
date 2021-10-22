@@ -313,7 +313,7 @@ describe("CDS", function () {
       await cds.connect(alice).requestWithdraw("9900");
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(cds.connect(alice).withdraw("20000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
       );
     });
 
@@ -326,7 +326,7 @@ describe("CDS", function () {
 
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(cds.connect(alice).withdraw("0")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_ZERO"
       );
     });
 
@@ -337,7 +337,7 @@ describe("CDS", function () {
       await cds.connect(alice).deposit("10000");
       await cds.connect(alice).requestWithdraw("9900");
       await expect(cds.connect(alice).withdraw("9900")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_QUEUE"
       );
     });
 

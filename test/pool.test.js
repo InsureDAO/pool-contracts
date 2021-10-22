@@ -296,7 +296,7 @@ describe("Pool", function () {
       expect(await market.totalLiquidity()).to.equal("10000");
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(market.connect(alice).withdraw("10000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
       );
     });
     it("DISABLES withdraw more than requested", async function () {
@@ -307,7 +307,7 @@ describe("Pool", function () {
       expect(await market.totalLiquidity()).to.equal("10000");
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(market.connect(alice).withdraw("100000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
       );
       await market.connect(alice).withdraw("5000");
       expect(await market.totalSupply()).to.equal("5000");
@@ -321,7 +321,7 @@ describe("Pool", function () {
       expect(await market.totalLiquidity()).to.equal("10000");
       await ethers.provider.send("evm_increaseTime", [86400 * 40]);
       await expect(market.connect(alice).withdraw("10000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
       );
     });
     it("DISABLES withdraw request more than balance", async function () {
@@ -329,7 +329,7 @@ describe("Pool", function () {
       await market.connect(alice).deposit("10000");
       await expect(
         market.connect(alice).requestWithdraw("100000")
-      ).to.revertedWith("ERROR: WITHDRAW_REQUEST_BAD_CONDITIONS");
+      ).to.revertedWith("ERROR: REQUEST_EXCEED_BALANCE");
     });
     it("DISABLES withdraw zero balance", async function () {
       await dai.connect(alice).approve(vault.address, 10000);
@@ -339,7 +339,7 @@ describe("Pool", function () {
       expect(await market.totalLiquidity()).to.equal("10000");
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(market.connect(alice).withdraw("0")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_ZERO"
       );
     });
     it("DISABLES withdraw when liquidity is locked for insurance", async function () {
@@ -363,7 +363,7 @@ describe("Pool", function () {
         );
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(market.connect(alice).withdraw("10000")).to.revertedWith(
-        "ERROR: INSUFFICIENT_LIQUIDITY_TO_WITHDRAW"
+        "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
       );
     });
     it("allows unlock liquidity only after an insurance period over", async function () {
@@ -411,7 +411,7 @@ describe("Pool", function () {
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await market.connect(alice).transfer(tom.address, 5000);
       await expect(market.connect(alice).withdraw("10000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
       );
       await market.connect(alice).withdraw("5000");
       expect(await market.totalLiquidity()).to.equal("5000");
@@ -950,7 +950,7 @@ describe("Pool", function () {
             86400 * 5,
             "0x4e69636b00000000000000000000000000000000000000000000000000000000"
           )
-      ).to.revertedWith("ERROR: INSURE_BAD_CONDITIONS");
+      ).to.revertedWith("ERROR: INSURE_SPAN_BELOW_MIN");
 
       await ethers.provider.send("evm_increaseTime", [86400 * 11]);
 
@@ -983,7 +983,7 @@ describe("Pool", function () {
             86400 * 8,
             "0x4e69636b00000000000000000000000000000000000000000000000000000000"
           )
-      ).to.revertedWith("ERROR: INSURE_MARKET_PENDING");
+      ).to.revertedWith("ERROR: INSURE_MARKET_PAUSED");
       await market.setPaused(false);
       currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
@@ -1030,7 +1030,7 @@ describe("Pool", function () {
             86400 * 400,
             "0x4e69636b00000000000000000000000000000000000000000000000000000000"
           )
-      ).to.revertedWith("ERROR: INSURE_BAD_CONDITIONS");
+      ).to.revertedWith("ERROR: INSURE_EXCEEDED_MAX_SPAN");
     });
 
     it("DISALLOWS insurance transfer if its expired or non existent", async function () {
