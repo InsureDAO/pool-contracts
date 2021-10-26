@@ -151,7 +151,7 @@ contract PoolTemplate is IERC20 {
 
     ///@notice magic numbers
     uint256 public constant UTILIZATION_RATE_LENGTH = 1e8;
-    uint256 public constant CREDIT_DECIMALS = 1e12;
+    uint256 public constant REWARD_DECIMALS = 1e12;
 
     /**
      * @notice Throws if called by any account other than the owner.
