@@ -297,9 +297,7 @@ contract IndexTemplate is IERC20 {
      */
     function _adjustAlloc(uint256 _liquidity) internal {
         //Check current leverage rate and get target total credit allocation
-        uint256 _targetCredit = targetLev.mul(totalLiquidity()).div(
-            LEVERAGE_DIVISOR
-        ); //Allocatable credit
+        uint256 _targetCredit = targetLev.mul(_liquidity).div(LEVERAGE_DIVISOR); //Allocatable credit
         address[] memory _poolList = new address[](poolList.length); // log which pool has exceeded
         uint256 _allocatable = _targetCredit;
         uint256 _allocatablePoints = totalAllocPoint;

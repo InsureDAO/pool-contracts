@@ -26,7 +26,6 @@ contract Vault {
 
     mapping(address => uint256) public attributions;
     uint256 public totalAttributions;
-    uint256 public debt;
 
     address public owner; //owner of the contract
     address public keeper; //keeper can operate utilize(), if address zero, anyone can operate.
@@ -182,13 +181,11 @@ contract Vault {
         returns (uint256 _retVal)
     {
         require(
-            attributions[msg.sender] > 0,
-            "ERROR_WITHDRAW-ALL-ATTRIBUTION_BADCONDITOONS"
+            attributions[msg.sender] >= _attribution,
+            "ERROR_WITHDRAW-ATTRIBUTION_BADCONDITOONS"
         );
-        _retVal = attributions[msg.sender].mul(valueAll()).div(
-            totalAttributions
-        );
-        attributions[msg.sender] = 0;
+        _retVal = _attribution.mul(valueAll()).div(totalAttributions);
+        attributions[msg.sender] -= _attribution;
         if (available() < _retVal) {
             uint256 _shortage = _retVal.sub(available());
             _unutilize(_shortage);

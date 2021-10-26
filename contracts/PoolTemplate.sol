@@ -150,9 +150,8 @@ contract PoolTemplate is IERC20 {
     Incident public incident;
 
     ///@notice magic numbers
-    uint256 public constant LEVERAGE_DIVISOR = 1e3;
-    uint256 public constant UTILIZATION_RATE_SCALE = 1e8;
-    uint256 public constant REWARD_DECIMALS = 1e12;
+    uint256 public constant UTILIZATION_RATE_LENGTH = 1e8;
+    uint256 public constant CREDIT_DECIMALS = 1e12;
 
     /**
      * @notice Throws if called by any account other than the owner.
@@ -544,6 +543,7 @@ contract PoolTemplate is IERC20 {
         uint256 _payoutDenominator = incident.payoutDenominator;
         uint256 _incidentTimestamp = incident.incidentTimestamp;
         bytes32 _targets = incident.merkleRoot;
+        uint256 MAGIC_SCALE = 1e8; //1e8 to reduce truncation
 
         require(
             marketStatus == MarketStatus.Payingout,
@@ -569,15 +569,15 @@ contract PoolTemplate is IERC20 {
         );
         uint256 _deductionFromIndex = _payoutAmount
             .mul(totalCredit)
-            .mul(1e8)
+            .mul(MAGIC_SCALE)
             .div(totalLiquidity());
 
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indexes[indexList[i]].credit > 0) {
                 uint256 _shareOfIndex = indexes[indexList[i]]
                     .credit
-                    .mul(1e8)
-                    .div(indexes[indexList[i]].credit);
+                    .mul(MAGIC_SCALE)
+                    .div(totalCredit);
                 uint256 _redeemAmount = _divCeil(
                     _deductionFromIndex,
                     _shareOfIndex
@@ -592,7 +592,7 @@ contract PoolTemplate is IERC20 {
         );
         uint256 _indexAttribution = _paidAttribution
             .mul(_deductionFromIndex)
-            .div(1e8)
+            .div(MAGIC_SCALE)
             .div(_payoutAmount);
         ownAttributions = ownAttributions.sub(
             _paidAttribution.sub(_indexAttribution)
@@ -996,7 +996,7 @@ contract PoolTemplate is IERC20 {
     function utilizationRate() public view returns (uint256 _rate) {
         if (lockedAmount > 0) {
             return
-                lockedAmount.mul(UTILIZATION_RATE_SCALE).div(totalLiquidity());
+                lockedAmount.mul(UTILIZATION_RATE_LENGTH).div(totalLiquidity());
         } else {
             return 0;
         }
