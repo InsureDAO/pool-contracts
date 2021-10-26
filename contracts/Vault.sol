@@ -230,11 +230,7 @@ contract Vault {
      * @notice the controller can utilize all available stored funds
      * @param _keeper keeper address
      */
-    function setKeeper(address _keeper)
-        external
-        onlyOwner
-        returns (uint256 _amount)
-    {
+    function setKeeper(address _keeper) external onlyOwner {
         if (keeper != _keeper) {
             keeper = _keeper;
         }
