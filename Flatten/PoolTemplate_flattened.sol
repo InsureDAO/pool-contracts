@@ -110,7 +110,6 @@ library SafeMath {
     }
 }
 
-
 // File contracts/libraries/utils/Address.sol
 
 pragma solidity ^0.6.0;
@@ -142,7 +141,6 @@ library Address {
         return size > 0;
     }
 }
-
 
 // File contracts/libraries/tokens/IERC20.sol
 
@@ -236,7 +234,6 @@ interface IERC20 {
     );
 }
 
-
 // File contracts/interfaces/IParameters.sol
 
 pragma solidity ^0.6.0;
@@ -296,7 +293,7 @@ abstract contract IParameters {
 
     function isOwner() public view virtual returns (bool);
 
-    function getMin() external view virtual returns (uint256);
+    function getMinInsuranceSpan() external view virtual returns (uint256);
 
     function getFee2(uint256 _amount) external view virtual returns (uint256);
 
@@ -312,7 +309,6 @@ abstract contract IParameters {
         virtual
         returns (bytes32);
 }
-
 
 // File contracts/interfaces/IVault.sol
 
@@ -350,7 +346,6 @@ interface IVault {
     function utilize() external returns (uint256 _amount);
 }
 
-
 // File contracts/interfaces/IRegistry.sol
 
 pragma solidity ^0.6.0;
@@ -362,7 +357,6 @@ interface IRegistry {
 
     function getCDS(address _address) external view returns (address);
 }
-
 
 // File contracts/interfaces/IIndexTemplate.sol
 
@@ -378,7 +372,6 @@ abstract contract IIndexTemplate {
     function adjustAlloc() public virtual;
 }
 
-
 // File contracts/PoolTemplate.sol
 
 pragma solidity ^0.6.0;
@@ -387,12 +380,6 @@ pragma solidity ^0.6.0;
  * @author kohshiba
  * @title InsureDAO pool template contract
  */
-
-
-
-
-
-
 
 contract PoolTemplate is IERC20 {
     using Address for address;
@@ -479,7 +466,10 @@ contract PoolTemplate is IERC20 {
     address[] public indexList;
 
     ///@notice Market status transition management
-    enum MarketStatus {Trading, Payingout}
+    enum MarketStatus {
+        Trading,
+        Payingout
+    }
     MarketStatus public marketStatus;
 
     ///@notice user status management
@@ -590,8 +580,11 @@ contract PoolTemplate is IERC20 {
 
         _mintAmount = worth(_amount);
 
-        uint256 _newAttribution =
-            vault.addValue(_amount, msg.sender, address(this));
+        uint256 _newAttribution = vault.addValue(
+            _amount,
+            msg.sender,
+            address(this)
+        );
         totalAttributions = totalAttributions.add(_newAttribution);
 
         emit Deposit(
@@ -785,27 +778,38 @@ contract PoolTemplate is IERC20 {
                 _amount <= availableBalance() &&
                 _span <= 365 days &&
                 _cost <= _maxCost &&
-                parameters.getMin() <= _span,
+                parameters.getMinInsuranceSpan() <= _span,
             "ERROR: INSURE_BAD_CONDITIONS"
         );
 
         //accrue fee
         vault.addValue(_fee, msg.sender, parameters.get_owner());
         //accrue premium
-        uint256 _newAttribution =
-            vault.addValue(_premium, msg.sender, address(this));
+        uint256 _newAttribution = vault.addValue(
+            _premium,
+            msg.sender,
+            address(this)
+        );
 
         //Lock covered amount
         uint256 _id = insurances.length;
         lockedAmount = lockedAmount.add(_amount);
-        Insurance memory _insurance =
-            Insurance(_id, now, _endTime, _amount, _target, msg.sender, true);
+        Insurance memory _insurance = Insurance(
+            _id,
+            now,
+            _endTime,
+            _amount,
+            _target,
+            msg.sender,
+            true
+        );
         insurances.push(_insurance);
         insuranceHoldings[msg.sender].push(_insurance);
 
         //Calculate liquidity
-        uint256 _attributionForIndex =
-            _newAttribution.mul(totalCredit).div(totalLiquidity());
+        uint256 _attributionForIndex = _newAttribution.mul(totalCredit).div(
+            totalLiquidity()
+        );
         totalAttributions = totalAttributions.add(_newAttribution).sub(
             _attributionForIndex
         );
@@ -848,29 +852,36 @@ contract PoolTemplate is IERC20 {
         insurance.status = false;
         lockedAmount = lockedAmount.sub(insurance.amount);
 
-        uint256 _payoutAmount =
-            insurance.amount.mul(_payoutNumerator).div(_payoutDenominator);
-        uint256 _deductionFromIndex =
-            _payoutAmount.mul(totalCredit).mul(1e8).div(totalLiquidity());
+        uint256 _payoutAmount = insurance.amount.mul(_payoutNumerator).div(
+            _payoutDenominator
+        );
+        uint256 _deductionFromIndex = _payoutAmount
+            .mul(totalCredit)
+            .mul(1e8)
+            .div(totalLiquidity());
 
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indexes[indexList[i]].credit > 0) {
-                uint256 _shareOfIndex =
-                    indexes[indexList[i]].credit.mul(1e8).div(
-                        indexes[indexList[i]].credit
-                    );
-                uint256 _redeemAmount =
-                    _divCeil(_deductionFromIndex, _shareOfIndex);
+                uint256 _shareOfIndex = indexes[indexList[i]]
+                    .credit
+                    .mul(1e8)
+                    .div(indexes[indexList[i]].credit);
+                uint256 _redeemAmount = _divCeil(
+                    _deductionFromIndex,
+                    _shareOfIndex
+                );
                 IIndexTemplate(indexList[i]).compensate(_redeemAmount);
             }
         }
 
-        uint256 _paidAttribution =
-            vault.withdrawValue(_payoutAmount, msg.sender);
-        uint256 _indexAttribution =
-            _paidAttribution.mul(_deductionFromIndex).div(1e8).div(
-                _payoutAmount
-            );
+        uint256 _paidAttribution = vault.withdrawValue(
+            _payoutAmount,
+            msg.sender
+        );
+        uint256 _indexAttribution = _paidAttribution
+            .mul(_deductionFromIndex)
+            .div(1e8)
+            .div(_payoutAmount);
         totalAttributions = totalAttributions.sub(
             _paidAttribution.sub(_indexAttribution)
         );

@@ -1,10 +1,53 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
+const { MerkleTree } = require("merkletreejs");
+const keccak256 = require("keccak256");
 
 describe("CDS", function () {
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-
+  const long = [
+    "0x4e69636b00000000000000000000000000000000000000000000000000000000",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000001",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000002",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000003",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000004",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000005",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000006",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000007",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000008",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000009",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000010",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000011",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000021",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000031",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000041",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000051",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000061",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000071",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000081",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000091",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000101",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000201",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000301",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000401",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000501",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000601",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000701",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000801",
+    "0x4e69636b00000000000000000000000000000000000000000000000000000901",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001001",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001101",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001201",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001301",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001401",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001501",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001601",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001701",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001801",
+    "0x4e69636b00000000000000000000000000000000000000000000000000001901",
+    "0x4e69636b00000000000000000000000000000000000000000000000000002001",
+  ];
   beforeEach(async () => {
     //import
     [creator, alice, bob, chad, tom, minter] = await ethers.getSigners();
@@ -45,57 +88,49 @@ describe("CDS", function () {
 
     await registry.setFactory(factory.address);
 
-    await factory.approveTemplate(poolTemplate.address, true, false);
-    await factory.approveTemplate(indexTemplate.address, true, false);
-    await factory.approveTemplate(cdsTemplate.address, true, false);
-    await factory.approveReference(
-      poolTemplate.address,
-      0,
-      parameters.address,
-      true
-    );
-    await factory.approveReference(
-      poolTemplate.address,
-      1,
-      vault.address,
-      true
-    );
+    await factory.approveTemplate(poolTemplate.address, true, false, true);
+    await factory.approveTemplate(indexTemplate.address, true, false, true);
+    await factory.approveTemplate(cdsTemplate.address, true, false, true);
+
+    await factory.approveReference(poolTemplate.address, 0, dai.address, true);
+    await factory.approveReference(poolTemplate.address, 1, dai.address, true);
     await factory.approveReference(
       poolTemplate.address,
       2,
       registry.address,
       true
     );
-
     await factory.approveReference(
-      indexTemplate.address,
-      0,
+      poolTemplate.address,
+      3,
       parameters.address,
       true
     );
-    await factory.approveReference(
-      indexTemplate.address,
-      1,
-      vault.address,
-      true
-    );
+
     await factory.approveReference(
       indexTemplate.address,
       2,
+      parameters.address,
+      true
+    );
+    await factory.approveReference(indexTemplate.address, 0, dai.address, true);
+    await factory.approveReference(
+      indexTemplate.address,
+      1,
       registry.address,
       true
     );
 
     await factory.approveReference(
       cdsTemplate.address,
-      0,
+      2,
       parameters.address,
       true
     );
-    await factory.approveReference(cdsTemplate.address, 1, vault.address, true);
+    await factory.approveReference(cdsTemplate.address, 0, dai.address, true);
     await factory.approveReference(
       cdsTemplate.address,
-      2,
+      1,
       registry.address,
       true
     );
@@ -108,33 +143,28 @@ describe("CDS", function () {
 
     await premium.setPremium("2000", "50000");
     await fee.setFee("10000");
-    await parameters.setPremium2(ZERO_ADDRESS, "2000");
-    await parameters.setFee2(ZERO_ADDRESS, "1000");
+    await parameters.setCDSPremium(ZERO_ADDRESS, "2000");
+    await parameters.setDepositFee(ZERO_ADDRESS, "1000");
     await parameters.setGrace(ZERO_ADDRESS, "259200");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
     await parameters.setMindate(ZERO_ADDRESS, "604800");
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
     await parameters.setFeeModel(ZERO_ADDRESS, fee.address);
     await parameters.setWithdrawable(ZERO_ADDRESS, "86400000");
+    await parameters.setVault(dai.address, vault.address);
+    await parameters.setMaxList(ZERO_ADDRESS, "10");
 
     await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
-      "test-name",
-      "test-symbol",
-      18,
-      [0, 0],
-      [parameters.address, vault.address, registry.address]
+      [1, 0],
+      [dai.address, dai.address, registry.address, parameters.address]
     );
-
     await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
-      "test-name",
-      "test-symbol",
-      18,
-      [0, 0],
-      [parameters.address, vault.address, registry.address]
+      [1, 0],
+      [dai.address, dai.address, registry.address, parameters.address]
     );
     const marketAddress1 = await factory.markets(0);
     const marketAddress2 = await factory.markets(1);
@@ -144,20 +174,14 @@ describe("CDS", function () {
     await factory.createMarket(
       cdsTemplate.address,
       "Here is metadata.",
-      "test-name",
-      "test-symbol",
-      18,
-      [],
-      [parameters.address, vault.address, registry.address, minter.address]
+      [0],
+      [dai.address, registry.address, parameters.address, minter.address]
     );
     await factory.createMarket(
       indexTemplate.address,
       "Here is metadata.",
-      "test-name",
-      "test-symbol",
-      18,
-      [],
-      [parameters.address, vault.address, registry.address]
+      [0],
+      [dai.address, registry.address, parameters.address]
     );
     const marketAddress3 = await factory.markets(2);
     const marketAddress4 = await factory.markets(3);
@@ -166,7 +190,7 @@ describe("CDS", function () {
 
     await registry.setCDS(ZERO_ADDRESS, cds.address);
 
-    await index.set(market1.address, "1000");
+    await index.set("0", market1.address, "1000");
     await index.setLeverage("20000");
   });
   describe("Condition", function () {
@@ -238,7 +262,7 @@ describe("CDS", function () {
           it("reverts", async function () {
             await expect(
               cds.connect(alice).transfer(tom.address, "9901")
-            ).to.revertedWith("SafeMath: subtraction overflow");
+            ).to.reverted;
           });
         });
 
@@ -289,7 +313,7 @@ describe("CDS", function () {
       await cds.connect(alice).requestWithdraw("9900");
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(cds.connect(alice).withdraw("20000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
       );
     });
 
@@ -302,7 +326,7 @@ describe("CDS", function () {
 
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(cds.connect(alice).withdraw("0")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_ZERO"
       );
     });
 
@@ -313,7 +337,7 @@ describe("CDS", function () {
       await cds.connect(alice).deposit("10000");
       await cds.connect(alice).requestWithdraw("9900");
       await expect(cds.connect(alice).withdraw("9900")).to.revertedWith(
-        "ERROR: WITHDRAWAL_BAD_CONDITIONS"
+        "ERROR: WITHDRAWAL_QUEUE"
       );
     });
 
@@ -385,16 +409,24 @@ describe("CDS", function () {
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
+      const tree = await new MerkleTree(long, keccak256, {
+        hashLeaves: true,
+        sortPairs: true,
+      });
+      const root = await tree.getHexRoot();
+      const leaf = keccak256(long[0]);
+      const proof = await tree.getHexProof(leaf);
       await market1.applyCover(
         "604800",
         5000,
         10000,
         incident,
-        ["0x4e69636b00000000000000000000000000000000000000000000000000000000"],
+        root,
+        long,
         "metadata"
       );
 
-      await market1.connect(bob).redeem("0");
+      await market1.connect(bob).redeem("0", proof);
       await expect(market1.connect(alice).unlock("0")).to.revertedWith(
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );

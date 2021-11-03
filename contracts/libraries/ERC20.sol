@@ -1,7 +1,7 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.8.7;
 
-import "./IERC20.sol";
-import "../math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
  * @dev Implementation of the `IERC20` interface.
@@ -38,14 +38,14 @@ contract ERC20 is IERC20 {
     /**
      * @dev See `IERC20.totalSupply`.
      */
-    function totalSupply() public override view returns (uint256) {
+    function totalSupply() public view override returns (uint256) {
         return _totalSupply;
     }
 
     /**
      * @dev See `IERC20.balanceOf`.
      */
-    function balanceOf(address account) public override view returns (uint256) {
+    function balanceOf(address account) public view override returns (uint256) {
         return _balances[account];
     }
 
@@ -71,8 +71,8 @@ contract ERC20 is IERC20 {
      */
     function allowance(address owner, address spender)
         public
-        override
         view
+        override
         returns (uint256)
     {
         return _allowances[owner][spender];

@@ -1,6 +1,6 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.8.7;
 
-import "../libraries/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract BondingPremium {
     using SafeMath for uint256;
@@ -22,7 +22,7 @@ contract BondingPremium {
     uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
 
     modifier onlyOwner() {
-        require(isOwner(), "Ownable: caller is not the owner");
+        require(isOwner(), "Restricted: caller is not allowed to operate");
         _;
     }
 
@@ -73,9 +73,7 @@ contract BondingPremium {
         k = 300100000;
         a = (
             uint256(1e6).add(sqrt(uint256(1e6).mul(uint256(1e6)).add(k.mul(4))))
-        )
-        .div(2)
-        .sub(uint256(1e6));
+        ).div(2).sub(uint256(1e6));
 
         //setOptions()
         low_risk_b = 5000; //0.5%
@@ -100,18 +98,18 @@ contract BondingPremium {
         if (_util < low_risk_util && _totalLiquidity > low_risk_liquidity) {
             //utilizatio < 10% && totalliquidity > low_risk_border (easily acomplished if leverage applied)
             _premiumRate = k
-            .mul(365)
-            .sub(Q.mul(a).mul(365))
-            .add(Q.mul(low_risk_b))
-            .div(Q)
-            .div(10); //change 100.0000% to 100.000%
+                .mul(365)
+                .sub(Q.mul(a).mul(365))
+                .add(Q.mul(low_risk_b))
+                .div(Q)
+                .div(10); //change 100.0000% to 100.000%
         } else {
             _premiumRate = k
-            .mul(365)
-            .sub(Q.mul(a).mul(365))
-            .add(Q.mul(b))
-            .div(Q)
-            .div(10); //change 100.0000% to 100.000%
+                .mul(365)
+                .sub(Q.mul(a).mul(365))
+                .add(Q.mul(b))
+                .div(Q)
+                .div(10); //change 100.0000% to 100.000%
         }
 
         //Return premium
@@ -129,11 +127,11 @@ contract BondingPremium {
         }
         // utilization rate (0~1000000)
         uint256 _util = _lockedAmount
-        .add(_amount)
-        .add(_lockedAmount)
-        .mul(1e6)
-        .div(_totalLiquidity)
-        .div(2);
+            .add(_amount)
+            .add(_lockedAmount)
+            .mul(1e6)
+            .div(_totalLiquidity)
+            .div(2);
 
         // yearly premium rate
         uint256 _premiumRate;
@@ -142,16 +140,14 @@ contract BondingPremium {
         if (_util < low_risk_util && _totalLiquidity > low_risk_liquidity) {
             //utilizatio < 10% && totalliquidity > low_risk_border (easily acomplished if leverage applied)
             _premiumRate = k
-            .mul(365)
-            .sub(Q.mul(a).mul(365))
-            .add(Q.mul(low_risk_b))
-            .div(Q);
+                .mul(365)
+                .sub(Q.mul(a).mul(365))
+                .add(Q.mul(low_risk_b))
+                .div(Q);
         } else {
-            _premiumRate = k
-            .mul(365)
-            .sub(Q.mul(a).mul(365))
-            .add(Q.mul(b))
-            .div(Q);
+            _premiumRate = k.mul(365).sub(Q.mul(a).mul(365)).add(Q.mul(b)).div(
+                Q
+            );
         }
 
         // calc yearly premium amount
@@ -177,9 +173,7 @@ contract BondingPremium {
         k = _multiplierPerYear;
         a = (
             uint256(1e6).add(sqrt(uint256(1e6).mul(uint256(1e6)).add(k.mul(4))))
-        )
-        .div(2)
-        .sub(uint256(1e6));
+        ).div(2).sub(uint256(1e6));
     }
 
     /***
@@ -210,7 +204,7 @@ contract BondingPremium {
         }
     }
 
-    function get_owner() public view returns (address) {
+    function getOwner() public view returns (address) {
         return owner;
     }
 
@@ -218,9 +212,9 @@ contract BondingPremium {
         return msg.sender == owner;
     }
 
-    function commit_transfer_ownership(address _owner) external {
-        require(msg.sender == owner, "dev: only owner");
+    function commitTransferOwnership(address _owner) external onlyOwner {
         require(transfer_ownership_deadline == 0, "dev: active transfer");
+        require(_owner != address(0), "dev: address zero");
 
         uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
         transfer_ownership_deadline = _deadline;
@@ -229,8 +223,7 @@ contract BondingPremium {
         emit CommitNewAdmin(_deadline, _owner);
     }
 
-    function apply_transfer_ownership() external {
-        require(msg.sender == owner, "dev: only owner");
+    function applyTransferOwnership() external onlyOwner {
         require(
             block.timestamp >= transfer_ownership_deadline,
             "dev: insufficient time"

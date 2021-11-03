@@ -110,7 +110,6 @@ library SafeMath {
     }
 }
 
-
 // File contracts/libraries/utils/Address.sol
 
 pragma solidity ^0.6.0;
@@ -142,7 +141,6 @@ library Address {
         return size > 0;
     }
 }
-
 
 // File contracts/interfaces/IParameters.sol
 
@@ -203,7 +201,7 @@ abstract contract IParameters {
 
     function isOwner() public view virtual returns (bool);
 
-    function getMin() external view virtual returns (uint256);
+    function getMinInsuranceSpan() external view virtual returns (uint256);
 
     function getFee2(uint256 _amount) external view virtual returns (uint256);
 
@@ -220,7 +218,6 @@ abstract contract IParameters {
         returns (bytes32);
 }
 
-
 // File contracts/interfaces/IPremiumModel.sol
 
 pragma solidity ^0.6.0;
@@ -233,7 +230,6 @@ interface IPremiumModel {
         uint256 _lockedAmount
     ) external view returns (uint256);
 }
-
 
 // File contracts/interfaces/IFeeModel.sol
 
@@ -248,7 +244,6 @@ interface IFeeModel {
     ) external view returns (uint256);
 }
 
-
 // File contracts/Parameters.sol
 
 /**
@@ -259,10 +254,6 @@ interface IFeeModel {
 
 pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
-
-
-
-
 
 contract Parameters is IParameters {
     using SafeMath for uint256;
@@ -515,7 +506,7 @@ contract Parameters is IParameters {
         }
     }
 
-    function getMin() external view override returns (uint256) {
+    function getMinInsuranceSpan() external view override returns (uint256) {
         if (_min[msg.sender] == 0) {
             return _min[address(0)];
         } else {

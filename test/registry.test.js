@@ -22,35 +22,35 @@ describe("registry", function () {
     //revert test
     it("test_commit_owner_only", async () => {
       await expect(
-        registry.connect(alice).commit_transfer_ownership(alice.address)
-      ).to.revertedWith("dev: only owner");
+        registry.connect(alice).commitTransferOwnership(alice.address)
+      ).to.revertedWith("Restricted: caller is not allowed to operate");
     });
 
     it("test_apply_owner_only", async () => {
       await expect(
-        registry.connect(alice).apply_transfer_ownership()
-      ).to.revertedWith("dev: only owner");
+        registry.connect(alice).applyTransferOwnership()
+      ).to.revertedWith("Restricted: caller is not allowed to operate");
     });
 
     //test
-    it("test_commit_transfer_ownership", async () => {
-      await registry.commit_transfer_ownership(alice.address);
+    it("test_commitTransferOwnership", async () => {
+      await registry.commitTransferOwnership(alice.address);
 
       expect(await registry.owner()).to.equal(creator.address);
       expect(await registry.future_owner()).to.equal(alice.address);
     });
 
-    it("test_apply_transfer_ownership", async () => {
-      await registry.commit_transfer_ownership(alice.address);
+    it("test_applyTransferOwnership", async () => {
+      await registry.commitTransferOwnership(alice.address);
       await ethers.provider.send("evm_increaseTime", [86400 * 4]);
-      await registry.apply_transfer_ownership();
+      await registry.applyTransferOwnership();
 
       expect(await registry.owner()).to.equal(alice.address);
       expect(await registry.future_owner()).to.equal(alice.address);
     });
 
     it("test_apply_without_commit", async () => {
-      await expect(registry.apply_transfer_ownership()).to.revertedWith(
+      await expect(registry.applyTransferOwnership()).to.revertedWith(
         "dev: no active transfer"
       );
     });

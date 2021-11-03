@@ -1,7 +1,7 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.8.7;
 
-import "../libraries/math/SafeMath.sol";
-import "../libraries/utils/Address.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 contract PremiumModel {
     using SafeMath for uint256;
@@ -19,7 +19,7 @@ contract PremiumModel {
     uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
 
     modifier onlyOwner() {
-        require(isOwner(), "Ownable: caller is not the owner");
+        require(isOwner(), "Restricted: caller is not allowed to operate");
         _;
     }
 
@@ -38,11 +38,11 @@ contract PremiumModel {
         }
         // 1) Calculate premium multiplier
         uint256 _util = _lockedAmount
-        .add(_amount)
-        .add(_lockedAmount)
-        .mul(1e5)
-        .div(_totalLiquidity)
-        .div(2);
+            .add(_amount)
+            .add(_lockedAmount)
+            .mul(1e5)
+            .div(_totalLiquidity)
+            .div(2);
         uint256 _premium = _amount.mul(_multiplier).mul(_util).div(1e10);
         // 2) add base premium
         _premium = _amount.mul(_baseRate).div(1e5).add(_premium);
@@ -83,7 +83,7 @@ contract PremiumModel {
         _multiplier = _multiplierPerYear;
     }
 
-    function get_owner() public view returns (address) {
+    function getOwner() public view returns (address) {
         return owner;
     }
 
@@ -91,9 +91,9 @@ contract PremiumModel {
         return msg.sender == owner;
     }
 
-    function commit_transfer_ownership(address _owner) external {
-        require(msg.sender == owner, "dev: only owner");
+    function commitTransferOwnership(address _owner) external onlyOwner {
         require(transfer_ownership_deadline == 0, "dev: active transfer");
+        require(_owner != address(0), "dev: address zero");
 
         uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
         transfer_ownership_deadline = _deadline;
@@ -102,8 +102,7 @@ contract PremiumModel {
         emit CommitNewAdmin(_deadline, _owner);
     }
 
-    function apply_transfer_ownership() external {
-        require(msg.sender == owner, "dev: only owner");
+    function applyTransferOwnership() external onlyOwner {
         require(
             block.timestamp >= transfer_ownership_deadline,
             "dev: insufficient time"

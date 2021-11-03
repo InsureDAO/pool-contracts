@@ -23,35 +23,35 @@ describe("test BondingPremium", () => {
     //revert test
     it("test_commit_owner_only", async () => {
       await expect(
-        fee.connect(alice).commit_transfer_ownership(alice.address)
-      ).to.revertedWith("dev: only owner");
+        fee.connect(alice).commitTransferOwnership(alice.address)
+      ).to.revertedWith("Restricted: caller is not allowed to operate");
     });
 
     it("test_apply_owner_only", async () => {
-      await expect(
-        fee.connect(alice).apply_transfer_ownership()
-      ).to.revertedWith("dev: only owner");
+      await expect(fee.connect(alice).applyTransferOwnership()).to.revertedWith(
+        "Restricted: caller is not allowed to operate"
+      );
     });
 
     //test
-    it("test_commit_transfer_ownership", async () => {
-      await fee.commit_transfer_ownership(alice.address);
+    it("test_commitTransferOwnership", async () => {
+      await fee.commitTransferOwnership(alice.address);
 
       expect(await fee.owner()).to.equal(creator.address);
       expect(await fee.future_owner()).to.equal(alice.address);
     });
 
-    it("test_apply_transfer_ownership", async () => {
-      await fee.commit_transfer_ownership(alice.address);
+    it("test_applyTransferOwnership", async () => {
+      await fee.commitTransferOwnership(alice.address);
       await ethers.provider.send("evm_increaseTime", [86400 * 4]);
-      await fee.apply_transfer_ownership();
+      await fee.applyTransferOwnership();
 
       expect(await fee.owner()).to.equal(alice.address);
       expect(await fee.future_owner()).to.equal(alice.address);
     });
 
     it("test_apply_without_commit", async () => {
-      await expect(fee.apply_transfer_ownership()).to.revertedWith(
+      await expect(fee.applyTransferOwnership()).to.revertedWith(
         "dev: no active transfer"
       );
     });
