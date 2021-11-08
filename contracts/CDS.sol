@@ -4,7 +4,7 @@ pragma solidity 0.8.7;
  * @title InsureDAO cds contract template contract
  * SPDX-License-Identifier: GPL-3.0
  */
-
+import "hardhat/console.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -75,7 +75,7 @@ contract CDS is IERC20 {
         _;
     }
 
-    constructor() public {
+    constructor() {
         initialized = true;
     }
 
@@ -128,7 +128,7 @@ contract CDS is IERC20 {
      */
 
     /**
-     * @notice A provider supplies collatral to the pool and receives iTokens
+     * @notice A liquidity provider supplies collatral to the pool and receives iTokens
      * @param _amount amount of token to deposit
      */
     function deposit(uint256 _amount) public returns (uint256 _mintAmount) {
@@ -159,7 +159,7 @@ contract CDS is IERC20 {
     }
 
     /**
-     * @notice Provider request withdrawal of collateral
+     * @notice A liquidity provider request withdrawal of collateral
      * @param _amount amount of iToken to burn
      */
     function requestWithdraw(uint256 _amount) external {
@@ -172,7 +172,7 @@ contract CDS is IERC20 {
     }
 
     /**
-     * @notice Provider burns iToken and receives collatral from the pool
+     * @notice A liquidity provider burns iToken and receives collatral from the pool
      * @param _amount amount of iToken to burn
      * @return _retVal the amount underlying token returned
      */
@@ -231,8 +231,12 @@ contract CDS is IERC20 {
             uint256 _shortage = _amount.sub(_available);
             //transfer as much as possible
             vault.transferValue(_available, msg.sender);
+            //check token address
+            address _token = vault.token();
             //mint and swap for the shortage
-            minter.emergency_mint(_shortage);
+            minter.emergency_mint(_token, _shortage);
+            IERC20(_token).approve(address(vault), _shortage);
+            vault.addValue(_shortage, address(this), msg.sender);
         }
         emit Compensated(msg.sender, _amount);
     }

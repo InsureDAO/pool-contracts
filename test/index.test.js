@@ -501,7 +501,6 @@ describe("Index", function () {
       await index.connect(alice).withdraw("10000");
       expect(await dai.balanceOf(alice.address)).to.equal("100000");
     });
-
     it("devaluate underlying when cover claim is accepted", async function () {
       await dai.connect(alice).approve(vault.address, 20000);
 

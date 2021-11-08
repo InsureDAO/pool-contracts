@@ -30,4 +30,6 @@ interface IVault {
         returns (uint256);
 
     function utilize() external returns (uint256 _amount);
+
+    function token() external returns (address);
 }

@@ -50,7 +50,7 @@ describe("CDS", function () {
   ];
   beforeEach(async () => {
     //import
-    [creator, alice, bob, chad, tom, minter] = await ethers.getSigners();
+    [creator, alice, bob, chad, tom] = await ethers.getSigners();
     const DAI = await ethers.getContractFactory("TestERC20Mock");
     const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
     const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
@@ -62,6 +62,7 @@ describe("CDS", function () {
     const PremiumModel = await ethers.getContractFactory("PremiumModel");
     const Parameters = await ethers.getContractFactory("Parameters");
     const Contorller = await ethers.getContractFactory("Controller");
+    const Minter = await ethers.getContractFactory("MinterMock");
     //deploy
     dai = await DAI.deploy();
     registry = await Registry.deploy();
@@ -78,8 +79,7 @@ describe("CDS", function () {
     cdsTemplate = await CDS.deploy();
     indexTemplate = await IndexTemplate.deploy();
     parameters = await Parameters.deploy(creator.address);
-
-    console.log();
+    minter = await Minter.deploy();
 
     //set up
     await dai.mint(chad.address, (100000).toString());
@@ -443,6 +443,70 @@ describe("CDS", function () {
       await cds.connect(alice).withdraw("9900");
       expect(await dai.balanceOf(alice.address)).to.closeTo("95415", "5"); //verify
       expect(await dai.balanceOf(bob.address)).to.closeTo("104470", "5"); //verify
+    });
+    it("CDS compensate insolvent amount within Index", async function () {
+      await dai.connect(alice).approve(vault.address, 20000);
+      await cds.connect(alice).deposit("1000");
+      await cds.connect(alice).requestWithdraw("990");
+      expect(await cds.totalSupply()).to.equal("990");
+      expect(await cds.totalLiquidity()).to.equal("990");
+      await index.connect(alice).deposit("1000");
+      expect(await index.totalSupply()).to.equal("970");
+      expect(await index.totalLiquidity()).to.equal("970");
+      expect(await market1.totalLiquidity()).to.equal("19400");
+      expect(await cds.totalLiquidity()).to.equal("1010");
+      expect(await vault.underlyingValue(market1.address)).to.equal("0");
+      expect(await vault.underlyingValue(index.address)).to.equal("970");
+      expect(await vault.underlyingValue(cds.address)).to.equal("1010");
+      await dai.connect(bob).approve(vault.address, 10000);
+      let currentTimestamp = BigNumber.from(
+        (await ethers.provider.getBlock("latest")).timestamp
+      );
+      //let endTime = await currentTimestamp.add(86400 * 8);
+      await market1
+        .connect(bob)
+        .insure(
+          "9000",
+          "10000",
+          86400 * 8,
+          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
+        );
+      expect(await dai.balanceOf(bob.address)).to.closeTo("99974", "2");
+      let incident = BigNumber.from(
+        (await ethers.provider.getBlock("latest")).timestamp
+      );
+      const tree = await new MerkleTree(long, keccak256, {
+        hashLeaves: true,
+        sortPairs: true,
+      });
+      const root = await tree.getHexRoot();
+      const leaf = keccak256(long[0]);
+      const proof = await tree.getHexProof(leaf);
+      await market1.applyCover(
+        "604800",
+        10000,
+        10000,
+        incident,
+        root,
+        long,
+        "metadata"
+      );
+
+      await market1.connect(bob).redeem("0", proof);
+      await expect(market1.connect(alice).unlock("0")).to.revertedWith(
+        "ERROR: UNLOCK_BAD_COINDITIONS"
+      );
+
+      expect(await dai.balanceOf(bob.address)).to.closeTo("108974", "2");
+      expect(await index.totalSupply()).to.equal("970");
+      expect(await market1.totalLiquidity()).to.closeTo("0", "1");
+      expect(await index.totalLiquidity()).to.closeTo("0", "1");
+      expect(await cds.totalLiquidity()).to.closeTo("0", "1");
+      expect(await vault.underlyingValue(index.address)).to.closeTo("0", "1");
+
+      await ethers.provider.send("evm_increaseTime", [86400 * 11]);
+      await market1.resume();
+      expect(await dai.balanceOf(alice.address)).to.closeTo("98000", "5"); //verify
     });
   });
   describe("Admin functions", function () {

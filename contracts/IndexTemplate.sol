@@ -15,6 +15,17 @@ import "./interfaces/IParameters.sol";
 import "./interfaces/IPoolTemplate.sol";
 import "./interfaces/ICDS.sol";
 
+/**
+ * An index pool can index a certain number of pools with leverage.
+ *
+ * Index A
+ * 　├ Pool A
+ * 　├ Pool B
+ * 　├ Pool C
+ * 　...
+ *
+ */
+
 contract IndexTemplate is IERC20 {
     using Address for address;
     using SafeMath for uint256;
@@ -72,7 +83,7 @@ contract IndexTemplate is IERC20 {
     uint256 public totalAllocPoint; //total allocation point
     address[] public poolList; //list of all pools
     uint256 public targetLev; //1x = 1e3
-    //The allocated credits are regarded as liquidity in each underlying pool
+    //The allocated credits are deemed as liquidity in each underlying pool
     //Credit amount(liquidity) will be determined by the following math
     //credit for a pool = total liquidity of this pool * leverage rate * allocation point for a pool / total allocation point
 
@@ -84,8 +95,8 @@ contract IndexTemplate is IERC20 {
     mapping(address => Withdrawal) public withdrawalReq;
 
     ///@notice magic numbers
-    uint256 public constant LEVERAGE_DIVISOR = 1e3;
-    uint256 public constant UTILIZATION_RATE_LENGTH = 1e8;
+    uint256 public constant LEVERAGE_DIVISOR_1E3 = 1e3;
+    uint256 public constant UTILIZATION_RATE_LENGTH_1E8 = 1e8;
 
     /**
      * @notice Throws if called by any account other than the owner.
@@ -98,7 +109,7 @@ contract IndexTemplate is IERC20 {
         _;
     }
 
-    constructor() public {
+    constructor() {
         initialized = true;
     }
 
@@ -144,11 +155,11 @@ contract IndexTemplate is IERC20 {
     }
 
     /**
-     * Pool initeractions
+     * Pool interactions
      */
 
     /**
-     * @notice A provider supplies collateral to the pool and receives iTokens
+     * @notice A liquidity provider supplies collateral to the pool and receives iTokens
      * @param _amount amount of token to deposit
      * @return _mintAmount the amount of iToken minted from the transaction
      */
@@ -183,7 +194,7 @@ contract IndexTemplate is IERC20 {
     }
 
     /**
-     * @notice Provider request withdrawal of collateral
+     * @notice A liquidity provider requests withdrawal of collateral
      * @param _amount amount of iToken to burn
      */
     function requestWithdraw(uint256 _amount) external {
@@ -196,7 +207,7 @@ contract IndexTemplate is IERC20 {
     }
 
     /**
-     * @notice Provider burns iToken and receives collatral from the pool
+     * @notice A liquidity provider burns iToken and receives collateral from the pool
      * @param _amount amount of iToken to burn
      * @return _retVal the amount underlying token returned
      */
@@ -246,7 +257,8 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice Get how much can a user withdraw from this index
-     * Withdrawable is limited to the amount which does not break the balance of credit allocation
+     * Withdrawable amount = the smallest available rate of underlying pools * the liquidity of the index
+     * The above operation aims to keep the allocation setting of credit
      * @return _retVal withdrawable amount
      */
     function withdrawable() public view returns (uint256 _retVal) {
@@ -269,10 +281,10 @@ contract IndexTemplate is IERC20 {
             } else if (_lowest == 0) {
                 _retVal = totalLiquidity();
             } else {
-                _retVal = (UTILIZATION_RATE_LENGTH - _lowest)
+                _retVal = (UTILIZATION_RATE_LENGTH_1E8 - _lowest)
                     .mul(totalLiquidity())
-                    .mul(LEVERAGE_DIVISOR)
-                    .div(UTILIZATION_RATE_LENGTH)
+                    .mul(LEVERAGE_DIVISOR_1E3)
+                    .div(UTILIZATION_RATE_LENGTH_1E8)
                     .div(leverage())
                     .add(_accruedPremiums());
             }
@@ -290,28 +302,44 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice Internal function to adjust allocation
-     * We adjust credit allocation to meet the following priorities
-     * 1) Keep the leverage rate
-     * 2) Make credit allocatuion aligned to credit allocaton points
-     * we also clear/withdraw accrued premiums in underlying pools to this pool.
+     * @param _liquidity available liquidity of the index
+     * Allocation adjustment of credit is done by the following steps
+     * 1)Check total allocatable balance of the index
+     * 2)Calculate ideal allocation for each pool
+     * 3)Check Current allocated balance for each pool
+     * 4)Adjust (withdraw/deposit) allocation for each Pool*
+     *
+     * Liquidity in pool may be locked and cannot withdraw. In that case, the index try to withdraw all available liquidity first,
+     * then recalculated available balance and iterate 1)~4) for the remaining.
+     *
+     * The index may allocate credit beyond the share settings to maintain the leverage rate not to surpass the leverage setting.
+     *
+     * Along with adjustment the index clears accrued premiums in underlying pools to this pool during allocation.
      */
     function _adjustAlloc(uint256 _liquidity) internal {
         //Check current leverage rate and get target total credit allocation
-        uint256 _targetCredit = targetLev.mul(_liquidity).div(LEVERAGE_DIVISOR); //Allocatable credit
-        address[] memory _poolList = new address[](poolList.length); // log which pool has exceeded
+        uint256 _targetCredit = targetLev.mul(_liquidity).div(
+            LEVERAGE_DIVISOR_1E3
+        );
+        address[] memory _poolList = new address[](poolList.length);
         uint256 _allocatable = _targetCredit;
         uint256 _allocatablePoints = totalAllocPoint;
-        //Check each pool and if current credit allocation > target & it is impossble to adjust, then withdraw all availablle credit
+        //Check each pool and if current credit allocation > target && it is impossble to adjust, then withdraw all availablle credit
         for (uint256 i = 0; i < poolList.length; i++) {
             if (poolList[i] != address(0)) {
+                //Target credit allocation for a pool
                 uint256 _target = _targetCredit
                     .mul(allocPoints[poolList[i]])
                     .div(totalAllocPoint);
+                //get how much has been allocated for a pool
                 uint256 _current = IPoolTemplate(poolList[i]).allocatedCredit(
                     address(this)
                 );
+                //get how much liquidty is available to withdraw
                 uint256 _available = IPoolTemplate(poolList[i])
                     .availableBalance();
+                //if needed to withdraw credit but unable, then withdraw all available.
+                //Otherwise, skip.
                 if (
                     (_current > _target &&
                         _current.sub(_target) > _available) ||
@@ -338,9 +366,10 @@ contract IndexTemplate is IERC20 {
                 uint256 _current = IPoolTemplate(poolList[i]).allocatedCredit(
                     address(this)
                 );
-
+                //get how much liquidty is available to withdraw
                 uint256 _available = IPoolTemplate(poolList[i])
                     .availableBalance();
+                //Withdraw or Deposit credit
                 if (_current > _target && _available != 0) {
                     //if allocated credit is higher than the target, try to decrease
                     uint256 _decrease = _current.sub(_target);
@@ -366,9 +395,10 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice Make a payout if an accident occured in a underlying pool
+     * @param _amount amount of liquidity to compensate for the called pool
      * We compensate underlying pools by the following steps
-     * 1) Compensate underlying pools from the liquidtiy of this pool
-     * 2) If this pool is unable to cover a compesation, compensate from the CDS pool
+     * 1) Compensate underlying pools from the liquidity of this pool
+     * 2) If this pool is unable to cover a compensation, can get compensated from the CDS pool
      */
     function compensate(uint256 _amount) external {
         require(
@@ -563,7 +593,7 @@ contract IndexTemplate is IERC20 {
     }
 
     /**
-     * @notice Destoys `amount` tokens from `account`, reducing the
+     * @notice Destroys `amount` tokens from `account`, reducing the
      */
     function _burn(address account, uint256 value) internal {
         require(account != address(0), "ERC20: burn from the zero address");
@@ -602,7 +632,7 @@ contract IndexTemplate is IERC20 {
         //check current leverage rate
         if (totalLiquidity() > 0) {
             return
-                totalAllocatedCredit.mul(LEVERAGE_DIVISOR).div(
+                totalAllocatedCredit.mul(LEVERAGE_DIVISOR_1E3).div(
                     totalLiquidity()
                 );
         } else {

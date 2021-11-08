@@ -90,7 +90,7 @@ contract PoolTemplate is IERC20 {
     uint256 public ownAttributions; //how much attribution point this pool's original liquidity has
     uint256 public lockedAmount; //Liquidity locked when utilized
     uint256 public totalCredit; //Liquidity from index
-    uint256 public rewardPerCredit; //Times REWARD_DECIMALS. To avoid overdlow
+    uint256 public rewardPerCredit; //Times REWARD_DECIMALS_1E12. To avoid reward decimal truncation *See explanation below.
     uint256 public pendingEnd; //pending time when paying out
 
     /// @notice Market variables for margin account
@@ -98,20 +98,24 @@ contract PoolTemplate is IERC20 {
         uint256 credit; //How many credit (equal to liquidity) the index has allocated
         uint256 rewardDebt; // Reward debt. *See explanation below.
         bool exist; //true if the index has allocated credit
-        //
-        // We do some fancy math here. Basically, any point in time, the amount of premium
-        // entitled to an index but is pending to be distributed is:
-        //
-        //   pending reward = (index.credit * rewardPerCredit) - index.rewardDebt
-        //
-        // When the pool receives premium, it updates rewardPerCredit
-        //
-        // Whenever an index deposits, withdraws credit to a pool, Here's what happens:
-        //   1. The index receives the pending reward sent to the index vault.
-        //   2. The index's rewardDebt get updated.
     }
     mapping(address => IndexInfo) public indexes;
     address[] public indexList;
+
+    //
+    // * We do some fancy math for premium calculation of indexes.
+    // Basically, any point in time, the amount of premium entitled to an index but is pending to be distributed is:
+    //
+    //   pending reward = (index.credit * rewardPerCredit) - index.rewardDebt
+    //
+    // When the pool receives premium, it updates rewardPerCredit
+    //
+    // Whenever an index deposits, withdraws credit to a pool, Here's what happens:
+    //   1. The index receives the pending reward sent to the index vault.
+    //   2. The index's rewardDebt get updated.
+    //
+    // This mechanism is widely used (e.g. SushiSwap: MasterChef.sol)
+    //
 
     ///@notice Market status transition management
     enum MarketStatus {
@@ -150,8 +154,8 @@ contract PoolTemplate is IERC20 {
     Incident public incident;
 
     ///@notice magic numbers
-    uint256 public constant UTILIZATION_RATE_LENGTH = 1e8;
-    uint256 public constant REWARD_DECIMALS = 1e12;
+    uint256 public constant UTILIZATION_RATE_LENGTH_1E8 = 1e8;
+    uint256 public constant REWARD_DECIMALS_1E12 = 1e12;
 
     /**
      * @notice Throws if called by any account other than the owner.
@@ -164,7 +168,7 @@ contract PoolTemplate is IERC20 {
         _;
     }
 
-    constructor() public {
+    constructor() {
         initialized = true;
     }
 
@@ -228,11 +232,11 @@ contract PoolTemplate is IERC20 {
     }
 
     /**
-     * Pool initeractions
+     * Pool interactions
      */
 
     /**
-     * @notice A provider supplies token to the pool and receives iTokens
+     * @notice A liquidity provider supplies token to the pool and receives iTokens
      * @param _amount amount of token to deposit
      * @return _mintAmount the amount of iToken minted from the transaction
      */
@@ -259,7 +263,7 @@ contract PoolTemplate is IERC20 {
     }
 
     /**
-     * @notice Provider request withdrawal of collateral
+     * @notice A liquidity provider request withdrawal of collateral
      * @param _amount amount of iToken to burn
      */
     function requestWithdraw(uint256 _amount) external {
@@ -272,7 +276,7 @@ contract PoolTemplate is IERC20 {
     }
 
     /**
-     * @notice Provider burns iToken and receives collatral from the pool
+     * @notice A liquidity provider burns iToken and receives collateral from the pool
      * @param _amount amount of iToken to burn
      * @return _retVal the amount underlying token returned
      */
@@ -335,7 +339,7 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Unlock funds locked in the expired insurance
-     * @param _id id of the insurance policy to unclock liquidity
+     * @param _id id of the insurance policy to unlock liquidity
      */
     function unlock(uint256 _id) public {
         Insurance storage insurance = insurances[_id];
@@ -358,7 +362,7 @@ contract PoolTemplate is IERC20 {
      */
 
     /**
-     * @notice Allocate credit from indexes. Allocated credits are treated as equivalent to deposited real token.
+     * @notice Allocate credit from an index. Allocated credits are deemed as equivalent liquidity as real token deposits.
      * @param _credit credit (liquidity amount) to be added to this pool
      * @return _pending pending preium for the caller index
      */
@@ -378,7 +382,7 @@ contract PoolTemplate is IERC20 {
         }
         if (_index.credit > 0) {
             _pending = _sub(
-                _index.credit.mul(rewardPerCredit).div(REWARD_DECIMALS),
+                _index.credit.mul(rewardPerCredit).div(REWARD_DECIMALS_1E12),
                 _index.rewardDebt
             );
             if (_pending > 0) {
@@ -393,7 +397,7 @@ contract PoolTemplate is IERC20 {
             emit CreditIncrease(msg.sender, _credit);
         }
         _index.rewardDebt = _index.credit.mul(rewardPerCredit).div(
-            REWARD_DECIMALS
+            REWARD_DECIMALS_1E12
         );
     }
 
@@ -416,7 +420,7 @@ contract PoolTemplate is IERC20 {
 
         //calculate acrrued premium
         _pending = _sub(
-            _index.credit.mul(rewardPerCredit).div(REWARD_DECIMALS),
+            _index.credit.mul(rewardPerCredit).div(REWARD_DECIMALS_1E12),
             _index.rewardDebt
         );
 
@@ -433,7 +437,7 @@ contract PoolTemplate is IERC20 {
         if (_pending > 0) {
             vault.transferAttribution(_pending, msg.sender);
             _index.rewardDebt = _index.credit.mul(rewardPerCredit).div(
-                REWARD_DECIMALS
+                REWARD_DECIMALS_1E12
             );
         }
     }
@@ -445,7 +449,7 @@ contract PoolTemplate is IERC20 {
     /**
      * @notice Get insured for the specified amount for specified span
      * @param _amount target amount to get covered
-     * @param _maxCost maxmum cost to pay for the premium. revert if the premium is hifger
+     * @param _maxCost maximum cost to pay for the premium. revert if the premium is hifger
      * @param _span length to get covered(e.g. 7 days)
      * @param _target target id
      * @return id of the insurance policy
@@ -512,7 +516,7 @@ contract PoolTemplate is IERC20 {
         );
         if (totalCredit > 0) {
             rewardPerCredit = rewardPerCredit.add(
-                _attributionForIndex.mul(REWARD_DECIMALS).div(totalCredit)
+                _attributionForIndex.mul(REWARD_DECIMALS_1E12).div(totalCredit)
             );
         }
 
@@ -543,7 +547,7 @@ contract PoolTemplate is IERC20 {
         uint256 _payoutDenominator = incident.payoutDenominator;
         uint256 _incidentTimestamp = incident.incidentTimestamp;
         bytes32 _targets = incident.merkleRoot;
-        uint256 MAGIC_SCALE = 1e8; //1e8 to reduce truncation
+        uint256 MAGIC_SCALE_1E8 = 1e8; //internal multiplication scale 1e8 to reduce decimal truncation
 
         require(
             marketStatus == MarketStatus.Payingout,
@@ -569,14 +573,14 @@ contract PoolTemplate is IERC20 {
         );
         uint256 _deductionFromIndex = _payoutAmount
             .mul(totalCredit)
-            .mul(MAGIC_SCALE)
+            .mul(MAGIC_SCALE_1E8)
             .div(totalLiquidity());
 
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indexes[indexList[i]].credit > 0) {
                 uint256 _shareOfIndex = indexes[indexList[i]]
                     .credit
-                    .mul(MAGIC_SCALE)
+                    .mul(MAGIC_SCALE_1E8)
                     .div(totalCredit);
                 uint256 _redeemAmount = _divCeil(
                     _deductionFromIndex,
@@ -592,7 +596,7 @@ contract PoolTemplate is IERC20 {
         );
         uint256 _indexAttribution = _paidAttribution
             .mul(_deductionFromIndex)
-            .div(MAGIC_SCALE)
+            .div(MAGIC_SCALE_1E8)
             .div(_payoutAmount);
         ownAttributions = ownAttributions.sub(
             _paidAttribution.sub(_indexAttribution)
@@ -627,7 +631,7 @@ contract PoolTemplate is IERC20 {
     }
 
     /**
-     * @notice Get how much premium for the specified amound and span
+     * @notice Get how much premium for the specified amount and span
      * @param _amount amount to get insured
      * @param _span span to get covered
      */
@@ -652,15 +656,14 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Decision to make a payout
-     * @param _pending length to allow policy holders to redeem their policy
+     * @param _pending length to allow policyholders to redeem their policy
      * @param _payoutNumerator Numerator of the payout *See below
      * @param _payoutDenominator Denominator of the payout *See below
      * @param _incidentTimestamp Unixtimestamp of the incident
      * @param _merkleRoot Merkle root of the payout id list
-     * @param _rawdata raw data before the data set is coverted to merkle tree
-     * @param _memo additional note for the payout report
-     * payout ratio is determined by numerator/denominator
-     * e.g. 50/100 = 50% payout
+     * @param _rawdata raw data before the data set is coverted to merkle tree (to be emiｔted within event)
+     * @param _memo additional memo for the payout report (to be emmited within event)
+     * payout ratio is determined by numerator/denominator (e.g. 50/100 = 50% payout
      */
     function applyCover(
         uint256 _pending,
@@ -852,7 +855,7 @@ contract PoolTemplate is IERC20 {
     }
 
     /**
-     * @notice Destoys `amount` tokens from `account`, reducing the
+     * @notice Destroys `amount` tokens from `account`, reducing the
      */
     function _burn(address account, uint256 value) internal {
         require(account != address(0), "ERC20: burn from the zero address");
@@ -927,7 +930,7 @@ contract PoolTemplate is IERC20 {
         } else {
             return
                 _sub(
-                    _credit.mul(rewardPerCredit).div(REWARD_DECIMALS),
+                    _credit.mul(rewardPerCredit).div(REWARD_DECIMALS_1E12),
                     indexes[_index].rewardDebt
                 );
         }
@@ -996,7 +999,9 @@ contract PoolTemplate is IERC20 {
     function utilizationRate() public view returns (uint256 _rate) {
         if (lockedAmount > 0) {
             return
-                lockedAmount.mul(UTILIZATION_RATE_LENGTH).div(totalLiquidity());
+                lockedAmount.mul(UTILIZATION_RATE_LENGTH_1E8).div(
+                    totalLiquidity()
+                );
         } else {
             return 0;
         }
