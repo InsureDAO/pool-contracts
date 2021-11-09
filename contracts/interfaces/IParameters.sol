@@ -31,6 +31,8 @@ abstract contract IParameters {
 
     function setCondition(bytes32 _reference, bytes32 _target) external virtual;
 
+    function setMinter(address _minter) external virtual;
+
     function getVault(address _token) external view virtual returns (address);
 
     function getPremium(
@@ -86,4 +88,6 @@ abstract contract IParameters {
         view
         virtual
         returns (bytes32);
+
+    function getMinter() public view virtual returns (address);
 }

@@ -20,6 +20,7 @@ contract Parameters {
 
     event CommitNewAdmin(uint256 deadline, address future_admin);
     event NewAdmin(address admin);
+    event MinterSet(address minter);
     event VaultSet(address indexed token, address vault);
     event FeeSet(address indexed target, address model);
     event Fee2Set(address indexed target, uint256 rate);
@@ -36,6 +37,7 @@ contract Parameters {
     address public future_owner;
     uint256 public transfer_ownership_deadline;
     uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
+    address public minter;
 
     mapping(address => address) private _vaults; //address of the vault contract for each token
     mapping(address => address) private _fee; //address for each fee model contract
@@ -51,14 +53,6 @@ contract Parameters {
 
     constructor(address _target) public {
         owner = _target;
-    }
-
-    /**
-     * @notice Get the address of the owner
-     * @return owner's address
-     */
-    function getOwner() public view returns (address) {
-        return owner;
     }
 
     /**
@@ -109,6 +103,16 @@ contract Parameters {
         owner = _owner;
 
         emit NewAdmin(owner);
+    }
+
+    /**
+     * @notice set the minter address
+     * @param _minter minter address
+     */
+    function setMinter(address _minter) external onlyOwner {
+        require(minter == address(0), "dev: already initialized");
+        minter = _minter;
+        emit MinterSet(_minter);
     }
 
     /**
@@ -238,6 +242,22 @@ contract Parameters {
     {
         _conditions[_reference] = _target;
         emit ConditionSet(_reference, _target);
+    }
+
+    /**
+     * @notice Get the address of the owner
+     * @return owner's address
+     */
+    function getOwner() public view returns (address) {
+        return owner;
+    }
+
+    /**
+     * @notice Get the minter address
+     * @return minter's address
+     */
+    function getMinter() public view returns (address) {
+        return minter;
     }
 
     /**

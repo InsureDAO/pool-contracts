@@ -134,12 +134,6 @@ describe("CDS", function () {
       registry.address,
       true
     );
-    await factory.approveReference(
-      cdsTemplate.address,
-      3,
-      minter.address,
-      true
-    );
 
     await premium.setPremium("2000", "50000");
     await fee.setFee("10000");
@@ -153,6 +147,7 @@ describe("CDS", function () {
     await parameters.setWithdrawable(ZERO_ADDRESS, "86400000");
     await parameters.setVault(dai.address, vault.address);
     await parameters.setMaxList(ZERO_ADDRESS, "10");
+    await parameters.setMinter(minter.address);
 
     await factory.createMarket(
       poolTemplate.address,
@@ -175,7 +170,7 @@ describe("CDS", function () {
       cdsTemplate.address,
       "Here is metadata.",
       [0],
-      [dai.address, registry.address, parameters.address, minter.address]
+      [dai.address, registry.address, parameters.address]
     );
     await factory.createMarket(
       indexTemplate.address,

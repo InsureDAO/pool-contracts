@@ -55,7 +55,6 @@ contract CDS is IERC20 {
     IParameters public parameters;
     IRegistry public registry;
     IVault public vault;
-    IMinter public minter;
 
     ///@notice user status management
     struct Withdrawal {
@@ -89,7 +88,6 @@ contract CDS is IERC20 {
      * references[0] = underlying token address
      * references[1] = registry
      * references[2] = parameter
-     * references[3] = minter
      * @param _metaData arbitrary string to store market information
      * @param _conditions array of conditions
      * @param _references array of references
@@ -104,8 +102,7 @@ contract CDS is IERC20 {
                 bytes(_metaData).length > 0 &&
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
-                _references[2] != address(0) &&
-                _references[3] != address(0),
+                _references[2] != address(0),
             "ERROR: INITIALIZATION_BAD_CONDITIONS"
         );
 
@@ -118,7 +115,6 @@ contract CDS is IERC20 {
         parameters = IParameters(_references[2]);
         vault = IVault(parameters.getVault(_references[0]));
         registry = IRegistry(_references[1]);
-        minter = IMinter(_references[3]);
 
         metadata = _metaData;
     }
@@ -234,7 +230,7 @@ contract CDS is IERC20 {
             //check token address
             address _token = vault.token();
             //mint and swap for the shortage
-            minter.emergency_mint(_token, _shortage);
+            IMinter(parameters.getMinter()).emergency_mint(_token, _shortage);
             IERC20(_token).approve(address(vault), _shortage);
             vault.addValue(_shortage, address(this), msg.sender);
         }

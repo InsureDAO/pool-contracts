@@ -132,12 +132,6 @@ describe("Index", function () {
       registry.address,
       true
     );
-    await factory.approveReference(
-      cdsTemplate.address,
-      3,
-      minter.address,
-      true
-    );
 
     await premium.setPremium("2000", "50000");
     await fee.setFee("10000");
@@ -171,7 +165,7 @@ describe("Index", function () {
       cdsTemplate.address,
       "Here is metadata.",
       [0],
-      [dai.address, registry.address, parameters.address, minter.address]
+      [dai.address, registry.address, parameters.address]
     );
     await factory.createMarket(
       indexTemplate.address,
