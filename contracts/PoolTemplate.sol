@@ -8,20 +8,20 @@ pragma solidity 0.8.7;
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
 
 import "./interfaces/IPoolTemplate.sol";
+import "./interfaces/IUniversalMarket.sol";
+
 import "./interfaces/IParameters.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IIndexTemplate.sol";
 
-contract PoolTemplate is IERC20, IPoolTemplate {
+contract PoolTemplate is IERC20, IPoolTemplate, IUniversalMarket {
 
     /**
      * EVENTS
      */
-
     event Deposit(address indexed depositor, uint256 amount, uint256 mint);
     event WithdrawRequested(
         address indexed withdrawer,
@@ -61,10 +61,11 @@ contract PoolTemplate is IERC20, IPoolTemplate {
     event MarketStatusChanged(MarketStatus statusValue);
     event Paused(bool paused);
     event MetadataChanged(string metadata);
+
+
     /**
      * Storage
      */
-
     /// @notice Market setting
     bool public initialized;
     bool public override paused;
@@ -156,6 +157,7 @@ contract PoolTemplate is IERC20, IPoolTemplate {
     uint256 public constant UTILIZATION_RATE_LENGTH_1E8 = 1e8;
     uint256 public constant REWARD_DECIMALS_1E12 = 1e12;
 
+
     /**
      * @notice Throws if called by any account other than the owner.
      */
@@ -167,9 +169,11 @@ contract PoolTemplate is IERC20, IPoolTemplate {
         _;
     }
 
+
     constructor() {
         initialized = true;
     }
+
 
     /**
      * Initialize interaction
@@ -192,7 +196,7 @@ contract PoolTemplate is IERC20, IPoolTemplate {
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external {
+    ) external override {
         require(
             initialized == false &&
                 bytes(_metaData).length > 0 &&
@@ -979,7 +983,7 @@ contract PoolTemplate is IERC20, IPoolTemplate {
      * @notice Used for changing settlementFeeRecipient
      * @param _state true to set paused and vice versa
      */
-    function setPaused(bool _state) external onlyOwner {
+    function setPaused(bool _state) external override onlyOwner {
         if (paused != _state) {
             paused = _state;
             emit Paused(_state);
@@ -990,7 +994,7 @@ contract PoolTemplate is IERC20, IPoolTemplate {
      * @notice Change metadata string
      * @param _metadata new metadata string
      */
-    function changeMetadata(string calldata _metadata) external onlyOwner {
+    function changeMetadata(string calldata _metadata) external override onlyOwner {
         metadata = _metadata;
         emit MetadataChanged(_metadata);
     }

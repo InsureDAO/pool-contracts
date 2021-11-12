@@ -1,12 +1,12 @@
 pragma solidity 0.8.7;
+
 /**
  * @author InsureDAO
- * @title InsureDAO cds contract template contract
+ * @title InsureDAO CDS template contract
  * SPDX-License-Identifier: GPL-3.0
  */
-import "hardhat/console.sol";
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "./interfaces/IVault.sol";
@@ -15,13 +15,11 @@ import "./interfaces/IParameters.sol";
 import "./interfaces/ICDS.sol";
 import "./interfaces/IMinter.sol";
 
-contract CDS is IERC20 {
-    using Address for address;
+contract CDS is IERC20, ICDS {
 
     /**
      * EVENTS
      */
-
     event Deposit(address indexed depositor, uint256 amount, uint256 mint);
     event WithdrawRequested(
         address indexed withdrawer,
@@ -32,10 +30,11 @@ contract CDS is IERC20 {
     event Compensated(address indexed index, uint256 amount);
     event Paused(bool paused);
     event MetadataChanged(string metadata);
+
+
     /**
      * Storage
      */
-
     /// @notice Market setting
     bool public initialized;
     bool public paused;
@@ -60,6 +59,7 @@ contract CDS is IERC20 {
         uint256 amount;
     }
     mapping(address => Withdrawal) public withdrawalReq;
+
 
     /**
      * @notice Throws if called by any account other than the owner.
@@ -209,7 +209,7 @@ contract CDS is IERC20 {
      * @notice Compensate the shortage if an index is insolvent
      * @param _amount amount of underlier token to compensate shortage within index
      */
-    function compensate(uint256 _amount) external {
+    function compensate(uint256 _amount) external override {
         require(registry.isListed(msg.sender));
         uint256 _available = vault.underlyingValue(address(this));
         if (_available >= _amount) {

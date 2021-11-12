@@ -13,9 +13,9 @@ interface IVault {
 
     function transferValue(uint256 _amount, address _destination) external;
 
-    function withdrawAttribution(uint256 _attribution, address _to) external;
+    function withdrawAttribution(uint256 _attribution, address _to) external returns (uint256 _retVal);
 
-    function withdrawAllAttribution(address _to) external;
+    function withdrawAllAttribution(address _to) external returns (uint256 _retVal);
 
     function transferAttribution(uint256 _amount, address _destination)
         external;

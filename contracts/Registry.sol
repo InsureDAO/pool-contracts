@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.7;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import "./interfaces/IRegistry.sol";
 
-contract Registry {
-    using SafeMath for uint256;
-    using Address for address;
+contract Registry is IRegistry{
+
 
     event CommitNewAdmin(uint256 deadline, address future_admin);
     event NewAdmin(address admin);
@@ -60,7 +58,7 @@ contract Registry {
      * @notice Register a new market.
      * @param _market market address to register
      */
-    function supportMarket(address _market) external {
+    function supportMarket(address _market) external override {
         require(!markets[_market]);
         require(msg.sender == factory || msg.sender == owner);
         require(_market != address(0), "dev: zero address");
@@ -74,7 +72,7 @@ contract Registry {
      * @param _target target address
      * @param _typeId id
      */
-    function setExistence(address _target, uint256 _typeId) external {
+    function setExistence(address _target, uint256 _typeId) external override {
         require(msg.sender == factory || msg.sender == owner);
         bytes32 _hashId = keccak256(abi.encodePacked(_target, _typeId));
         existence[_hashId] = true;
@@ -97,7 +95,7 @@ contract Registry {
      * @param _address address covered by CDS
      * @return true if the id within the market already exists
      */
-    function getCDS(address _address) external view returns (address) {
+    function getCDS(address _address) external override view returns (address) {
         if (cds[_address] == address(0)) {
             return cds[address(0)];
         } else {
@@ -112,7 +110,7 @@ contract Registry {
      * @return true if the id within the market already exists
      */
     function confirmExistence(address _target, uint256 _typeId)
-        external
+        external override
         view
         returns (bool)
     {
@@ -124,7 +122,7 @@ contract Registry {
      * @param _market market address to inquire
      * @return true if listed
      */
-    function isListed(address _market) external view returns (bool) {
+    function isListed(address _market) external override view returns (bool) {
         return markets[_market];
     }
 
@@ -147,7 +145,7 @@ contract Registry {
         require(transfer_ownership_deadline == 0, "dev: active transfer");
         require(_owner != address(0), "dev: address zero");
 
-        uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
+        uint256 _deadline = block.timestamp + ADMIN_ACTIONS_DELAY;
         transfer_ownership_deadline = _deadline;
         future_owner = _owner;
 

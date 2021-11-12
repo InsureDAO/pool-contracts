@@ -1,26 +1,28 @@
 pragma solidity 0.8.7;
+
 /**
  * @author InsureDAO
  * @title InsureDAO vault contract
+ * @notice
  * SPDX-License-Identifier: GPL-3.0
  */
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+
+import "./interfaces/IVault.sol";
+
 import "./interfaces/IController.sol";
 import "./interfaces/IRegistry.sol";
 
-contract Vault {
+contract Vault is IVault{
     using SafeERC20 for IERC20;
-    using Address for address;
-    using SafeMath for uint256;
+
     /**
      * Storage
      */
 
-    IERC20 public token;
+    address public override token;
     IController public controller;
     IRegistry public registry;
 
@@ -54,7 +56,7 @@ contract Vault {
         address _registry,
         address _controller
     ) {
-        token = IERC20(_token);
+        token = _token;
         registry = IRegistry(_registry);
         controller = IController(_controller);
         owner = msg.sender;
@@ -76,7 +78,7 @@ contract Vault {
         uint256 _amount,
         address _from,
         address _beneficiary
-    ) external returns (uint256 _attributions) {
+    ) external override returns (uint256 _attributions) {
         require(
             IRegistry(registry).isListed(msg.sender),
             "ERROR_ADD-VALUE_BADCONDITOONS"
@@ -85,14 +87,13 @@ contract Vault {
             _attributions = _amount;
         } else {
             uint256 _pool = valueAll();
-            _attributions = _amount.mul(totalAttributions).div(_pool);
+            _attributions = _amount * totalAttributions / _pool;
         }
-        token.safeTransferFrom(_from, address(this), _amount);
-        balance = balance.add(_amount);
-        totalAttributions = totalAttributions.add(_attributions);
-        attributions[_beneficiary] = attributions[_beneficiary].add(
-            _attributions
-        );
+        IERC20(token).safeTransferFrom(_from, address(this), _amount);
+
+        balance += _amount;
+        totalAttributions += _attributions;
+        attributions[_beneficiary] +=  _attributions;
     }
 
     /**
@@ -103,7 +104,7 @@ contract Vault {
      */
 
     function withdrawValue(uint256 _amount, address _to)
-        external
+        external override
         returns (uint256 _attributions)
     {
         require(
@@ -111,15 +112,15 @@ contract Vault {
                 underlyingValue(msg.sender) >= _amount,
             "ERROR_WITHDRAW-VALUE_BADCONDITOONS"
         );
-        _attributions = totalAttributions.mul(_amount).div(valueAll());
-        attributions[msg.sender] = attributions[msg.sender].sub(_attributions);
-        totalAttributions = totalAttributions.sub(_attributions);
+        _attributions = totalAttributions * _amount / valueAll();
+        attributions[msg.sender] -=  _attributions;
+        totalAttributions -= _attributions;
         if (available() < _amount) {
-            uint256 _shortage = _amount.sub(available());
+            uint256 _shortage = _amount - available();
             _unutilize(_shortage);
         }
-        balance = balance.sub(_amount);
-        token.safeTransfer(_to, _amount);
+        balance -=_amount;
+        IERC20(token).safeTransfer(_to, _amount);
     }
 
     /**
@@ -128,21 +129,15 @@ contract Vault {
      * @param _destination reciepient of value
      */
 
-    function transferValue(uint256 _amount, address _destination) external {
+    function transferValue(uint256 _amount, address _destination) external override {
         require(
             attributions[msg.sender] > 0 &&
                 underlyingValue(msg.sender) >= _amount,
             "ERROR_TRANSFER-VALUE_BADCONDITOONS"
         );
-        uint256 _targetAttribution = _amount.mul(totalAttributions).div(
-            valueAll()
-        );
-        attributions[msg.sender] = attributions[msg.sender].sub(
-            _targetAttribution
-        );
-        attributions[_destination] = attributions[_destination].add(
-            _targetAttribution
-        );
+        uint256 _targetAttribution = _amount * totalAttributions / valueAll();
+        attributions[msg.sender] -= _targetAttribution;
+        attributions[_destination] += _targetAttribution;
     }
 
     /**
@@ -152,7 +147,7 @@ contract Vault {
      * @return _retVal number of token withdrawn from the transaction
      */
     function withdrawAttribution(uint256 _attribution, address _to)
-        external
+        external override
         returns (uint256 _retVal)
     {
         _retVal = _withdrawAttribution(_attribution, _to);
@@ -164,7 +159,7 @@ contract Vault {
      * @return _retVal number of token withdrawn from the transaction
      */
     function withdrawAllAttribution(address _to)
-        external
+        external override
         returns (uint256 _retVal)
     {
         _retVal = _withdrawAttribution(attributions[msg.sender], _to);
@@ -184,14 +179,14 @@ contract Vault {
             attributions[msg.sender] >= _attribution,
             "ERROR_WITHDRAW-ATTRIBUTION_BADCONDITOONS"
         );
-        _retVal = _attribution.mul(valueAll()).div(totalAttributions);
+        _retVal = _attribution * valueAll() / totalAttributions;
         attributions[msg.sender] -= _attribution;
         if (available() < _retVal) {
-            uint256 _shortage = _retVal.sub(available());
+            uint256 _shortage = _retVal - available();
             _unutilize(_shortage);
         }
-        balance = balance.sub(_retVal);
-        token.safeTransfer(_to, _retVal);
+        balance = balance - _retVal;
+        IERC20(token).safeTransfer(_to, _retVal);
     }
 
     /**
@@ -200,28 +195,28 @@ contract Vault {
      * @param _destination reciepient of attribution
      */
     function transferAttribution(uint256 _amount, address _destination)
-        external
+        external override
     {
         require(
             attributions[msg.sender] > 0 && attributions[msg.sender] >= _amount,
             "ERROR_TRANSFER-ATTRIBUTION_BADCONDITOONS"
         );
-        attributions[msg.sender] = attributions[msg.sender].sub(_amount);
-        attributions[_destination] = attributions[_destination].add(_amount);
+        attributions[msg.sender] -= _amount;
+        attributions[_destination] += _amount;
     }
 
     /**
      * @notice the controller can utilize all available stored funds
      * @return _amount amount of token utilized
      */
-    function utilize() external returns (uint256 _amount) {
+    function utilize() external override returns (uint256 _amount) {
         if (keeper != address(0)) {
             require(msg.sender == keeper, "ERROR_NOT_KEEPER");
         }
         _amount = available();
         if (_amount > 0) {
-            token.safeTransfer(address(controller), _amount);
-            balance = balance.sub(_amount);
+            IERC20(token).safeTransfer(address(controller), _amount);
+            balance -= _amount;
             controller.earn(address(token), _amount);
         }
     }
@@ -242,7 +237,7 @@ contract Vault {
      * @return amount of attritbution
      */
 
-    function attributionOf(address _target) external view returns (uint256) {
+    function attributionOf(address _target) external override view returns (uint256) {
         return attributions[_target];
     }
 
@@ -260,12 +255,12 @@ contract Vault {
      * @return token value of input attribution
      */
     function attributionValue(uint256 _attribution)
-        external
+        external override
         view
         returns (uint256)
     {
         if (totalAttributions > 0 && _attribution > 0) {
-            return _attribution.mul(valueAll()).div(totalAttributions);
+            return _attribution * valueAll() / totalAttributions;
         } else {
             return 0;
         }
@@ -276,9 +271,9 @@ contract Vault {
      * @param _target target address
      * @return token value of target address
      */
-    function underlyingValue(address _target) public view returns (uint256) {
+    function underlyingValue(address _target) public override view returns (uint256) {
         if (attributions[_target] > 0) {
-            return valueAll().mul(attributions[_target]).div(totalAttributions);
+            return valueAll() * attributions[_target] / totalAttributions;
         } else {
             return 0;
         }
@@ -289,7 +284,7 @@ contract Vault {
      * @return all token value of the vault
      */
     function valueAll() public view returns (uint256) {
-        return balance.add(controller.valueAll());
+        return balance + controller.valueAll();
     }
 
     /**
@@ -308,7 +303,7 @@ contract Vault {
      */
     function _unutilize(uint256 _amount) internal {
         controller.withdraw(address(this), _amount);
-        balance = balance.add(_amount);
+        balance += _amount;
     }
 
     /**
@@ -324,7 +319,7 @@ contract Vault {
      * @return value of one share of attribution
      */
     function getPricePerFullShare() public view returns (uint256) {
-        return valueAll().mul(1e18).div(totalAttributions);
+        return valueAll() * 1e18 / totalAttributions;
     }
 
     /**
@@ -335,10 +330,10 @@ contract Vault {
     function withdrawRedundant(address _token, address _to) external {
         require(msg.sender == owner, "dev: only owner");
         if (
-            _token == address(token) && balance < token.balanceOf(address(this))
+            _token == address(token) && balance < IERC20(token).balanceOf(address(this))
         ) {
-            uint256 _redundant = token.balanceOf(address(this)).sub(balance);
-            token.safeTransfer(_to, _redundant);
+            uint256 _redundant = IERC20(token).balanceOf(address(this)) - balance;
+            IERC20(token).safeTransfer(_to, _redundant);
         } else if (IERC20(_token).balanceOf(address(this)) > 0) {
             IERC20(_token).safeTransfer(
                 _to,
@@ -360,7 +355,7 @@ contract Vault {
         require(transfer_ownership_deadline == 0, "dev: active transfer");
         require(_owner != address(0), "dev: address zero");
 
-        uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
+        uint256 _deadline = block.timestamp + ADMIN_ACTIONS_DELAY;
         transfer_ownership_deadline = _deadline;
         future_owner = _owner;
 

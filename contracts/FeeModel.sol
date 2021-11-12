@@ -1,12 +1,15 @@
-// SPDX-License-Identifier: GPL-3.0
 pragma solidity 0.8.7;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+/**
+ * @title FeeModel
+ * @author @InsureDAO
+ * @notice
+ * SPDX-License-Identifier: GPL-3.0
+ */
 
-contract FeeModel {
-    using SafeMath for uint256;
-    using Address for address;
+ import "./interfaces/IFeeModel.sol";
+
+contract FeeModel is IFeeModel{
 
     event CommitNewAdmin(uint256 deadline, address future_admin);
     event NewAdmin(address admin);
@@ -31,13 +34,14 @@ contract FeeModel {
         owner = msg.sender;
     }
 
+
     /**
      * @notice Set fee for the specified premium amount
      * @param _premium premium amount
      * @return fee amount
      */
-    function getFee(uint256 _premium) external view returns (uint256) {
-        return _premium.mul(_feeRate).div(100000);
+    function getFee(uint256 _premium) external override view returns (uint256) {
+        return _premium * _feeRate / 100000;
     }
 
     /**
@@ -74,7 +78,7 @@ contract FeeModel {
         require(transfer_ownership_deadline == 0, "dev: active transfer");
         require(_owner != address(0), "dev: address zero");
 
-        uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
+        uint256 _deadline = block.timestamp + ADMIN_ACTIONS_DELAY;
         transfer_ownership_deadline = _deadline;
         future_owner = _owner;
 
