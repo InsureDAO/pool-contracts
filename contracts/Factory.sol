@@ -6,7 +6,6 @@
  */
 
 pragma solidity 0.8.7;
-pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
