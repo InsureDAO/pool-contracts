@@ -98,11 +98,11 @@ contract PoolTemplate is IERC20, IPoolTemplate {
         bool exist; //true if the index has allocated credit
     }
     
-    mapping(address => IndexInfo) public indexes;
+    mapping(address => IndexInfo) public indicies;
     address[] public indexList;
 
     //
-    // * We do some fancy math for premium calculation of indexes.
+    // * We do some fancy math for premium calculation of indicies.
     // Basically, any point in time, the amount of premium entitled to an index but is pending to be distributed is:
     //
     //   pending reward = (index.credit * rewardPerCredit) - index.rewardDebt
@@ -366,9 +366,9 @@ contract PoolTemplate is IERC20, IPoolTemplate {
             IRegistry(registry).isListed(msg.sender),
             "ERROR: ALLOCATE_CREDIT_BAD_CONDITIONS"
         );
-        IndexInfo storage _index = indexes[msg.sender];
-        if (indexes[msg.sender].exist == false) {
-            indexes[msg.sender].exist = true;
+        IndexInfo storage _index = indicies[msg.sender];
+        if (indicies[msg.sender].exist == false) {
+            indicies[msg.sender].exist = true;
             indexList.push(msg.sender);
         }
         if (_index.credit > 0) {
@@ -382,7 +382,7 @@ contract PoolTemplate is IERC20, IPoolTemplate {
         }
         if (_credit > 0) {
             totalCredit = totalCredit + _credit;
-            indexes[msg.sender].credit = indexes[msg.sender].credit + _credit;
+            indicies[msg.sender].credit = indicies[msg.sender].credit + _credit;
             emit CreditIncrease(msg.sender, _credit);
         }
         _index.rewardDebt = _index.credit * rewardPerCredit / REWARD_DECIMALS_1E12;
@@ -397,7 +397,7 @@ contract PoolTemplate is IERC20, IPoolTemplate {
         external override
         returns (uint256 _pending)
     {
-        IndexInfo storage _index = indexes[msg.sender];
+        IndexInfo storage _index = indicies[msg.sender];
         require(
             IRegistry(registry).isListed(msg.sender) &&
                 _index.credit >= _credit &&
@@ -414,7 +414,7 @@ contract PoolTemplate is IERC20, IPoolTemplate {
         //Withdraw liquidity
         if (_credit > 0) {
             totalCredit = totalCredit - _credit;
-            indexes[msg.sender].credit = indexes[msg.sender].credit - _credit;
+            indicies[msg.sender].credit = indicies[msg.sender].credit - _credit;
             emit CreditDecrease(msg.sender, _credit);
         }
 
@@ -549,8 +549,8 @@ contract PoolTemplate is IERC20, IPoolTemplate {
         uint256 _deductionFromIndex = _payoutAmount * totalCredit * MAGIC_SCALE_1E8 / totalLiquidity();
 
         for (uint256 i = 0; i < indexList.length; i++) {
-            if (indexes[indexList[i]].credit > 0) {
-                uint256 _shareOfIndex = indexes[indexList[i]].credit * MAGIC_SCALE_1E8 / totalCredit;
+            if (indicies[indexList[i]].credit > 0) {
+                uint256 _shareOfIndex = indicies[indexList[i]].credit * MAGIC_SCALE_1E8 / totalCredit;
                 uint256 _redeemAmount = _divCeil(
                     _deductionFromIndex,
                     _shareOfIndex
@@ -649,7 +649,7 @@ contract PoolTemplate is IERC20, IPoolTemplate {
         marketStatus = MarketStatus.Payingout;
         pendingEnd = block.timestamp + _pending;
         for (uint256 i = 0; i < indexList.length; i++) {
-            if (indexes[indexList[i]].credit > 0) {
+            if (indicies[indexList[i]].credit > 0) {
                 IIndexTemplate(indexList[i]).lock(_pending);
             }
         }
@@ -884,14 +884,14 @@ contract PoolTemplate is IERC20, IPoolTemplate {
      * @return The pending premium for the specified index
      */
     function pendingPremium(address _index) external override view returns (uint256) {
-        uint256 _credit = indexes[_index].credit;
+        uint256 _credit = indicies[_index].credit;
         if (_credit == 0) {
             return 0;
         } else {
             return
                 _sub(
                     _credit * rewardPerCredit / REWARD_DECIMALS_1E12,
-                    indexes[_index].rewardDebt
+                    indicies[_index].rewardDebt
                 );
         }
     }
@@ -918,7 +918,7 @@ contract PoolTemplate is IERC20, IPoolTemplate {
      * @return The balance of credit allocated by the specified index
      */
     function allocatedCredit(address _index) public override view returns (uint256) {
-        return indexes[_index].credit;
+        return indicies[_index].credit;
     }
 
     /**
