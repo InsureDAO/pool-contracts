@@ -6,19 +6,17 @@ pragma solidity 0.8.7;
  * SPDX-License-Identifier: GPL-3.0
  */
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
+import "./interfaces/IPoolTemplate.sol";
 import "./interfaces/IParameters.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IIndexTemplate.sol";
 
-contract PoolTemplate is IERC20 {
-    using Address for address;
-    using SafeMath for uint256;
+contract PoolTemplate is IERC20, IPoolTemplate {
 
     /**
      * EVENTS
@@ -69,7 +67,7 @@ contract PoolTemplate is IERC20 {
 
     /// @notice Market setting
     bool public initialized;
-    bool public paused;
+    bool public override paused;
     string public metadata;
     uint256 public target;
 
@@ -99,6 +97,7 @@ contract PoolTemplate is IERC20 {
         uint256 rewardDebt; // Reward debt. *See explanation below.
         bool exist; //true if the index has allocated credit
     }
+    
     mapping(address => IndexInfo) public indexes;
     address[] public indexList;
 
@@ -254,7 +253,7 @@ contract PoolTemplate is IERC20 {
             msg.sender,
             address(this)
         );
-        ownAttributions = ownAttributions.add(_newAttribution);
+        ownAttributions = ownAttributions + _newAttribution;
 
         emit Deposit(msg.sender, _amount, _mintAmount);
 
@@ -284,23 +283,18 @@ contract PoolTemplate is IERC20 {
         uint256 _supply = totalSupply();
 
         uint256 _liquidity = vault.attributionValue(ownAttributions);
-        _retVal = _divMinus(_amount.mul(_liquidity), _supply);
+        _retVal = _divMinus(_amount * _liquidity, _supply);
 
         require(
             marketStatus == MarketStatus.Trading,
             "ERROR: WITHDRAWAL_PENDING"
         );
         require(
-            withdrawalReq[msg.sender].timestamp.add(
-                parameters.getLockup(msg.sender)
-            ) < block.timestamp,
+            withdrawalReq[msg.sender].timestamp + parameters.getLockup(msg.sender) < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) > block.timestamp,
+            withdrawalReq[msg.sender].timestamp + parameters.getLockup(msg.sender) + parameters.getWithdrawable(msg.sender) > block.timestamp,
             "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
@@ -313,16 +307,14 @@ contract PoolTemplate is IERC20 {
             "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
         );
         //reduce requested amount
-        withdrawalReq[msg.sender].amount = withdrawalReq[msg.sender].amount.sub(
-            _amount
-        );
+        withdrawalReq[msg.sender].amount = withdrawalReq[msg.sender].amount - _amount;
 
         //Burn iToken
         _burn(msg.sender, _amount);
 
         //Withdraw liquidity
         uint256 _deductAttribution = vault.withdrawValue(_retVal, msg.sender);
-        ownAttributions = ownAttributions.sub(_deductAttribution);
+        ownAttributions = ownAttributions - _deductAttribution;
 
         emit Withdraw(msg.sender, _amount, _retVal);
     }
@@ -346,13 +338,12 @@ contract PoolTemplate is IERC20 {
         require(
             insurance.status == true &&
                 marketStatus == MarketStatus.Trading &&
-                insurance.endTime.add(parameters.getGrace(msg.sender)) <
-                block.timestamp,
+                insurance.endTime + parameters.getGrace(msg.sender) < block.timestamp,
             "ERROR: UNLOCK_BAD_COINDITIONS"
         );
         insurance.status == false;
 
-        lockedAmount = lockedAmount.sub(insurance.amount);
+        lockedAmount = lockedAmount - insurance.amount;
 
         emit Unlocked(_id, insurance.amount);
     }
@@ -368,7 +359,7 @@ contract PoolTemplate is IERC20 {
      */
 
     function allocateCredit(uint256 _credit)
-        external
+        external override
         returns (uint256 _pending)
     {
         require(
@@ -382,7 +373,7 @@ contract PoolTemplate is IERC20 {
         }
         if (_index.credit > 0) {
             _pending = _sub(
-                _index.credit.mul(rewardPerCredit).div(REWARD_DECIMALS_1E12),
+                _index.credit * rewardPerCredit / REWARD_DECIMALS_1E12,
                 _index.rewardDebt
             );
             if (_pending > 0) {
@@ -390,15 +381,11 @@ contract PoolTemplate is IERC20 {
             }
         }
         if (_credit > 0) {
-            totalCredit = totalCredit.add(_credit);
-            indexes[msg.sender].credit = indexes[msg.sender].credit.add(
-                _credit
-            );
+            totalCredit = totalCredit + _credit;
+            indexes[msg.sender].credit = indexes[msg.sender].credit + _credit;
             emit CreditIncrease(msg.sender, _credit);
         }
-        _index.rewardDebt = _index.credit.mul(rewardPerCredit).div(
-            REWARD_DECIMALS_1E12
-        );
+        _index.rewardDebt = _index.credit * rewardPerCredit / REWARD_DECIMALS_1E12;
     }
 
     /**
@@ -407,7 +394,7 @@ contract PoolTemplate is IERC20 {
      * @return _pending pending preium for the caller index
      */
     function withdrawCredit(uint256 _credit)
-        external
+        external override
         returns (uint256 _pending)
     {
         IndexInfo storage _index = indexes[msg.sender];
@@ -420,25 +407,21 @@ contract PoolTemplate is IERC20 {
 
         //calculate acrrued premium
         _pending = _sub(
-            _index.credit.mul(rewardPerCredit).div(REWARD_DECIMALS_1E12),
+            _index.credit * rewardPerCredit / REWARD_DECIMALS_1E12,
             _index.rewardDebt
         );
 
         //Withdraw liquidity
         if (_credit > 0) {
-            totalCredit = totalCredit.sub(_credit);
-            indexes[msg.sender].credit = indexes[msg.sender].credit.sub(
-                _credit
-            );
+            totalCredit = totalCredit - _credit;
+            indexes[msg.sender].credit = indexes[msg.sender].credit - _credit;
             emit CreditDecrease(msg.sender, _credit);
         }
 
         //withdraw acrrued premium
         if (_pending > 0) {
             vault.transferAttribution(_pending, msg.sender);
-            _index.rewardDebt = _index.credit.mul(rewardPerCredit).div(
-                REWARD_DECIMALS_1E12
-            );
+            _index.rewardDebt = _index.credit * rewardPerCredit / REWARD_DECIMALS_1E12;
         }
     }
 
@@ -461,10 +444,10 @@ contract PoolTemplate is IERC20 {
         bytes32 _target
     ) external returns (uint256) {
         //Distribute premium and fee
-        uint256 _endTime = _span.add(block.timestamp);
+        uint256 _endTime = _span + block.timestamp;
         uint256 _premium = getPremium(_amount, _span);
         uint256 _fee = parameters.getFee(_premium, msg.sender);
-        uint256 _deducted = _premium.sub(_fee);
+        uint256 _deducted = _premium - _fee;
 
         require(
             _amount <= availableBalance(),
@@ -494,7 +477,7 @@ contract PoolTemplate is IERC20 {
 
         //Lock covered amount
         uint256 _id = insurances.length;
-        lockedAmount = lockedAmount.add(_amount);
+        lockedAmount = lockedAmount + _amount;
         Insurance memory _insurance = Insurance(
             _id,
             block.timestamp,
@@ -508,16 +491,10 @@ contract PoolTemplate is IERC20 {
         insuranceHoldings[msg.sender].push(_id);
 
         //Calculate liquidity
-        uint256 _attributionForIndex = _newAttribution.mul(totalCredit).div(
-            totalLiquidity()
-        );
-        ownAttributions = ownAttributions.add(_newAttribution).sub(
-            _attributionForIndex
-        );
+        uint256 _attributionForIndex = _newAttribution * totalCredit / totalLiquidity();
+        ownAttributions = ownAttributions + _newAttribution - _attributionForIndex;
         if (totalCredit > 0) {
-            rewardPerCredit = rewardPerCredit.add(
-                _attributionForIndex.mul(REWARD_DECIMALS_1E12).div(totalCredit)
-            );
+            rewardPerCredit = (rewardPerCredit + (_attributionForIndex * REWARD_DECIMALS_1E12)) / totalCredit;
         }
 
         emit Insured(
@@ -566,22 +543,14 @@ contract PoolTemplate is IERC20 {
             "ERROR: INSURANCE_NOT_APPLICABLE"
         );
         insurance.status = false;
-        lockedAmount = lockedAmount.sub(insurance.amount);
+        lockedAmount = lockedAmount - insurance.amount;
 
-        uint256 _payoutAmount = insurance.amount.mul(_payoutNumerator).div(
-            _payoutDenominator
-        );
-        uint256 _deductionFromIndex = _payoutAmount
-            .mul(totalCredit)
-            .mul(MAGIC_SCALE_1E8)
-            .div(totalLiquidity());
+        uint256 _payoutAmount = insurance.amount * _payoutNumerator / _payoutDenominator;
+        uint256 _deductionFromIndex = _payoutAmount * totalCredit * MAGIC_SCALE_1E8 / totalLiquidity();
 
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indexes[indexList[i]].credit > 0) {
-                uint256 _shareOfIndex = indexes[indexList[i]]
-                    .credit
-                    .mul(MAGIC_SCALE_1E8)
-                    .div(totalCredit);
+                uint256 _shareOfIndex = indexes[indexList[i]].credit * MAGIC_SCALE_1E8 / totalCredit;
                 uint256 _redeemAmount = _divCeil(
                     _deductionFromIndex,
                     _shareOfIndex
@@ -594,13 +563,8 @@ contract PoolTemplate is IERC20 {
             _payoutAmount,
             msg.sender
         );
-        uint256 _indexAttribution = _paidAttribution
-            .mul(_deductionFromIndex)
-            .div(MAGIC_SCALE_1E8)
-            .div(_payoutAmount);
-        ownAttributions = ownAttributions.sub(
-            _paidAttribution.sub(_indexAttribution)
-        );
+        uint256 _indexAttribution = _paidAttribution * _deductionFromIndex / MAGIC_SCALE_1E8 / _payoutAmount;
+        ownAttributions = ownAttributions - (_paidAttribution - _indexAttribution);
         emit Redeemed(
             _id,
             msg.sender,
@@ -683,7 +647,7 @@ contract PoolTemplate is IERC20 {
         incident.incidentTimestamp = _incidentTimestamp;
         incident.merkleRoot = _merkleRoot;
         marketStatus = MarketStatus.Payingout;
-        pendingEnd = block.timestamp.add(_pending);
+        pendingEnd = block.timestamp + _pending;
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indexes[indexList[i]].credit > 0) {
                 IIndexTemplate(indexList[i]).lock(_pending);
@@ -780,7 +744,7 @@ contract PoolTemplate is IERC20 {
         _approve(
             sender,
             msg.sender,
-            _allowances[sender][msg.sender].sub(amount)
+            _allowances[sender][msg.sender] - amount
         );
         return true;
     }
@@ -795,7 +759,7 @@ contract PoolTemplate is IERC20 {
         _approve(
             msg.sender,
             spender,
-            _allowances[msg.sender][spender].add(addedValue)
+            _allowances[msg.sender][spender] + addedValue
         );
         return true;
     }
@@ -814,7 +778,7 @@ contract PoolTemplate is IERC20 {
         _approve(
             msg.sender,
             spender,
-            _allowances[msg.sender][spender].sub(subtractedValue)
+            _allowances[msg.sender][spender] - subtractedValue
         );
         return true;
     }
@@ -838,8 +802,8 @@ contract PoolTemplate is IERC20 {
 
         _beforeTokenTransfer(sender, amount);
 
-        _balances[sender] = _balances[sender].sub(amount);
-        _balances[recipient] = _balances[recipient].add(amount);
+        _balances[sender] = _balances[sender] - amount;
+        _balances[recipient] = _balances[recipient] + amount;
         emit Transfer(sender, recipient, amount);
     }
 
@@ -849,8 +813,8 @@ contract PoolTemplate is IERC20 {
     function _mint(address account, uint256 amount) internal {
         require(account != address(0), "ERC20: mint to the zero address");
 
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
+        _totalSupply = _totalSupply + amount;
+        _balances[account] = _balances[account] + amount;
         emit Transfer(address(0), account, amount);
     }
 
@@ -860,8 +824,8 @@ contract PoolTemplate is IERC20 {
     function _burn(address account, uint256 value) internal {
         require(account != address(0), "ERC20: burn from the zero address");
 
-        _totalSupply = _totalSupply.sub(value);
-        _balances[account] = _balances[account].sub(value);
+        _totalSupply = _totalSupply - value;
+        _balances[account] = _balances[account] - value;
         emit Transfer(account, address(0), value);
     }
 
@@ -893,9 +857,7 @@ contract PoolTemplate is IERC20 {
     function rate() external view returns (uint256) {
         if (_totalSupply > 0) {
             return
-                vault.attributionValue(ownAttributions).mul(1e18).div(
-                    _totalSupply
-                );
+                vault.attributionValue(ownAttributions) * 1e18 / _totalSupply;
         } else {
             return 0;
         }
@@ -906,15 +868,13 @@ contract PoolTemplate is IERC20 {
      * @param _owner the target address to look up value
      * @return The balance of underlying token for the specified address
      */
-    function valueOfUnderlying(address _owner) public view returns (uint256) {
+    function valueOfUnderlying(address _owner) public override view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
         if (_balance == 0) {
             return 0;
         } else {
             return
-                _balance.mul(vault.attributionValue(ownAttributions)).div(
-                    totalSupply()
-                );
+                _balance * vault.attributionValue(ownAttributions) / totalSupply();
         }
     }
 
@@ -923,14 +883,14 @@ contract PoolTemplate is IERC20 {
      * @param _index the address of index
      * @return The pending premium for the specified index
      */
-    function pendingPremium(address _index) external view returns (uint256) {
+    function pendingPremium(address _index) external override view returns (uint256) {
         uint256 _credit = indexes[_index].credit;
         if (_credit == 0) {
             return 0;
         } else {
             return
                 _sub(
-                    _credit.mul(rewardPerCredit).div(REWARD_DECIMALS_1E12),
+                    _credit * rewardPerCredit / REWARD_DECIMALS_1E12,
                     indexes[_index].rewardDebt
                 );
         }
@@ -944,11 +904,9 @@ contract PoolTemplate is IERC20 {
     function worth(uint256 _value) public view returns (uint256 _amount) {
         uint256 _supply = totalSupply();
         if (_supply > 0 && ownAttributions > 0) {
-            _amount = _value.mul(_supply).div(
-                vault.attributionValue(ownAttributions)
-            );
+            _amount = _value * _supply / vault.attributionValue(ownAttributions);
         } else if (_supply > 0 && ownAttributions == 0) {
-            _amount = _value.div(_supply);
+            _amount = _value / _supply;
         } else {
             _amount = _value;
         }
@@ -959,7 +917,7 @@ contract PoolTemplate is IERC20 {
      * @param _index address of an index
      * @return The balance of credit allocated by the specified index
      */
-    function allocatedCredit(address _index) public view returns (uint256) {
+    function allocatedCredit(address _index) public override view returns (uint256) {
         return indexes[_index].credit;
     }
 
@@ -984,9 +942,9 @@ contract PoolTemplate is IERC20 {
      * @notice Returns the amount of underlying token available for withdrawals
      * @return _balance available liquidity of this pool
      */
-    function availableBalance() public view returns (uint256 _balance) {
+    function availableBalance() public override view returns (uint256 _balance) {
         if (totalLiquidity() > 0) {
-            return totalLiquidity().sub(lockedAmount);
+            return totalLiquidity() - lockedAmount;
         } else {
             return 0;
         }
@@ -996,12 +954,10 @@ contract PoolTemplate is IERC20 {
      * @notice Returns the utilization rate for this pool. Scaled by 1e8 (100% = 1e8)
      * @return _rate utilization rate
      */
-    function utilizationRate() public view returns (uint256 _rate) {
+    function utilizationRate() public override view returns (uint256 _rate) {
         if (lockedAmount > 0) {
             return
-                lockedAmount.mul(UTILIZATION_RATE_LENGTH_1E8).div(
-                    totalLiquidity()
-                );
+                lockedAmount * UTILIZATION_RATE_LENGTH_1E8 / totalLiquidity();
         } else {
             return 0;
         }
@@ -1012,7 +968,7 @@ contract PoolTemplate is IERC20 {
      * @return _balance total liquidity of this pool
      */
     function totalLiquidity() public view returns (uint256 _balance) {
-        return vault.attributionValue(ownAttributions).add(totalCredit);
+        return vault.attributionValue(ownAttributions) + totalCredit;
     }
 
     /**
@@ -1050,7 +1006,7 @@ contract PoolTemplate is IERC20 {
      */
     function _beforeTokenTransfer(address _from, uint256 _amount) internal {
         //withdraw request operation
-        uint256 _after = balanceOf(_from).sub(_amount);
+        uint256 _after = balanceOf(_from) - _amount;
         if (_after < withdrawalReq[_from].amount) {
             withdrawalReq[_from].amount = _after;
         }
