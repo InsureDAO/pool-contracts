@@ -494,7 +494,7 @@ contract PoolTemplate is IERC20, IPoolTemplate {
         uint256 _attributionForIndex = _newAttribution * totalCredit / totalLiquidity();
         ownAttributions = ownAttributions + _newAttribution - _attributionForIndex;
         if (totalCredit > 0) {
-            rewardPerCredit = (rewardPerCredit + (_attributionForIndex * REWARD_DECIMALS_1E12)) / totalCredit;
+            rewardPerCredit = rewardPerCredit + (_attributionForIndex * REWARD_DECIMALS_1E12 / totalCredit);
         }
 
         emit Insured(
