@@ -1,6 +1,6 @@
 pragma solidity 0.8.7;
 
-import "../libraries/ERC20.sol";
+import "./ERC20.sol";
 
 contract ERC20Mock is ERC20 {
     string public name = "USDC";
