@@ -7,7 +7,7 @@ contract ERC20Mock is ERC20 {
     string public symbol = "USDC";
     uint8 public decimals = 6;
 
-    constructor(address _address) public {
+    constructor(address _address) {
         _mint(_address, 1e20);
     }
 

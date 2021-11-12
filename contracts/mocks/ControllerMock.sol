@@ -7,7 +7,7 @@ contract Controller {
     IVault public vault;
     address admin;
 
-    constructor(address _token, address _admin) public {
+    constructor(address _token, address _admin) {
         token = TestERC20Mock(_token);
         admin = _admin;
     }

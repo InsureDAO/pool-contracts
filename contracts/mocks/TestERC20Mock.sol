@@ -7,7 +7,7 @@ contract TestERC20Mock is ERC20 {
     string public symbol = "DAI";
     uint8 public decimals = 18;
 
-    constructor() public {}
+    constructor() {}
 
     function mint(address _to, uint256 _amount) public {
         _mint(_to, _amount);

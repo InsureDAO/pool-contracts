@@ -86,7 +86,7 @@ contract Factory {
         _;
     }
 
-    constructor(address _registry) public {
+    constructor(address _registry){
         owner = msg.sender;
         registry = _registry;
     }

@@ -6,7 +6,6 @@
  */
 
 pragma solidity 0.8.7;
-pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -51,7 +50,7 @@ contract Parameters {
     mapping(address => uint256) private _withdawable; //a certain period a user can withdraw after lock up ends
     mapping(bytes32 => bytes32) private _conditions; //condition mapping for future use cases
 
-    constructor(address _target) public {
+    constructor(address _target) {
         owner = _target;
     }
 

@@ -53,7 +53,7 @@ contract Vault {
         address _token,
         address _registry,
         address _controller
-    ) public {
+    ) {
         token = IERC20(_token);
         registry = IRegistry(_registry);
         controller = IController(_controller);
