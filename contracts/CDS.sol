@@ -5,7 +5,6 @@ pragma solidity 0.8.7;
  * SPDX-License-Identifier: GPL-3.0
  */
 import "hardhat/console.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -18,7 +17,6 @@ import "./interfaces/IMinter.sol";
 
 contract CDS is IERC20 {
     using Address for address;
-    using SafeMath for uint256;
 
     /**
      * EVENTS
@@ -132,7 +130,7 @@ contract CDS is IERC20 {
         require(_amount > 0, "ERROR: DEPOSIT_ZERO");
 
         uint256 _fee = parameters.getDepositFee(_amount, msg.sender);
-        uint256 _add = _amount.sub(_fee);
+        uint256 _add = _amount - _fee;
         uint256 _supply = totalSupply();
         uint256 _totalLiquidity = totalLiquidity();
         //deposit and pay fees
@@ -141,9 +139,9 @@ contract CDS is IERC20 {
 
         //Calculate iToken value
         if (_supply > 0 && _totalLiquidity > 0) {
-            _mintAmount = _add.mul(_supply).div(_totalLiquidity);
+            _mintAmount = _add * _supply / _totalLiquidity;
         } else if (_supply > 0 && _totalLiquidity == 0) {
-            _mintAmount = _add.div(_supply);
+            _mintAmount = _add / _supply;
         } else {
             _mintAmount = _add;
         }
@@ -174,21 +172,17 @@ contract CDS is IERC20 {
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
         //Calculate underlying value
-        _retVal = vault.underlyingValue(address(this)).mul(_amount).div(
-            totalSupply()
-        );
+        _retVal = vault.underlyingValue(address(this)) * _amount / totalSupply();
         require(paused == false, "ERROR: WITHDRAWAL_PENDING");
         require(
-            withdrawalReq[msg.sender].timestamp.add(
-                parameters.getLockup(msg.sender)
-            ) < block.timestamp,
+            withdrawalReq[msg.sender].timestamp + parameters.getLockup(msg.sender) < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) > block.timestamp,
+            withdrawalReq[msg.sender].timestamp 
+            + parameters.getLockup(msg.sender) 
+            + parameters.getWithdrawable(msg.sender) 
+            > block.timestamp,
             "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
@@ -197,9 +191,7 @@ contract CDS is IERC20 {
         );
         require(_amount > 0, "ERROR: WITHDRAWAL_ZERO");
         //reduce requested amount
-        withdrawalReq[msg.sender].amount = withdrawalReq[msg.sender].amount.sub(
-            _amount
-        );
+        withdrawalReq[msg.sender].amount -= _amount;
 
         //Burn iToken
         _burn(msg.sender, _amount);
@@ -224,7 +216,7 @@ contract CDS is IERC20 {
             //Normal case
             vault.transferValue(_amount, msg.sender);
         } else {
-            uint256 _shortage = _amount.sub(_available);
+            uint256 _shortage = _amount - _available;
             //transfer as much as possible
             vault.transferValue(_available, msg.sender);
             //check token address
@@ -303,7 +295,7 @@ contract CDS is IERC20 {
         _approve(
             sender,
             msg.sender,
-            _allowances[sender][msg.sender].sub(amount)
+            _allowances[sender][msg.sender] - amount
         );
         return true;
     }
@@ -318,7 +310,7 @@ contract CDS is IERC20 {
         _approve(
             msg.sender,
             spender,
-            _allowances[msg.sender][spender].add(addedValue)
+            _allowances[msg.sender][spender] + addedValue
         );
         return true;
     }
@@ -337,7 +329,7 @@ contract CDS is IERC20 {
         _approve(
             msg.sender,
             spender,
-            _allowances[msg.sender][spender].sub(subtractedValue)
+            _allowances[msg.sender][spender] - subtractedValue
         );
         return true;
     }
@@ -360,8 +352,8 @@ contract CDS is IERC20 {
         );
         _beforeTokenTransfer(sender, amount);
 
-        _balances[sender] = _balances[sender].sub(amount);
-        _balances[recipient] = _balances[recipient].add(amount);
+        _balances[sender] -= amount;
+        _balances[recipient] += amount;
         emit Transfer(sender, recipient, amount);
     }
 
@@ -371,8 +363,8 @@ contract CDS is IERC20 {
     function _mint(address account, uint256 amount) internal {
         require(account != address(0), "ERC20: mint to the zero address");
 
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
+        _totalSupply = _totalSupply + amount;
+        _balances[account] = _balances[account] + amount;
         emit Transfer(address(0), account, amount);
     }
 
@@ -382,8 +374,8 @@ contract CDS is IERC20 {
     function _burn(address account, uint256 value) internal {
         require(account != address(0), "ERC20: burn from the zero address");
 
-        _totalSupply = _totalSupply.sub(value);
-        _balances[account] = _balances[account].sub(value);
+        _totalSupply -= value;
+        _balances[account] -= value;
         emit Transfer(account, address(0), value);
     }
 
@@ -422,7 +414,7 @@ contract CDS is IERC20 {
      */
     function rate() external view returns (uint256) {
         if (_totalSupply > 0) {
-            return totalLiquidity().mul(1e18).div(_totalSupply);
+            return totalLiquidity() * 1e18 / _totalSupply;
         } else {
             return 0;
         }
@@ -439,9 +431,7 @@ contract CDS is IERC20 {
             return 0;
         } else {
             return
-                _balance.mul(
-                    vault.underlyingValue(address(this)).div(totalSupply())
-                );
+                _balance * (vault.underlyingValue(address(this)) / totalSupply());
         }
     }
 
@@ -480,7 +470,7 @@ contract CDS is IERC20 {
      */
     function _beforeTokenTransfer(address _from, uint256 _amount) internal {
         //withdraw request operation
-        uint256 _after = balanceOf(_from).sub(_amount);
+        uint256 _after = balanceOf(_from) - _amount;
         if (_after < withdrawalReq[_from].amount) {
             withdrawalReq[_from].amount = _after;
         }
