@@ -158,9 +158,6 @@ contract PoolTemplate is IERC20, IPoolTemplate, IUniversalMarket {
     uint256 public constant REWARD_DECIMALS_1E12 = 1e12;
 
 
-    /**
-     * @notice Throws if called by any account other than the owner.
-     */
     modifier onlyOwner() {
         require(
             msg.sender == parameters.getOwner(),

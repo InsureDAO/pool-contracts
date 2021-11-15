@@ -10,6 +10,7 @@ pragma solidity 0.8.7;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "./interfaces/IOwnership.sol";
 import "./interfaces/IVault.sol";
 
 import "./interfaces/IController.sol";
@@ -29,37 +30,31 @@ contract Vault is IVault{
     mapping(address => uint256) public attributions;
     uint256 public totalAttributions;
 
-    address public owner; //owner of the contract
     address public keeper; //keeper can operate utilize(), if address zero, anyone can operate.
     uint256 public balance; //balance of underlying token
-    address public future_owner;
-    uint256 public transfer_ownership_deadline;
-    uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
+
+    IOwnership public ownership;
+
 
     event CommitNewAdmin(uint256 deadline, address future_admin);
     event NewAdmin(address admin);
     event ControllerSet(address controller);
 
-    /**
-     * @notice Throws if called by any account other than the owner.
-     */
     modifier onlyOwner() {
-        require(
-            msg.sender == owner,
-            "Restricted: caller is not allowed to operate"
-        );
+        require(ownership.owner() == msg.sender, 'Restricted: caller is not allowed to operate');
         _;
     }
 
     constructor(
         address _token,
         address _registry,
-        address _controller
+        address _controller,
+        address _ownership
     ) {
         token = _token;
         registry = IRegistry(_registry);
         controller = IController(_controller);
-        owner = msg.sender;
+        ownership = IOwnership(_ownership);
     }
 
     /**
@@ -73,7 +68,6 @@ contract Vault is IVault{
      * @param _beneficiary beneficiary's address
      * @return _attributions attribution amount generated from the transaction
      */
-
     function addValue(
         uint256 _amount,
         address _from,
@@ -102,7 +96,6 @@ contract Vault is IVault{
      * @param _to address to get underlying token
      * @return _attributions amount of attributions burnet
      */
-
     function withdrawValue(uint256 _amount, address _to)
         external override
         returns (uint256 _attributions)
@@ -222,16 +215,6 @@ contract Vault is IVault{
     }
 
     /**
-     * @notice the controller can utilize all available stored funds
-     * @param _keeper keeper address
-     */
-    function setKeeper(address _keeper) external onlyOwner {
-        if (keeper != _keeper) {
-            keeper = _keeper;
-        }
-    }
-
-    /**
      * @notice get attribution number for the specified address
      * @param _target target address
      * @return amount of attritbution
@@ -288,16 +271,6 @@ contract Vault is IVault{
     }
 
     /**
-     * @notice admin function to set controller address
-     * @param _controller address of the controller
-     */
-    function setController(address _controller) public onlyOwner {
-        controller.migrate(address(_controller));
-        controller = IController(_controller);
-        emit ControllerSet(_controller);
-    }
-
-    /**
      * @notice internal function to unutilize the funds and keep utilization rate
      * @param _amount amount to withdraw from controller
      */
@@ -322,13 +295,18 @@ contract Vault is IVault{
         return valueAll() * 1e18 / totalAttributions;
     }
 
+
+    /**
+     * onlyOwner
+     */
+
     /**
      * @notice withdraw redundant token stored in this contract
      * @param _token token address
      * @param _to beneficiary's address
      */
-    function withdrawRedundant(address _token, address _to) external {
-        require(msg.sender == owner, "dev: only owner");
+    function withdrawRedundant(address _token, address _to) external onlyOwner{
+
         if (
             _token == address(token) && balance < IERC20(token).balanceOf(address(this))
         ) {
@@ -343,40 +321,22 @@ contract Vault is IVault{
     }
 
     /**
-     * Ownership Functions
+     * @notice admin function to set controller address
+     * @param _controller address of the controller
      */
-
-    /**
-     * @notice Commit ownership change transaction
-     * @param _owner new owner address
-     */
-
-    function commitTransferOwnership(address _owner) external onlyOwner {
-        require(transfer_ownership_deadline == 0, "dev: active transfer");
-        require(_owner != address(0), "dev: address zero");
-
-        uint256 _deadline = block.timestamp + ADMIN_ACTIONS_DELAY;
-        transfer_ownership_deadline = _deadline;
-        future_owner = _owner;
-
-        emit CommitNewAdmin(_deadline, _owner);
+    function setController(address _controller) public onlyOwner {
+        controller.migrate(address(_controller));
+        controller = IController(_controller);
+        emit ControllerSet(_controller);
     }
 
     /**
-     * @notice Execute ownership change transaction
+     * @notice the controller can utilize all available stored funds
+     * @param _keeper keeper address
      */
-    function applyTransferOwnership() external onlyOwner {
-        require(
-            block.timestamp >= transfer_ownership_deadline,
-            "dev: insufficient time"
-        );
-        require(transfer_ownership_deadline != 0, "dev: no active transfer");
-
-        transfer_ownership_deadline = 0;
-        address _owner = future_owner;
-
-        owner = _owner;
-
-        emit NewAdmin(owner);
+    function setKeeper(address _keeper) external onlyOwner {
+        if (keeper != _keeper) {
+            keeper = _keeper;
+        }
     }
 }

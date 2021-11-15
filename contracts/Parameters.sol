@@ -7,14 +7,14 @@ pragma solidity 0.8.7;
  * SPDX-License-Identifier: GPL-3.0
  */
 
+
+import "./interfaces/IOwnership.sol";
 import "./interfaces/IParameters.sol";
 import "./interfaces/IPremiumModel.sol";
 import "./interfaces/IFeeModel.sol";
 
 contract Parameters is IParameters{
 
-    event CommitNewAdmin(uint256 deadline, address future_admin);
-    event NewAdmin(address admin);
     event MinterSet(address minter);
     event VaultSet(address indexed token, address vault);
     event FeeSet(address indexed target, address model);
@@ -28,11 +28,8 @@ contract Parameters is IParameters{
     event ConditionSet(bytes32 indexed ref, bytes32 condition);
     event MaxListSet(address target, uint256 max);
 
-    address public owner;
-    address public future_owner;
-    uint256 public transfer_ownership_deadline;
-    uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
     address public minter;
+    IOwnership public ownership;
 
     mapping(address => address) private _vaults; //address of the vault contract for each token
     mapping(address => address) private _fee; //address for each fee model contract
@@ -46,59 +43,18 @@ contract Parameters is IParameters{
     mapping(address => uint256) private _withdawable; //a certain period a user can withdraw after lock up ends
     mapping(bytes32 => bytes32) private _conditions; //condition mapping for future use cases
 
-    constructor(address _target) {
-        owner = _target;
+    constructor(address _ownership) {
+        ownership = IOwnership(_ownership);
     }
 
     /**
      * @notice Throws if called by any account other than the owner.
      */
     modifier onlyOwner() {
-        require(isOwner(), "Restricted: caller is not allowed to operate");
+        require(ownership.owner() == msg.sender, 'Restricted: caller is not allowed to operate');
         _;
     }
 
-    /**
-     * @notice Get the owner address
-     * @return true if the caller is owner
-     */
-    function isOwner() public override view returns (bool) {
-        return msg.sender == owner;
-    }
-
-    /**
-     * @notice commit new owner address.
-     * actutal change occurs after ADMIN_ACTIONS_DELAY passed.
-     * @param _owner new owner address
-     */
-    function commitTransferOwnership(address _owner) external override onlyOwner {
-        require(transfer_ownership_deadline == 0, "dev: active transfer");
-        require(_owner != address(0), "dev: address zero");
-
-        uint256 _deadline = block.timestamp + ADMIN_ACTIONS_DELAY;
-        transfer_ownership_deadline = _deadline;
-        future_owner = _owner;
-
-        emit CommitNewAdmin(_deadline, _owner);
-    }
-
-    /**
-     * @notice apply transfer of ownership.
-     */
-    function applyTransferOwnership() external override onlyOwner {
-        require(
-            block.timestamp >= transfer_ownership_deadline,
-            "dev: insufficient time"
-        );
-        require(transfer_ownership_deadline != 0, "dev: no active transfer");
-
-        transfer_ownership_deadline = 0;
-        address _owner = future_owner;
-
-        owner = _owner;
-
-        emit NewAdmin(owner);
-    }
 
     /**
      * @notice set the minter address
@@ -244,7 +200,7 @@ contract Parameters is IParameters{
      * @return owner's address
      */
     function getOwner() public override view returns (address) {
-        return owner;
+        return ownership.owner();
     }
 
     /**
