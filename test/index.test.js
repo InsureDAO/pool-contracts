@@ -275,7 +275,7 @@ describe("Index", function () {
         it("reverts", async function () {
           await expect(
             index.connect(tom).transfer(ZERO_ADDRESS, 10000)
-          ).to.revertedWith("ERC20: TRANSFER_BAD_CONDITIONS");
+          ).to.revertedWith("ERC20: transfer to the zero address");
         });
       });
     });

@@ -13,6 +13,8 @@ import "./interfaces/IParameters.sol";
 import "./interfaces/IPremiumModel.sol";
 import "./interfaces/IFeeModel.sol";
 
+import "hardhat/console.sol";
+
 contract Parameters is IParameters{
 
     event MinterSet(address minter);

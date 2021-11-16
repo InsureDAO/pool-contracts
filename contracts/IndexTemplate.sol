@@ -7,6 +7,7 @@ pragma solidity 0.8.7;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
+import "./InsureDAOERC20.sol";
 import "./interfaces/IIndexTemplate.sol";
 import "./interfaces/IUniversalMarket.sol";
 
@@ -27,7 +28,7 @@ import "./interfaces/ICDS.sol";
  *
  */
 
-contract IndexTemplate is IERC20, IIndexTemplate, IUniversalMarket {
+contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
     /**
      * EVENTS
@@ -61,14 +62,6 @@ contract IndexTemplate is IERC20, IIndexTemplate, IUniversalMarket {
     bool public locked;
     uint256 public pendingEnd;
     string public metadata;
-
-    /// @notice EIP-20 token variables
-    string public name;
-    string public symbol;
-    uint8 public decimals;
-    mapping(address => uint256) private _balances;
-    mapping(address => mapping(address => uint256)) private _allowances;
-    uint256 private _totalSupply;
 
     /// @notice External contract call addresses
     IParameters public parameters;
@@ -141,9 +134,11 @@ contract IndexTemplate is IERC20, IIndexTemplate, IUniversalMarket {
 
         initialized = true;
 
-        name = "InsureDAO-Index";
-        symbol = "iIndex";
-        decimals = IERC20Metadata(_references[0]).decimals();
+        string memory name = "InsureDAO-Index";
+        string memory symbol = "iIndex";
+        uint8 decimals = IERC20Metadata(_references[0]).decimals();
+
+        initializeToken(name, symbol, decimals);
 
         parameters = IParameters(_references[2]);
         vault = IVault(parameters.getVault(_references[0]));
@@ -441,173 +436,6 @@ contract IndexTemplate is IERC20, IIndexTemplate, IUniversalMarket {
     }
 
     /**
-     * iToken functions
-     */
-
-    /**
-     * @notice See `IERC20.totalSupply`.
-     */
-    function totalSupply() public view override returns (uint256) {
-        return _totalSupply;
-    }
-
-    /**
-     * @notice See `IERC20.balanceOf`.
-     */
-    function balanceOf(address account) public view override returns (uint256) {
-        return _balances[account];
-    }
-
-    /**
-     * @notice See `IERC20.transfer`.
-     */
-    function transfer(address recipient, uint256 amount)
-        public
-        override
-        returns (bool)
-    {
-        _transfer(msg.sender, recipient, amount);
-        return true;
-    }
-
-    /**
-     * @notice See `IERC20.allowance`.
-     */
-    function allowance(address owner, address spender)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        return _allowances[owner][spender];
-    }
-
-    /**
-     * @notice See `IERC20.approve`.
-     */
-    function approve(address spender, uint256 value)
-        public
-        override
-        returns (bool)
-    {
-        _approve(msg.sender, spender, value);
-        return true;
-    }
-
-    /**
-     * @notice See `IERC20.transferFrom`.
-     */
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) public override returns (bool) {
-        _transfer(sender, recipient, amount);
-        _approve(
-            sender,
-            msg.sender,
-            _allowances[sender][msg.sender] - amount
-        );
-        return true;
-    }
-
-    /**
-     * @notice Atomically increases the allowance granted to `spender` by the caller.
-     */
-    function increaseAllowance(address spender, uint256 addedValue)
-        public
-        returns (bool)
-    {
-        _approve(
-            msg.sender,
-            spender,
-            _allowances[msg.sender][spender] + addedValue
-        );
-        return true;
-    }
-
-    /**
-     * @notice Atomically decreases the allowance granted to `spender` by the caller.
-     */
-    function decreaseAllowance(address spender, uint256 subtractedValue)
-        public
-        returns (bool)
-    {
-        require(
-            _allowances[msg.sender][spender] >= subtractedValue,
-            "ERC20: decreased allowance below zero"
-        );
-        _approve(
-            msg.sender,
-            spender,
-            _allowances[msg.sender][spender] - subtractedValue
-        );
-        return true;
-    }
-
-    /**
-     * @notice Moves tokens `amount` from `sender` to `recipient`.
-     */
-    function _transfer(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) internal {
-        require(
-            sender != address(0) && recipient != address(0),
-            "ERC20: TRANSFER_BAD_CONDITIONS"
-        );
-        require(
-            _balances[sender] >= amount,
-            "ERC20: transfer amount exceeds balance"
-        );
-        _beforeTokenTransfer(sender, amount);
-
-        _balances[sender] = _balances[sender] - amount;
-        _balances[recipient] = _balances[recipient] + amount;
-        emit Transfer(sender, recipient, amount);
-    }
-
-    /**
-     * @notice Creates `amount` tokens and assigns them to `account`, increasing
-     */
-    function _mint(address account, uint256 amount) internal {
-        require(account != address(0), "ERC20: mint to the zero address");
-
-        _totalSupply = _totalSupply + amount;
-        _balances[account] = _balances[account] + amount;
-        emit Transfer(address(0), account, amount);
-    }
-
-    /**
-     * @notice Destroys `amount` tokens from `account`, reducing the
-     */
-    function _burn(address account, uint256 value) internal {
-        require(account != address(0), "ERC20: burn from the zero address");
-
-        _totalSupply = _totalSupply - value;
-        _balances[account] = _balances[account] - value;
-        emit Transfer(account, address(0), value);
-    }
-
-    /**
-     * @notice Sets `amount` as the allowance of `spender` over the `owner`s tokens.
-     */
-    function _approve(
-        address _owner,
-        address _spender,
-        uint256 _value
-    ) internal {
-        require(
-            _owner != address(0) && _spender != address(0),
-            "ERC20: APPROVE_BAD_CONDITIONS"
-        );
-
-        _allowances[_owner][_spender] = _value;
-        emit Approval(_owner, _spender, _value);
-    }
-
-    /**
      * Utilities
      */
 
@@ -637,8 +465,8 @@ contract IndexTemplate is IERC20, IIndexTemplate, IUniversalMarket {
      * @return The value against the underlying token balance.
      */
     function rate() external view returns (uint256) {
-        if (_totalSupply > 0) {
-            return totalLiquidity() * 1e18 / _totalSupply;
+        if (totalSupply() > 0) {
+            return totalLiquidity() * 1e18 / totalSupply();
         } else {
             return 0;
         }
@@ -744,14 +572,23 @@ contract IndexTemplate is IERC20, IIndexTemplate, IUniversalMarket {
 
     /**
      * @notice Internal function to offset withdraw request and latest balance
-     * @param _from the account who send
-     * @param _amount the amount of token to offset
+     * @param from the account who send
+     * @param to a
+     * @param amount the amount of token to offset
      */
-    function _beforeTokenTransfer(address _from, uint256 _amount) internal {
-        //withdraw request operation
-        uint256 _after = balanceOf(_from) - _amount;
-        if (_after < withdrawalReq[_from].amount) {
-            withdrawalReq[_from].amount = _after;
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override {
+        super._beforeTokenTransfer(from, to, amount);
+
+        if(from != address(0)){
+            uint256 _after = balanceOf(from) - amount;
+            if (_after < withdrawalReq[from].amount) {
+                withdrawalReq[from].amount = _after;
+            }
+
         }
     }
 

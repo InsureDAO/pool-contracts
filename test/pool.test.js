@@ -221,7 +221,7 @@ describe("Pool", function () {
         it("reverts", async function () {
           await expect(
             market.connect(tom).transfer(ZERO_ADDRESS, 10000)
-          ).to.revertedWith("ERC20: TRANSFER_BAD_CONDITIONS");
+          ).to.revertedWith("ERC20: transfer to the zero address");
         });
       });
     });

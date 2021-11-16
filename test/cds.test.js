@@ -65,6 +65,7 @@ describe("CDS", function () {
     const Contorller = await ethers.getContractFactory("Controller");
     const Minter = await ethers.getContractFactory("MinterMock");
     //deploy
+
     ownership = await Ownership.deploy();
     dai = await DAI.deploy();
     registry = await Registry.deploy(ownership.address);
@@ -78,11 +79,13 @@ describe("CDS", function () {
       controller.address,
       ownership.address
     );
+
     poolTemplate = await PoolTemplate.deploy();
     cdsTemplate = await CDS.deploy();
     indexTemplate = await IndexTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
     minter = await Minter.deploy();
+
 
     //set up
     await dai.mint(chad.address, (100000).toString());
@@ -279,7 +282,7 @@ describe("CDS", function () {
         it("reverts", async function () {
           await expect(
             cds.connect(tom).transfer(ZERO_ADDRESS, 10000)
-          ).to.revertedWith("ERC20: TRANSFER_BAD_CONDITIONS");
+          ).to.revertedWith("ERC20: transfer to the zero address");
         });
       });
     });

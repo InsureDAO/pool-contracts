@@ -10,6 +10,7 @@ pragma solidity 0.8.7;
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IUniversalMarket.sol";
 import "./interfaces/IRegistry.sol";
+import "hardhat/console.sol";
 
 contract Factory {
 
