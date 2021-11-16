@@ -293,15 +293,24 @@ contract CDS is InsureDAOERC20, ICDS {
      */
 
     /**
-     * @notice Internal function to offset request balance
-     * @param _from the account who send
-     * @param _amount the amount of token to offset
+     * @notice Internal function to offset withdraw request and latest balance
+     * @param from the account who send
+     * @param to a
+     * @param amount the amount of token to offset
      */
-    function _beforeTokenTransfer(address _from, uint256 _amount) internal {
-        //withdraw request operation
-        uint256 _after = balanceOf(_from) - _amount;
-        if (_after < withdrawalReq[_from].amount) {
-            withdrawalReq[_from].amount = _after;
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override {
+        super._beforeTokenTransfer(from, to, amount);
+
+        if(from != address(0)){
+            uint256 _after = balanceOf(from) - amount;
+            if (_after < withdrawalReq[from].amount) {
+                withdrawalReq[from].amount = _after;
+            }
+
         }
     }
 }
