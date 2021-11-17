@@ -4,6 +4,10 @@ const { BigNumber } = require("ethers");
 const { MerkleTree } = require("merkletreejs");
 const keccak256 = require("keccak256");
 
+const {
+  verifyBalance
+} = require('../test-utils')
+
 describe("CDS", function () {
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
   const long = [
@@ -248,7 +252,13 @@ describe("CDS", function () {
     describe("balanceOf", function () {
       context("when the requested account has no tokens", function () {
         it("returns zero", async function () {
-          expect(await cds.balanceOf(tom.address)).to.equal("0");
+          //expect(await cds.balanceOf(tom.address)).to.equal("0");
+          await verifyBalance({
+            token: cds,
+            address: tom.address,
+            expectedBalance: 0
+          })
+
         });
       });
 

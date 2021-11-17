@@ -5,13 +5,6 @@ const { BigNumber } = require('ethers');
 describe('Ownership', function() {
 
     beforeEach(async () => {
-        //import
-        [creator, alice] = await ethers.getSigners();
-        const Token = await ethers.getContractFactory('InsureToken');
-        const VotingEscrow = await ethers.getContractFactory('VotingEscrow');
-
-        Insure = await Token.deploy(name, simbol, decimal);
-        ve = await VotingEscrow.deploy(Insure.address, "Voting-escrowed Insure", "veInsure", 'veInsure');
     });
 
     describe("Constructor", function(){
