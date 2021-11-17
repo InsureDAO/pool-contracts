@@ -2,8 +2,11 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
+const{ 
+  ZERO_ADDRESS,
+} = require('../constant-utils');
+
 describe("Parameters", function () {
-  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
   beforeEach(async () => {
     //import

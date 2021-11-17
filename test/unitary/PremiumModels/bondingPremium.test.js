@@ -2,17 +2,16 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
+const{ 
+  ZERO_ADDRESS,
+  YEAR,
+  ten_to_the_18,
+  ten_to_the_6,
+  ONE,
+  TWO
+} = require('../constant-utils');
+
 describe.skip("test BondingPremium", () => {
-  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-
-  const YEAR = BigNumber.from("86400").mul(365);
-
-  const ten_to_the_18 = BigNumber.from("1000000000000000000");
-  const ten_to_the_6 = BigNumber.from("1000000");
-
-  //sqrt
-  const ONE = ethers.BigNumber.from(1);
-  const TWO = ethers.BigNumber.from(2);
 
   async function sqrt(value) {
     x = value;

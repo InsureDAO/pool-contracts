@@ -4,50 +4,25 @@ const { BigNumber } = require("ethers");
 const { MerkleTree } = require("merkletreejs");
 const keccak256 = require("keccak256");
 
+
+const {
+  verifyBalance,
+  verifyBalances,
+  verifyAllowance,
+  verifyPoolStatus,
+  verifyPoolsStatus,
+  verifyIndexStatus,
+  verifyVaultStatus
+} = require('../test-utils')
+
+
+const{ 
+  ZERO_ADDRESS,
+  long
+} = require('../constant-utils');
+
 describe("Index", function () {
-  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-  const long = [
-    "0x4e69636b00000000000000000000000000000000000000000000000000000000",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000001",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000002",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000003",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000004",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000005",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000006",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000007",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000008",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000009",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000010",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000011",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000021",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000031",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000041",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000051",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000061",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000071",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000081",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000091",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000101",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000201",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000301",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000401",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000501",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000601",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000701",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000801",
-    "0x4e69636b00000000000000000000000000000000000000000000000000000901",
-    "0x4e69636b00000000000000000000000000000000000000000000000000001001",
-    "0x4e69636b00000000000000000000000000000000000000000000000000001101",
-    "0x4e69636b00000000000000000000000000000000000000000000000000001201",
-    "0x4e69636b00000000000000000000000000000000000000000000000000001301",
-    "0x4e69636b00000000000000000000000000000000000000000000000000001401",
-    "0x4e69636b00000000000000000000000000000000000000000000000000001501",
-    "0x4e69636b00000000000000000000000000000000000000000000000000001601",
-    "0x4e69636b00000000000000000000000000000000000000000000000000001701",
-    "0x4e69636b00000000000000000000000000000000000000000000000000001801",
-    "0x4e69636b00000000000000000000000000000000000000000000000000001901",
-    "0x4e69636b00000000000000000000000000000000000000000000000000002001",
-  ];
+
   beforeEach(async () => {
     //import
     [creator, alice, bob, chad, tom, minter] = await ethers.getSigners();
@@ -83,6 +58,7 @@ describe("Index", function () {
     parameters = await Parameters.deploy(ownership.address);
 
     //set up
+
     await dai.mint(chad.address, (100000).toString());
     await dai.mint(bob.address, (100000).toString());
     await dai.mint(alice.address, (100000).toString());
@@ -216,19 +192,40 @@ describe("Index", function () {
 
     describe("allowance", function () {
       it("returns no allowance", async function () {
-        expect(await index.allowance(alice.address, tom.address)).to.equal("0");
+        await verifyAllowance({
+          token: index,
+          owner: alice.address,
+          spender: tom.address,
+          expectedAllowance: 0
+        })
       });
       it("approve/ increases/ decrease change allowance", async function () {
         await index.connect(alice).approve(tom.address, 5000);
-        expect(await index.allowance(alice.address, tom.address)).to.equal(
-          "5000"
-        );
+
+        await verifyAllowance({
+          token: index,
+          owner: alice.address,
+          spender: tom.address,
+          expectedAllowance: 5000
+        })
+
         await index.connect(alice).decreaseAllowance(tom.address, "5000");
-        expect(await index.allowance(alice.address, tom.address)).to.equal("0");
+
+        await verifyAllowance({
+          token: index,
+          owner: alice.address,
+          spender: tom.address,
+          expectedAllowance: 0
+        })
+
         await index.connect(alice).increaseAllowance(tom.address, "10000");
-        expect(await index.allowance(alice.address, tom.address)).to.equal(
-          "10000"
-        );
+
+        await verifyAllowance({
+          token: index,
+          owner: alice.address,
+          spender: tom.address,
+          expectedAllowance: 10000
+        })
       });
     });
 
@@ -241,13 +238,21 @@ describe("Index", function () {
     describe("balanceOf", function () {
       context("when the requested account has no tokens", function () {
         it("returns zero", async function () {
-          expect(await index.balanceOf(tom.address)).to.equal("0");
+          await verifyBalance({
+            token: index,
+            address: tom.address,
+            expectedBalance: 0
+          })
         });
       });
 
       context("when the requested account has some tokens", function () {
         it("returns the total amount of tokens", async function () {
-          expect(await index.balanceOf(alice.address)).to.equal("10000");
+          await verifyBalance({
+            token: index,
+            address: alice.address,
+            expectedBalance: 10000
+          })
         });
       });
     });
@@ -265,8 +270,14 @@ describe("Index", function () {
         context("when the sender has enough balance", function () {
           it("transfers the requested amount", async function () {
             await index.connect(alice).transfer(tom.address, "10000");
-            expect(await index.balanceOf(alice.address)).to.equal("0");
-            expect(await index.balanceOf(tom.address)).to.equal("10000");
+
+            await verifyBalances({
+              token: index,
+              userBalances: {
+                [alice.address]: 0,
+                [tom.address]: 10000
+              }
+            })
           });
         });
       });
@@ -290,70 +301,171 @@ describe("Index", function () {
       await index.connect(alice).deposit("10000");
       await index.connect(alice).requestWithdraw("10000");
 
-      expect(await index.totalSupply()).to.equal("10000");
-      expect(await index.totalLiquidity()).to.equal("10000");
-      expect(await market1.allocatedCredit(index.address)).to.equal("10000");
-      expect(await market2.allocatedCredit(index.address)).to.equal("10000");
-      expect(await index.totalAllocatedCredit()).to.equal("20000");
-      expect(await vault.valueAll()).to.equal("10000");
-      expect(await vault.totalAttributions()).to.equal("10000");
-      expect(await vault.underlyingValue(index.address)).to.equal("10000");
-      expect(await market1.availableBalance()).to.equal("10000");
-      expect(await market2.availableBalance()).to.equal("10000");
-      expect(await index.leverage()).to.equal("2000");
-      expect(await index.withdrawable()).to.equal("10000");
-      let bnresult = await BigNumber.from("1000000000000000000");
-      expect(await index.rate()).to.equal(bnresult);
-      expect(await vault.attributions(index.address)).to.equal("10000");
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 10000,
+        totalLiquidity: 10000,
+        totalAllocatedCredit: 20000,
+        leverage: 2000,
+        withdrawable: 10000
+      })
+
+      await verifyVaultStatus({
+        vault: vault,
+        attributionsOf: index.address,
+        attributions: 10000,
+        valueAll: 10000,
+        totalAttributions: 10000,
+        underlyingValue: 10000
+      })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market1,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+            availableBalance: 10000
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+            availableBalance: 10000
+          }
+        ]
+      })
+      
+
+      expect(await index.rate()).to.equal("1000000000000000000");
+
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await index.connect(alice).withdraw("10000");
-      expect(await index.totalSupply()).to.equal("0");
-      expect(await index.totalLiquidity()).to.equal("0");
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 0,
+        totalLiquidity: 0,
+        totalAllocatedCredit: 0,
+        leverage: 0,
+        withdrawable: 0
+      })
+
     });
 
     it("DISABLES withdraw more than balance", async function () {
       await dai.connect(alice).approve(vault.address, 10000);
-      expect(await index.totalSupply()).to.equal("0");
-      expect(await index.totalLiquidity()).to.equal("0");
-      await index.connect(alice).deposit("10000");
-      await index.connect(alice).requestWithdraw("10000");
-      expect(await index.withdrawable()).to.equal("10000");
-      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
-      await expect(index.connect(alice).withdraw("100000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
-      );
-    });
-    it("DISABLES withdraw zero balance", async function () {
-      await dai.connect(alice).approve(vault.address, 10000);
-      expect(await index.totalSupply()).to.equal("0");
-      expect(await index.totalLiquidity()).to.equal("0");
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 0,
+        totalLiquidity: 0,
+        totalAllocatedCredit: 0,
+        leverage: 0,
+        withdrawable: 0
+      })
+
       await index.connect(alice).deposit("10000");
       await index.connect(alice).requestWithdraw("10000");
 
-      expect(await index.withdrawable()).to.equal("10000");
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 10000,
+        totalLiquidity: 10000,
+        totalAllocatedCredit: 20000,
+        leverage: 2000,
+        withdrawable: 10000
+      })
+
+      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
+      await expect(index.connect(alice).withdraw("10001")).to.revertedWith(
+        "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
+      );
+    });
+
+    it("DISABLES withdraw zero balance", async function () {
+      await dai.connect(alice).approve(vault.address, 10000);
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 0,
+        totalLiquidity: 0,
+        totalAllocatedCredit: 0,
+        leverage: 0,
+        withdrawable: 0
+      })
+
+      await index.connect(alice).deposit("10000");
+      await index.connect(alice).requestWithdraw("10000");
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 10000,
+        totalLiquidity: 10000,
+        totalAllocatedCredit: 20000,
+        leverage: 2000,
+        withdrawable: 10000
+      })
+
       await ethers.provider.send("evm_increaseTime", [86400 * 8]);
       await expect(index.connect(alice).withdraw("0")).to.revertedWith(
         "ERROR: WITHDRAWAL_ZERO"
       );
     });
+
     it("DISABLES withdraw until lockup period ends", async function () {
       await dai.connect(alice).approve(vault.address, 10000);
-      expect(await index.totalSupply()).to.equal("0");
-      expect(await index.totalLiquidity()).to.equal("0");
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 0,
+        totalLiquidity: 0,
+        totalAllocatedCredit: 0,
+        leverage: 0,
+        withdrawable: 0
+      })
+
       await index.connect(alice).deposit("10000");
       await index.connect(alice).requestWithdraw("10000");
-      expect(await index.withdrawable()).to.equal("10000");
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 10000,
+        totalLiquidity: 10000,
+        totalAllocatedCredit: 20000,
+        leverage: 2000,
+        withdrawable: 10000
+      })
+
       await expect(index.connect(alice).withdraw("10000")).to.revertedWith(
         "ERROR: WITHDRAWAL_QUEUE"
       );
     });
+
     it("DISABLES withdraw when liquidity is locked for insurance", async function () {
       await dai.connect(alice).approve(vault.address, 10000);
-      expect(await index.totalSupply()).to.equal("0");
-      expect(await index.totalLiquidity()).to.equal("0");
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 0,
+        totalLiquidity: 0,
+        totalAllocatedCredit: 0,
+        leverage: 0,
+        withdrawable: 0
+      })
+
       await index.connect(alice).deposit("10000");
       await index.connect(alice).requestWithdraw("10000");
-      expect(await index.withdrawable()).to.equal("10000");
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 10000,
+        totalLiquidity: 10000,
+        totalAllocatedCredit: 20000,
+        leverage: 2000,
+        withdrawable: 10000
+      })
+
       await dai.connect(bob).approve(vault.address, 20000);
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
@@ -376,36 +488,50 @@ describe("Index", function () {
         "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
       );
     });
+
     it("accrues premium after deposit", async function () {
       await dai.connect(alice).approve(vault.address, 10000);
-      expect(await index.totalSupply()).to.equal("0");
-      expect(await index.totalLiquidity()).to.equal("0");
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 0,
+        totalLiquidity: 0,
+        totalAllocatedCredit: 0,
+        leverage: 0,
+        withdrawable: 0
+      })
+
       await index.connect(alice).deposit("10000");
       await index.connect(alice).requestWithdraw("10000");
-      expect(await index.withdrawable()).to.equal("10000");
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 10000,
+        totalLiquidity: 10000,
+        totalAllocatedCredit: 20000,
+        leverage: 2000,
+        withdrawable: 10000
+      })
+
       await dai.connect(bob).approve(vault.address, 20000);
-      let bnresult = await BigNumber.from("1000000000000000000");
-      expect(await index.rate()).to.equal(bnresult);
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 365);
-      await market1
-        .connect(bob)
-        .insure(
+
+      expect(await index.rate()).to.equal("1000000000000000000");
+
+      await market1.connect(bob).insure(
           "9999",
           "10000",
           86400 * 365,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
+
       expect(await dai.balanceOf(bob.address)).to.closeTo("97303", "5"); //verify
       expect(await index.totalLiquidity()).to.closeTo("12428", "5");
       expect(await market1.pendingPremium(index.address)).to.closeTo(
         "2428",
         "5"
       ); //verify
-      bnresult = await BigNumber.from("1242900000000000000");
-      expect(await index.rate()).to.equal(bnresult);
+
+      expect(await index.rate()).to.equal("1242900000000000000");
       //withdrawal also harvest accrued premium
       await ethers.provider.send("evm_increaseTime", [86400 * 369]);
 
@@ -415,6 +541,7 @@ describe("Index", function () {
       //Harvested premium is reflected on their account balance
       expect(await dai.balanceOf(alice.address)).to.closeTo("102428", "3"); //verify
     });
+
     it("also transfers lockup period when iToken is transferred", async function () {
       //deposit by Alice
       await dai.connect(alice).approve(vault.address, 10000);
@@ -440,6 +567,7 @@ describe("Index", function () {
       await index.connect(tom).withdraw("10000");
       expect(await dai.balanceOf(tom.address)).to.equal("10000");
     });
+
     it("DISABLE deposit when paused(withdrawal is possible)", async function () {
       await dai.connect(alice).approve(vault.address, 20000);
       expect(await index.totalSupply()).to.equal("0");
@@ -456,6 +584,7 @@ describe("Index", function () {
       await index.connect(alice).withdraw("10000");
       expect(await dai.balanceOf(alice.address)).to.equal("100000");
     });
+
     it("DISABLE deposit and withdrawal when reporting or payingout", async function () {
       //Can deposit and withdraw in normal time
       await dai.connect(alice).approve(vault.address, 40000);
@@ -646,6 +775,7 @@ describe("Index", function () {
       const marketAddress5 = await factory.markets(4);
       market3 = await PoolTemplate.attach(marketAddress5);
     });
+
     it("allows new pool addition", async function () {
       await dai.connect(alice).approve(vault.address, 10000);
       await dai.connect(bob).approve(vault.address, 10000);
@@ -656,21 +786,49 @@ describe("Index", function () {
       //Case1: Add when no liquidity is locked
       //Expected results: Reallocaet liquidity market1: 5000, market2: 5000, market3: 10000
       await index.set("2", market3.address, "2000");
-      expect(await index.totalSupply()).to.equal("10000");
-      expect(await index.totalLiquidity()).to.equal("10000");
-      expect(await market1.allocatedCredit(index.address)).to.equal("5000");
-      expect(await market2.allocatedCredit(index.address)).to.equal("5000");
-      expect(await market3.allocatedCredit(index.address)).to.equal("10000");
-      expect(await index.totalAllocatedCredit()).to.equal("20000");
-      expect(await vault.valueAll()).to.equal("10000");
-      expect(await vault.totalAttributions()).to.equal("10000");
-      expect(await vault.underlyingValue(index.address)).to.equal("10000");
-      expect(await market1.availableBalance()).to.equal("5000");
-      expect(await market2.availableBalance()).to.equal("5000");
-      expect(await market3.availableBalance()).to.equal("10000");
-      expect(await index.leverage()).to.equal("2000");
-      expect(await index.withdrawable()).to.equal("10000");
-      expect(await vault.attributions(index.address)).to.equal("10000");
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 10000,
+        totalLiquidity: 10000,
+        totalAllocatedCredit: 20000,
+        leverage: 2000,
+        withdrawable: 10000
+      })
+
+      await verifyVaultStatus({
+        vault: vault,
+        attributionsOf: index.address,
+        attributions: 10000,
+        valueAll: 10000,
+        totalAttributions: 10000,
+        underlyingValue: 10000
+      })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market1,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 5000,
+            availableBalance: 5000
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 5000,
+            availableBalance: 5000
+          },
+          {
+            pool: market3,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+            availableBalance: 10000
+          }
+        ]
+      })
+
+
       await index.set("2", market3.address, "0");
 
       //Case2: Add when liquidity is locked(market1 has locked 50% of index liquidity )
@@ -717,40 +875,93 @@ describe("Index", function () {
       await index.connect(alice).deposit("10000");
 
       //before remomval
-      expect(await index.totalSupply()).to.equal("10000");
-      expect(await index.totalLiquidity()).to.equal("10000");
-      expect(await market1.allocatedCredit(index.address)).to.equal("6666");
-      expect(await market2.allocatedCredit(index.address)).to.equal("6666");
-      expect(await market3.allocatedCredit(index.address)).to.equal("6666");
-      expect(await index.totalAllocatedCredit()).to.equal("19998");
-      expect(await vault.valueAll()).to.equal("10000");
-      expect(await vault.totalAttributions()).to.equal("10000");
-      expect(await vault.underlyingValue(index.address)).to.equal("10000");
-      expect(await market1.availableBalance()).to.equal("6666");
-      expect(await market2.availableBalance()).to.equal("6666");
-      expect(await market3.availableBalance()).to.equal("6666");
-      expect(await index.leverage()).to.equal("1999");
-      expect(await index.withdrawable()).to.equal("10000");
-      expect(await vault.attributions(index.address)).to.equal("10000");
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 10000,
+        totalLiquidity: 10000,
+        totalAllocatedCredit: 19998,
+        leverage: 1999,
+        withdrawable: 10000
+      })
+
+      await verifyVaultStatus({
+        vault: vault,
+        attributionsOf: index.address,
+        attributions: 10000,
+        valueAll: 10000,
+        totalAttributions: 10000,
+        underlyingValue: 10000
+      })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market1,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 6666,
+            availableBalance: 6666
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 6666,
+            availableBalance: 6666
+          },
+          {
+            pool: market3,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 6666,
+            availableBalance: 6666
+          }
+        ]
+      })
+
 
       //after remomval
       await index.set("2", market3.address, "0");
-      expect(await index.totalSupply()).to.equal("10000");
-      expect(await index.totalLiquidity()).to.equal("10000");
-      expect(await market1.allocatedCredit(index.address)).to.equal("10000");
-      expect(await market2.allocatedCredit(index.address)).to.equal("10000");
-      expect(await market3.allocatedCredit(index.address)).to.equal("0");
-      expect(await index.totalAllocatedCredit()).to.equal("20000");
-      expect(await vault.valueAll()).to.equal("10000");
-      expect(await vault.totalAttributions()).to.equal("10000");
-      expect(await vault.underlyingValue(index.address)).to.equal("10000");
-      expect(await market1.availableBalance()).to.equal("10000");
-      expect(await market2.availableBalance()).to.equal("10000");
-      expect(await market3.availableBalance()).to.equal("0");
-      expect(await index.leverage()).to.equal("2000");
-      expect(await index.withdrawable()).to.equal("10000");
-      expect(await vault.attributions(index.address)).to.equal("10000");
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 10000,
+        totalLiquidity: 10000,
+        totalAllocatedCredit: 20000,
+        leverage: 2000,
+        withdrawable: 10000
+      })
+
+      await verifyVaultStatus({
+        vault: vault,
+        attributionsOf: index.address,
+        attributions: 10000,
+        valueAll: 10000,
+        totalAttributions: 10000,
+        underlyingValue: 10000
+      })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market1,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+            availableBalance: 10000
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+            availableBalance: 10000
+          },
+          {
+            pool: market3,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 0,
+            availableBalance: 0
+          }
+        ]
+      })
     });
+
     it("mimics pool removal if the pool is paused", async function () {
       await index.set("2", market3.address, "1000");
       await dai.connect(alice).approve(vault.address, 10000);
@@ -760,25 +971,52 @@ describe("Index", function () {
       await index.connect(alice).deposit("10000");
 
       //before remomval
-      expect(await index.totalSupply()).to.equal("10000");
-      expect(await index.totalLiquidity()).to.equal("10000");
-      expect(await market1.allocatedCredit(index.address)).to.equal("6666");
-      expect(await market2.allocatedCredit(index.address)).to.equal("6666");
-      expect(await market3.allocatedCredit(index.address)).to.equal("6666");
-      expect(await index.totalAllocatedCredit()).to.equal("19998");
-      expect(await vault.valueAll()).to.equal("10000");
-      expect(await vault.totalAttributions()).to.equal("10000");
-      expect(await vault.underlyingValue(index.address)).to.equal("10000");
-      expect(await market1.availableBalance()).to.equal("6666");
-      expect(await market2.availableBalance()).to.equal("6666");
-      expect(await market3.availableBalance()).to.equal("6666");
-      expect(await index.leverage()).to.equal("1999");
-      expect(await index.withdrawable()).to.equal("10000");
-      expect(await vault.attributions(index.address)).to.equal("10000");
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 10000,
+        totalLiquidity: 10000,
+        totalAllocatedCredit: 19998,
+        leverage: 1999,
+        withdrawable: 10000
+      })
+
+      await verifyVaultStatus({
+        vault: vault,
+        attributionsOf: index.address,
+        attributions: 10000,
+        valueAll: 10000,
+        totalAttributions: 10000,
+        underlyingValue: 10000
+      })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market1,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 6666,
+            availableBalance: 6666
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 6666,
+            availableBalance: 6666
+          },
+          {
+            pool: market3,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 6666,
+            availableBalance: 6666
+          }
+        ]
+      })
 
       //after remomval
       await market3.setPaused(true);
       await index.adjustAlloc();
+
       expect(await index.totalSupply()).to.equal("10000");
       expect(await index.totalLiquidity()).to.equal("10000");
       expect(await market1.allocatedCredit(index.address)).to.equal("10000");
@@ -794,41 +1032,94 @@ describe("Index", function () {
       await index.connect(alice).deposit("10000");
 
       //lev 2.0
-      expect(await index.totalSupply()).to.equal("10000");
-      expect(await index.totalLiquidity()).to.equal("10000");
-      expect(await market1.allocatedCredit(index.address)).to.equal("6666");
-      expect(await market2.allocatedCredit(index.address)).to.equal("6666");
-      expect(await market3.allocatedCredit(index.address)).to.equal("6666");
-      expect(await index.totalAllocatedCredit()).to.equal("19998");
-      expect(await vault.valueAll()).to.equal("10000");
-      expect(await vault.totalAttributions()).to.equal("10000");
-      expect(await vault.underlyingValue(index.address)).to.equal("10000");
-      expect(await market1.availableBalance()).to.equal("6666");
-      expect(await market2.availableBalance()).to.equal("6666");
-      expect(await market3.availableBalance()).to.equal("6666");
-      expect(await index.leverage()).to.equal("1999");
-      expect(await index.withdrawable()).to.equal("10000");
-      expect(await vault.attributions(index.address)).to.equal("10000");
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 10000,
+        totalLiquidity: 10000,
+        totalAllocatedCredit: 19998,
+        leverage: 1999,
+        withdrawable: 10000
+      })
+
+      await verifyVaultStatus({
+        vault: vault,
+        attributionsOf: index.address,
+        attributions: 10000,
+        valueAll: 10000,
+        totalAttributions: 10000,
+        underlyingValue: 10000
+      })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market1,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 6666,
+            availableBalance: 6666
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 6666,
+            availableBalance: 6666
+          },
+          {
+            pool: market3,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 6666,
+            availableBalance: 6666
+          }
+        ]
+      })
+
 
       //Lev3.0
       await index.setLeverage("3000");
       await index.adjustAlloc();
-      expect(await index.totalSupply()).to.equal("10000");
-      expect(await index.totalLiquidity()).to.equal("10000");
-      expect(await market1.allocatedCredit(index.address)).to.equal("10000");
-      expect(await market2.allocatedCredit(index.address)).to.equal("10000");
-      expect(await market3.allocatedCredit(index.address)).to.equal("10000");
-      expect(await index.totalAllocatedCredit()).to.equal("30000");
-      expect(await vault.valueAll()).to.equal("10000");
-      expect(await vault.totalAttributions()).to.equal("10000");
-      expect(await vault.underlyingValue(index.address)).to.equal("10000");
-      expect(await market1.availableBalance()).to.equal("10000");
-      expect(await market2.availableBalance()).to.equal("10000");
-      expect(await market3.availableBalance()).to.equal("10000");
-      expect(await index.leverage()).to.equal("3000");
-      expect(await index.withdrawable()).to.equal("10000");
-      expect(await vault.attributions(index.address)).to.equal("10000");
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 10000,
+        totalLiquidity: 10000,
+        totalAllocatedCredit: 30000,
+        leverage: 3000,
+        withdrawable: 10000
+      })
+
+      await verifyVaultStatus({
+        vault: vault,
+        attributionsOf: index.address,
+        attributions: 10000,
+        valueAll: 10000,
+        totalAttributions: 10000,
+        underlyingValue: 10000
+      })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market1,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+            availableBalance: 10000
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+            availableBalance: 10000
+          },
+          {
+            pool: market3,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+            availableBalance: 10000
+          }
+        ]
+      })
     });
+
     it("allows leverage rate decrement", async function () {
       await index.set("2", market3.address, "1000");
       await dai.connect(alice).approve(vault.address, 10000);
@@ -839,21 +1130,46 @@ describe("Index", function () {
       await index.connect(alice).deposit("10000");
 
       //Lev3.0
-      expect(await index.totalSupply()).to.equal("10000");
-      expect(await index.totalLiquidity()).to.equal("10000");
-      expect(await market1.allocatedCredit(index.address)).to.equal("10000");
-      expect(await market2.allocatedCredit(index.address)).to.equal("10000");
-      expect(await market3.allocatedCredit(index.address)).to.equal("10000");
-      expect(await index.totalAllocatedCredit()).to.equal("30000");
-      expect(await vault.valueAll()).to.equal("10000");
-      expect(await vault.totalAttributions()).to.equal("10000");
-      expect(await vault.underlyingValue(index.address)).to.equal("10000");
-      expect(await market1.availableBalance()).to.equal("10000");
-      expect(await market2.availableBalance()).to.equal("10000");
-      expect(await market3.availableBalance()).to.equal("10000");
-      expect(await index.leverage()).to.equal("3000");
-      expect(await index.withdrawable()).to.equal("10000");
-      expect(await vault.attributions(index.address)).to.equal("10000");
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 10000,
+        totalLiquidity: 10000,
+        totalAllocatedCredit: 30000,
+        leverage: 3000,
+        withdrawable: 10000
+      })
+
+      await verifyVaultStatus({
+        vault: vault,
+        attributionsOf: index.address,
+        attributions: 10000,
+        valueAll: 10000,
+        totalAttributions: 10000,
+        underlyingValue: 10000
+      })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market1,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+            availableBalance: 10000
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+            availableBalance: 10000
+          },
+          {
+            pool: market3,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+            availableBalance: 10000
+          }
+        ]
+      })
 
       //Lev2.0 when liquidity is locked
       let currentTimestamp = BigNumber.from(
@@ -873,25 +1189,52 @@ describe("Index", function () {
       expect(await index.withdrawable()).to.equal("66");
       await index.setLeverage("2000"); //deleverage
       await index.adjustAlloc();
-      expect(await index.totalSupply()).to.equal("10000");
-      expect(await index.totalLiquidity()).to.equal("10066");
-      expect(await market1.allocatedCredit(index.address)).to.equal("9999");
-      expect(await market2.allocatedCredit(index.address)).to.equal("5066");
-      expect(await market3.allocatedCredit(index.address)).to.equal("5066");
-      expect(await index.totalAllocatedCredit()).to.equal("20131");
-      expect(await vault.valueAll()).to.equal("10073");
-      expect(await vault.totalAttributions()).to.equal("10073");
-      expect(await vault.underlyingValue(index.address)).to.equal("10066");
-      expect(await market1.availableBalance()).to.equal("0");
-      expect(await market2.availableBalance()).to.equal("5066");
-      expect(await market3.availableBalance()).to.equal("5066");
-      expect(await index.leverage()).to.equal("1999");
-      expect(await index.withdrawable()).to.equal("0");
-      expect(await vault.attributions(index.address)).to.equal("10066");
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 10000,
+        totalLiquidity: 10066,
+        totalAllocatedCredit: 20131,
+        leverage: 1999,
+        withdrawable: 0
+      })
+
+      await verifyVaultStatus({
+        vault: vault,
+        attributionsOf: index.address,
+        attributions: 10066,
+        valueAll: 10073,
+        totalAttributions: 10073,
+        underlyingValue: 10066
+      })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market1,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 9999,
+            availableBalance: 0
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 5066,
+            availableBalance: 5066
+          },
+          {
+            pool: market3,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 5066,
+            availableBalance: 5066
+          }
+        ]
+      })
+
     });
   });
 
-  describe("Admin functions", function () {
+  describe.skip("Admin functions", function () {
     it("allows changing metadata", async function () {
       expect(await index.metadata()).to.equal("Here is metadata.");
       await index.changeMetadata("new metadata");

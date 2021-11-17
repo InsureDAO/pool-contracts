@@ -2,8 +2,8 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
+
 describe("registry", function () {
-  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
   beforeEach(async () => {
     //import
