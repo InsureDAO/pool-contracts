@@ -16,7 +16,7 @@ import "./interfaces/IParameters.sol";
 import "./interfaces/ICDS.sol";
 import "./interfaces/IMinter.sol";
 
-contract CDS is InsureDAOERC20, ICDS {
+contract CDSTemplate is InsureDAOERC20, ICDS {
 
     /**
      * EVENTS

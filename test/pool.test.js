@@ -63,7 +63,7 @@ describe("Pool", function () {
     const DAI = await ethers.getContractFactory("TestERC20Mock");
     const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
     const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
-    const CDS = await ethers.getContractFactory("CDS");
+    const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
     const Factory = await ethers.getContractFactory("Factory");
     const Vault = await ethers.getContractFactory("Vault");
     const Registry = await ethers.getContractFactory("Registry");

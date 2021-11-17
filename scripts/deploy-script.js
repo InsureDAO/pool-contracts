@@ -17,7 +17,7 @@ async function main() {
   const DAI = await ethers.getContractFactory("ERC20Mock");
   const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
   const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
-  const CDS = await ethers.getContractFactory("CDS");
+  const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
   const Factory = await ethers.getContractFactory("Factory");
   const Vault = await ethers.getContractFactory("Vault");
   const Registry = await ethers.getContractFactory("Registry");
@@ -54,7 +54,7 @@ async function main() {
   const poolTemplate = await PoolTemplate.deploy();
   await poolTemplate.deployed();
   console.log("poolTemplate deployed to:", poolTemplate.address);
-  const cdsTemplate = await CDS.deploy();
+  const cdsTemplate = await CDSTemplate.deploy();
   await cdsTemplate.deployed();
   console.log("cdsTemplate deployed to:", cdsTemplate.address);
   const indexTemplate = await IndexTemplate.deploy();
@@ -213,7 +213,7 @@ async function main() {
   await tx.wait();
   const marketAddress4 = await factory.markets(3);
   const marketAddress5 = await factory.markets(4);
-  cds = await CDS.attach(marketAddress4);
+  cds = await CDSTemplate.attach(marketAddress4);
   index = await IndexTemplate.attach(marketAddress5);
   console.log("cds deployed to", marketAddress4);
   console.log("index deployed to", marketAddress5);
