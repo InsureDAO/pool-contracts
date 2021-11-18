@@ -431,7 +431,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     /**
      * @notice Get insured for the specified amount for specified span
      * @param _amount target amount to get covered
-     * @param _maxCost maximum cost to pay for the premium. revert if the premium is hifger
+     * @param _maxCost maximum cost to pay for the premium. revert if the premium is higher
      * @param _span length to get covered(e.g. 7 days)
      * @param _target target id
      * @return id of the insurance policy

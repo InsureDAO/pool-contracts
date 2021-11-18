@@ -3,6 +3,8 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 const chai = require('chai')
 const { assert } = chai
 const { expect } = require("chai");
+const { MerkleTree } = require("merkletreejs");
+const keccak256 = require("keccak256");
 
 const verifyBalance = async ({ token, address, expectedBalance }) => {
     const balance = await token.balanceOf(address)
@@ -20,7 +22,8 @@ const verifyAllowance = async ({ token, owner, spender, expectedAllowance }) => 
     assert.equal(+allowance, expectedAllowance, `allowance incorrect for ${token.address} owner ${owner} spender ${spender}`)
 }
 
-const verifyPoolStatus = async({pool, allocatedCreditOf, allocatedCredit, availableBalance}) => {
+const verifyPoolStatus = async({pool, totalLiquidity, allocatedCreditOf, allocatedCredit, availableBalance}) => {
+    expect(await pool.totalLiquidity()).to.equal(totalLiquidity);
     expect(await pool.allocatedCredit(allocatedCreditOf)).to.equal(allocatedCredit);
     expect(await pool.availableBalance()).to.equal(availableBalance);
 }
@@ -28,7 +31,8 @@ const verifyPoolStatus = async({pool, allocatedCreditOf, allocatedCredit, availa
 const verifyPoolsStatus = async({pools}) => {
     for (i = 0; i < pools.length; i++) {
         await verifyPoolStatus({ 
-            pool: pools[i].pool, 
+            pool: pools[i].pool,
+            totalLiquidity: pools[i].totalLiquidity,
             allocatedCreditOf: pools[i].allocatedCreditOf, 
             allocatedCredit: pools[i].allocatedCredit, 
             availableBalance: pools[i].availableBalance
@@ -44,12 +48,18 @@ const verifyIndexStatus = async ({index, totalSupply, totalLiquidity, totalAlloc
     expect(await index.withdrawable()).to.equal(withdrawable);
 }
 
-const verifyVaultStatus = async({vault, attributionsOf, attributions, valueAll, totalAttributions, underlyingValue}) => {
-    expect(await vault.attributions(attributionsOf)).to.equal(attributions);
+const verifyVaultStatus = async({vault, target, attributions, valueAll, totalAttributions, underlyingValue}) => {
+    expect(await vault.attributions(target)).to.equal(attributions);
     expect(await vault.valueAll()).to.equal(valueAll);
     expect(await vault.totalAttributions()).to.equal(totalAttributions);
-    expect(await vault.underlyingValue(index.address)).to.equal(underlyingValue);
+    expect(await vault.underlyingValue(target)).to.equal(underlyingValue);
 }
+
+const insure = async({pool, insurer, amount, maxCost, span, target}) => {
+    await pool.connect(insurer).insure(amount, maxCost, span, target);
+}
+
+
 
 Object.assign(exports, {
     verifyBalance,
@@ -58,5 +68,6 @@ Object.assign(exports, {
     verifyPoolStatus,
     verifyPoolsStatus,
     verifyIndexStatus,
-    verifyVaultStatus
+    verifyVaultStatus,
+    insure
 })

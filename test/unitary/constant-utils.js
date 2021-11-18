@@ -5,7 +5,10 @@ const { BigNumber } = require("ethers");
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const NULL_ADDRESS = "0xffffffffffffffffffffffffffffffffffffffff";
 
+
 const YEAR = BigNumber.from("86400").mul(365);
+const WEEK = BigNumber.from("86400").mul(7);
+const DAY = BigNumber.from("86400");
 
 const ten_to_the_18 = BigNumber.from("1000000000000000000");
 const ten_to_the_6 = BigNumber.from("1000000");
@@ -72,6 +75,8 @@ Object.assign(exports, {
     ZERO_ADDRESS,
     NULL_ADDRESS,
     YEAR,
+    WEEK,
+    DAY,
     ten_to_the_18,
     ten_to_the_6,
     ten_to_the_5,
