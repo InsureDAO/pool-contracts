@@ -10,10 +10,18 @@ const{
   ZERO_ADDRESS,
 } = require('../constant-utils');
 
+async function snapshot () {
+  return network.provider.send('evm_snapshot', [])
+}
+
+async function restore (snapshotId) {
+  return network.provider.send('evm_revert', [snapshotId])
+}
+
 
 describe("Factory", function () {
 
-  beforeEach(async () => {
+  before(async () => {
     //import
     [creator, alice, bob, chad, tom] = await ethers.getSigners();
     const Ownership = await ethers.getContractFactory("Ownership");
@@ -88,6 +96,14 @@ describe("Factory", function () {
     const marketAddress = await factory.markets(0);
     market = await PoolTemplate.attach(marketAddress);
   });
+
+  beforeEach(async () => {
+    snapshotId = await snapshot()
+  });
+
+  afterEach(async () => {
+    await restore(snapshotId)
+  })
 
   describe("duplicate market", function () {
     it("Should revert when it's not allowed", async () => {

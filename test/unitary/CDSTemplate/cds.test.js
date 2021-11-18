@@ -14,9 +14,17 @@ const{
   long
 } = require('../constant-utils');
 
+async function snapshot () {
+  return network.provider.send('evm_snapshot', [])
+}
+
+async function restore (snapshotId) {
+  return network.provider.send('evm_revert', [snapshotId])
+}
+
 describe("CDS", function () {
 
-  beforeEach(async () => {
+  before(async () => {
     //import
     [creator, alice, bob, chad, tom] = await ethers.getSigners();
     const Ownership = await ethers.getContractFactory("Ownership");
@@ -163,6 +171,14 @@ describe("CDS", function () {
     await index.set("0", market1.address, "1000");
     await index.setLeverage("20000");
   });
+
+  beforeEach(async () => {
+    snapshotId = await snapshot()
+  });
+
+  afterEach(async () => {
+    await restore(snapshotId)
+  })
 
   describe("Condition", function () {
     it("Should contracts be deployed", async () => {

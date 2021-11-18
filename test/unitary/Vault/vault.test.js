@@ -6,9 +6,17 @@ const{
   NULL_ADDRESS
 } = require('../constant-utils');
 
+async function snapshot () {
+  return network.provider.send('evm_snapshot', [])
+}
+
+async function restore (snapshotId) {
+  return network.provider.send('evm_revert', [snapshotId])
+}
+
 describe("Vault", function () {
 
-  beforeEach(async () => {
+  before(async () => {
     //import
     [creator, alice, bob, chad] = await ethers.getSigners();
     const Ownership = await ethers.getContractFactory("Ownership");
@@ -36,6 +44,15 @@ describe("Vault", function () {
 
     await registry.supportMarket(alice.address);
   });
+
+  beforeEach(async () => {
+    snapshotId = await snapshot()
+  });
+
+  afterEach(async () => {
+    await restore(snapshotId)
+  })
+  
   describe("Condition", function () {
     it("Should contracts be deployed", async () => {
       expect(dai.address).to.exist;

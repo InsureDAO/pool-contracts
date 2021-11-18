@@ -6,9 +6,17 @@ const{
   ZERO_ADDRESS,
 } = require('../constant-utils');
 
+async function snapshot () {
+  return network.provider.send('evm_snapshot', [])
+}
+
+async function restore (snapshotId) {
+  return network.provider.send('evm_revert', [snapshotId])
+}
+
 describe("test BondingPremium", () => {
 
-  beforeEach(async () => {
+  before(async () => {
     [creator, alice] = await ethers.getSigners();
 
     const Ownership = await ethers.getContractFactory("Ownership");
@@ -17,6 +25,14 @@ describe("test BondingPremium", () => {
     ownership = await Ownership.deploy();
     fee = await Fee.deploy(ownership.address);
   });
+
+  beforeEach(async () => {
+    snapshotId = await snapshot()
+  });
+
+  afterEach(async () => {
+    await restore(snapshotId)
+  })
 
   describe("Condition", function () {
     it("contract should be deployed", async () => {

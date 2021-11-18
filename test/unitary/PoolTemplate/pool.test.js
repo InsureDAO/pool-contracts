@@ -11,9 +11,17 @@ const{
   long
 } = require('../constant-utils');
 
+async function snapshot () {
+  return network.provider.send('evm_snapshot', [])
+}
+
+async function restore (snapshotId) {
+  return network.provider.send('evm_revert', [snapshotId])
+}
+
 describe("Pool", function () {
 
-  beforeEach(async () => {
+  before(async () => {
     //import
     [creator, alice, bob, chad, tom] = await ethers.getSigners();
     const Ownership = await ethers.getContractFactory("Ownership");
@@ -90,6 +98,14 @@ describe("Pool", function () {
     const marketAddress = await factory.markets(0);
     market = await PoolTemplate.attach(marketAddress);
   });
+
+  beforeEach(async () => {
+    snapshotId = await snapshot()
+  });
+
+  afterEach(async () => {
+    await restore(snapshotId)
+  })
 
   describe("Condition", function () {
     it("Should contracts be deployed", async () => {

@@ -6,9 +6,17 @@ const{
   ZERO_ADDRESS,
 } = require('../constant-utils');
 
+async function snapshot () {
+  return network.provider.send('evm_snapshot', [])
+}
+
+async function restore (snapshotId) {
+  return network.provider.send('evm_revert', [snapshotId])
+}
+
 describe("Parameters", function () {
 
-  beforeEach(async () => {
+  before(async () => {
     //import
     [creator, alice, bob, chad, tom, test] = await ethers.getSigners();
     const Ownership = await ethers.getContractFactory("Ownership");
@@ -17,6 +25,15 @@ describe("Parameters", function () {
     ownership = await Ownership.deploy();
     parameters = await Parameters.deploy(ownership.address);
   });
+  
+  beforeEach(async () => {
+    snapshotId = await snapshot()
+  });
+
+  afterEach(async () => {
+    await restore(snapshotId)
+  })
+
   describe.skip("ownership functions", function () {
     //revert test
     it("test_commit_owner_only", async () => {
