@@ -9,7 +9,6 @@ const {
   verifyBalance,
   verifyBalances,
   verifyAllowance,
-  verifyPoolStatus,
   verifyPoolsStatus,
   verifyIndexStatus,
   verifyVaultStatus,

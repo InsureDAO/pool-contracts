@@ -6,12 +6,23 @@ const keccak256 = require("keccak256");
 
 const {
   verifyBalance,
-  verifyBalances
+  verifyBalances,
+  verifyAllowance,
+  verifyPoolsStatus,
+  verifyIndexStatus,
+  verifyCDSStatus,
+  verifyVaultStatus,
+  verifyVaultStatusOf,
+  insure
 } = require('../test-utils')
+
 
 const{ 
   ZERO_ADDRESS,
-  long
+  long,
+  YEAR,
+  WEEK,
+  DAY
 } = require('../constant-utils');
 
 async function snapshot () {
@@ -22,7 +33,25 @@ async function restore (snapshotId) {
   return network.provider.send('evm_revert', [snapshotId])
 }
 
+async function moveForwardPeriods (days) {
+  await ethers.provider.send("evm_increaseTime", [DAY.mul(days).toNumber()]);
+  await ethers.provider.send("evm_mine");
+
+  return true
+}
+
 describe("CDS", function () {
+
+  const approveDeposit = async ({token, target, depositer, amount}) => {
+    await token.connect(depositer).approve(vault.address, amount);
+    await target.connect(depositer).deposit(amount);
+  }
+
+  const approveDepositAndWithdrawRequest = async ({token, target, depositer, amount}) => {
+    await token.connect(depositer).approve(vault.address, amount);
+    await target.connect(depositer).deposit(amount);
+    await target.connect(depositer).requestWithdraw(amount);
+  }
 
   before(async () => {
     //import
@@ -196,13 +225,27 @@ describe("CDS", function () {
   });
   describe("iToken", function () {
     beforeEach(async () => {
-      await dai.connect(alice).approve(vault.address, 10000);
-      await dai.connect(bob).approve(vault.address, 10000);
-      await dai.connect(chad).approve(vault.address, 10000);
 
-      await cds.connect(alice).deposit("10000");
-      await cds.connect(bob).deposit("10000");
-      await cds.connect(chad).deposit("10000");
+      await approveDeposit({
+        token: dai,
+        target: cds,
+        depositer: alice,
+        amount: 10000
+      })
+
+      await approveDeposit({
+        token: dai,
+        target: cds,
+        depositer: bob,
+        amount: 10000
+      })
+
+      await approveDeposit({
+        token: dai,
+        target: cds,
+        depositer: chad,
+        amount: 10000
+      })
     });
 
     describe("allowance", function () {
@@ -288,128 +331,266 @@ describe("CDS", function () {
       });
     });
   });
+
   describe("Liquidity providing life cycles", function () {
     it("allows deposit and withdraw", async function () {
-      await dai.connect(alice).approve(vault.address, 10000);
-      expect(await cds.totalSupply()).to.equal("0");
-      expect(await cds.totalLiquidity()).to.equal("0");
-      await cds.connect(alice).deposit("10000");
+      await approveDeposit({
+        token: dai,
+        target: cds,
+        depositer: alice,
+        amount: 10000
+      })
+
       await cds.connect(alice).requestWithdraw("9900");
+
       expect(await cds.totalSupply()).to.equal("9900");
       expect(await cds.totalLiquidity()).to.equal("9900");
-      expect(await vault.valueAll()).to.equal("10000");
-      expect(await vault.totalAttributions()).to.equal("10000");
-      expect(await vault.underlyingValue(cds.address)).to.equal("9900");
-      expect(await vault.attributions(cds.address)).to.equal("9900");
-      let bnresult = await BigNumber.from("1000000000000000000");
-      expect(await cds.rate()).to.equal(bnresult);
-      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
+
+      await verifyVaultStatus({
+        vault: vault,
+        target: cds.address,
+        attributions: 9900,
+        valueAll: 10000,
+        totalAttributions: 10000,
+        underlyingValue: 9900
+      })
+
+      expect(await cds.rate()).to.equal(BigNumber.from("1000000000000000000"));
+
+      await moveForwardPeriods(8)
+
       await cds.connect(alice).withdraw("9900");
-      expect(await cds.totalSupply()).to.equal("0");
-      expect(await cds.totalLiquidity()).to.equal("0");
+
+      await verifyVaultStatus({
+        vault: vault,
+        target: cds.address,
+        attributions: 0,
+        valueAll: 100,
+        totalAttributions: 100,
+        underlyingValue: 0
+      })
     });
 
     it("DISABLES withdraw more than balance", async function () {
-      await dai.connect(alice).approve(vault.address, 10000);
-      expect(await cds.totalSupply()).to.equal("0");
-      expect(await cds.totalLiquidity()).to.equal("0");
-      await cds.connect(alice).deposit("10000");
+      await approveDeposit({
+        token: dai,
+        target: cds,
+        depositer: alice,
+        amount: 10000
+      })
       await cds.connect(alice).requestWithdraw("9900");
-      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
+
+      await moveForwardPeriods(8)
+
       await expect(cds.connect(alice).withdraw("20000")).to.revertedWith(
         "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
       );
     });
 
     it("DISABLES withdraw zero balance", async function () {
-      await dai.connect(alice).approve(vault.address, 10000);
-      expect(await cds.totalSupply()).to.equal("0");
-      expect(await cds.totalLiquidity()).to.equal("0");
-      await cds.connect(alice).deposit("10000");
+      await approveDeposit({
+        token: dai,
+        target: cds,
+        depositer: alice,
+        amount: 10000
+      })
       await cds.connect(alice).requestWithdraw("9900");
 
-      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
+      await moveForwardPeriods(8)
       await expect(cds.connect(alice).withdraw("0")).to.revertedWith(
         "ERROR: WITHDRAWAL_ZERO"
       );
     });
 
     it("DISABLES withdraw until lockup period ends", async function () {
-      await dai.connect(alice).approve(vault.address, 10000);
-      expect(await cds.totalSupply()).to.equal("0");
-      expect(await cds.totalLiquidity()).to.equal("0");
-      await cds.connect(alice).deposit("10000");
+      await approveDeposit({
+        token: dai,
+        target: cds,
+        depositer: alice,
+        amount: 10000
+      })
       await cds.connect(alice).requestWithdraw("9900");
+
       await expect(cds.connect(alice).withdraw("9900")).to.revertedWith(
         "ERROR: WITHDRAWAL_QUEUE"
       );
     });
 
     it("accrues premium after deposit", async function () {
-      await dai.connect(alice).approve(vault.address, 10000);
-      await dai.connect(bob).approve(vault.address, 20000);
-      expect(await cds.totalSupply()).to.equal("0");
-      expect(await cds.totalLiquidity()).to.equal("0");
-      await cds.connect(alice).deposit("10000");
+      await approveDeposit({
+        token: dai,
+        target: cds,
+        depositer: alice,
+        amount: 10000
+      })
       await cds.connect(alice).requestWithdraw("9900");
-      let bnresult = await BigNumber.from("1000000000000000000");
-      expect(await cds.rate()).to.equal(bnresult);
-      await index.connect(bob).deposit("10000");
-      bnresult = await BigNumber.from("1020202020202020202");
-      expect(await cds.rate()).to.equal(bnresult);
-      expect(await dai.balanceOf(bob.address)).to.closeTo("90000", "5"); //verify
-      expect(await cds.totalLiquidity()).to.closeTo("10100", "5");
-      expect(await vault.underlyingValue(creator.address)).to.closeTo(
-        "200",
-        "5"
-      );
+
+      await verifyCDSStatus({
+        cds: cds,
+        totalSupply: 9900,
+        totalLiquidity: 9900,
+        rate: "1000000000000000000"
+      })
+
+      await approveDeposit({
+        token: dai,
+        target: index,
+        depositer: bob,
+        amount: 10000
+      })
+
+      await verifyCDSStatus({
+        cds: cds,
+        totalSupply: 9900,
+        totalLiquidity: 10100,
+        rate: "1020202020202020202"
+      })
+
+      await verifyBalance({
+        token: dai,
+        address: bob.address,
+        expectedBalance: 90000
+      })
+
+      await verifyVaultStatus({
+        vault: vault,
+        target: creator.address,
+        attributions: 200,
+        valueAll: 20000,
+        totalAttributions: 20000,
+        underlyingValue: 200
+      })
+
       //withdrawal also harvest accrued premium
-      await ethers.provider.send("evm_increaseTime", [86400 * 10]);
+      await moveForwardPeriods(10)
+
       await cds.connect(alice).withdraw("9900");
+
       //Harvested premium is reflected on their account balance
-      expect(await dai.balanceOf(alice.address)).to.closeTo("100100", "3"); //verify
+      await verifyBalance({
+        token: dai,
+        address: alice.address,
+        expectedBalance: 100100
+      })
     });
 
     it("DISABLE deposit when locked(withdrawal is possible)", async function () {
-      await dai.connect(alice).approve(vault.address, 20000);
-      await cds.connect(alice).deposit("10000");
+
+      await approveDeposit({
+        token: dai,
+        target: cds,
+        depositer: alice,
+        amount: 10000
+      })
+
       await cds.connect(alice).requestWithdraw("9900");
-      expect(await cds.totalSupply()).to.equal("9900");
-      expect(await cds.totalLiquidity()).to.equal("9900");
+
+      await verifyCDSStatus({
+        cds: cds,
+        totalSupply: 9900,
+        totalLiquidity: 9900,
+        rate: "1000000000000000000"
+      })
+
       await cds.setPaused(true);
+
+
+      await dai.connect(alice).approve(vault.address, 10000);
       await expect(cds.connect(alice).deposit("10000")).to.revertedWith(
         "ERROR: DEPOSIT_DISABLED"
       );
     });
 
     it("devaluate underlying when cover claim is accepted", async function () {
-      await dai.connect(alice).approve(vault.address, 20000);
-      await cds.connect(alice).deposit("10000");
+      await approveDeposit({
+        token: dai,
+        target: cds,
+        depositer: alice,
+        amount: 10000
+      })
       await cds.connect(alice).requestWithdraw("9900");
-      expect(await cds.totalSupply()).to.equal("9900");
-      expect(await cds.totalLiquidity()).to.equal("9900");
-      await index.connect(alice).deposit("1000");
-      expect(await index.totalSupply()).to.equal("970");
-      expect(await index.totalLiquidity()).to.equal("970");
-      expect(await market1.totalLiquidity()).to.equal("19400");
-      expect(await cds.totalLiquidity()).to.equal("9920");
-      expect(await vault.underlyingValue(market1.address)).to.equal("0");
-      expect(await vault.underlyingValue(index.address)).to.equal("970");
-      expect(await vault.underlyingValue(cds.address)).to.equal("9920");
+
+      await verifyCDSStatus({
+        cds: cds,
+        totalSupply: 9900,
+        totalLiquidity: 9900,
+        rate: "1000000000000000000"
+      })
+
+      await approveDeposit({
+        token: dai,
+        target: index,
+        depositer: alice,
+        amount: 1000
+      })
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 970,
+        totalLiquidity: 970,
+        totalAllocatedCredit: 19400,
+        leverage: 20000,
+        withdrawable: 970
+      })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market1,
+            totalLiquidity: 19400,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 19400,
+            availableBalance: 19400
+          }
+        ]
+      })
+
+      await verifyCDSStatus({
+        cds: cds,
+        totalSupply: 9900,
+        totalLiquidity: 9920,
+        rate: "1002020202020202020"
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: market1.address,
+        attributions: 0,
+        underlyingValue: 0
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: index.address,
+        attributions: 970,
+        underlyingValue: 970
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: cds.address,
+        attributions: 9920,
+        underlyingValue: 9920
+      })
+
       await dai.connect(bob).approve(vault.address, 10000);
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 8);
-      await market1
-        .connect(bob)
-        .insure(
-          "9000",
-          "10000",
-          86400 * 8,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
-      expect(await dai.balanceOf(bob.address)).to.closeTo("99974", "2");
+
+      await insure({
+        pool: market1,
+        insurer: bob,
+        amount: 9000,
+        maxCost: 10000,
+        span: 86400 * 8,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
+
+      await verifyBalance({
+        token: dai,
+        address: bob.address,
+        expectedBalance: 99974
+      })
+
+
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
@@ -435,38 +616,143 @@ describe("CDS", function () {
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );
 
-      expect(await dai.balanceOf(bob.address)).to.closeTo("104474", "2");
-      expect(await index.totalSupply()).to.equal("970");
-      expect(await market1.totalLiquidity()).to.closeTo("0", "1");
-      expect(await index.totalLiquidity()).to.closeTo("0", "1");
-      expect(await cds.totalLiquidity()).to.closeTo("6413", "1");
-      expect(await vault.underlyingValue(index.address)).to.closeTo("0", "1");
+      await verifyBalance({
+        token: dai,
+        address: bob.address,
+        expectedBalance: 104474
+      })
 
-      await ethers.provider.send("evm_increaseTime", [86400 * 11]);
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 970,
+        totalLiquidity: 0,
+        totalAllocatedCredit: 0,
+        leverage: 0,
+        withdrawable: 0
+      })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market1,
+            totalLiquidity: 0,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 0,
+            availableBalance: 0
+          }
+        ]
+      })
+
+      await verifyCDSStatus({
+        cds: cds,
+        totalSupply: 9900,
+        totalLiquidity: 6413,
+        rate: "647777777777777777"
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: index.address,
+        attributions: 0,
+        underlyingValue: 0
+      })
+
+      await moveForwardPeriods(11)
+
       await market1.resume();
       await cds.connect(alice).withdraw("9900");
-      expect(await dai.balanceOf(alice.address)).to.closeTo("95415", "5"); //verify
-      expect(await dai.balanceOf(bob.address)).to.closeTo("104470", "5"); //verify
+
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [alice.address]: 95413,
+          [bob.address]: 104474
+        }
+      })
     });
+
     it("CDS compensate insolvent amount within Index", async function () {
-      await dai.connect(alice).approve(vault.address, 20000);
-      await cds.connect(alice).deposit("1000");
+      await approveDeposit({
+        token: dai,
+        target: cds,
+        depositer: alice,
+        amount: 1000
+      })
       await cds.connect(alice).requestWithdraw("990");
-      expect(await cds.totalSupply()).to.equal("990");
-      expect(await cds.totalLiquidity()).to.equal("990");
-      await index.connect(alice).deposit("1000");
-      expect(await index.totalSupply()).to.equal("970");
-      expect(await index.totalLiquidity()).to.equal("970");
-      expect(await market1.totalLiquidity()).to.equal("19400");
-      expect(await cds.totalLiquidity()).to.equal("1010");
-      expect(await vault.underlyingValue(market1.address)).to.equal("0");
-      expect(await vault.underlyingValue(index.address)).to.equal("970");
-      expect(await vault.underlyingValue(cds.address)).to.equal("1010");
+
+      await verifyCDSStatus({
+        cds: cds,
+        totalSupply: 990,
+        totalLiquidity: 990,
+        rate: "1000000000000000000"
+      })
+
+      await approveDeposit({
+        token: dai,
+        target: index,
+        depositer: alice,
+        amount: 1000
+      })
+
+      await verifyCDSStatus({
+        cds: cds,
+        totalSupply: 990,
+        totalLiquidity: 1010,
+        rate: "1020202020202020202"
+      })
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 970,
+        totalLiquidity: 970,
+        totalAllocatedCredit: 19400,
+        leverage: 20000,
+        withdrawable: 970
+      })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market1,
+            totalLiquidity: 19400,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 19400,
+            availableBalance: 19400
+          }
+        ]
+      })
+
+      await verifyCDSStatus({
+        cds: cds,
+        totalSupply: 990,
+        totalLiquidity: 1010,
+        rate: "1020202020202020202"
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: market1.address,
+        attributions: 0,
+        underlyingValue: 0
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: index.address,
+        attributions: 970,
+        underlyingValue: 970
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: cds.address,
+        attributions: 1010,
+        underlyingValue: 1010
+      })
+
       await dai.connect(bob).approve(vault.address, 10000);
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 8);
+
+
       await market1
         .connect(bob)
         .insure(
@@ -475,7 +761,9 @@ describe("CDS", function () {
           86400 * 8,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         );
+
       expect(await dai.balanceOf(bob.address)).to.closeTo("99974", "2");
+
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
@@ -496,24 +784,66 @@ describe("CDS", function () {
         "metadata"
       );
 
+
       await market1.connect(bob).redeem("0", proof);
       await expect(market1.connect(alice).unlock("0")).to.revertedWith(
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );
 
-      expect(await dai.balanceOf(bob.address)).to.closeTo("108974", "2");
-      expect(await index.totalSupply()).to.equal("970");
-      expect(await market1.totalLiquidity()).to.closeTo("0", "1");
-      expect(await index.totalLiquidity()).to.closeTo("0", "1");
-      expect(await cds.totalLiquidity()).to.closeTo("0", "1");
-      expect(await vault.underlyingValue(index.address)).to.closeTo("0", "1");
+      await verifyBalance({
+        token: dai,
+        address: bob.address,
+        expectedBalance: 108974
+      })
 
-      await ethers.provider.send("evm_increaseTime", [86400 * 11]);
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: 970,
+        totalLiquidity: 0,
+        totalAllocatedCredit: 0,
+        leverage: 0,
+        withdrawable: 0
+      })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market1,
+            totalLiquidity: 0,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 0,
+            availableBalance: 0
+          }
+        ]
+      })
+
+      await verifyCDSStatus({
+        cds: cds,
+        totalSupply: 990,
+        totalLiquidity: 0,
+        rate: "0"
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: index.address,
+        attributions: 0,
+        underlyingValue: 0
+      })
+
+      await moveForwardPeriods(11)
       await market1.resume();
-      expect(await dai.balanceOf(alice.address)).to.closeTo("98000", "5"); //verify
+      
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [alice.address]: 98000,
+        }
+      })
     });
   });
-  describe.skip("Admin functions", function () {
+
+  describe("Admin functions", function () {
     it("allows changing metadata", async function () {
       expect(await cds.metadata()).to.equal("Here is metadata.");
       await cds.changeMetadata("new metadata");
