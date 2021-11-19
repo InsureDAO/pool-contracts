@@ -4,12 +4,27 @@ const { BigNumber } = require("ethers");
 const { MerkleTree } = require("merkletreejs");
 const keccak256 = require("keccak256");
 
+const {
+  verifyBalance,
+  verifyBalances,
+  verifyAllowance,
+  verifyPoolsStatus,
+  verifyIndexStatus,
+  verifyVaultStatus,
+  insure
+} = require('../test-utils')
+
+
 const{ 
   ZERO_ADDRESS,
-  short,
+  long,
   wrong,
-  long
+  short,
+  YEAR,
+  WEEK,
+  DAY
 } = require('../constant-utils');
+
 
 async function snapshot () {
   return network.provider.send('evm_snapshot', [])
@@ -19,7 +34,24 @@ async function restore (snapshotId) {
   return network.provider.send('evm_revert', [snapshotId])
 }
 
+async function moveForwardPeriods (days) {
+  await ethers.provider.send("evm_increaseTime", [DAY.mul(days).toNumber()]);
+  await ethers.provider.send("evm_mine");
+
+  return true
+}
+
 describe("Pool", function () {
+  const approveDeposit = async ({token, target, depositer, amount}) => {
+    await token.connect(depositer).approve(vault.address, amount);
+    await target.connect(depositer).deposit(amount);
+  }
+
+  const approveDepositAndWithdrawRequest = async ({token, target, depositer, amount}) => {
+    await token.connect(depositer).approve(vault.address, amount);
+    await target.connect(depositer).deposit(amount);
+    await target.connect(depositer).requestWithdraw(amount);
+  }
 
   before(async () => {
     //import
@@ -252,122 +284,167 @@ describe("Pool", function () {
 
   describe("Liquidity providing life cycles", function () {
     it("allows deposit and withdraw", async function () {
-      await dai.connect(alice).approve(vault.address, 10000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
-      expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("10000");
-      const bnresult = await BigNumber.from(10).pow(18);
-      expect(await market.rate()).to.equal(bnresult);
-      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market,
+            totalLiquidity: 10000,
+            allocatedCreditOf: alice.address,
+            allocatedCredit: 0,
+            availableBalance: 10000
+          }
+        ]
+      })
+
+      await verifyVaultStatus({
+        vault: vault,
+        target: market.address,
+        attributions: 10000,
+        valueAll: 10000,
+        totalAttributions: 10000,
+        underlyingValue: 10000
+      })
+
+      expect(await market.rate()).to.equal(BigNumber.from(10).pow(18));
+
+      await moveForwardPeriods(8)
       await market.connect(alice).withdraw("10000");
+
       expect(await market.totalSupply()).to.equal("0");
       expect(await market.totalLiquidity()).to.equal("0");
     });
+
     it("DISABLES withdraw when not requested", async function () {
-      await dai.connect(alice).approve(vault.address, 10000);
-      await market.connect(alice).deposit("10000");
-      expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("10000");
-      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
+      await approveDeposit({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
+
+      await moveForwardPeriods(8)
       await expect(market.connect(alice).withdraw("10000")).to.revertedWith(
         "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
       );
     });
+
     it("DISABLES withdraw more than requested", async function () {
-      await dai.connect(alice).approve(vault.address, 10000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
+
       expect(await market.totalSupply()).to.equal("10000");
       expect(await market.totalLiquidity()).to.equal("10000");
-      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
+
+      await moveForwardPeriods(8)
       await expect(market.connect(alice).withdraw("100000")).to.revertedWith(
         "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
       );
       await market.connect(alice).withdraw("5000");
+
       expect(await market.totalSupply()).to.equal("5000");
       expect(await market.totalLiquidity()).to.equal("5000");
     });
+
     it("DISABLES withdraw if withdrawable span ended", async function () {
-      await dai.connect(alice).approve(vault.address, 10000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
-      expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("10000");
-      await ethers.provider.send("evm_increaseTime", [86400 * 40]);
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
+
+      await moveForwardPeriods(40)
       await expect(market.connect(alice).withdraw("10000")).to.revertedWith(
         "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
       );
     });
+
     it("DISABLES withdraw request more than balance", async function () {
-      await dai.connect(alice).approve(vault.address, 10000);
-      await market.connect(alice).deposit("10000");
+      await approveDeposit({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
       await expect(
         market.connect(alice).requestWithdraw("100000")
       ).to.revertedWith("ERROR: REQUEST_EXCEED_BALANCE");
     });
+
     it("DISABLES withdraw zero balance", async function () {
-      await dai.connect(alice).approve(vault.address, 10000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
-      expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("10000");
-      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
+
+      await moveForwardPeriods(8)
       await expect(market.connect(alice).withdraw("0")).to.revertedWith(
         "ERROR: WITHDRAWAL_ZERO"
       );
     });
+
     it("DISABLES withdraw when liquidity is locked for insurance", async function () {
-      await dai.connect(alice).approve(vault.address, 10000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
-      expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("10000");
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
+
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
       //let endTime = await currentTimestamp.add(86400 * 10);
       await dai.connect(bob).approve(vault.address, 10000);
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 10,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
-      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 10,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
+      await moveForwardPeriods(8)
       await expect(market.connect(alice).withdraw("10000")).to.revertedWith(
         "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
       );
     });
+
     it("allows unlock liquidity only after an insurance period over", async function () {
-      await dai.connect(alice).approve(vault.address, 10000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
-      expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("10000");
-      expect(await vault.attributions(market.address)).to.equal("10000");
-      expect(await vault.totalAttributions()).to.equal("10000");
-      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
+
+      await moveForwardPeriods(8)
       await dai.connect(bob).approve(vault.address, 10000);
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 8);
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 8,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 8,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
       await expect(market.unlock("0")).to.revertedWith(
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );
-      await ethers.provider.send("evm_increaseTime", [86400 * 12]);
+      await moveForwardPeriods(12)
       await market.unlock("0");
       expect(await vault.attributions(market.address)).to.equal("10054");
       expect(await vault.attributions(creator.address)).to.equal("5");
@@ -380,11 +457,12 @@ describe("Pool", function () {
       await dai.connect(alice).approve(vault.address, 10000);
       await market.connect(alice).deposit("10000");
       await market.connect(alice).requestWithdraw("10000");
+
       expect(await market.totalSupply()).to.equal("10000");
       expect(await market.totalLiquidity()).to.equal("10000");
       expect(await vault.attributions(market.address)).to.equal("10000");
       expect(await vault.totalAttributions()).to.equal("10000");
-      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
+      await moveForwardPeriods(8)
       await market.connect(alice).transfer(tom.address, 5000);
       await expect(market.connect(alice).withdraw("10000")).to.revertedWith(
         "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
@@ -392,15 +470,20 @@ describe("Pool", function () {
       await market.connect(alice).withdraw("5000");
       expect(await market.totalLiquidity()).to.equal("5000");
     });
+
     it("accrues premium after deposit", async function () {
-      //deposit by Alice
-      await dai.connect(alice).approve(vault.address, 10000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
+
       expect(await market.totalSupply()).to.equal("10000");
       expect(await market.totalLiquidity()).to.equal("10000");
       expect(await vault.attributions(market.address)).to.equal("10000");
       expect(await vault.totalAttributions()).to.equal("10000");
+
       let bnresult = await BigNumber.from(10).pow(18);
       expect(await market.rate()).to.equal(bnresult);
       //apply protection by Bob
@@ -409,14 +492,14 @@ describe("Pool", function () {
         (await ethers.provider.getBlock("latest")).timestamp
       );
       //let endTime = await currentTimestamp.add(86400 * 365);
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 365,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 365,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
 
       //Alice should have accrued premium paid by Bob
       expect(await dai.balanceOf(bob.address)).to.closeTo("97303", "3"); //verify
@@ -462,10 +545,10 @@ describe("Pool", function () {
       ); //verify
       expect(await market.totalLiquidity()).to.closeTo("25616", "3");
       //withdrawal also harvest accrued premium
-      await ethers.provider.send("evm_increaseTime", [86400 * 369]);
+      await moveForwardPeriods(369)
       await market.connect(alice).requestWithdraw("10000");
       await market.unlockBatch(["0", "1"]);
-      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
+      await moveForwardPeriods(8)
       await market.connect(alice).withdraw("10000");
       //Harvested premium is reflected on their account balance
       expect(await dai.balanceOf(alice.address)).to.closeTo("104193", "5"); //verify
@@ -476,30 +559,39 @@ describe("Pool", function () {
       await dai.connect(alice).approve(vault.address, 20000);
       await market.connect(alice).deposit("10000");
       await market.connect(alice).requestWithdraw("10000");
+
       expect(await market.totalSupply()).to.equal("10000");
       expect(await market.totalLiquidity()).to.equal("10000");
+
       await market.setPaused(true);
       await expect(market.connect(alice).deposit("10000")).to.revertedWith(
         "ERROR: DEPOSIT_DISABLED"
       );
-      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
+      await moveForwardPeriods(8)
       await market.connect(alice).withdraw("10000");
       expect(await dai.balanceOf(alice.address)).to.equal("100000");
     });
 
     it("DISABLE deposit and withdrawal when payingout", async function () {
       //Can deposit and withdraw in normal time
-      await dai.connect(alice).approve(vault.address, 40000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
-      expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("10000");
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
 
-      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
+      await moveForwardPeriods(8)
       await market.connect(alice).withdraw("10000");
       expect(await dai.balanceOf(alice.address)).to.equal("100000");
       //Cannot deposit and withdraw when payingout
-      await market.connect(alice).deposit("10000");
+
+      await approveDeposit({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
       await market.connect(alice).requestWithdraw("10000");
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
@@ -521,23 +613,28 @@ describe("Pool", function () {
         short,
         "metadata"
       );
+
       await expect(market.connect(alice).deposit("10000")).to.revertedWith(
         "ERROR: DEPOSIT_DISABLED"
       );
       await expect(market.connect(alice).withdraw("10000")).to.revertedWith(
         "ERROR: WITHDRAWAL_PENDING"
       );
-      await ethers.provider.send("evm_increaseTime", [86400 * 11]);
+      await moveForwardPeriods(11)
       await market.resume();
       await market.connect(alice).withdraw("10000");
       expect(await dai.balanceOf(alice.address)).to.equal("100000");
     });
 
     it("devaluate underlying but premium is not affected when cover claim is accepted", async function () {
-      await dai.connect(alice).approve(vault.address, 20000);
       //Simulation: partial payout
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
+
       expect(await market.totalSupply()).to.equal("10000");
       expect(await market.totalLiquidity()).to.equal("10000");
 
@@ -546,14 +643,14 @@ describe("Pool", function () {
         (await ethers.provider.getBlock("latest")).timestamp
       );
       //let endTime = await currentTimestamp.add(86400 * 8);
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 8,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 8,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
       expect(await dai.balanceOf(bob.address)).to.closeTo("99941", "1"); //verify
       expect(await vault.attributions(creator.address)).to.closeTo("5", "0"); //verify
       expect(await vault.attributions(market.address)).to.closeTo("10054", "0"); //verify
@@ -586,7 +683,7 @@ describe("Pool", function () {
         "5055",
         "1"
       );
-      await ethers.provider.send("evm_increaseTime", [86400 * 11]);
+      await moveForwardPeriods(11)
       await market.resume();
 
       await market.connect(alice).withdraw("10000");
@@ -594,8 +691,12 @@ describe("Pool", function () {
       expect(await dai.balanceOf(bob.address)).to.closeTo("104940", "3"); //verify
 
       //Simulation: full payout
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
       expect(await market.totalSupply()).to.equal("10000");
       expect(await market.totalLiquidity()).to.equal("10000");
 
@@ -604,14 +705,14 @@ describe("Pool", function () {
       );
       //endTime = await currentTimestamp.add(86400 * 8);
 
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 8,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 8,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
       incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
@@ -629,7 +730,7 @@ describe("Pool", function () {
       expect(await market.totalSupply()).to.equal("10000");
       expect(await market.totalLiquidity()).to.equal("55");
       expect(await market.valueOfUnderlying(alice.address)).to.equal("55");
-      await ethers.provider.send("evm_increaseTime", [86400 * 11]);
+      await moveForwardPeriods(11)
       await market.resume();
       await market.connect(alice).withdraw("10000");
       expect(await dai.balanceOf(alice.address)).to.closeTo("85110", "3"); //verify
@@ -639,25 +740,26 @@ describe("Pool", function () {
 
   describe("Getting insured", function () {
     it("allows protection", async function () {
-      await dai.connect(alice).approve(vault.address, 20000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
-      expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("10000");
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
 
       await dai.connect(bob).approve(vault.address, 10000);
       let currentTimestamp = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
       //let endTime = await currentTimestamp.add(86400 * 8);
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 8,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 8,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
 
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
@@ -686,7 +788,7 @@ describe("Pool", function () {
       );
 
       await market.connect(bob).redeem("0", proof);
-      await ethers.provider.send("evm_increaseTime", [86400 * 12]);
+      await moveForwardPeriods(12)
       await market.resume();
       await expect(market.unlock("0")).to.revertedWith(
         "ERROR: UNLOCK_BAD_COINDITIONS"
@@ -697,30 +799,33 @@ describe("Pool", function () {
     });
 
     it("calculate premium", async function () {
-      await dai.connect(alice).approve(vault.address, 20000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
       let duration = 86400 * 365;
       expect(await market.getPremium("1000", duration)).to.equal("45");
     });
 
     it("allows insurance transfer", async function () {
-      await dai.connect(alice).approve(vault.address, 40000);
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
+
       await dai.connect(bob).approve(vault.address, 10000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 8);
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 8,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 8,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
 
       await market.connect(bob).transferInsurance("0", tom.address);
       let incident = BigNumber.from(
@@ -744,30 +849,30 @@ describe("Pool", function () {
       );
 
       await market.connect(tom).redeem("0", proof);
-      await ethers.provider.send("evm_increaseTime", [86400 * 11]);
+      await moveForwardPeriods(11)
       await market.resume();
       await market.connect(alice).withdraw("10000");
       expect(await dai.balanceOf(alice.address)).to.equal("95055");
       expect(await dai.balanceOf(tom.address)).to.equal("4999");
     });
     it("DISALLOWS redemption when insurance is not a target", async function () {
-      await dai.connect(alice).approve(vault.address, 20000);
       await dai.connect(bob).approve(vault.address, 10000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
 
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 8);
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 8,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
+
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 8,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
@@ -787,7 +892,7 @@ describe("Pool", function () {
         long,
         "metadata"
       );
-      await ethers.provider.send("evm_increaseTime", [86400 * 12]);
+      await moveForwardPeriods(12)
 
       await market.resume();
       await expect(market.connect(bob).redeem("0", proof)).to.revertedWith(
@@ -798,16 +903,13 @@ describe("Pool", function () {
       expect(await dai.balanceOf(alice.address)).to.equal("100054");
     });
     it("DISALLOWS getting insured when there is not enough liquidity", async function () {
-      await dai.connect(alice).approve(vault.address, 20000);
-      await market.connect(alice).deposit("100");
-      await market.connect(alice).requestWithdraw("100");
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 100
+      })
 
-      await dai.connect(alice).approve(vault.address, 10000);
-
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 8);
       await expect(
         market
           .connect(bob)
@@ -818,29 +920,30 @@ describe("Pool", function () {
             "0x4e69636b00000000000000000000000000000000000000000000000000000000"
           )
       ).to.revertedWith("ERROR: INSURE_EXCEEDED_AVAILABLE_BALANCE");
-      await ethers.provider.send("evm_increaseTime", [86400 * 8]);
+
+
+      await moveForwardPeriods(8)
       await market.connect(alice).withdraw("100");
       expect(await dai.balanceOf(alice.address)).to.equal("100000");
     });
 
     it("DISALLOWS redemption when redemption period is over", async function () {
-      await dai.connect(alice).approve(vault.address, 20000);
       await dai.connect(bob).approve(vault.address, 10000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
 
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 8);
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 8,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 8,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
@@ -860,7 +963,7 @@ describe("Pool", function () {
         long,
         "metadata"
       );
-      await ethers.provider.send("evm_increaseTime", [86400 * 12]);
+      await moveForwardPeriods(12)
 
       await market.resume();
 
@@ -874,23 +977,23 @@ describe("Pool", function () {
 
     it("DISALLOWS getting insured when paused, reporting, or payingout", async function () {
       //Can get insured in normal time
-      await dai.connect(alice).approve(vault.address, 40000);
-      await dai.connect(bob).approve(vault.address, 20000);
-      await market.connect(alice).deposit("40000");
+      await approveDeposit({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 40000
+      })
       await market.connect(alice).requestWithdraw("10000");
 
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 8);
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 8,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
+      await dai.connect(bob).approve(vault.address, 20000);
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 8,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
 
       //Cannot get insured when payingout
       let incident = BigNumber.from(
@@ -928,7 +1031,7 @@ describe("Pool", function () {
           )
       ).to.revertedWith("ERROR: INSURE_SPAN_BELOW_MIN");
 
-      await ethers.provider.send("evm_increaseTime", [86400 * 11]);
+      await moveForwardPeriods(11)
 
       await market.resume();
       currentTimestamp = BigNumber.from(
@@ -936,14 +1039,14 @@ describe("Pool", function () {
       );
       //endTime = await currentTimestamp.add(86400 * 8);
 
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 8,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 8,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
       //Cannot get insured when paused
       await market.setPaused(true);
       currentTimestamp = BigNumber.from(
@@ -966,35 +1069,35 @@ describe("Pool", function () {
       );
       //endTime = await currentTimestamp.add(86400 * 8);
 
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 8,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 8,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
     });
 
     it("DISALLOWS more than 365 days insurance", async function () {
       //Can get insured in normal time
-      await dai.connect(alice).approve(vault.address, 40000);
       await dai.connect(bob).approve(vault.address, 20000);
-      await market.connect(alice).deposit("40000");
+      await approveDeposit({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 40000
+      })
       await market.connect(alice).requestWithdraw("10000");
 
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 365);
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 365,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 365,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
       //Cannot get insured for more than 365 days
       //endTime = await currentTimestamp.add(86400 * 400);
       await expect(
@@ -1010,10 +1113,14 @@ describe("Pool", function () {
     });
 
     it("DISALLOWS insurance transfer if its expired or non existent", async function () {
-      await dai.connect(alice).approve(vault.address, 40000);
       await dai.connect(bob).approve(vault.address, 10000);
 
-      await market.connect(alice).deposit("40000");
+      await approveDeposit({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 40000
+      })
       await market.connect(alice).requestWithdraw("10000");
 
       //when expired
@@ -1021,15 +1128,15 @@ describe("Pool", function () {
         (await ethers.provider.getBlock("latest")).timestamp
       );
       //let endTime = await currentTimestamp.add(86400 * 8);
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 8,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
-      await ethers.provider.send("evm_increaseTime", [86400 * 9]);
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 8,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
+      await moveForwardPeriods(9)
       await expect(
         market.connect(bob).transferInsurance("0", tom.address)
       ).to.revertedWith("ERROR: INSURANCE_TRANSFER_BAD_CONDITIONS");
@@ -1039,14 +1146,14 @@ describe("Pool", function () {
         (await ethers.provider.getBlock("latest")).timestamp
       );
       //endTime = await currentTimestamp.add(86400 * 8);
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 8,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 8,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
       let incident = BigNumber.from(
         (await ethers.provider.getBlock("latest")).timestamp
       );
@@ -1075,31 +1182,37 @@ describe("Pool", function () {
 
   describe("Utilities", function () {
     it("retunrs accurate data", async function () {
-      await dai.connect(alice).approve(vault.address, 40000);
+      await approveDeposit({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 40000
+      })
+
       await dai.connect(bob).approve(vault.address, 10000);
       await dai.connect(chad).approve(vault.address, 10000);
-      await market.connect(alice).deposit("40000");
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 365);
+
+      await market.connect(alice).requestWithdraw("10000");
       expect(await market.utilizationRate()).to.equal("0");
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 365,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        );
-      await market
-        .connect(chad)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 365,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000001"
-        );
+
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 365,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
+
+      await insure({
+        pool: market,
+        insurer: chad,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 365,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
+      
       expect(await market.allInsuranceCount()).to.equal("2");
       expect(await market.getInsuranceCount(bob.address)).to.equal("1");
       expect(await market.getInsuranceCount(chad.address)).to.equal("1");
