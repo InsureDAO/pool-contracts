@@ -11,6 +11,7 @@ const {
   verifyPoolsStatus,
   verifyIndexStatus,
   verifyVaultStatus,
+  verifyVaultStatusOf,
   insure
 } = require('../test-utils')
 
@@ -305,10 +306,14 @@ describe("Pool", function () {
 
       await verifyVaultStatus({
         vault: vault,
-        target: market.address,
-        attributions: 10000,
         valueAll: 10000,
         totalAttributions: 10000,
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: market.address,
+        attributions: 10000,
         underlyingValue: 10000
       })
 
@@ -377,6 +382,7 @@ describe("Pool", function () {
         depositer: alice,
         amount: 10000
       })
+      
       await expect(
         market.connect(alice).requestWithdraw("100000")
       ).to.revertedWith("ERROR: REQUEST_EXCEED_BALANCE");
@@ -404,10 +410,6 @@ describe("Pool", function () {
         amount: 10000
       })
 
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 10);
       await dai.connect(bob).approve(vault.address, 10000);
       await insure({
         pool: market,
@@ -417,7 +419,9 @@ describe("Pool", function () {
         span: 86400 * 10,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
       })
+
       await moveForwardPeriods(8)
+
       await expect(market.connect(alice).withdraw("10000")).to.revertedWith(
         "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
       );
@@ -432,6 +436,7 @@ describe("Pool", function () {
       })
 
       await moveForwardPeriods(8)
+
       await dai.connect(bob).approve(vault.address, 10000);
       await insure({
         pool: market,
@@ -444,13 +449,37 @@ describe("Pool", function () {
       await expect(market.unlock("0")).to.revertedWith(
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );
+
       await moveForwardPeriods(12)
       await market.unlock("0");
+
       expect(await vault.attributions(market.address)).to.equal("10054");
       expect(await vault.attributions(creator.address)).to.equal("5");
       expect(await vault.totalAttributions()).to.equal("10059");
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: market.address,
+        attributions: 10054,
+        underlyingValue: 10054
+      })
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: creator.address,
+        attributions: 5,
+        underlyingValue: 5
+      })
+
+      await verifyVaultStatus({
+        vault: vault,
+        valueAll: 10059,
+        totalAttributions: 10059,
+      })
+      
+
       await market.connect(alice).withdraw("10000");
+
       expect(await market.totalLiquidity()).to.equal("0");
+
       expect(await vault.totalAttributions()).to.equal("5");
     });
     it("also decrease withdrawal request when transefered", async function () {

@@ -12,6 +12,7 @@ const {
   verifyPoolsStatus,
   verifyIndexStatus,
   verifyVaultStatus,
+  verifyVaultStatusOf,
   insure
 } = require('../test-utils')
 
@@ -352,10 +353,14 @@ describe("Index", function () {
 
       await verifyVaultStatus({
         vault: vault,
-        target: index.address,
-        attributions: 10000,
         valueAll: 10000,
         totalAttributions: 10000,
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: index.address,
+        attributions: 10000,
         underlyingValue: 10000
       })
 
@@ -800,30 +805,32 @@ describe("Index", function () {
 
       await verifyVaultStatus({
         vault: vault,
-        target: index.address,
-        attributions: 10000,
         valueAll: 10059,
         totalAttributions: 10059,
-        underlyingValue: 10000
       })
-      
-      await verifyVaultStatus({
+
+      await verifyVaultStatusOf({
         vault: vault,
         target: creator.address,
         attributions: 5,
-        valueAll: 10059,
-        totalAttributions: 10059,
         underlyingValue: 5
       })
 
-      await verifyVaultStatus({
+
+      await verifyVaultStatusOf({
         vault: vault,
         target: market1.address,
         attributions: 54,
-        valueAll: 10059,
-        totalAttributions: 10059,
         underlyingValue: 54
       })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: index.address,
+        attributions: 10000,
+        underlyingValue: 10000
+      })
+      
 
 
       expect(await market1.totalLiquidity()).to.closeTo("10000", "1");
@@ -994,12 +1001,17 @@ describe("Index", function () {
 
       await verifyVaultStatus({
         vault: vault,
+        valueAll: 10000,
+        totalAttributions: 10000
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
         target: index.address,
         attributions: 10000,
-        valueAll: 10000,
-        totalAttributions: 10000,
         underlyingValue: 10000
       })
+      
 
       await verifyPoolsStatus({
         pools: [
@@ -1146,10 +1158,14 @@ describe("Index", function () {
 
       await verifyVaultStatus({
         vault: vault,
-        target: index.address,
-        attributions: 10000,
         valueAll: 10000,
         totalAttributions: 10000,
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: index.address,
+        attributions: 10000,
         underlyingValue: 10000
       })
 
@@ -1194,10 +1210,14 @@ describe("Index", function () {
 
       await verifyVaultStatus({
         vault: vault,
-        target: index.address,
-        attributions: 10000,
         valueAll: 10000,
         totalAttributions: 10000,
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: index.address,
+        attributions: 10000,
         underlyingValue: 10000
       })
 
@@ -1251,10 +1271,14 @@ describe("Index", function () {
 
       await verifyVaultStatus({
         vault: vault,
-        target: index.address,
-        attributions: 10000,
         valueAll: 10000,
         totalAttributions: 10000,
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: index.address,
+        attributions: 10000,
         underlyingValue: 10000
       })
 
@@ -1301,10 +1325,14 @@ describe("Index", function () {
 
       await verifyVaultStatus({
         vault: vault,
-        target: index.address,
-        attributions: 10000,
         valueAll: 10000,
         totalAttributions: 10000,
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: index.address,
+        attributions: 10000,
         underlyingValue: 10000
       })
 
@@ -1357,10 +1385,14 @@ describe("Index", function () {
 
       await verifyVaultStatus({
         vault: vault,
-        target: index.address,
-        attributions: 10000,
         valueAll: 10000,
         totalAttributions: 10000,
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: index.address,
+        attributions: 10000,
         underlyingValue: 10000
       })
 
@@ -1406,10 +1438,14 @@ describe("Index", function () {
 
       await verifyVaultStatus({
         vault: vault,
+        valueAll: 10000,
+        totalAttributions: 10000
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
         target: index.address,
         attributions: 10000,
-        valueAll: 10000,
-        totalAttributions: 10000,
         underlyingValue: 10000
       })
 
@@ -1463,10 +1499,14 @@ describe("Index", function () {
 
       await verifyVaultStatus({
         vault: vault,
-        target: index.address,
-        attributions: 10000,
         valueAll: 10000,
         totalAttributions: 10000,
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: index.address,
+        attributions: 10000,
         underlyingValue: 10000
       })
 
@@ -1547,10 +1587,14 @@ describe("Index", function () {
 
       await verifyVaultStatus({
         vault: vault,
+        valueAll: 10073,
+        totalAttributions: 10073
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
         target: index.address,
         attributions: 10066,
-        valueAll: 10073,
-        totalAttributions: 10073,
         underlyingValue: 10066
       })
 

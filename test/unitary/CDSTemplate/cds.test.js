@@ -348,10 +348,14 @@ describe("CDS", function () {
 
       await verifyVaultStatus({
         vault: vault,
-        target: cds.address,
-        attributions: 9900,
         valueAll: 10000,
         totalAttributions: 10000,
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: cds.address,
+        attributions: 9900,
         underlyingValue: 9900
       })
 
@@ -363,10 +367,14 @@ describe("CDS", function () {
 
       await verifyVaultStatus({
         vault: vault,
+        valueAll: 100,
+        totalAttributions: 100
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
         target: cds.address,
         attributions: 0,
-        valueAll: 100,
-        totalAttributions: 100,
         underlyingValue: 0
       })
     });
@@ -454,10 +462,14 @@ describe("CDS", function () {
 
       await verifyVaultStatus({
         vault: vault,
-        target: creator.address,
-        attributions: 200,
         valueAll: 20000,
         totalAttributions: 20000,
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: creator.address,
+        attributions: 200,
         underlyingValue: 200
       })
 
