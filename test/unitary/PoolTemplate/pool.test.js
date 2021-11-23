@@ -9,6 +9,8 @@ const {
   verifyBalances,
   verifyAllowance,
   verifyPoolsStatus,
+  verifyPoolsStatusOf,
+  verifyValueOfUnderlying,
   verifyIndexStatus,
   verifyVaultStatus,
   verifyVaultStatusOf,
@@ -297,9 +299,17 @@ describe("Pool", function () {
           {
             pool: market,
             totalLiquidity: 10000,
+            availableBalance: 10000
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market,
             allocatedCreditOf: alice.address,
             allocatedCredit: 0,
-            availableBalance: 10000
           }
         ]
       })
@@ -453,9 +463,6 @@ describe("Pool", function () {
       await moveForwardPeriods(12)
       await market.unlock("0");
 
-      expect(await vault.attributions(market.address)).to.equal("10054");
-      expect(await vault.attributions(creator.address)).to.equal("5");
-      expect(await vault.totalAttributions()).to.equal("10059");
       await verifyVaultStatusOf({
         vault: vault,
         target: market.address,
@@ -474,30 +481,87 @@ describe("Pool", function () {
         valueAll: 10059,
         totalAttributions: 10059,
       })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market,
+            totalLiquidity: 10054,
+            availableBalance: 10054
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market,
+            allocatedCreditOf: alice.address,
+            allocatedCredit: 0,
+          }
+        ]
+      })
+
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [alice.address]: 90000,
+        }
+      })
       
 
       await market.connect(alice).withdraw("10000");
 
-      expect(await market.totalLiquidity()).to.equal("0");
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market,
+            totalLiquidity: 0,
+            availableBalance: 0
+          }
+        ]
+      })
 
-      expect(await vault.totalAttributions()).to.equal("5");
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market,
+            allocatedCreditOf: alice.address,
+            allocatedCredit: 0,
+          }
+        ]
+      })
+
+      //withdrawed 10054
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [alice.address]: 100054,
+        }
+      })
+
+      await verifyVaultStatus({
+        vault: vault,
+        valueAll: 5,
+        totalAttributions: 5,
+      })
     });
-    it("also decrease withdrawal request when transefered", async function () {
-      await dai.connect(alice).approve(vault.address, 10000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
 
-      expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("10000");
-      expect(await vault.attributions(market.address)).to.equal("10000");
-      expect(await vault.totalAttributions()).to.equal("10000");
+    it("also decrease withdrawal request when transefered", async function () {
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
+
       await moveForwardPeriods(8)
+
       await market.connect(alice).transfer(tom.address, 5000);
-      await expect(market.connect(alice).withdraw("10000")).to.revertedWith(
+      await expect(market.connect(alice).withdraw("5001")).to.revertedWith(
         "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
       );
       await market.connect(alice).withdraw("5000");
-      expect(await market.totalLiquidity()).to.equal("5000");
     });
 
     it("accrues premium after deposit", async function () {
@@ -508,19 +572,10 @@ describe("Pool", function () {
         amount: 10000
       })
 
-      expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("10000");
-      expect(await vault.attributions(market.address)).to.equal("10000");
-      expect(await vault.totalAttributions()).to.equal("10000");
+      expect(await market.rate()).to.equal(BigNumber.from(10).pow(18));
 
-      let bnresult = await BigNumber.from(10).pow(18);
-      expect(await market.rate()).to.equal(bnresult);
       //apply protection by Bob
       await dai.connect(bob).approve(vault.address, 20000);
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 365);
       await insure({
         pool: market,
         insurer: bob,
@@ -531,18 +586,28 @@ describe("Pool", function () {
       })
 
       //Alice should have accrued premium paid by Bob
-      expect(await dai.balanceOf(bob.address)).to.closeTo("97303", "3"); //verify
-      expect(await market.valueOfUnderlying(alice.address)).to.closeTo(
-        "12429",
-        "0"
-      ); //verify
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [bob.address]: 97302,
+        }
+      })
+
+      await verifyValueOfUnderlying({
+        template: market,
+        valueOfUnderlyingOf: alice.address,
+        valueOfUnderlying: 12429
+      })
+
       expect(await market.totalLiquidity()).to.closeTo("12428", "3");
       expect(await vault.attributions(creator.address)).to.closeTo("269", "3"); //verify
-      bnresult = await BigNumber.from("1242900000000000000");
-      expect(await market.rate()).to.equal(bnresult);
+
+      expect(await market.rate()).to.equal(BigNumber.from("1242900000000000000"));
+
       //additional deposit by Chad, which does not grant any right to withdraw premium before deposit
       await dai.connect(chad).approve(vault.address, 10000);
       await market.connect(chad).deposit("10000");
+
       expect(await market.balanceOf(chad.address)).to.closeTo("8046", "3");
       expect(await market.valueOfUnderlying(chad.address)).to.closeTo(
         "10000",
@@ -551,10 +616,7 @@ describe("Pool", function () {
       expect(await market.totalLiquidity()).to.closeTo("22428", "3");
       //the premium paid second time should be allocated to both Alice and Chad
       //but the premium paid first time should be directly go to Alice
-      currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //endTime = await currentTimestamp.add(86400 * 365);
+
       await market
         .connect(bob)
         .insure(
@@ -563,6 +625,7 @@ describe("Pool", function () {
           86400 * 365,
           "0x4e69636b00000000000000000000000000000000000000000000000000000000"
         ); //premium = 3,543//verify
+
       expect(await dai.balanceOf(bob.address)).to.closeTo("93762", "5"); //verify
       expect(await market.valueOfUnderlying(alice.address)).to.closeTo(
         "14194",
@@ -573,6 +636,7 @@ describe("Pool", function () {
         "5"
       ); //verify
       expect(await market.totalLiquidity()).to.closeTo("25616", "3");
+
       //withdrawal also harvest accrued premium
       await moveForwardPeriods(369)
       await market.connect(alice).requestWithdraw("10000");
@@ -580,19 +644,25 @@ describe("Pool", function () {
       await moveForwardPeriods(8)
       await market.connect(alice).withdraw("10000");
       //Harvested premium is reflected on their account balance
+
       expect(await dai.balanceOf(alice.address)).to.closeTo("104193", "5"); //verify
       expect(await dai.balanceOf(chad.address)).to.closeTo("90000", "5"); //verify
     });
 
     it("DISABLE deposit when paused(withdrawal is possible)", async function () {
-      await dai.connect(alice).approve(vault.address, 20000);
-      await market.connect(alice).deposit("10000");
-      await market.connect(alice).requestWithdraw("10000");
+      await approveDepositAndWithdrawRequest({
+        token: dai,
+        target: market,
+        depositer: alice,
+        amount: 10000
+      })
 
       expect(await market.totalSupply()).to.equal("10000");
       expect(await market.totalLiquidity()).to.equal("10000");
 
       await market.setPaused(true);
+
+      await dai.connect(alice).approve(vault.address, 20000);
       await expect(market.connect(alice).deposit("10000")).to.revertedWith(
         "ERROR: DEPOSIT_DISABLED"
       );

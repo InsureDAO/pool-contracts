@@ -10,6 +10,7 @@ const {
   verifyBalances,
   verifyAllowance,
   verifyPoolsStatus,
+  verifyPoolsStatusOf,
   verifyIndexStatus,
   verifyVaultStatus,
   verifyVaultStatusOf,
@@ -369,16 +370,27 @@ describe("Index", function () {
           {
             pool: market1,
             totalLiquidity: 10000,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 10000,
             availableBalance: 10000
           },
           {
             pool: market2,
             totalLiquidity: 10000,
+            availableBalance: 10000
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: 10000,
-            availableBalance: 10000
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
           }
         ]
       })
@@ -757,16 +769,27 @@ describe("Index", function () {
           {
             pool: market1,
             totalLiquidity: 10000,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 10000,
             availableBalance: 10000
           },
           {
             pool: market2,
             totalLiquidity: 10000,
+            availableBalance: 10000
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: 10000,
-            availableBalance: 10000
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
           }
         ]
       })
@@ -864,16 +887,27 @@ describe("Index", function () {
           {
             pool: market1,
             totalLiquidity: 5054,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 5054,
             availableBalance: 5054
           },
           {
             pool: market2,
             totalLiquidity: 5054,
+            availableBalance: 5054
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: 5054,
-            availableBalance: 5054
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 5054,
           }
         ]
       })
@@ -1018,23 +1052,37 @@ describe("Index", function () {
           {
             pool: market1,
             totalLiquidity: 5000,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 5000,
             availableBalance: 5000
           },
           {
             pool: market2,
             totalLiquidity: 5000,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 5000,
             availableBalance: 5000
           },
           {
             pool: market3,
             totalLiquidity: 10000,
+            availableBalance: 10000
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 5000,
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 5000,
+          },
+          {
+            pool: market3,
             allocatedCreditOf: index.address,
             allocatedCredit: 10000,
-            availableBalance: 10000
           }
         ]
       })
@@ -1056,23 +1104,37 @@ describe("Index", function () {
           {
             pool: market1,
             totalLiquidity: 10000,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 10000,
             availableBalance: 10000
           },
           {
             pool: market2,
             totalLiquidity: 10000,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 10000,
             availableBalance: 10000
           },
           {
             pool: market3,
             totalLiquidity: 0,
+            availableBalance: 0
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+          },
+          {
+            pool: market3,
             allocatedCreditOf: index.address,
             allocatedCredit: 0,
-            availableBalance: 0
           }
         ]
       })
@@ -1114,23 +1176,37 @@ describe("Index", function () {
           {
             pool: market1,
             totalLiquidity: 9999,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 9999,
             availableBalance: 0
           },
           {
             pool: market2,
             totalLiquidity: 3377,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 3377,
             availableBalance: 3377
           },
           {
             pool: market3,
             totalLiquidity: 6755,
+            availableBalance: 6755
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 9999,
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 3377,
+          },
+          {
+            pool: market3,
             allocatedCreditOf: index.address,
             allocatedCredit: 6755,
-            availableBalance: 6755
           }
         ]
       })
@@ -1174,23 +1250,37 @@ describe("Index", function () {
           {
             pool: market1,
             totalLiquidity: 6666,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 6666,
             availableBalance: 6666
           },
           {
             pool: market2,
             totalLiquidity: 6666,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 6666,
             availableBalance: 6666
           },
           {
             pool: market3,
             totalLiquidity: 6666,
+            availableBalance: 6666
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: 6666,
-            availableBalance: 6666
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 6666,
+          },
+          {
+            pool: market3,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 6666,
           }
         ]
       })
@@ -1226,27 +1316,42 @@ describe("Index", function () {
           {
             pool: market1,
             totalLiquidity: 10000,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 10000,
             availableBalance: 10000
           },
           {
             pool: market2,
             totalLiquidity: 10000,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 10000,
             availableBalance: 10000
           },
           {
             pool: market3,
             totalLiquidity: 0,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 0,
             availableBalance: 0
           }
         ]
       })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+          },
+          {
+            pool: market3,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 0,
+          }
+        ]
+      })
     });
+
 
     it("mimics pool removal if the pool is paused", async function () {
       await index.set("2", market3.address, "1000");
@@ -1287,23 +1392,37 @@ describe("Index", function () {
           {
             pool: market1,
             totalLiquidity: 6666,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 6666,
             availableBalance: 6666
           },
           {
             pool: market2,
             totalLiquidity: 6666,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 6666,
             availableBalance: 6666
           },
           {
             pool: market3,
             totalLiquidity: 6666,
+            availableBalance: 6666
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: 6666,
-            availableBalance: 6666
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 6666,
+          },
+          {
+            pool: market3,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 6666,
           }
         ]
       })
@@ -1341,23 +1460,37 @@ describe("Index", function () {
           {
             pool: market1,
             totalLiquidity: 10000,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 10000,
             availableBalance: 10000
           },
           {
             pool: market2,
             totalLiquidity: 10000,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 10000,
             availableBalance: 10000
           },
           {
             pool: market3,
             totalLiquidity: 0,
+            availableBalance: 0
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+          },
+          {
+            pool: market3,
             allocatedCreditOf: index.address,
             allocatedCredit: 0,
-            availableBalance: 0
           }
         ]
       })
@@ -1401,23 +1534,37 @@ describe("Index", function () {
           {
             pool: market1,
             totalLiquidity: 6666,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 6666,
             availableBalance: 6666
           },
           {
             pool: market2,
             totalLiquidity: 6666,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 6666,
             availableBalance: 6666
           },
           {
             pool: market3,
             totalLiquidity: 6666,
+            availableBalance: 6666
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: 6666,
-            availableBalance: 6666
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 6666,
+          },
+          {
+            pool: market3,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 6666,
           }
         ]
       })
@@ -1454,23 +1601,36 @@ describe("Index", function () {
           {
             pool: market1,
             totalLiquidity: 10000,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 10000,
             availableBalance: 10000
           },
           {
             pool: market2,
             totalLiquidity: 10000,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 10000,
             availableBalance: 10000
           },
           {
             pool: market3,
             totalLiquidity: 10000,
+            availableBalance: 10000
+          }
+        ]
+      })
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: 10000,
-            availableBalance: 10000
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+          },
+          {
+            pool: market3,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
           }
         ]
       })
@@ -1515,23 +1675,36 @@ describe("Index", function () {
           {
             pool: market1,
             totalLiquidity: 10000,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 10000,
             availableBalance: 10000
           },
           {
             pool: market2,
             totalLiquidity: 10000,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 10000,
             availableBalance: 10000
           },
           {
             pool: market3,
             totalLiquidity: 10000,
+            availableBalance: 10000
+          }
+        ]
+      })
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: 10000,
-            availableBalance: 10000
+          },
+          {
+            pool: market2,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
+          },
+          {
+            pool: market3,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 10000,
           }
         ]
       })
@@ -1565,9 +1738,17 @@ describe("Index", function () {
           {
             pool: market1,
             totalLiquidity: 10000,
+            availableBalance: 1
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: 10000,
-            availableBalance: 1
           }
         ]
       })
@@ -1603,23 +1784,37 @@ describe("Index", function () {
           {
             pool: market1,
             totalLiquidity: 9999,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 9999,
             availableBalance: 0
           },
           {
             pool: market2,
             totalLiquidity: 5066,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 5066,
             availableBalance: 5066
           },
           {
             pool: market3,
             totalLiquidity: 5066,
+            availableBalance: 5066
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 9999,
+          },
+          {
+            pool: market2,
             allocatedCreditOf: index.address,
             allocatedCredit: 5066,
-            availableBalance: 5066
+          },
+          {
+            pool: market3,
+            allocatedCreditOf: index.address,
+            allocatedCredit: 5066,
           }
         ]
       })

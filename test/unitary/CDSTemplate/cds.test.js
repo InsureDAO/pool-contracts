@@ -9,6 +9,7 @@ const {
   verifyBalances,
   verifyAllowance,
   verifyPoolsStatus,
+  verifyPoolsStatusOf,
   verifyIndexStatus,
   verifyCDSStatus,
   verifyVaultStatus,
@@ -550,9 +551,17 @@ describe("CDS", function () {
           {
             pool: market1,
             totalLiquidity: 19400,
+            availableBalance: 19400
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: 19400,
-            availableBalance: 19400
           }
         ]
       })
@@ -648,9 +657,17 @@ describe("CDS", function () {
           {
             pool: market1,
             totalLiquidity: 0,
+            availableBalance: 0
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: 0,
-            availableBalance: 0
           }
         ]
       })
@@ -727,9 +744,17 @@ describe("CDS", function () {
           {
             pool: market1,
             totalLiquidity: 19400,
+            availableBalance: 19400
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: 19400,
-            availableBalance: 19400
           }
         ]
       })
@@ -822,9 +847,17 @@ describe("CDS", function () {
           {
             pool: market1,
             totalLiquidity: 0,
+            availableBalance: 0
+          }
+        ]
+      })
+
+      await verifyPoolsStatusOf({
+        pools: [
+          {
+            pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: 0,
-            availableBalance: 0
           }
         ]
       })
