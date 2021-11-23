@@ -14,6 +14,7 @@ const {
   verifyIndexStatus,
   verifyVaultStatus,
   verifyVaultStatusOf,
+  verifyRate,
   insure
 } = require('../test-utils')
 
@@ -44,6 +45,10 @@ async function moveForwardPeriods (days) {
   return true
 }
 
+async function now () {
+  return BigNumber.from((await ethers.provider.getBlock("latest")).timestamp);
+}
+
 describe("Pool", function () {
   const approveDeposit = async ({token, target, depositer, amount}) => {
     await token.connect(depositer).approve(vault.address, amount);
@@ -54,6 +59,30 @@ describe("Pool", function () {
     await token.connect(depositer).approve(vault.address, amount);
     await target.connect(depositer).deposit(amount);
     await target.connect(depositer).requestWithdraw(amount);
+  }
+
+  const applyCover = async ({pool, pending, payoutNumerator, payoutDenominator, incidentTimestamp}) => {
+
+    const tree = await new MerkleTree(short, keccak256, {
+      hashLeaves: true,
+      sortPairs: true,
+    });
+
+    const root = await tree.getHexRoot();
+    const leaf = keccak256(short[0]);
+    const proof = await tree.getHexProof(leaf);
+
+    await pool.applyCover(
+      pending,
+      payoutNumerator,
+      payoutDenominator,
+      incidentTimestamp,
+      root,
+      short,
+      "metadata"
+    );
+
+    return proof
   }
 
   before(async () => {
@@ -599,54 +628,125 @@ describe("Pool", function () {
         valueOfUnderlying: 12429
       })
 
-      expect(await market.totalLiquidity()).to.closeTo("12428", "3");
-      expect(await vault.attributions(creator.address)).to.closeTo("269", "3"); //verify
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market,
+            totalLiquidity: 12429,
+            availableBalance: 2430
+          }
+        ]
+      })
 
-      expect(await market.rate()).to.equal(BigNumber.from("1242900000000000000"));
+      await verifyRate({
+        template: market,
+        rate: "1242900000000000000"
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: creator.address,
+        attributions: 269,
+        underlyingValue: 269
+      })
+
+      await verifyVaultStatus({
+        vault: vault,
+        valueAll: 12698,
+        totalAttributions: 12698,
+      })
+
 
       //additional deposit by Chad, which does not grant any right to withdraw premium before deposit
-      await dai.connect(chad).approve(vault.address, 10000);
-      await market.connect(chad).deposit("10000");
+      await approveDeposit({
+        token: dai,
+        target: market,
+        depositer: chad,
+        amount: 10000
+      })
 
-      expect(await market.balanceOf(chad.address)).to.closeTo("8046", "3");
-      expect(await market.valueOfUnderlying(chad.address)).to.closeTo(
-        "10000",
-        "1"
-      );
-      expect(await market.totalLiquidity()).to.closeTo("22428", "3");
+      await verifyBalances({
+        token: market,
+        userBalances: {
+          [chad.address]: 8045,
+        }
+      })
+
+      await verifyValueOfUnderlying({
+        template: market,
+        valueOfUnderlyingOf: chad.address,
+        valueOfUnderlying: 9999
+      })
+
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market,
+            totalLiquidity: 22429,
+            availableBalance: 12430
+          }
+        ]
+      })
+
       //the premium paid second time should be allocated to both Alice and Chad
       //but the premium paid first time should be directly go to Alice
+      await insure({
+        pool: market,
+        insurer: bob,
+        amount: 9999,
+        maxCost: 10000,
+        span: 86400 * 365,
+        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+      })
 
-      await market
-        .connect(bob)
-        .insure(
-          "9999",
-          "10000",
-          86400 * 365,
-          "0x4e69636b00000000000000000000000000000000000000000000000000000000"
-        ); //premium = 3,543//verify
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [bob.address]: 93760,
+        }
+      })
 
-      expect(await dai.balanceOf(bob.address)).to.closeTo("93762", "5"); //verify
-      expect(await market.valueOfUnderlying(alice.address)).to.closeTo(
-        "14194",
-        "5"
-      ); //verify
-      expect(await market.valueOfUnderlying(chad.address)).to.closeTo(
-        "11420",
-        "5"
-      ); //verify
-      expect(await market.totalLiquidity()).to.closeTo("25616", "3");
+      await verifyValueOfUnderlying({
+        template: market,
+        valueOfUnderlyingOf: alice.address,
+        valueOfUnderlying: 14196
+      })
+
+      await verifyValueOfUnderlying({
+        template: market,
+        valueOfUnderlyingOf: chad.address,
+        valueOfUnderlying: 11420
+      })
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market,
+            totalLiquidity: 25617,
+            availableBalance: 5619
+          }
+        ]
+      })
 
       //withdrawal also harvest accrued premium
       await moveForwardPeriods(369)
+
       await market.connect(alice).requestWithdraw("10000");
       await market.unlockBatch(["0", "1"]);
+
       await moveForwardPeriods(8)
+
       await market.connect(alice).withdraw("10000");
       //Harvested premium is reflected on their account balance
 
-      expect(await dai.balanceOf(alice.address)).to.closeTo("104193", "5"); //verify
-      expect(await dai.balanceOf(chad.address)).to.closeTo("90000", "5"); //verify
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [alice.address]: 104195,
+          [chad.address]: 90000,
+        }
+      })
     });
 
     it("DISABLE deposit when paused(withdrawal is possible)", async function () {
@@ -658,7 +758,15 @@ describe("Pool", function () {
       })
 
       expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("10000");
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market,
+            totalLiquidity: 10000,
+            availableBalance: 10000
+          }
+        ]
+      })
 
       await market.setPaused(true);
 
@@ -666,9 +774,22 @@ describe("Pool", function () {
       await expect(market.connect(alice).deposit("10000")).to.revertedWith(
         "ERROR: DEPOSIT_DISABLED"
       );
+
       await moveForwardPeriods(8)
+
+      await verifyRate({
+        template: market,
+        rate: "1000000000000000000"
+      })
+
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.equal("100000");
+
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [alice.address]: 100000
+        }
+      })
     });
 
     it("DISABLE deposit and withdrawal when payingout", async function () {
@@ -692,26 +813,16 @@ describe("Pool", function () {
         amount: 10000
       })
       await market.connect(alice).requestWithdraw("10000");
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      let incident = await currentTimestamp.sub(86400 * 2);
 
-      const tree = await new MerkleTree(short, keccak256, {
-        hashLeaves: true,
-        sortPairs: true,
-      });
-      const root = tree.getHexRoot();
-      const node = keccak256(tree[0]);
-      await market.applyCover(
-        "604800",
-        incident,
-        10000,
-        10000,
-        root,
-        short,
-        "metadata"
-      );
+      let incident = (await now()).sub(DAY.mul(2));  
+
+      await applyCover({
+        pool: market,
+        pending: 604800,
+        payoutNumerator: 10000,
+        payoutDenominator: 10000,
+        incidentTimestamp: incident
+      })
 
       await expect(market.connect(alice).deposit("10000")).to.revertedWith(
         "ERROR: DEPOSIT_DISABLED"
@@ -719,10 +830,23 @@ describe("Pool", function () {
       await expect(market.connect(alice).withdraw("10000")).to.revertedWith(
         "ERROR: WITHDRAWAL_PENDING"
       );
+
       await moveForwardPeriods(11)
       await market.resume();
+
+      await verifyRate({
+        template: market,
+        rate: "1000000000000000000"
+      })
+
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.equal("100000");
+
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [alice.address]: 100000
+        }
+      })
     });
 
     it("devaluate underlying but premium is not affected when cover claim is accepted", async function () {
@@ -734,14 +858,8 @@ describe("Pool", function () {
         amount: 10000
       })
 
-      expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("10000");
-
       await dai.connect(bob).approve(vault.address, 10000);
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 8);
+
       await insure({
         pool: market,
         insurer: bob,
@@ -750,28 +868,37 @@ describe("Pool", function () {
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
       })
-      expect(await dai.balanceOf(bob.address)).to.closeTo("99941", "1"); //verify
-      expect(await vault.attributions(creator.address)).to.closeTo("5", "0"); //verify
-      expect(await vault.attributions(market.address)).to.closeTo("10054", "0"); //verify
-      let incident = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      const tree = await new MerkleTree(short, keccak256, {
-        hashLeaves: true,
-        sortPairs: true,
-      });
-      const root = await tree.getHexRoot();
-      const leaf = keccak256(short[0]);
-      const proof = await tree.getHexProof(leaf);
-      await market.applyCover(
-        "604800",
-        5000,
-        10000,
-        incident,
-        root,
-        short,
-        "metadata"
-      );
+
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [bob.address]: 99941
+        }
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: creator.address,
+        attributions: 5,
+        underlyingValue: 5
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: market.address,
+        attributions: 10054,
+        underlyingValue: 10054
+      })
+
+      let incident = await now()
+      let proof = await applyCover({
+        pool: market,
+        pending: 604800,
+        payoutNumerator: 5000,
+        payoutDenominator: 10000,
+        incidentTimestamp: incident
+      })
+
       await market.connect(bob).redeem("0", proof);
       await expect(market.unlock("0")).to.revertedWith(
         "ERROR: UNLOCK_BAD_COINDITIONS"
@@ -812,18 +939,16 @@ describe("Pool", function () {
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
       })
-      incident = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      await market.applyCover(
-        "604800",
-        10000,
-        10000,
-        incident,
-        root,
-        short,
-        "metadata"
-      );
+
+      incident = await now()
+      proof = await applyCover({
+        pool: market,
+        pending: 604800,
+        payoutNumerator: 10000,
+        payoutDenominator: 10000,
+        incidentTimestamp: incident
+      })
+
       await market.connect(bob).redeem("1", proof);
 
       expect(await market.totalSupply()).to.equal("10000");

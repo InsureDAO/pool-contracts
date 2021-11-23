@@ -28,6 +28,11 @@ const verifyValueOfUnderlying = async({template, valueOfUnderlyingOf, valueOfUnd
     expect(await template.valueOfUnderlying(valueOfUnderlyingOf)).to.equal(valueOfUnderlying);
 }
 
+const verifyRate = async({template, rate}) => {
+    expect(await template.rate()).to.equal(rate);
+}
+
+
 
 //pool
 const _verifyPoolStatus = async({pool, totalLiquidity, availableBalance}) => {
@@ -40,7 +45,8 @@ const verifyPoolsStatus = async({pools}) => {
         await _verifyPoolStatus({ 
             pool: pools[i].pool,
             totalLiquidity: pools[i].totalLiquidity,
-            availableBalance: pools[i].availableBalance
+            availableBalance: pools[i].availableBalance,
+            rate: pools[i].rate
         })
     }
 }
@@ -106,6 +112,7 @@ Object.assign(exports, {
 
     //univarsal
     verifyValueOfUnderlying,
+    verifyRate,
 
     //pool
     verifyPoolsStatus,
