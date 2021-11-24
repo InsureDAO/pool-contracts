@@ -31,7 +31,7 @@ contract Parameters is IParameters{
     event MaxListSet(address target, uint256 max);
 
     address public minter;
-    IOwnership public ownership;
+    address public ownership;
 
     mapping(address => address) private _vaults; //address of the vault contract for each token
     mapping(address => address) private _fee; //address for each fee model contract
@@ -46,14 +46,14 @@ contract Parameters is IParameters{
     mapping(bytes32 => bytes32) private _conditions; //condition mapping for future use cases
 
     constructor(address _ownership) {
-        ownership = IOwnership(_ownership);
+        ownership = _ownership;
     }
 
     /**
      * @notice Throws if called by any account other than the owner.
      */
     modifier onlyOwner() {
-        require(ownership.owner() == msg.sender, 'Restricted: caller is not allowed to operate');
+        require(IOwnership(ownership).owner() == msg.sender, 'Restricted: caller is not allowed to operate');
         _;
     }
 
@@ -202,7 +202,7 @@ contract Parameters is IParameters{
      * @return owner's address
      */
     function getOwner() public override view returns (address) {
-        return ownership.owner();
+        return IOwnership(ownership).owner();
     }
 
     /**

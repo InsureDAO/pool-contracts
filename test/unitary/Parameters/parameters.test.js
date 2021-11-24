@@ -4,7 +4,9 @@ const { BigNumber } = require("ethers");
 
 const{ 
   ZERO_ADDRESS,
+  TEST_ADDRESS,
 } = require('../constant-utils');
+const { zeroPad } = require("@ethersproject/bytes");
 
 async function snapshot () {
   return network.provider.send('evm_snapshot', [])
@@ -34,97 +36,177 @@ describe("Parameters", function () {
     await restore(snapshotId)
   })
 
-  describe.skip("ownership functions", function () {
-    //revert test
-    it("test_commit_owner_only", async () => {
-      await expect(
-        parameters.connect(alice).commitTransferOwnership(alice.address)
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
-    });
-
-    it("test_apply_owner_only", async () => {
-      await expect(
-        parameters.connect(alice).applyTransferOwnership()
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
-    });
-
-    //test
-    it("test_commitTransferOwnership", async () => {
-      await parameters.commitTransferOwnership(alice.address);
-
-      expect(await parameters.ownership()).to.equal(ownership.address);
-      expect(await parameters.future_owner()).to.equal(alice.address);
-    });
-
-    it("test_applyTransferOwnership", async () => {
-      await parameters.commitTransferOwnership(alice.address);
-      await ethers.provider.send("evm_increaseTime", [86400 * 4]);
-      await parameters.applyTransferOwnership();
-
-      expect(await parameters.owner()).to.equal(alice.address);
-      expect(await parameters.future_owner()).to.equal(alice.address);
-    });
-
-    it("test_apply_without_commit", async () => {
-      await expect(parameters.applyTransferOwnership()).to.revertedWith(
-        "dev: no active transfer"
-      );
-    });
-  });
   describe("parameters functions", function () {
-    it("registers universal params", async () => {
-      await parameters.setCDSPremium(ZERO_ADDRESS, "1000");
-      await parameters.setDepositFee(ZERO_ADDRESS, "1000");
-      await parameters.setGrace(ZERO_ADDRESS, "1000");
-      await parameters.setLockup(ZERO_ADDRESS, "1000");
-      await parameters.setMindate(ZERO_ADDRESS, "1000");
+    describe("general", function(){
+      it("registers universal params", async () => {
+        await parameters.setCDSPremium(ZERO_ADDRESS, "1000");
+        await parameters.setDepositFee(ZERO_ADDRESS, "1000");
+        await parameters.setGrace(ZERO_ADDRESS, "1000");
+        await parameters.setLockup(ZERO_ADDRESS, "1000");
+        await parameters.setMindate(ZERO_ADDRESS, "1000");
+  
+        await parameters.setVault(ZERO_ADDRESS, test.address);
+        await parameters.setWithdrawable(ZERO_ADDRESS, "1000");
+  
+        expect(await parameters.getCDSPremium("10000", creator.address)).to.equal(
+          "100"
+        );
+        expect(await parameters.getDepositFee(10000, creator.address)).to.equal(
+          "100"
+        );
+        expect(await parameters.getGrace(creator.address)).to.equal("1000");
+        expect(await parameters.getLockup(creator.address)).to.equal("1000");
+        expect(await parameters.getMin(creator.address)).to.equal("1000");
+        expect(await parameters.getWithdrawable(creator.address)).to.equal(
+          "1000"
+        );
+        expect(await parameters.getVault(test.address)).to.equal(ZERO_ADDRESS);
+      });
+  
+      it("registers specific params for the specifed address", async () => {
+        await parameters.setCDSPremium(ZERO_ADDRESS, "10000");
+        await parameters.setDepositFee(ZERO_ADDRESS, "10000");
+        await parameters.setGrace(test.address, "10000");
+        await parameters.setLockup(test.address, "10000");
+        await parameters.setMindate(test.address, "10000");
+        await parameters.setVault(test.address, test.address);
+        await parameters.setWithdrawable(test.address, "10000");
+  
+        expect(
+          await parameters.connect(test).getCDSPremium("10000", test.address)
+        ).to.equal("1000");
+        expect(
+          await parameters.connect(test).getDepositFee(10000, test.address)
+        ).to.equal("1000");
+        expect(await parameters.connect(test).getGrace(test.address)).to.equal(
+          "10000"
+        );
+        expect(await parameters.connect(test).getLockup(test.address)).to.equal(
+          "10000"
+        );
+        expect(await parameters.connect(test).getMin(test.address)).to.equal(
+          "10000"
+        );
+        expect(
+          await parameters.connect(test).getWithdrawable(test.address)
+        ).to.equal("10000");
+        expect(await parameters.getVault(test.address)).to.equal(test.address);
+      });
+    })
 
-      await parameters.setVault(ZERO_ADDRESS, test.address);
-      await parameters.setWithdrawable(ZERO_ADDRESS, "1000");
+    describe("setMinter", function(){
+      it("success", async () => {
+        await parameters.setMinter(TEST_ADDRESS);
 
-      expect(await parameters.getCDSPremium("10000", creator.address)).to.equal(
-        "100"
-      );
-      expect(await parameters.getDepositFee(10000, creator.address)).to.equal(
-        "100"
-      );
-      expect(await parameters.getGrace(creator.address)).to.equal("1000");
-      expect(await parameters.getLockup(creator.address)).to.equal("1000");
-      expect(await parameters.getMin(creator.address)).to.equal("1000");
-      expect(await parameters.getWithdrawable(creator.address)).to.equal(
-        "1000"
-      );
-      expect(await parameters.getVault(test.address)).to.equal(ZERO_ADDRESS);
-    });
+        expect(await parameters.getMinter()).to.equal(TEST_ADDRESS);
+      });
 
-    it("registers specific params for the specifed address", async () => {
-      await parameters.setCDSPremium(ZERO_ADDRESS, "10000");
-      await parameters.setDepositFee(ZERO_ADDRESS, "10000");
-      await parameters.setGrace(test.address, "10000");
-      await parameters.setLockup(test.address, "10000");
-      await parameters.setMindate(test.address, "10000");
-      await parameters.setVault(test.address, test.address);
-      await parameters.setWithdrawable(test.address, "10000");
+      it("modifier", async () => {
 
-      expect(
-        await parameters.connect(test).getCDSPremium("10000", test.address)
-      ).to.equal("1000");
-      expect(
-        await parameters.connect(test).getDepositFee(10000, test.address)
-      ).to.equal("1000");
-      expect(await parameters.connect(test).getGrace(test.address)).to.equal(
-        "10000"
-      );
-      expect(await parameters.connect(test).getLockup(test.address)).to.equal(
-        "10000"
-      );
-      expect(await parameters.connect(test).getMin(test.address)).to.equal(
-        "10000"
-      );
-      expect(
-        await parameters.connect(test).getWithdrawable(test.address)
-      ).to.equal("10000");
-      expect(await parameters.getVault(test.address)).to.equal(test.address);
-    });
+        await expect(parameters.connect(alice).setMinter(TEST_ADDRESS)).to.revertedWith("Restricted: caller is not allowed to operate");
+      });
+  
+      it("revert", async () => {
+        await parameters.setMinter(TEST_ADDRESS);
+
+        await expect(parameters.setMinter(TEST_ADDRESS)).to.revertedWith("dev: already initialized");
+      });
+
+      it("event", async () => {
+        await expect(parameters.setMinter(TEST_ADDRESS)).to.emit(parameters, 'MinterSet');
+      });
+    })
+
+    describe("setVault", function(){
+      it("success", async () => {
+        await parameters.setVault(TEST_ADDRESS, TEST_ADDRESS);
+
+        expect(await parameters.getVault(TEST_ADDRESS)).to.equal(TEST_ADDRESS);
+      });
+
+      it("modifier", async () => {
+
+        await expect(parameters.connect(alice).setVault(TEST_ADDRESS ,TEST_ADDRESS)).to.revertedWith("Restricted: caller is not allowed to operate");
+      });
+  
+      it("revert 1", async () => {
+        await parameters.setVault(TEST_ADDRESS, TEST_ADDRESS);
+
+        await expect(parameters.setVault(TEST_ADDRESS, TEST_ADDRESS)).to.revertedWith("dev: already initialized");
+      });
+
+      it("revert 2", async () => {
+        await expect(parameters.setVault(TEST_ADDRESS, ZERO_ADDRESS)).to.revertedWith("dev: zero address");
+      });
+
+      it("event", async () => {
+        await expect(parameters.setVault(TEST_ADDRESS, TEST_ADDRESS)).to.emit(parameters, 'VaultSet');
+      });
+    })
+
+    describe("setLockup", function(){
+      it("", async () => {
+      });
+  
+      it("", async () => {
+      });
+    })
+
+    describe("setGrace", function(){
+      it("", async () => {
+      });
+  
+      it("", async () => {
+      });
+    })
+
+    describe("setMindate", function(){
+      it("", async () => {
+      });
+  
+      it("", async () => {
+      });
+    })
+
+    describe("setWithdrawable", function(){
+      it("", async () => {
+      });
+  
+      it("", async () => {
+      });
+    })
+
+    describe("setPremiumModel", function(){
+      it("", async () => {
+      });
+  
+      it("", async () => {
+      });
+    })
+
+    describe("setFeeModel", function(){
+      it("", async () => {
+      });
+  
+      it("", async () => {
+      });
+    })
+
+    describe("setMaxList", function(){
+      it("", async () => {
+      });
+  
+      it("", async () => {
+      });
+    })
+
+    describe("setCondition", function(){
+      it("", async () => {
+      });
+  
+      it("", async () => {
+      });
+    })
+    
   });
 });
