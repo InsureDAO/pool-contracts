@@ -139,8 +139,6 @@ describe("Pool", function () {
     );
 
     await fee.setFee("10000");
-    await parameters.setCDSPremium(ZERO_ADDRESS, "2000");
-    await parameters.setDepositFee(ZERO_ADDRESS, "1000");
     await parameters.setGrace(ZERO_ADDRESS, "259200");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
     await parameters.setMindate(ZERO_ADDRESS, "604800");
@@ -175,110 +173,6 @@ describe("Pool", function () {
       expect(parameters.address).to.exist;
       expect(vault.address).to.exist;
       expect(market.address).to.exist;
-    });
-  });
-
-  describe("iToken", function () {
-    beforeEach(async () => {
-      await dai.connect(alice).approve(vault.address, 10000);
-      await dai.connect(bob).approve(vault.address, 10000);
-      await dai.connect(chad).approve(vault.address, 10000);
-
-      await market.connect(alice).deposit("10000");
-      await market.connect(bob).deposit("10000");
-      await market.connect(chad).deposit("10000");
-    });
-
-    describe("allowance", function () {
-      it("returns no allowance", async function () {
-        expect(await market.allowance(alice.address, tom.address)).to.equal(
-          "0"
-        );
-      });
-      it("approve/ increases/ decrease change allowance", async function () {
-        await market.connect(alice).approve(tom.address, 5000);
-        expect(await market.allowance(alice.address, tom.address)).to.equal(
-          "5000"
-        );
-        await market.connect(alice).decreaseAllowance(tom.address, "5000");
-        expect(await market.allowance(alice.address, tom.address)).to.equal(
-          "0"
-        );
-        await market.connect(alice).increaseAllowance(tom.address, "10000");
-        expect(await market.allowance(alice.address, tom.address)).to.equal(
-          "10000"
-        );
-      });
-    });
-
-    describe("total supply", function () {
-      it("returns the total amount of tokens", async function () {
-        expect(await market.totalSupply()).to.equal("30000");
-      });
-    });
-
-    describe("balanceOf", function () {
-      context("when the requested account has no tokens", function () {
-        it("returns zero", async function () {
-          expect(await market.balanceOf(tom.address)).to.equal("0");
-        });
-      });
-
-      context("when the requested account has some tokens", function () {
-        it("returns the total amount of tokens", async function () {
-          expect(await market.balanceOf(alice.address)).to.equal("10000");
-        });
-      });
-    });
-
-    describe("transfer", function () {
-      context("when the recipient is not the zero address", function () {
-        context("when the sender does not have enough balance", function () {
-          it("reverts", async function () {
-            await expect(
-              market.connect(alice).transfer(tom.address, "10001")
-            ).to.reverted;
-          });
-        });
-
-        context("when the sender has enough balance", function () {
-          it("transfers the requested amount", async function () {
-            await market.connect(alice).transfer(tom.address, "10000");
-            expect(await market.balanceOf(alice.address)).to.equal("0");
-            expect(await market.balanceOf(tom.address)).to.equal("10000");
-          });
-        });
-      });
-
-      context("when the recipient is the zero address", function () {
-        it("reverts", async function () {
-          await expect(
-            market.connect(tom).transfer(ZERO_ADDRESS, 10000)
-          ).to.revertedWith("ERC20: transfer to the zero address");
-        });
-      });
-    });
-  });
-
-  describe("Parameters", function () {
-    describe("get fee", function () {
-      context("100000", function () {
-        it("returns fee", async function () {
-          expect(await parameters.getFee("100000", ZERO_ADDRESS)).to.equal(
-            "10000"
-          );
-        });
-      });
-    });
-    describe("get lockup", function () {
-      it("returns lockup period", async function () {
-        expect(await parameters.getLockup(ZERO_ADDRESS)).to.equal("604800");
-      });
-    });
-    describe("get grace", function () {
-      it("returns garace period", async function () {
-        expect(await parameters.getGrace(ZERO_ADDRESS)).to.equal("259200");
-      });
     });
   });
 
@@ -330,7 +224,15 @@ describe("Pool", function () {
       await market.connect(alice).withdraw("10000");
 
       expect(await market.totalSupply()).to.equal("0");
-      expect(await market.totalLiquidity()).to.equal("0");
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market,
+            totalLiquidity: 0,
+            availableBalance: 0
+          }
+        ]
+      })
     });
 
     it("DISABLES withdraw when not requested", async function () {
@@ -356,7 +258,15 @@ describe("Pool", function () {
       })
 
       expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("10000");
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market,
+            totalLiquidity: 10000,
+            availableBalance: 10000
+          }
+        ]
+      })
 
       await moveForwardPeriods(8)
       await expect(market.connect(alice).withdraw("100000")).to.revertedWith(
@@ -365,7 +275,15 @@ describe("Pool", function () {
       await market.connect(alice).withdraw("5000");
 
       expect(await market.totalSupply()).to.equal("5000");
-      expect(await market.totalLiquidity()).to.equal("5000");
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market,
+            totalLiquidity: 5000,
+            availableBalance: 5000
+          }
+        ]
+      })
     });
 
     it("DISABLES withdraw if withdrawable span ended", async function () {
@@ -770,7 +688,12 @@ describe("Pool", function () {
 
       await moveForwardPeriods(8)
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.equal("100000");
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [alice.address]: 100000
+        }
+      })
       //Cannot deposit and withdraw when payingout
 
       await approveDeposit({
@@ -870,18 +793,32 @@ describe("Pool", function () {
       await expect(market.unlock("0")).to.revertedWith(
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );
-      expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.closeTo("5091", "1");
-      expect(await market.valueOfUnderlying(alice.address)).to.closeTo(
-        "5091",
-        "1"
-      );
+
+      await verifyValueOfUnderlying({
+        template: market,
+        valueOfUnderlyingOf: alice.address,
+        valueOfUnderlying: 5091
+      })
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market,
+            totalLiquidity: 5091,
+            availableBalance: 5091
+          }
+        ]
+      })
       await moveForwardPeriods(11)
       await market.resume();
 
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.closeTo("95091", "3"); //verify
-      expect(await dai.balanceOf(bob.address)).to.closeTo("104899", "3"); //verify
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [alice.address]: 95091,
+          [bob.address]: 104899
+        }
+      })
 
       //Simulation: full payout
       await approveDepositAndWithdrawRequest({
@@ -891,12 +828,15 @@ describe("Pool", function () {
         amount: 10000
       })
       expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("10000");
-
-      currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //endTime = await currentTimestamp.add(86400 * 8);
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market,
+            totalLiquidity: 10000,
+            availableBalance: 10000
+          }
+        ]
+      })
 
       await insure({
         pool: market,
@@ -919,13 +859,27 @@ describe("Pool", function () {
       await market.connect(bob).redeem("1", proof);
 
       expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("91");
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market,
+            totalLiquidity: 91,
+            availableBalance: 91
+          }
+        ]
+      })
+
       expect(await market.valueOfUnderlying(alice.address)).to.equal("91");
       await moveForwardPeriods(11)
       await market.resume();
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.closeTo("85182", "3"); //verify
-      expect(await dai.balanceOf(bob.address)).to.closeTo("114798", "3"); //verify
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [alice.address]: 85182,
+          [bob.address]: 114798
+        }
+      })
     });
   });
 
@@ -939,10 +893,6 @@ describe("Pool", function () {
       })
 
       await dai.connect(bob).approve(vault.address, 10000);
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 8);
       await insure({
         pool: market,
         insurer: bob,
@@ -952,41 +902,37 @@ describe("Pool", function () {
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
       })
 
-      let incident = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      const tree = await new MerkleTree(long, keccak256, {
-        hashLeaves: true,
-        sortPairs: true,
-      });
-      const root = await tree.getHexRoot();
-      const leaf = keccak256(long[0]);
-      const proof = await tree.getHexProof(leaf);
-      let tx = await market.applyCover(
-        "604800",
-        5000,
-        10000,
-        incident,
-        root,
-        long,
-        "metadata"
-      );
-      let receipt = await tx.wait();
-      console.log(
-        receipt.events?.filter((x) => {
-          return x.event == "CoverApplied";
-        })
-      );
+      let incident = await now()
+      let proof = await applyCover({
+        pool: market,
+        pending: 604800,
+        payoutNumerator: 5000,
+        payoutDenominator: 10000,
+        incidentTimestamp: incident
+      })
 
-      await market.connect(bob).redeem("0", proof);
+      let tx = await market.connect(bob).redeem("0", proof);
+      let receipt = await tx.wait()
+
+      expect(receipt.events[1].args.amount).to.equal("9999"); //amount that bob has bought
+      expect(receipt.events[1].args.payout).to.equal("4999"); //payout to bob
+      
+
       await moveForwardPeriods(12)
       await market.resume();
+
       await expect(market.unlock("0")).to.revertedWith(
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );
+
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.closeTo("95091", "1");
-      expect(await dai.balanceOf(bob.address)).to.closeTo("104899", "1");
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [alice.address]: 95091,
+          [bob.address]: 104899
+        }
+      })
     });
 
     it("allows insurance transfer", async function () {
@@ -1008,32 +954,26 @@ describe("Pool", function () {
       })
 
       await market.connect(bob).transferInsurance("0", tom.address);
-      let incident = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      const tree = await new MerkleTree(long, keccak256, {
-        hashLeaves: true,
-        sortPairs: true,
-      });
-      const root = await tree.getHexRoot();
-      const leaf = keccak256(long[0]);
-      const proof = await tree.getHexProof(leaf);
-      await market.applyCover(
-        "604800",
-        5000,
-        10000,
-        incident,
-        root,
-        long,
-        "metadata"
-      );
+      let incident = await now()
+      let proof = await applyCover({
+        pool: market,
+        pending: 604800,
+        payoutNumerator: 5000,
+        payoutDenominator: 10000,
+        incidentTimestamp: incident
+      })
 
       await market.connect(tom).redeem("0", proof);
       await moveForwardPeriods(11)
       await market.resume();
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.equal("95091");
-      expect(await dai.balanceOf(tom.address)).to.equal("4999");
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [alice.address]: 95091,
+          [tom.address]: 4999
+        }
+      })
     });
     it("DISALLOWS redemption when insurance is not a target", async function () {
       await dai.connect(bob).approve(vault.address, 10000);
@@ -1053,25 +993,15 @@ describe("Pool", function () {
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
       })
-      let incident = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      const tree = await new MerkleTree(wrong, keccak256, {
-        hashLeaves: true,
-        sortPairs: true,
-      });
-      const root = await tree.getHexRoot();
-      const leaf = keccak256(wrong[0]);
-      const proof = await tree.getHexProof(leaf);
-      await market.applyCover(
-        "604800",
-        5000,
-        10000,
-        incident,
-        root,
-        long,
-        "metadata"
-      );
+      let incident = await now()
+      let proof = await applyCover({
+        pool: market,
+        pending: 604800,
+        payoutNumerator: 5000,
+        payoutDenominator: 10000,
+        incidentTimestamp: incident
+      })
+
       await moveForwardPeriods(12)
 
       await market.resume();
@@ -1080,7 +1010,13 @@ describe("Pool", function () {
       );
       await market.unlock("0");
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.equal("100090");
+      
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [alice.address]: 100090
+        }
+      })
     });
     it("DISALLOWS getting insured when there is not enough liquidity", async function () {
       await approveDepositAndWithdrawRequest({
@@ -1104,7 +1040,12 @@ describe("Pool", function () {
 
       await moveForwardPeriods(8)
       await market.connect(alice).withdraw("100");
-      expect(await dai.balanceOf(alice.address)).to.equal("100000");
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [alice.address]: 100000
+        }
+      })
     });
 
     it("DISALLOWS redemption when redemption period is over", async function () {
@@ -1124,25 +1065,14 @@ describe("Pool", function () {
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
       })
-      let incident = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      const tree = await new MerkleTree(long, keccak256, {
-        hashLeaves: true,
-        sortPairs: true,
-      });
-      const root = await tree.getHexRoot();
-      const leaf = keccak256(long[0]);
-      const proof = await tree.getHexProof(leaf);
-      await market.applyCover(
-        "604800",
-        5000,
-        10000,
-        incident,
-        root,
-        long,
-        "metadata"
-      );
+      let incident = await now()
+      let proof = await applyCover({
+        pool: market,
+        pending: 604800,
+        payoutNumerator: 5000,
+        payoutDenominator: 10000,
+        incidentTimestamp: incident
+      })
       await moveForwardPeriods(12)
 
       await market.resume();
@@ -1152,7 +1082,12 @@ describe("Pool", function () {
       );
       await market.unlock("0");
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.equal("100090");
+      await verifyBalances({
+        token: dai,
+        userBalances: {
+          [alice.address]: 100090
+        }
+      })
     });
 
     it("DISALLOWS getting insured when paused, reporting, or payingout", async function () {
@@ -1176,29 +1111,14 @@ describe("Pool", function () {
       })
 
       //Cannot get insured when payingout
-      let incident = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      const tree = await new MerkleTree(long, keccak256, {
-        hashLeaves: true,
-        sortPairs: true,
-      });
-      const root = await tree.getHexRoot();
-      const leaf = keccak256(long[0]);
-      const proof = await tree.getHexProof(leaf);
-      await market.applyCover(
-        "604800",
-        10000,
-        10000,
-        incident,
-        root,
-        long,
-        "metadata"
-      );
-      currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //endTime = await currentTimestamp.add(86400 * 5);
+      let incident = await now()
+      let proof = await applyCover({
+        pool: market,
+        pending: 604800,
+        payoutNumerator: 10000,
+        payoutDenominator: 10000,
+        incidentTimestamp: incident
+      })
 
       await expect(
         market
@@ -1214,10 +1134,6 @@ describe("Pool", function () {
       await moveForwardPeriods(11)
 
       await market.resume();
-      currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //endTime = await currentTimestamp.add(86400 * 8);
 
       await insure({
         pool: market,
@@ -1229,10 +1145,6 @@ describe("Pool", function () {
       })
       //Cannot get insured when paused
       await market.setPaused(true);
-      currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //endTime = await currentTimestamp.add(86400 * 8);
       await expect(
         market
           .connect(bob)
@@ -1244,10 +1156,6 @@ describe("Pool", function () {
           )
       ).to.revertedWith("ERROR: INSURE_MARKET_PAUSED");
       await market.setPaused(false);
-      currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //endTime = await currentTimestamp.add(86400 * 8);
 
       await insure({
         pool: market,
@@ -1279,7 +1187,6 @@ describe("Pool", function () {
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
       })
       //Cannot get insured for more than 365 days
-      //endTime = await currentTimestamp.add(86400 * 400);
       await expect(
         market
           .connect(bob)
@@ -1304,10 +1211,6 @@ describe("Pool", function () {
       await market.connect(alice).requestWithdraw("10000");
 
       //when expired
-      let currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //let endTime = await currentTimestamp.add(86400 * 8);
       await insure({
         pool: market,
         insurer: bob,
@@ -1322,10 +1225,6 @@ describe("Pool", function () {
       ).to.revertedWith("ERROR: INSURANCE_TRANSFER_BAD_CONDITIONS");
 
       //when already redeemed
-      currentTimestamp = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      //endTime = await currentTimestamp.add(86400 * 8);
       await insure({
         pool: market,
         insurer: bob,
@@ -1334,25 +1233,16 @@ describe("Pool", function () {
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
       })
-      let incident = BigNumber.from(
-        (await ethers.provider.getBlock("latest")).timestamp
-      );
-      const tree = await new MerkleTree(long, keccak256, {
-        hashLeaves: true,
-        sortPairs: true,
-      });
-      const root = await tree.getHexRoot();
-      const leaf = keccak256(long[0]);
-      const proof = await tree.getHexProof(leaf);
-      await market.applyCover(
-        "604800",
-        5000,
-        10000,
-        incident,
-        root,
-        long,
-        "metadata"
-      );
+
+      let incident = await now()
+      let proof = await applyCover({
+        pool: market,
+        pending: 604800,
+        payoutNumerator: 5000,
+        payoutDenominator: 10000,
+        incidentTimestamp: incident
+      })
+
       await market.connect(bob).redeem("1", proof);
       await expect(
         market.connect(bob).transferInsurance("1", tom.address)
@@ -1397,20 +1287,6 @@ describe("Pool", function () {
       expect(await market.getInsuranceCount(bob.address)).to.equal("1");
       expect(await market.getInsuranceCount(chad.address)).to.equal("1");
       expect(await market.utilizationRate()).to.equal("49771030");
-    });
-  });
-
-  describe.skip("Admin functions", function () {
-    it("allows changing metadata", async function () {
-      expect(await market.metadata()).to.equal("Here is metadata.");
-      const latest = `{
-            subject: "これは日本語だよ　这个是中文　TEST TEXTS",
-            options: [“Yes”, “No”],
-            description: "The website is compliant. This will release the funds to Alice."
-          }`;
-
-      await market.changeMetadata(latest);
-      expect(await market.metadata()).to.equal(latest);
     });
   });
 });
