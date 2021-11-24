@@ -24,7 +24,7 @@ async function main() {
   const FeeModel = await ethers.getContractFactory("FeeModel");
   const PremiumModel = await ethers.getContractFactory("BondingPremiumV1");
   const Parameters = await ethers.getContractFactory("Parameters");
-  const Contorller = await ethers.getContractFactory("Controller");
+  const Contorller = await ethers.getContractFactory("ControllerMock");
   //deploy
   const dai = await DAI.deploy(creator.address);
   await dai.deployed();

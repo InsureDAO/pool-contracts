@@ -75,7 +75,7 @@ describe("Index", function () {
     const FeeModel = await ethers.getContractFactory("FeeModel");
     const PremiumModel = await ethers.getContractFactory("PremiumModel");
     const Parameters = await ethers.getContractFactory("Parameters");
-    const Contorller = await ethers.getContractFactory("Controller");
+    const Contorller = await ethers.getContractFactory("ControllerMock");
 
     //deploy
     ownership = await Ownership.deploy();

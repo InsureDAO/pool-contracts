@@ -4,7 +4,7 @@ import "../mocks/TestERC20Mock.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IOwnership.sol";
 
-contract Controller {
+contract ControllerMock {
     TestERC20Mock public token;
     IVault public vault;
     IOwnership public ownership;

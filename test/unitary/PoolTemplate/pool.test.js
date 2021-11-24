@@ -5,7 +5,6 @@ const { MerkleTree } = require("merkletreejs");
 const keccak256 = require("keccak256");
 
 const {
-  verifyBalance,
   verifyBalances,
   verifyAllowance,
   verifyPoolsStatus,
@@ -99,7 +98,7 @@ describe("Pool", function () {
     const FeeModel = await ethers.getContractFactory("FeeModel");
     const PremiumModel = await ethers.getContractFactory("PremiumModel");
     const Parameters = await ethers.getContractFactory("Parameters");
-    const Contorller = await ethers.getContractFactory("Controller");
+    const Contorller = await ethers.getContractFactory("ControllerMock");
 
     //deploy
     ownership = await Ownership.deploy();

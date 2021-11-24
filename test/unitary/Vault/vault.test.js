@@ -23,7 +23,7 @@ describe("Vault", function () {
     const DAI = await ethers.getContractFactory("TestERC20Mock");
     const Vault = await ethers.getContractFactory("Vault");
     const Registry = await ethers.getContractFactory("Registry");
-    const Contorller = await ethers.getContractFactory("Controller");
+    const Contorller = await ethers.getContractFactory("ControllerMock");
     //deploy
     ownership = await Ownership.deploy();
     dai = await DAI.deploy();
