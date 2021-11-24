@@ -90,13 +90,11 @@ describe("Pool", function () {
     const Ownership = await ethers.getContractFactory("Ownership");
     const DAI = await ethers.getContractFactory("TestERC20Mock");
     const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
-    const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
-    const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
     const Factory = await ethers.getContractFactory("Factory");
     const Vault = await ethers.getContractFactory("Vault");
     const Registry = await ethers.getContractFactory("Registry");
     const FeeModel = await ethers.getContractFactory("FeeModel");
-    const PremiumModel = await ethers.getContractFactory("PremiumModel");
+    const PremiumModel = await ethers.getContractFactory("TestPremiumModel");
     const Parameters = await ethers.getContractFactory("Parameters");
     const Contorller = await ethers.getContractFactory("ControllerMock");
 
@@ -140,7 +138,6 @@ describe("Pool", function () {
       true
     );
 
-    await premium.setPremium("2000", "50000");
     await fee.setFee("10000");
     await parameters.setCDSPremium(ZERO_ADDRESS, "2000");
     await parameters.setDepositFee(ZERO_ADDRESS, "1000");
@@ -264,34 +261,6 @@ describe("Pool", function () {
   });
 
   describe("Parameters", function () {
-    describe("get premium", function () {
-      context("365 days", function () {
-        it("returns premium", async function () {
-          expect(
-            await parameters.getPremium(
-              "100000",
-              "31536000",
-              "1000000",
-              "500000",
-              ZERO_ADDRESS
-            )
-          ).to.equal("29500");
-        });
-      });
-      context("30 days", function () {
-        it("returns premium", async function () {
-          expect(
-            await parameters.getPremium(
-              "100000",
-              "2592000",
-              "1000000",
-              "500000",
-              ZERO_ADDRESS
-            )
-          ).to.equal("2424");
-        });
-      });
-    });
     describe("get fee", function () {
       context("100000", function () {
         it("returns fee", async function () {
@@ -494,28 +463,28 @@ describe("Pool", function () {
       await verifyVaultStatusOf({
         vault: vault,
         target: market.address,
-        attributions: 10054,
-        underlyingValue: 10054
+        attributions: 10090,
+        underlyingValue: 10090
       })
       await verifyVaultStatusOf({
         vault: vault,
         target: creator.address,
-        attributions: 5,
-        underlyingValue: 5
+        attributions: 10,
+        underlyingValue: 10
       })
 
       await verifyVaultStatus({
         vault: vault,
-        valueAll: 10059,
-        totalAttributions: 10059,
+        valueAll: 10100,
+        totalAttributions: 10100,
       })
 
       await verifyPoolsStatus({
         pools: [
           {
             pool: market,
-            totalLiquidity: 10054,
-            availableBalance: 10054
+            totalLiquidity: 10090,
+            availableBalance: 10090
           }
         ]
       })
@@ -560,18 +529,17 @@ describe("Pool", function () {
         ]
       })
 
-      //withdrawed 10054
       await verifyBalances({
         token: dai,
         userBalances: {
-          [alice.address]: 100054,
+          [alice.address]: 100090,
         }
       })
 
       await verifyVaultStatus({
         vault: vault,
-        valueAll: 5,
-        totalAttributions: 5,
+        valueAll: 10,
+        totalAttributions: 10,
       })
     });
 
@@ -617,42 +585,42 @@ describe("Pool", function () {
       await verifyBalances({
         token: dai,
         userBalances: {
-          [bob.address]: 97302,
+          [bob.address]: 99900,
         }
       })
 
       await verifyValueOfUnderlying({
         template: market,
         valueOfUnderlyingOf: alice.address,
-        valueOfUnderlying: 12429
+        valueOfUnderlying: 10090
       })
 
       await verifyPoolsStatus({
         pools: [
           {
             pool: market,
-            totalLiquidity: 12429,
-            availableBalance: 2430
+            totalLiquidity: 10090,
+            availableBalance: 91
           }
         ]
       })
 
       await verifyRate({
         template: market,
-        rate: "1242900000000000000"
+        rate: "1009000000000000000"
       })
 
       await verifyVaultStatusOf({
         vault: vault,
         target: creator.address,
-        attributions: 269,
-        underlyingValue: 269
+        attributions: 10,
+        underlyingValue: 10
       })
 
       await verifyVaultStatus({
         vault: vault,
-        valueAll: 12698,
-        totalAttributions: 12698,
+        valueAll: 10100,
+        totalAttributions: 10100,
       })
 
 
@@ -667,7 +635,7 @@ describe("Pool", function () {
       await verifyBalances({
         token: market,
         userBalances: {
-          [chad.address]: 8045,
+          [chad.address]: 9910,
         }
       })
 
@@ -682,8 +650,8 @@ describe("Pool", function () {
         pools: [
           {
             pool: market,
-            totalLiquidity: 22429,
-            availableBalance: 12430
+            totalLiquidity: 20090,
+            availableBalance: 10091
           }
         ]
       })
@@ -702,28 +670,28 @@ describe("Pool", function () {
       await verifyBalances({
         token: dai,
         userBalances: {
-          [bob.address]: 93760,
+          [bob.address]: 99800,
         }
       })
 
       await verifyValueOfUnderlying({
         template: market,
         valueOfUnderlyingOf: alice.address,
-        valueOfUnderlying: 14196
+        valueOfUnderlying: 10135
       })
 
       await verifyValueOfUnderlying({
         template: market,
         valueOfUnderlyingOf: chad.address,
-        valueOfUnderlying: 11420
+        valueOfUnderlying: 10044
       })
 
       await verifyPoolsStatus({
         pools: [
           {
             pool: market,
-            totalLiquidity: 25617,
-            availableBalance: 5619
+            totalLiquidity: 20180,
+            availableBalance: 182
           }
         ]
       })
@@ -742,7 +710,7 @@ describe("Pool", function () {
       await verifyBalances({
         token: dai,
         userBalances: {
-          [alice.address]: 104195,
+          [alice.address]: 100134,
           [chad.address]: 90000,
         }
       })
@@ -871,22 +839,22 @@ describe("Pool", function () {
       await verifyBalances({
         token: dai,
         userBalances: {
-          [bob.address]: 99941
+          [bob.address]: 99900
         }
       })
 
       await verifyVaultStatusOf({
         vault: vault,
         target: creator.address,
-        attributions: 5,
-        underlyingValue: 5
+        attributions: 10,
+        underlyingValue: 10
       })
 
       await verifyVaultStatusOf({
         vault: vault,
         target: market.address,
-        attributions: 10054,
-        underlyingValue: 10054
+        attributions: 10090,
+        underlyingValue: 10090
       })
 
       let incident = await now()
@@ -903,17 +871,17 @@ describe("Pool", function () {
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );
       expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.closeTo("5055", "1");
+      expect(await market.totalLiquidity()).to.closeTo("5091", "1");
       expect(await market.valueOfUnderlying(alice.address)).to.closeTo(
-        "5055",
+        "5091",
         "1"
       );
       await moveForwardPeriods(11)
       await market.resume();
 
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.closeTo("95055", "3"); //verify
-      expect(await dai.balanceOf(bob.address)).to.closeTo("104940", "3"); //verify
+      expect(await dai.balanceOf(alice.address)).to.closeTo("95091", "3"); //verify
+      expect(await dai.balanceOf(bob.address)).to.closeTo("104899", "3"); //verify
 
       //Simulation: full payout
       await approveDepositAndWithdrawRequest({
@@ -951,13 +919,13 @@ describe("Pool", function () {
       await market.connect(bob).redeem("1", proof);
 
       expect(await market.totalSupply()).to.equal("10000");
-      expect(await market.totalLiquidity()).to.equal("55");
-      expect(await market.valueOfUnderlying(alice.address)).to.equal("55");
+      expect(await market.totalLiquidity()).to.equal("91");
+      expect(await market.valueOfUnderlying(alice.address)).to.equal("91");
       await moveForwardPeriods(11)
       await market.resume();
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.closeTo("85110", "3"); //verify
-      expect(await dai.balanceOf(bob.address)).to.closeTo("114880", "3"); //verify
+      expect(await dai.balanceOf(alice.address)).to.closeTo("85182", "3"); //verify
+      expect(await dai.balanceOf(bob.address)).to.closeTo("114798", "3"); //verify
     });
   });
 
@@ -1017,19 +985,8 @@ describe("Pool", function () {
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.closeTo("95055", "1");
-      expect(await dai.balanceOf(bob.address)).to.closeTo("104940", "1");
-    });
-
-    it("calculate premium", async function () {
-      await approveDepositAndWithdrawRequest({
-        token: dai,
-        target: market,
-        depositer: alice,
-        amount: 10000
-      })
-      let duration = 86400 * 365;
-      expect(await market.getPremium("1000", duration)).to.equal("45");
+      expect(await dai.balanceOf(alice.address)).to.closeTo("95091", "1");
+      expect(await dai.balanceOf(bob.address)).to.closeTo("104899", "1");
     });
 
     it("allows insurance transfer", async function () {
@@ -1075,7 +1032,7 @@ describe("Pool", function () {
       await moveForwardPeriods(11)
       await market.resume();
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.equal("95055");
+      expect(await dai.balanceOf(alice.address)).to.equal("95091");
       expect(await dai.balanceOf(tom.address)).to.equal("4999");
     });
     it("DISALLOWS redemption when insurance is not a target", async function () {
@@ -1123,7 +1080,7 @@ describe("Pool", function () {
       );
       await market.unlock("0");
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.equal("100054");
+      expect(await dai.balanceOf(alice.address)).to.equal("100090");
     });
     it("DISALLOWS getting insured when there is not enough liquidity", async function () {
       await approveDepositAndWithdrawRequest({
@@ -1195,7 +1152,7 @@ describe("Pool", function () {
       );
       await market.unlock("0");
       await market.connect(alice).withdraw("10000");
-      expect(await dai.balanceOf(alice.address)).to.equal("100054");
+      expect(await dai.balanceOf(alice.address)).to.equal("100090");
     });
 
     it("DISALLOWS getting insured when paused, reporting, or payingout", async function () {
@@ -1439,7 +1396,7 @@ describe("Pool", function () {
       expect(await market.allInsuranceCount()).to.equal("2");
       expect(await market.getInsuranceCount(bob.address)).to.equal("1");
       expect(await market.getInsuranceCount(chad.address)).to.equal("1");
-      expect(await market.utilizationRate()).to.equal("46969020");
+      expect(await market.utilizationRate()).to.equal("49771030");
     });
   });
 
