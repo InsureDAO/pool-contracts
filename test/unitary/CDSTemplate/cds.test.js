@@ -66,7 +66,7 @@ describe("CDS", function () {
     const Vault = await ethers.getContractFactory("Vault");
     const Registry = await ethers.getContractFactory("Registry");
     const FeeModel = await ethers.getContractFactory("FeeModel");
-    const PremiumModel = await ethers.getContractFactory("TestPremiumModel");
+    const PremiumModel = await ethers.getContractFactory("PremiumModel");
     const Parameters = await ethers.getContractFactory("Parameters");
     const Contorller = await ethers.getContractFactory("ControllerMock");
     const Minter = await ethers.getContractFactory("MinterMock");
@@ -543,7 +543,8 @@ describe("CDS", function () {
         totalLiquidity: 970,
         totalAllocatedCredit: 19400,
         leverage: 20000,
-        withdrawable: 970
+        withdrawable: 970,
+        rate: "1000000000000000000"
       })
 
       await verifyPoolsStatus({
@@ -649,7 +650,8 @@ describe("CDS", function () {
         totalLiquidity: 0,
         totalAllocatedCredit: 0,
         leverage: 0,
-        withdrawable: 0
+        withdrawable: 0,
+        rate: "0"
       })
 
       await verifyPoolsStatus({
@@ -736,7 +738,8 @@ describe("CDS", function () {
         totalLiquidity: 970,
         totalAllocatedCredit: 19400,
         leverage: 20000,
-        withdrawable: 970
+        withdrawable: 970,
+        rate: "1000000000000000000"
       })
 
       await verifyPoolsStatus({
@@ -839,7 +842,8 @@ describe("CDS", function () {
         totalLiquidity: 0,
         totalAllocatedCredit: 0,
         leverage: 0,
-        withdrawable: 0
+        withdrawable: 0,
+        rate: 0
       })
 
       await verifyPoolsStatus({

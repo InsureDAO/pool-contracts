@@ -68,12 +68,13 @@ const verifyPoolsStatusOf = async({pools}) => {
 
 
 //index
-const verifyIndexStatus = async ({index, totalSupply, totalLiquidity, totalAllocatedCredit, leverage, withdrawable}) => {
+const verifyIndexStatus = async ({index, totalSupply, totalLiquidity, totalAllocatedCredit, leverage, withdrawable, rate}) => {
     expect(await index.totalSupply()).to.equal(totalSupply);
     expect(await index.totalLiquidity()).to.equal(totalLiquidity);
     expect(await index.totalAllocatedCredit()).to.equal(totalAllocatedCredit);
     expect(await index.leverage()).to.equal(leverage);
     expect(await index.withdrawable()).to.equal(withdrawable);
+    expect(await index.rate()).to.equal(rate);
 }
 
 
@@ -100,7 +101,10 @@ const verifyVaultStatusOf = async({vault, target, attributions, underlyingValue}
 
 //function
 const insure = async({pool, insurer, amount, maxCost, span, target}) => {
-    await pool.connect(insurer).insure(amount, maxCost, span, target);
+    let tx = await pool.connect(insurer).insure(amount, maxCost, span, target);
+
+    let receipt = await tx.wait()
+    return receipt
 }
 
 
