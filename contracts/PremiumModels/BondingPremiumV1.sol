@@ -67,7 +67,7 @@ contract BondingPremiumV1 {
      * low_risk_border = uint256(1e24) //1M USDC
      */
 
-    constructor() public {
+    constructor() {
         //setPremium()
         b = 30000;
         k = 300100000;

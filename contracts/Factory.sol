@@ -6,16 +6,13 @@
  */
 
 pragma solidity 0.8.7;
-pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import "./interfaces/IOwnership.sol";
 import "./interfaces/IUniversalMarket.sol";
 import "./interfaces/IRegistry.sol";
+import "hardhat/console.sol";
 
 contract Factory {
-    using SafeMath for uint256;
-    using Address for address;
 
     event MarketCreated(
         address indexed market,
@@ -74,25 +71,16 @@ contract Factory {
     // conditions[1] = minimim deposit amount
 
     address public registry;
-    address public owner;
-    address public future_owner;
-    uint256 public transfer_ownership_deadline;
-    uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
+    IOwnership public ownership;
 
-    /**
-     * @notice Throws if called by any account other than the owner.
-     */
     modifier onlyOwner() {
-        require(
-            msg.sender == owner,
-            "Restricted: caller is not allowed to operate"
-        );
+        require(ownership.owner() == msg.sender, 'Restricted: caller is not allowed to operate');
         _;
     }
 
-    constructor(address _registry) public {
-        owner = msg.sender;
+    constructor(address _registry, address _ownership){
         registry = _registry;
+        ownership = IOwnership(_ownership);
     }
 
     /**
@@ -130,7 +118,6 @@ contract Factory {
         address _target,
         bool _approval
     ) external onlyOwner {
-        require(msg.sender == owner, "dev: only owner");
         require(templates[address(_template)].approval == true);
         reflist[address(_template)][_slot][_target] = _approval;
         emit ReferenceApproval(_template, _slot, _target, _approval);
@@ -173,7 +160,7 @@ contract Factory {
             "UNAUTHORIZED_TEMPLATE"
         );
         if (templates[address(_template)].isOpen == false) {
-            require(owner == msg.sender, "UNAUTHORIZED_SENDER");
+            require(ownership.owner() == msg.sender, "UNAUTHORIZED_SENDER");
         }
         if (_references.length > 0) {
             for (uint256 i = 0; i < _references.length; i++) {
@@ -250,40 +237,5 @@ contract Factory {
             // create the actual delegate contract reference and return its address
             result := create(0, clone, 0x37)
         }
-    }
-
-    //----- ownership -----//
-    /**
-     * @notice commit new owner address.
-     * actutal change occurs after ADMIN_ACTIONS_DELAY passed.
-     * @param _owner new owner address
-     */
-    function commitTransferOwnership(address _owner) external onlyOwner {
-        require(transfer_ownership_deadline == 0, "dev: active transfer");
-        require(_owner != address(0), "dev: address zero");
-
-        uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
-        transfer_ownership_deadline = _deadline;
-        future_owner = _owner;
-
-        emit CommitNewAdmin(_deadline, _owner);
-    }
-
-    /**
-     * @notice apply transfer of ownership.
-     */
-    function applyTransferOwnership() external onlyOwner {
-        require(
-            block.timestamp >= transfer_ownership_deadline,
-            "dev: insufficient time"
-        );
-        require(transfer_ownership_deadline != 0, "dev: no active transfer");
-
-        transfer_ownership_deadline = 0;
-        address _owner = future_owner;
-
-        owner = _owner;
-
-        emit NewAdmin(owner);
     }
 }

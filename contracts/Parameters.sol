@@ -1,3 +1,5 @@
+pragma solidity 0.8.7;
+
 /**
  * @title Parameters
  * @author @InsureDAO
@@ -5,21 +7,16 @@
  * SPDX-License-Identifier: GPL-3.0
  */
 
-pragma solidity 0.8.7;
-pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-
+import "./interfaces/IOwnership.sol";
+import "./interfaces/IParameters.sol";
 import "./interfaces/IPremiumModel.sol";
 import "./interfaces/IFeeModel.sol";
 
-contract Parameters {
-    using SafeMath for uint256;
-    using Address for address;
+import "hardhat/console.sol";
 
-    event CommitNewAdmin(uint256 deadline, address future_admin);
-    event NewAdmin(address admin);
+contract Parameters is IParameters{
+
     event MinterSet(address minter);
     event VaultSet(address indexed token, address vault);
     event FeeSet(address indexed target, address model);
@@ -33,11 +30,8 @@ contract Parameters {
     event ConditionSet(bytes32 indexed ref, bytes32 condition);
     event MaxListSet(address target, uint256 max);
 
-    address public owner;
-    address public future_owner;
-    uint256 public transfer_ownership_deadline;
-    uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
     address public minter;
+    address public ownership;
 
     mapping(address => address) private _vaults; //address of the vault contract for each token
     mapping(address => address) private _fee; //address for each fee model contract
@@ -51,65 +45,24 @@ contract Parameters {
     mapping(address => uint256) private _withdawable; //a certain period a user can withdraw after lock up ends
     mapping(bytes32 => bytes32) private _conditions; //condition mapping for future use cases
 
-    constructor(address _target) public {
-        owner = _target;
+    constructor(address _ownership) {
+        ownership = _ownership;
     }
 
     /**
      * @notice Throws if called by any account other than the owner.
      */
     modifier onlyOwner() {
-        require(isOwner(), "Restricted: caller is not allowed to operate");
+        require(IOwnership(ownership).owner() == msg.sender, 'Restricted: caller is not allowed to operate');
         _;
     }
 
-    /**
-     * @notice Get the owner address
-     * @return true if the caller is owner
-     */
-    function isOwner() public view returns (bool) {
-        return msg.sender == owner;
-    }
-
-    /**
-     * @notice commit new owner address.
-     * actutal change occurs after ADMIN_ACTIONS_DELAY passed.
-     * @param _owner new owner address
-     */
-    function commitTransferOwnership(address _owner) external onlyOwner {
-        require(transfer_ownership_deadline == 0, "dev: active transfer");
-        require(_owner != address(0), "dev: address zero");
-
-        uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
-        transfer_ownership_deadline = _deadline;
-        future_owner = _owner;
-
-        emit CommitNewAdmin(_deadline, _owner);
-    }
-
-    /**
-     * @notice apply transfer of ownership.
-     */
-    function applyTransferOwnership() external onlyOwner {
-        require(
-            block.timestamp >= transfer_ownership_deadline,
-            "dev: insufficient time"
-        );
-        require(transfer_ownership_deadline != 0, "dev: no active transfer");
-
-        transfer_ownership_deadline = 0;
-        address _owner = future_owner;
-
-        owner = _owner;
-
-        emit NewAdmin(owner);
-    }
 
     /**
      * @notice set the minter address
      * @param _minter minter address
      */
-    function setMinter(address _minter) external onlyOwner {
+    function setMinter(address _minter) external override onlyOwner {
         require(minter == address(0), "dev: already initialized");
         minter = _minter;
         emit MinterSet(_minter);
@@ -120,7 +73,7 @@ contract Parameters {
      * @param _token address of token
      * @param _vault vault for token
      */
-    function setVault(address _token, address _vault) external onlyOwner {
+    function setVault(address _token, address _vault) external override onlyOwner {
         require(_vaults[_token] == address(0), "dev: already initialized");
         require(_vault != address(0), "dev: zero address");
         _vaults[_token] = _vault;
@@ -132,7 +85,7 @@ contract Parameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setLockup(address _address, uint256 _target) external onlyOwner {
+    function setLockup(address _address, uint256 _target) external override onlyOwner {
         _lockup[_address] = _target;
         emit LockupSet(_address, _target);
     }
@@ -142,7 +95,7 @@ contract Parameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setGrace(address _address, uint256 _target) external onlyOwner {
+    function setGrace(address _address, uint256 _target) external override onlyOwner {
         _grace[_address] = _target;
         emit GraceSet(_address, _target);
     }
@@ -152,7 +105,7 @@ contract Parameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setMindate(address _address, uint256 _target) external onlyOwner {
+    function setMindate(address _address, uint256 _target) external override onlyOwner {
         _min[_address] = _target;
         emit MinDateSet(_address, _target);
     }
@@ -163,7 +116,7 @@ contract Parameters {
      * @param _target parameter
      */
     function setCDSPremium(address _address, uint256 _target)
-        external
+        external override
         onlyOwner
     {
         _CDSPremium[_address] = _target;
@@ -176,7 +129,7 @@ contract Parameters {
      * @param _target parameter
      */
     function setDepositFee(address _address, uint256 _target)
-        external
+        external override
         onlyOwner
     {
         _depositFee[_address] = _target;
@@ -189,7 +142,7 @@ contract Parameters {
      * @param _target parameter
      */
     function setWithdrawable(address _address, uint256 _target)
-        external
+        external override
         onlyOwner
     {
         _withdawable[_address] = _target;
@@ -202,7 +155,7 @@ contract Parameters {
      * @param _target premium model contract address
      */
     function setPremiumModel(address _address, address _target)
-        external
+        external override
         onlyOwner
     {
         require(_target != address(0), "dev: zero address");
@@ -215,7 +168,7 @@ contract Parameters {
      * @param _address address to set the fee model
      * @param _target fee model contract address
      */
-    function setFeeModel(address _address, address _target) external onlyOwner {
+    function setFeeModel(address _address, address _target) external override onlyOwner {
         require(_target != address(0), "dev: zero address");
         _fee[_address] = _target;
         emit FeeSet(_address, _target);
@@ -226,7 +179,7 @@ contract Parameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setMaxList(address _address, uint256 _target) external onlyOwner {
+    function setMaxList(address _address, uint256 _target) external override onlyOwner {
         _maxList[_address] = _target;
         emit MaxListSet(_address, _target);
     }
@@ -237,7 +190,7 @@ contract Parameters {
      * @param _target parameter
      */
     function setCondition(bytes32 _reference, bytes32 _target)
-        external
+        external override
         onlyOwner
     {
         _conditions[_reference] = _target;
@@ -248,15 +201,15 @@ contract Parameters {
      * @notice Get the address of the owner
      * @return owner's address
      */
-    function getOwner() public view returns (address) {
-        return owner;
+    function getOwner() public override view returns (address) {
+        return IOwnership(ownership).owner();
     }
 
     /**
      * @notice Get the minter address
      * @return minter's address
      */
-    function getMinter() public view returns (address) {
+    function getMinter() public override view returns (address) {
         return minter;
     }
 
@@ -265,7 +218,7 @@ contract Parameters {
      * @param _token token address
      * @return vault address
      */
-    function getVault(address _token) external view returns (address) {
+    function getVault(address _token) external override view returns (address) {
         return _vaults[_token];
     }
 
@@ -284,7 +237,7 @@ contract Parameters {
         uint256 _totalLiquidity,
         uint256 _lockedAmount,
         address _target
-    ) external view returns (uint256) {
+    ) external override view returns (uint256) {
         if (_premium[_target] == address(0)) {
             return
                 IPremiumModel(_premium[address(0)]).getPremium(
@@ -311,7 +264,7 @@ contract Parameters {
      * @return fee amount
      */
     function getFee(uint256 _amount, address _target)
-        external
+        external override
         view
         returns (uint256)
     {
@@ -329,14 +282,14 @@ contract Parameters {
      * @return fee amount
      */
     function getDepositFee(uint256 _amount, address _target)
-        external
+        external override
         view
         returns (uint256)
     {
         if (_depositFee[_target] == 0) {
-            return _amount.mul(_depositFee[address(0)]).div(100000);
+            return _amount * _depositFee[address(0)] / 100000;
         } else {
-            return _amount.mul(_depositFee[_target]).div(100000);
+            return _amount * _depositFee[_target] / 100000;
         }
     }
 
@@ -347,14 +300,14 @@ contract Parameters {
      * @return premium amount
      */
     function getCDSPremium(uint256 _amount, address _target)
-        external
+        external override
         view
         returns (uint256)
     {
         if (_CDSPremium[_target] == 0) {
-            return _amount.mul(_CDSPremium[address(0)]).div(100000);
+            return _amount * _CDSPremium[address(0)] / 100000;
         } else {
-            return _amount.mul(_CDSPremium[_target]).div(100000);
+            return _amount * _CDSPremium[_target] / 100000;
         }
     }
 
@@ -363,7 +316,7 @@ contract Parameters {
      * @param _target target contract's address
      * @return lock up period
      */
-    function getLockup(address _target) external view returns (uint256) {
+    function getLockup(address _target) external override view returns (uint256) {
         if (_lockup[_target] == 0) {
             return _lockup[address(0)];
         } else {
@@ -376,7 +329,7 @@ contract Parameters {
      * @param _target target contract's address
      * @return withdrawable period
      */
-    function getWithdrawable(address _target) external view returns (uint256) {
+    function getWithdrawable(address _target) external override view returns (uint256) {
         if (_withdawable[_target] == 0) {
             return _withdawable[address(0)];
         } else {
@@ -389,7 +342,7 @@ contract Parameters {
      * @param _target target contract's address
      * @return grace period
      */
-    function getGrace(address _target) external view returns (uint256) {
+    function getGrace(address _target) external override view returns (uint256) {
         if (_grace[_target] == 0) {
             return _grace[address(0)];
         } else {
@@ -402,7 +355,7 @@ contract Parameters {
      * @param _target target contract's address
      * @return minimum lenght of policy
      */
-    function getMin(address _target) external view returns (uint256) {
+    function getMin(address _target) external override view returns (uint256) {
         if (_min[_target] == 0) {
             return _min[address(0)];
         } else {
@@ -415,7 +368,7 @@ contract Parameters {
      * @param _target target contract's address
      * @return maximum number of pools
      */
-    function getMaxList(address _target) external view returns (uint256) {
+    function getMaxList(address _target) external override view returns (uint256) {
         if (_maxList[_target] == 0) {
             return _maxList[address(0)];
         } else {
@@ -428,7 +381,7 @@ contract Parameters {
      * @param _reference reference address
      * @return condition parameter
      */
-    function getCondition(bytes32 _reference) external view returns (bytes32) {
+    function getCondition(bytes32 _reference) external override view returns (bytes32) {
         return _conditions[_reference];
     }
 }

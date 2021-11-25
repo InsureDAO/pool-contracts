@@ -33,5 +33,5 @@ abstract contract IPoolTemplate {
         virtual
         returns (uint256);
 
-    function paused() public view virtual returns (bool);
+    function paused() external view virtual returns (bool);
 }

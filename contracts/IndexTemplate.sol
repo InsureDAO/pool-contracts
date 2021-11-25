@@ -4,10 +4,12 @@ pragma solidity 0.8.7;
  * @title InsureDAO market template contract
  * SPDX-License-Identifier: GPL-3.0
  */
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
+import "./InsureDAOERC20.sol";
+import "./interfaces/IIndexTemplate.sol";
+import "./interfaces/IUniversalMarket.sol";
 
 import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
@@ -26,14 +28,11 @@ import "./interfaces/ICDS.sol";
  *
  */
 
-contract IndexTemplate is IERC20 {
-    using Address for address;
-    using SafeMath for uint256;
+contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
     /**
      * EVENTS
      */
-
     event Deposit(address indexed depositor, uint256 amount, uint256 mint);
     event WithdrawRequested(
         address indexed withdrawer,
@@ -53,24 +52,16 @@ contract IndexTemplate is IERC20 {
         uint256 allocPoint
     );
 
+
     /**
      * Storage
      */
-
     /// @notice Market setting
     bool public initialized;
     bool public paused;
     bool public locked;
     uint256 public pendingEnd;
     string public metadata;
-
-    /// @notice EIP-20 token variables
-    string public name;
-    string public symbol;
-    uint8 public decimals;
-    mapping(address => uint256) private _balances;
-    mapping(address => mapping(address => uint256)) private _allowances;
-    uint256 private _totalSupply;
 
     /// @notice External contract call addresses
     IParameters public parameters;
@@ -131,7 +122,7 @@ contract IndexTemplate is IERC20 {
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external {
+    ) external override {
         require(
             initialized == false &&
                 bytes(_metaData).length > 0 &&
@@ -143,9 +134,11 @@ contract IndexTemplate is IERC20 {
 
         initialized = true;
 
-        name = "InsureDAO-Index";
-        symbol = "iIndex";
-        decimals = IERC20Metadata(_references[0]).decimals();
+        string memory name = "InsureDAO-Index";
+        string memory symbol = "iIndex";
+        uint8 decimals = IERC20Metadata(_references[0]).decimals();
+
+        initializeToken(name, symbol, decimals);
 
         parameters = IParameters(_references[2]);
         vault = IVault(parameters.getVault(_references[0]));
@@ -169,7 +162,7 @@ contract IndexTemplate is IERC20 {
 
         uint256 _cds = parameters.getCDSPremium(_amount, msg.sender);
         uint256 _fee = parameters.getDepositFee(_amount, msg.sender);
-        uint256 _add = _amount.sub(_cds).sub(_fee);
+        uint256 _add = _amount - _cds - _fee;
         uint256 _supply = totalSupply();
         uint256 _totalLiquidity = totalLiquidity();
         vault.addValue(_add, msg.sender, address(this));
@@ -181,9 +174,9 @@ contract IndexTemplate is IERC20 {
         vault.addValue(_fee, msg.sender, parameters.getOwner());
 
         if (_supply > 0 && _totalLiquidity > 0) {
-            _mintAmount = _add.mul(_supply).div(_totalLiquidity);
+            _mintAmount = _add * _supply / _totalLiquidity;
         } else if (_supply > 0 && _totalLiquidity == 0) {
-            _mintAmount = _add.div(_supply);
+            _mintAmount = _add / _supply;
         } else {
             _mintAmount = _add;
         }
@@ -213,20 +206,17 @@ contract IndexTemplate is IERC20 {
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
         //Calculate underlying value
-        _retVal = totalLiquidity().mul(_amount).div(totalSupply());
+        _retVal = totalLiquidity() * _amount / totalSupply();
 
         require(locked == false, "ERROR: WITHDRAWAL_PENDING");
         require(
-            withdrawalReq[msg.sender].timestamp.add(
-                parameters.getLockup(msg.sender)
-            ) < block.timestamp,
+            withdrawalReq[msg.sender].timestamp + parameters.getLockup(msg.sender) < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) > block.timestamp,
+            withdrawalReq[msg.sender].timestamp
+                + parameters.getLockup(msg.sender)
+                + parameters.getWithdrawable(msg.sender) > block.timestamp,
             "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
@@ -240,14 +230,12 @@ contract IndexTemplate is IERC20 {
         );
 
         //reduce requested amount
-        withdrawalReq[msg.sender].amount = withdrawalReq[msg.sender].amount.sub(
-            _amount
-        );
+        withdrawalReq[msg.sender].amount = withdrawalReq[msg.sender].amount - _amount;
         //Burn iToken
         _burn(msg.sender, _amount);
 
         //Check current leverage rate and get updated target total credit allocation
-        uint256 _liquidityAfter = totalLiquidity().sub(_retVal);
+        uint256 _liquidityAfter = totalLiquidity() - _retVal;
         _adjustAlloc(_liquidityAfter);
         //Withdraw liquidity
         vault.withdrawValue(_retVal, msg.sender);
@@ -282,11 +270,11 @@ contract IndexTemplate is IERC20 {
                 _retVal = totalLiquidity();
             } else {
                 _retVal = (UTILIZATION_RATE_LENGTH_1E8 - _lowest)
-                    .mul(totalLiquidity())
-                    .mul(LEVERAGE_DIVISOR_1E3)
-                    .div(UTILIZATION_RATE_LENGTH_1E8)
-                    .div(leverage())
-                    .add(_accruedPremiums());
+                    * totalLiquidity()
+                    * LEVERAGE_DIVISOR_1E3
+                    / UTILIZATION_RATE_LENGTH_1E8
+                    / leverage()
+                    + _accruedPremiums();
             }
         } else {
             _retVal = 0;
@@ -318,9 +306,7 @@ contract IndexTemplate is IERC20 {
      */
     function _adjustAlloc(uint256 _liquidity) internal {
         //Check current leverage rate and get target total credit allocation
-        uint256 _targetCredit = targetLev.mul(_liquidity).div(
-            LEVERAGE_DIVISOR_1E3
-        );
+        uint256 _targetCredit = targetLev * _liquidity / LEVERAGE_DIVISOR_1E3;
         address[] memory _poolList = new address[](poolList.length);
         uint256 _allocatable = _targetCredit;
         uint256 _allocatablePoints = totalAllocPoint;
@@ -328,9 +314,7 @@ contract IndexTemplate is IERC20 {
         for (uint256 i = 0; i < poolList.length; i++) {
             if (poolList[i] != address(0)) {
                 //Target credit allocation for a pool
-                uint256 _target = _targetCredit
-                    .mul(allocPoints[poolList[i]])
-                    .div(totalAllocPoint);
+                uint256 _target = _targetCredit * allocPoints[poolList[i]] / totalAllocPoint;
                 //get how much has been allocated for a pool
                 uint256 _current = IPoolTemplate(poolList[i]).allocatedCredit(
                     address(this)
@@ -342,13 +326,13 @@ contract IndexTemplate is IERC20 {
                 //Otherwise, skip.
                 if (
                     (_current > _target &&
-                        _current.sub(_target) > _available) ||
+                        _current - _target > _available) ||
                     IPoolTemplate(poolList[i]).paused() == true
                 ) {
                     IPoolTemplate(poolList[i]).withdrawCredit(_available);
-                    totalAllocatedCredit = totalAllocatedCredit.sub(_available);
+                    totalAllocatedCredit = totalAllocatedCredit - _available;
                     _poolList[i] = address(0);
-                    _allocatable -= _current.sub(_available);
+                    _allocatable -= _current - _available;
                     _allocatablePoints -= allocPoints[poolList[i]];
                 } else {
                     _poolList[i] = poolList[i];
@@ -359,9 +343,7 @@ contract IndexTemplate is IERC20 {
         for (uint256 i = 0; i < _poolList.length; i++) {
             if (_poolList[i] != address(0)) {
                 //Target credit allocation for a pool
-                uint256 _target = _allocatable
-                    .mul(allocPoints[poolList[i]])
-                    .div(_allocatablePoints);
+                uint256 _target = _allocatable * allocPoints[poolList[i]] / _allocatablePoints;
                 //get how much has been allocated for a pool
                 uint256 _current = IPoolTemplate(poolList[i]).allocatedCredit(
                     address(this)
@@ -372,15 +354,15 @@ contract IndexTemplate is IERC20 {
                 //Withdraw or Deposit credit
                 if (_current > _target && _available != 0) {
                     //if allocated credit is higher than the target, try to decrease
-                    uint256 _decrease = _current.sub(_target);
+                    uint256 _decrease = _current - _target;
                     IPoolTemplate(poolList[i]).withdrawCredit(_decrease);
-                    totalAllocatedCredit = totalAllocatedCredit.sub(_decrease);
+                    totalAllocatedCredit = totalAllocatedCredit - _decrease;
                 }
                 if (_current < _target) {
                     //Sometimes we need to allocate more
-                    uint256 _allocate = _target.sub(_current);
+                    uint256 _allocate = _target - _current;
                     IPoolTemplate(poolList[i]).allocateCredit(_allocate);
-                    totalAllocatedCredit = totalAllocatedCredit.add(_allocate);
+                    totalAllocatedCredit = totalAllocatedCredit + _allocate;
                 }
                 if (_current == _target) {
                     IPoolTemplate(poolList[i]).allocateCredit(0);
@@ -400,7 +382,7 @@ contract IndexTemplate is IERC20 {
      * 1) Compensate underlying pools from the liquidity of this pool
      * 2) If this pool is unable to cover a compensation, can get compensated from the CDS pool
      */
-    function compensate(uint256 _amount) external {
+    function compensate(uint256 _amount) external override {
         require(
             allocPoints[msg.sender] > 0,
             "ERROR_COMPENSATE_UNAUTHORIZED_CALLER"
@@ -416,7 +398,7 @@ contract IndexTemplate is IERC20 {
             }
             if (totalLiquidity() < _amount) {
                 //Insolvency case
-                uint256 _shortage = _amount.sub(totalLiquidity());
+                uint256 _shortage = _amount - totalLiquidity();
                 ICDS(registry.getCDS(address(this))).compensate(_shortage);
             }
 
@@ -433,7 +415,7 @@ contract IndexTemplate is IERC20 {
     /**
      * @notice Resume market
      */
-    function resume() external {
+    function resume() external override {
         require(pendingEnd <= block.timestamp);
         locked = false;
         emit Resumed();
@@ -443,181 +425,14 @@ contract IndexTemplate is IERC20 {
      * @notice lock market withdrawal
      * @param _pending pending span length in unix timestamp
      */
-    function lock(uint256 _pending) external {
+    function lock(uint256 _pending) external override {
         require(allocPoints[msg.sender] > 0);
-        uint256 _tempEnd = block.timestamp.add(_pending);
+        uint256 _tempEnd = block.timestamp + _pending;
         if (pendingEnd < _tempEnd) {
-            pendingEnd = block.timestamp.add(_pending);
+            pendingEnd = block.timestamp + _pending;
         }
         locked = true;
         emit Locked();
-    }
-
-    /**
-     * iToken functions
-     */
-
-    /**
-     * @notice See `IERC20.totalSupply`.
-     */
-    function totalSupply() public view override returns (uint256) {
-        return _totalSupply;
-    }
-
-    /**
-     * @notice See `IERC20.balanceOf`.
-     */
-    function balanceOf(address account) public view override returns (uint256) {
-        return _balances[account];
-    }
-
-    /**
-     * @notice See `IERC20.transfer`.
-     */
-    function transfer(address recipient, uint256 amount)
-        public
-        override
-        returns (bool)
-    {
-        _transfer(msg.sender, recipient, amount);
-        return true;
-    }
-
-    /**
-     * @notice See `IERC20.allowance`.
-     */
-    function allowance(address owner, address spender)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        return _allowances[owner][spender];
-    }
-
-    /**
-     * @notice See `IERC20.approve`.
-     */
-    function approve(address spender, uint256 value)
-        public
-        override
-        returns (bool)
-    {
-        _approve(msg.sender, spender, value);
-        return true;
-    }
-
-    /**
-     * @notice See `IERC20.transferFrom`.
-     */
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) public override returns (bool) {
-        _transfer(sender, recipient, amount);
-        _approve(
-            sender,
-            msg.sender,
-            _allowances[sender][msg.sender].sub(amount)
-        );
-        return true;
-    }
-
-    /**
-     * @notice Atomically increases the allowance granted to `spender` by the caller.
-     */
-    function increaseAllowance(address spender, uint256 addedValue)
-        public
-        returns (bool)
-    {
-        _approve(
-            msg.sender,
-            spender,
-            _allowances[msg.sender][spender].add(addedValue)
-        );
-        return true;
-    }
-
-    /**
-     * @notice Atomically decreases the allowance granted to `spender` by the caller.
-     */
-    function decreaseAllowance(address spender, uint256 subtractedValue)
-        public
-        returns (bool)
-    {
-        require(
-            _allowances[msg.sender][spender] >= subtractedValue,
-            "ERC20: decreased allowance below zero"
-        );
-        _approve(
-            msg.sender,
-            spender,
-            _allowances[msg.sender][spender].sub(subtractedValue)
-        );
-        return true;
-    }
-
-    /**
-     * @notice Moves tokens `amount` from `sender` to `recipient`.
-     */
-    function _transfer(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) internal {
-        require(
-            sender != address(0) && recipient != address(0),
-            "ERC20: TRANSFER_BAD_CONDITIONS"
-        );
-        require(
-            _balances[sender] >= amount,
-            "ERC20: transfer amount exceeds balance"
-        );
-        _beforeTokenTransfer(sender, amount);
-
-        _balances[sender] = _balances[sender].sub(amount);
-        _balances[recipient] = _balances[recipient].add(amount);
-        emit Transfer(sender, recipient, amount);
-    }
-
-    /**
-     * @notice Creates `amount` tokens and assigns them to `account`, increasing
-     */
-    function _mint(address account, uint256 amount) internal {
-        require(account != address(0), "ERC20: mint to the zero address");
-
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
-        emit Transfer(address(0), account, amount);
-    }
-
-    /**
-     * @notice Destroys `amount` tokens from `account`, reducing the
-     */
-    function _burn(address account, uint256 value) internal {
-        require(account != address(0), "ERC20: burn from the zero address");
-
-        _totalSupply = _totalSupply.sub(value);
-        _balances[account] = _balances[account].sub(value);
-        emit Transfer(account, address(0), value);
-    }
-
-    /**
-     * @notice Sets `amount` as the allowance of `spender` over the `owner`s tokens.
-     */
-    function _approve(
-        address _owner,
-        address _spender,
-        uint256 _value
-    ) internal {
-        require(
-            _owner != address(0) && _spender != address(0),
-            "ERC20: APPROVE_BAD_CONDITIONS"
-        );
-
-        _allowances[_owner][_spender] = _value;
-        emit Approval(_owner, _spender, _value);
     }
 
     /**
@@ -631,10 +446,7 @@ contract IndexTemplate is IERC20 {
     function leverage() public view returns (uint256 _rate) {
         //check current leverage rate
         if (totalLiquidity() > 0) {
-            return
-                totalAllocatedCredit.mul(LEVERAGE_DIVISOR_1E3).div(
-                    totalLiquidity()
-                );
+            return totalAllocatedCredit * LEVERAGE_DIVISOR_1E3 / totalLiquidity();
         } else {
             return 0;
         }
@@ -645,7 +457,7 @@ contract IndexTemplate is IERC20 {
      * @return _balance total liquidity of the pool
      */
     function totalLiquidity() public view returns (uint256 _balance) {
-        return vault.underlyingValue(address(this)).add(_accruedPremiums());
+        return vault.underlyingValue(address(this)) + _accruedPremiums();
     }
 
     /**
@@ -653,8 +465,8 @@ contract IndexTemplate is IERC20 {
      * @return The value against the underlying token balance.
      */
     function rate() external view returns (uint256) {
-        if (_totalSupply > 0) {
-            return totalLiquidity().mul(1e18).div(_totalSupply);
+        if (totalSupply() > 0) {
+            return totalLiquidity() * 1e18 / totalSupply();
         } else {
             return 0;
         }
@@ -670,7 +482,7 @@ contract IndexTemplate is IERC20 {
         if (_balance == 0) {
             return 0;
         } else {
-            return _balance.mul(totalLiquidity()).div(totalSupply());
+            return _balance * totalLiquidity() / totalSupply();
         }
     }
 
@@ -690,7 +502,7 @@ contract IndexTemplate is IERC20 {
      * @notice Used for changing settlementFeeRecipient
      * @param _state true to set paused and vice versa
      */
-    function setPaused(bool _state) external onlyOwner {
+    function setPaused(bool _state) external override onlyOwner {
         if (paused != _state) {
             paused = _state;
             emit Paused(_state);
@@ -701,7 +513,7 @@ contract IndexTemplate is IERC20 {
      * @notice Change metadata string
      * @param _metadata new metadata string
      */
-    function changeMetadata(string calldata _metadata) external onlyOwner {
+    function changeMetadata(string calldata _metadata) external override onlyOwner {
         metadata = _metadata;
         emit MetadataChanged(_metadata);
     }
@@ -745,9 +557,7 @@ contract IndexTemplate is IERC20 {
             poolList[_index] = _pool;
         }
         if (totalAllocPoint > 0) {
-            totalAllocPoint = totalAllocPoint.sub(allocPoints[_pool]).add(
-                _allocPoint
-            );
+            totalAllocPoint = totalAllocPoint - allocPoints[_pool] + _allocPoint;
         } else {
             totalAllocPoint = _allocPoint;
         }
@@ -762,14 +572,23 @@ contract IndexTemplate is IERC20 {
 
     /**
      * @notice Internal function to offset withdraw request and latest balance
-     * @param _from the account who send
-     * @param _amount the amount of token to offset
+     * @param from the account who send
+     * @param to a
+     * @param amount the amount of token to offset
      */
-    function _beforeTokenTransfer(address _from, uint256 _amount) internal {
-        //withdraw request operation
-        uint256 _after = balanceOf(_from).sub(_amount);
-        if (_after < withdrawalReq[_from].amount) {
-            withdrawalReq[_from].amount = _after;
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override {
+        super._beforeTokenTransfer(from, to, amount);
+
+        if(from != address(0)){
+            uint256 _after = balanceOf(from) - amount;
+            if (_after < withdrawalReq[from].amount) {
+                withdrawalReq[from].amount = _after;
+            }
+
         }
     }
 
@@ -780,9 +599,7 @@ contract IndexTemplate is IERC20 {
     function _accruedPremiums() internal view returns (uint256 _totalValue) {
         for (uint256 i = 0; i < poolList.length; i++) {
             if (allocPoints[poolList[i]] > 0) {
-                _totalValue = _totalValue.add(
-                    IPoolTemplate(poolList[i]).pendingPremium(address(this))
-                );
+                _totalValue = _totalValue + IPoolTemplate(poolList[i]).pendingPremium(address(this));
             }
         }
     }

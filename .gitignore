@@ -19,3 +19,4 @@ cache
 hooks
 description
 ./Flatten
+coverage/

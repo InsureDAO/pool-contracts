@@ -23,7 +23,7 @@ contract PremiumModel {
         _;
     }
 
-    constructor() public {
+    constructor() {
         owner = msg.sender;
     }
 
