@@ -609,7 +609,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 _span,
                 totalLiquidity(),
                 lockedAmount,
-                msg.sender
+                address(this)
             );
     }
 
