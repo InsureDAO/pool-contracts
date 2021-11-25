@@ -66,7 +66,7 @@ describe("CDS", function () {
     const Vault = await ethers.getContractFactory("Vault");
     const Registry = await ethers.getContractFactory("Registry");
     const FeeModel = await ethers.getContractFactory("FeeModel");
-    const PremiumModel = await ethers.getContractFactory("PremiumModel");
+    const PremiumModel = await ethers.getContractFactory("TestPremiumModel");
     const Parameters = await ethers.getContractFactory("Parameters");
     const Contorller = await ethers.getContractFactory("ControllerMock");
     const Minter = await ethers.getContractFactory("MinterMock");

@@ -138,6 +138,7 @@ describe("Pool", function () {
       true
     );
 
+    //set default parameters
     await fee.setFee("10000");
     await parameters.setGrace(ZERO_ADDRESS, "259200");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
@@ -339,7 +340,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 10,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -366,7 +367,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -381,28 +382,28 @@ describe("Pool", function () {
       await verifyVaultStatusOf({
         vault: vault,
         target: market.address,
-        attributions: 10090,
-        underlyingValue: 10090
+        attributions: 10900,
+        underlyingValue: 10900
       })
       await verifyVaultStatusOf({
         vault: vault,
         target: creator.address,
-        attributions: 10,
-        underlyingValue: 10
+        attributions: 100,
+        underlyingValue: 100
       })
 
       await verifyVaultStatus({
         vault: vault,
-        valueAll: 10100,
-        totalAttributions: 10100,
+        valueAll: 11000,
+        totalAttributions: 11000,
       })
 
       await verifyPoolsStatus({
         pools: [
           {
             pool: market,
-            totalLiquidity: 10090,
-            availableBalance: 10090
+            totalLiquidity: 10900,
+            availableBalance: 10900
           }
         ]
       })
@@ -450,14 +451,14 @@ describe("Pool", function () {
       await verifyBalances({
         token: dai,
         userBalances: {
-          [alice.address]: 100090,
+          [alice.address]: 100900,
         }
       })
 
       await verifyVaultStatus({
         vault: vault,
-        valueAll: 10,
-        totalAttributions: 10,
+        valueAll: 100,
+        totalAttributions: 100,
       })
     });
 
@@ -493,7 +494,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 365,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -503,42 +504,42 @@ describe("Pool", function () {
       await verifyBalances({
         token: dai,
         userBalances: {
-          [bob.address]: 99900,
+          [bob.address]: 99000,
         }
       })
 
       await verifyValueOfUnderlying({
         template: market,
         valueOfUnderlyingOf: alice.address,
-        valueOfUnderlying: 10090
+        valueOfUnderlying: 10900
       })
 
       await verifyPoolsStatus({
         pools: [
           {
             pool: market,
-            totalLiquidity: 10090,
-            availableBalance: 91
+            totalLiquidity: 10900,
+            availableBalance: 900
           }
         ]
       })
 
       await verifyRate({
         template: market,
-        rate: "1009000000000000000"
+        rate: "1090000000000000000"
       })
 
       await verifyVaultStatusOf({
         vault: vault,
         target: creator.address,
-        attributions: 10,
-        underlyingValue: 10
+        attributions: 100,
+        underlyingValue: 100
       })
 
       await verifyVaultStatus({
         vault: vault,
-        valueAll: 10100,
-        totalAttributions: 10100,
+        valueAll: 11000,
+        totalAttributions: 11000,
       })
 
 
@@ -553,7 +554,7 @@ describe("Pool", function () {
       await verifyBalances({
         token: market,
         userBalances: {
-          [chad.address]: 9910,
+          [chad.address]: 9174,
         }
       })
 
@@ -568,8 +569,8 @@ describe("Pool", function () {
         pools: [
           {
             pool: market,
-            totalLiquidity: 20090,
-            availableBalance: 10091
+            totalLiquidity: 20900,
+            availableBalance: 10900
           }
         ]
       })
@@ -579,7 +580,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 365,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -588,28 +589,28 @@ describe("Pool", function () {
       await verifyBalances({
         token: dai,
         userBalances: {
-          [bob.address]: 99800,
+          [bob.address]: 98000,
         }
       })
 
       await verifyValueOfUnderlying({
         template: market,
         valueOfUnderlyingOf: alice.address,
-        valueOfUnderlying: 10135
+        valueOfUnderlying: 11369
       })
 
       await verifyValueOfUnderlying({
         template: market,
         valueOfUnderlyingOf: chad.address,
-        valueOfUnderlying: 10044
+        valueOfUnderlying: 10430
       })
 
       await verifyPoolsStatus({
         pools: [
           {
             pool: market,
-            totalLiquidity: 20180,
-            availableBalance: 182
+            totalLiquidity: 21800,
+            availableBalance: 1800
           }
         ]
       })
@@ -628,7 +629,7 @@ describe("Pool", function () {
       await verifyBalances({
         token: dai,
         userBalances: {
-          [alice.address]: 100134,
+          [alice.address]: 101368,
           [chad.address]: 90000,
         }
       })
@@ -753,7 +754,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -762,22 +763,22 @@ describe("Pool", function () {
       await verifyBalances({
         token: dai,
         userBalances: {
-          [bob.address]: 99900
+          [bob.address]: 99000
         }
       })
 
       await verifyVaultStatusOf({
         vault: vault,
         target: creator.address,
-        attributions: 10,
-        underlyingValue: 10
+        attributions: 100,
+        underlyingValue: 100
       })
 
       await verifyVaultStatusOf({
         vault: vault,
         target: market.address,
-        attributions: 10090,
-        underlyingValue: 10090
+        attributions: 10900,
+        underlyingValue: 10900
       })
 
       let incident = await now()
@@ -797,14 +798,14 @@ describe("Pool", function () {
       await verifyValueOfUnderlying({
         template: market,
         valueOfUnderlyingOf: alice.address,
-        valueOfUnderlying: 5091
+        valueOfUnderlying: 5900
       })
       await verifyPoolsStatus({
         pools: [
           {
             pool: market,
-            totalLiquidity: 5091,
-            availableBalance: 5091
+            totalLiquidity: 5900,
+            availableBalance: 5900
           }
         ]
       })
@@ -815,8 +816,8 @@ describe("Pool", function () {
       await verifyBalances({
         token: dai,
         userBalances: {
-          [alice.address]: 95091,
-          [bob.address]: 104899
+          [alice.address]: 95900,
+          [bob.address]: 104000
         }
       })
 
@@ -841,7 +842,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 1000,
         maxCost: 10000,
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -863,21 +864,21 @@ describe("Pool", function () {
         pools: [
           {
             pool: market,
-            totalLiquidity: 91,
-            availableBalance: 91
+            totalLiquidity: 9090,
+            availableBalance: 9090
           }
         ]
       })
 
-      expect(await market.valueOfUnderlying(alice.address)).to.equal("91");
+      expect(await market.valueOfUnderlying(alice.address)).to.equal("9090");
       await moveForwardPeriods(11)
       await market.resume();
       await market.connect(alice).withdraw("10000");
       await verifyBalances({
         token: dai,
         userBalances: {
-          [alice.address]: 85182,
-          [bob.address]: 114798
+          [alice.address]: 94990,
+          [bob.address]: 104900
         }
       })
     });
@@ -896,7 +897,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -914,8 +915,8 @@ describe("Pool", function () {
       let tx = await market.connect(bob).redeem("0", proof);
       let receipt = await tx.wait()
 
-      expect(receipt.events[1].args.amount).to.equal("9999"); //amount that bob has bought
-      expect(receipt.events[1].args.payout).to.equal("4999"); //payout to bob
+      expect(receipt.events[1].args.amount).to.equal("10000"); //amount that bob has bought
+      expect(receipt.events[1].args.payout).to.equal("5000"); //payout to bob
       
 
       await moveForwardPeriods(12)
@@ -929,8 +930,8 @@ describe("Pool", function () {
       await verifyBalances({
         token: dai,
         userBalances: {
-          [alice.address]: 95091,
-          [bob.address]: 104899
+          [alice.address]: 95900,
+          [bob.address]: 104000
         }
       })
     });
@@ -947,7 +948,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -970,8 +971,8 @@ describe("Pool", function () {
       await verifyBalances({
         token: dai,
         userBalances: {
-          [alice.address]: 95091,
-          [tom.address]: 4999
+          [alice.address]: 95900,
+          [tom.address]: 5000
         }
       })
     });
@@ -1014,7 +1015,8 @@ describe("Pool", function () {
       await verifyBalances({
         token: dai,
         userBalances: {
-          [alice.address]: 100090
+
+          [alice.address]: 100900
         }
       })
     });
@@ -1030,7 +1032,7 @@ describe("Pool", function () {
         market
           .connect(bob)
           .insure(
-            "9999",
+            "10000",
             "10000",
             86400 * 8,
             "0x4e69636b00000000000000000000000000000000000000000000000000000000"
@@ -1060,11 +1062,12 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
       })
+
       let incident = await now()
       let proof = await applyCover({
         pool: market,
@@ -1073,6 +1076,7 @@ describe("Pool", function () {
         payoutDenominator: 10000,
         incidentTimestamp: incident
       })
+
       await moveForwardPeriods(12)
 
       await market.resume();
@@ -1085,7 +1089,7 @@ describe("Pool", function () {
       await verifyBalances({
         token: dai,
         userBalances: {
-          [alice.address]: 100090
+          [alice.address]: 100900
         }
       })
     });
@@ -1104,7 +1108,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -1124,7 +1128,7 @@ describe("Pool", function () {
         market
           .connect(bob)
           .insure(
-            "9999",
+            "10000",
             "10000",
             86400 * 5,
             "0x4e69636b00000000000000000000000000000000000000000000000000000000"
@@ -1138,7 +1142,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -1149,7 +1153,7 @@ describe("Pool", function () {
         market
           .connect(bob)
           .insure(
-            "9999",
+            "10000",
             "10000",
             86400 * 8,
             "0x4e69636b00000000000000000000000000000000000000000000000000000000"
@@ -1160,7 +1164,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -1181,7 +1185,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 365,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -1191,7 +1195,7 @@ describe("Pool", function () {
         market
           .connect(bob)
           .insure(
-            "9999",
+            "10000",
             "10000",
             86400 * 400,
             "0x4e69636b00000000000000000000000000000000000000000000000000000000"
@@ -1214,7 +1218,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -1228,7 +1232,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -1268,7 +1272,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: bob,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 365,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -1277,7 +1281,7 @@ describe("Pool", function () {
       await insure({
         pool: market,
         insurer: chad,
-        amount: 9999,
+        amount: 10000,
         maxCost: 10000,
         span: 86400 * 365,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
@@ -1286,7 +1290,7 @@ describe("Pool", function () {
       expect(await market.allInsuranceCount()).to.equal("2");
       expect(await market.getInsuranceCount(bob.address)).to.equal("1");
       expect(await market.getInsuranceCount(chad.address)).to.equal("1");
-      expect(await market.utilizationRate()).to.equal("49771030");
+      expect(await market.utilizationRate()).to.equal("47846889");
     });
   });
 });

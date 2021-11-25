@@ -20,6 +20,7 @@ contract TestPremiumModel {
         uint256 _totalLiquidity,
         uint256 _lockedAmount
     ) external view returns (uint256) {
-        return 100;
+        //always return premium as rate of 10%
+        return _amount / 10;
     }
 }
