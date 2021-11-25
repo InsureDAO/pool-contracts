@@ -45,7 +45,7 @@ contract Ownership is IOwnership {
     }
 
 
-    function commit_transfer_ownership(address newOwner)external onlyOwner{
+    function commitTransferOwnership(address newOwner)external onlyOwner{
         /***
         *@notice Transfer ownership of GaugeController to `newOwner`
         *@param newOwner Address to have ownership transferred to
@@ -54,7 +54,7 @@ contract Ownership is IOwnership {
         emit CommitNewOwnership(_future_owner);
     }
 
-    function accept_transfer_ownership()external onlyFutureOwner{
+    function acceptTransferOwnership()external onlyFutureOwner{
         /***
         *@notice Accept a transfer of ownership
         */
