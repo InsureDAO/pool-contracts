@@ -139,7 +139,7 @@ describe("Pool", function () {
     );
 
     //set default parameters
-    await fee.setFee("10000");
+    await fee.setFee("10000"); //10%
     await parameters.setGrace(ZERO_ADDRESS, "259200");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
     await parameters.setMindate(ZERO_ADDRESS, "604800");
@@ -174,6 +174,72 @@ describe("Pool", function () {
       expect(parameters.address).to.exist;
       expect(vault.address).to.exist;
       expect(market.address).to.exist;
+    });
+  });
+
+  describe("Initialize", function () {
+    it("", async () => {
+    });
+  });
+
+  describe("Initialize", function () {
+    it("", async () => {
+    });
+  });
+
+  describe("deposit", function () {
+    it("", async () => {
+    });
+  });
+
+  describe("withdraw", function () {
+    it("", async () => {
+    });
+  });
+
+  describe("unlockBatch", function () {
+    it("", async () => {
+    });
+  });
+
+  describe("unlock", function () {
+    it("", async () => {
+    });
+  });
+
+  /***  Only testable with index
+  describe("allocateCredit", function () {
+    it("", async () => {
+    });
+  });
+  describe("withdrawCredit", function () {
+    it("", async () => {
+    });
+  });
+  */
+
+  describe("insure", function () {
+    it("", async () => {
+    });
+  });
+
+  describe("redeem", function () {
+    it("", async () => {
+    });
+  });
+
+  describe("transferInsurance", function () {
+    it("", async () => {
+    });
+  });
+
+  describe("applyCover", function () {
+    it("", async () => {
+    });
+  });
+
+  describe("resume", function () {
+    it("", async () => {
     });
   });
 
