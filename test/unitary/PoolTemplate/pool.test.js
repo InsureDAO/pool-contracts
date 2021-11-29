@@ -162,8 +162,7 @@ describe("Pool", function () {
 
 
     //update user info => check
-    let _mintAmount = (await tx.wait()).events[2].args["mint"].toString();
-    console.log("mint lp:", _mintAmount.toString())
+    let _mintAmount = (await tx.wait()).events[2].args["mint"].toString()
 
     u[`${depositer.address}`].balance = u[`${depositer.address}`].balance.sub(amount)
     u[`${depositer.address}`].deposited = u[`${depositer.address}`].deposited.add(amount)
@@ -214,15 +213,11 @@ describe("Pool", function () {
   }
 
   const withdraw = async ({target, withdrawer, amount}) => {
-    console.log("withdraw")
-    console.log("marketBalance", m1.marketBalance.toString())
-
+    //execute
     let tx = await target.connect(withdrawer).withdraw(amount);
 
 
     let withdrawAmount = (await tx.wait()).events[2].args["retVal"].toString()
-
-    console.log("withdrawAmount", withdrawAmount.toString())
 
     //update user info => check
     u[`${withdrawer.address}`].balance = u[`${withdrawer.address}`].balance.add(withdrawAmount)
@@ -240,12 +235,6 @@ describe("Pool", function () {
     m1.totalLP = m1.totalLP.sub(amount)
     m1.depositAmount = m1.depositAmount.sub(withdrawAmount)
     m1.marketBalance = m1.marketBalance.sub(withdrawAmount)
-
-    console.log("marketBalance", m1.marketBalance.toString())
-
-    
-    
-    
 
     if(!m1.totalLP.isZero()){
       m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP)
@@ -349,14 +338,9 @@ describe("Pool", function () {
     let insuredAmount = receipt.events[1].args['amount']
     let payoutAmount = receipt.events[1].args['payout']
 
-    console.log("payoutAmount:", payoutAmount.toString())
-
     //update global and market status => check
     u[`${redeemer.address}`].balance = u[`${redeemer.address}`].balance.add(payoutAmount)
     expect(await dai.balanceOf(redeemer.address)).to.equal(u[`${redeemer.address}`].balance)
-
-    console.log(1)
-
 
 
     //update global and market status => check
@@ -1536,7 +1520,7 @@ describe("Pool", function () {
       })
     });
 
-    it.skip("revert redemption when redemption period is over", async function () {
+    it("revert redemption when redemption period is over", async function () {
       await approveDepositAndWithdrawRequest({
         token: dai,
         target: market,
