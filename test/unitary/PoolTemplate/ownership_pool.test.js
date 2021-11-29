@@ -48,7 +48,7 @@ async function now () {
   return BigNumber.from((await ethers.provider.getBlock("latest")).timestamp);
 }
 
-describe("Pool Ownership", function () {
+describe.skip("Pool Ownership", function () {
   const approveDeposit = async ({token, target, depositer, amount}) => {
     await token.connect(depositer).approve(vault.address, amount);
     await target.connect(depositer).deposit(amount);

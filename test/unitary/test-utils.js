@@ -25,7 +25,7 @@ const verifyAllowance = async ({ token, owner, spender, expectedAllowance }) => 
 
 //univarsal
 const verifyValueOfUnderlying = async({template, valueOfUnderlyingOf, valueOfUnderlying}) => {
-    expect(await template.valueOfUnderlying(valueOfUnderlyingOf)).to.equal(valueOfUnderlying);
+    expect(await template.valueOfUnderlying(valueOfUnderlyingOf)).to.closeTo(valueOfUnderlying, 1); //rounding error
 }
 
 const verifyRate = async({template, rate}) => {
@@ -35,33 +35,42 @@ const verifyRate = async({template, rate}) => {
 
 
 //pool
-const _verifyPoolStatus = async({pool, totalLiquidity, availableBalance}) => {
+const _verifyPoolStatus = async({pool, totalLP, totalLiquidity, availableBalance, rate, utilizationRate, allInsuranceCount}) => {
+    expect(await pool.totalSupply()).to.equal(totalLP);
     expect(await pool.totalLiquidity()).to.equal(totalLiquidity);
     expect(await pool.availableBalance()).to.equal(availableBalance);
+    expect(await pool.rate()).to.equal(rate);
+    expect(await pool.utilizationRate()).to.equal(utilizationRate);
+    expect(await pool.allInsuranceCount()).to.equal(allInsuranceCount);
 }
 
 const verifyPoolsStatus = async({pools}) => {
     for (i = 0; i < pools.length; i++) {
         await _verifyPoolStatus({ 
             pool: pools[i].pool,
+            totalLP: pools[i].totalLP,
             totalLiquidity: pools[i].totalLiquidity,
             availableBalance: pools[i].availableBalance,
-            rate: pools[i].rate
+            rate: pools[i].rate,
+            utilizationRate: pools[i].utilizationRate,
+            allInsuranceCount: pools[i].allInsuranceCount
         })
     }
 }
 
 
-const _verifyPoolStatusOf = async({pool, allocatedCreditOf, allocatedCredit}) => {
-    expect(await pool.allocatedCredit(allocatedCreditOf)).to.equal(allocatedCredit);
+const _verifyPoolStatusForIndex = async({pool, indexAddress, allocatedCredit, pendingPremium}) => {
+    expect(await pool.allocatedCredit(indexAddress)).to.equal(allocatedCredit);
+    expect(await pool.pendingPremium(indexAddress)).to.equal(pendingPremium);
 }
 
-const verifyPoolsStatusOf = async({pools}) => {
+const verifyPoolsStatusForIndex = async({pools}) => {
     for (i = 0; i < pools.length; i++) {
-        await _verifyPoolStatusOf({ 
+        await _verifyPoolStatusForIndex({ 
             pool: pools[i].pool,
-            allocatedCreditOf: pools[i].allocatedCreditOf,
-            allocatedCredit: pools[i].allocatedCredit
+            indexAddress: pools[i].allocatedCreditOf,
+            allocatedCredit: pools[i].allocatedCredit,
+            pendingPremium: pools[i].pendingPremium
         })
     }
 }
@@ -106,7 +115,9 @@ const insure = async({pool, insurer, amount, maxCost, span, target}) => {
     let tx = await pool.connect(insurer).insure(amount, maxCost, span, target);
 
     let receipt = await tx.wait()
-    return receipt
+    let premium = receipt.events[4].args[6]
+
+    return premium
 }
 
 
@@ -122,7 +133,7 @@ Object.assign(exports, {
 
     //pool
     verifyPoolsStatus,
-    verifyPoolsStatusOf,
+    verifyPoolsStatusForIndex,
 
     //index
     verifyIndexStatus,
