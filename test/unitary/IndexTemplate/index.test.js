@@ -25,7 +25,8 @@ const{
   short,
   YEAR,
   WEEK,
-  DAY
+  DAY,
+  ZERO
 } = require('../constant-utils');
 
 
@@ -51,10 +52,120 @@ async function moveForwardPeriods (days) {
 
 
 describe("Index", function () {
+  const initialMint = BigNumber.from("100000");
+
+  const depositAmount = BigNumber.from("10000");
+  const depositAmountLarge = BigNumber.from("40000");
+  const defaultRate = BigNumber.from("1000000000000000000");
+  const insureAmount = BigNumber.from("10000");
+
+  const governanceFeeRate = BigNumber.from("10000"); //10%
+  const RATE_DIVIDER = BigNumber.from("100000"); //1e5
+  const UTILIZATION_RATE_LENGTH_1E8 = BigNumber.from("100000000"); //1e8
+
+
+  //market status tracker
+  let m = {}
+
+  /** will be like below in the "before(async..." execution
+  * let m1 = {
+  *   totalLP: BigNumber.from("0"),
+  *   depositAmount: BigNumber.from("0"),
+  *   marketBalance: BigNumber.from("0"),
+  *   insured: BigNumber.from("0"),
+  *   rate: BigNumber.from("0"),
+  *   utilizationRate: BigNumber.from("0"),
+  *   allInsuranceCount: BigNumber.from("0")
+  * }
+  */
+
+  //global status tracker
+  let g = {
+    totalBalance: BigNumber.from("0"),
+    govBalance: BigNumber.from("0"),
+  }
+
+  //user balance tracker (this assumes there is only one market)
+  let u = {}
+
+  /** will be like below in the "before(async..." execution
+   * 
+   * u = {
+   *    "balance": BigNumber,
+   *    "deposited": BigNumber,
+   *    "lp": BigNumber
+   *  }
+   */
 
   const approveDeposit = async ({token, target, depositer, amount}) => {
     await token.connect(depositer).approve(vault.address, amount);
-    await target.connect(depositer).deposit(amount);
+    let tx = await target.connect(depositer).deposit(amount);
+    let receipt = await tx.wait();
+
+
+    if(m[target.address].type == "index"){
+      console.log("type: index")
+      let _mintAmount = receipt.events[6].args["mint"].toString();
+
+      u[`${depositer.address}`].balance = u[`${depositer.address}`].balance.sub(amount)
+      u[`${depositer.address}`].deposited[`${target.address}`] = u[`${depositer.address}`].deposited[`${target.address}`].add(amount)
+      u[`${depositer.address}`].lp[`${target.address}`] = u[`${depositer.address}`].lp[`${target.address}`].add(_mintAmount)
+      
+      
+    }else if(m[target.address].type == "type: pool"){
+      //update user info => check
+      let _mintAmount = (await tx.wait()).events[2].args["mint"].toString()
+
+      u[`${depositer.address}`].balance = u[`${depositer.address}`].balance.sub(amount)
+      u[`${depositer.address}`].deposited = u[`${depositer.address}`].deposited.add(amount)
+      u[`${depositer.address}`].lp = u[`${depositer.address}`].lp.add(_mintAmount)
+
+      expect(await token.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].balance)
+      expect(await target.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].lp)
+
+      
+      //update global and market status => check
+      g.totalBalance = g.totalBalance.add(amount)
+
+      m1.totalLP = m1.totalLP.add(_mintAmount)
+      m1.depositAmount = m1.depositAmount.add(amount)
+      m1.marketBalance = m1.marketBalance.add(amount)
+
+      if(!m1.depositAmount.isZero()){
+        m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP)
+      }else{
+        m1.rate = ZERO
+      }
+
+      if(!m1.utilizationRate.isZero()){
+        m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E8.mul(m1.insured).div(m1.marketBalance)
+      }else{
+        m1.utilizationRate = ZERO
+      }
+
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: target,
+            totalLP: m1.totalLP,
+            totalLiquidity: m1.marketBalance,
+            availableBalance: m1.marketBalance.sub(m1.insured),
+            rate: m1.rate,
+            utilizationRate: m1.utilizationRate,
+            allInsuranceCount: m1.allInsuranceCount
+          }
+        ]
+      })
+
+      await verifyValueOfUnderlying({
+        template: target,
+        valueOfUnderlyingOf: depositer.address,
+        valueOfUnderlying: u[`${depositer.address}`].lp.mul(m1.rate).div(defaultRate)
+      })
+
+    }else if(m[target.address].type == "cds"){
+
+    }
   }
 
   const approveDepositAndWithdrawRequest = async ({token, target, depositer, amount}) => {
@@ -90,6 +201,7 @@ describe("Index", function () {
   before('deploy & setup contracts', async()=>{
     //import
     [creator, alice, bob, chad, tom, minter] = await ethers.getSigners();
+
     const Ownership = await ethers.getContractFactory("Ownership");
     const DAI = await ethers.getContractFactory("TestERC20Mock");
     const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
@@ -175,7 +287,7 @@ describe("Index", function () {
       true
     );
 
-    await fee.setFee("5000"); //5%
+    await fee.setFee(governanceFeeRate);
     await parameters.setMaxList(ZERO_ADDRESS, "10");
     await parameters.setGrace(ZERO_ADDRESS, "259200");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
@@ -219,11 +331,71 @@ describe("Index", function () {
     cds = await CDSTemplate.attach(marketAddress3);
     index = await IndexTemplate.attach(marketAddress4);
 
+    markets = [market1, market2, cds, index]
+
+    m[`${market1.address}`] = {
+      type: "pool",
+      totalLP: BigNumber.from("0"),
+      depositAmount: BigNumber.from("0"),
+      marketBalance: BigNumber.from("0"),
+      insured: BigNumber.from("0"),
+      rate: BigNumber.from("0"),
+      utilizationRate: BigNumber.from("0"),
+      allInsuranceCount: BigNumber.from("0")
+    }
+
+    m[`${market2.address}`] = {
+      type: "pool",
+      totalLP: BigNumber.from("0"),
+      depositAmount: BigNumber.from("0"),
+      marketBalance: BigNumber.from("0"),
+      insured: BigNumber.from("0"),
+      rate: BigNumber.from("0"),
+      utilizationRate: BigNumber.from("0"),
+      allInsuranceCount: BigNumber.from("0")
+    }
+
+    m[`${cds.address}`] = {
+      type: "cds",
+      totalSupply: BigNumber.from("0"),
+      totalLiquidity: BigNumber.from("0"),
+      rate: BigNumber.from("0")
+    }
+
+    m[`${index.address}`] = {
+      type: "index",
+      totalSupply: BigNumber.from("0"),
+      totalLiquidity: BigNumber.from("0"),
+      totalAllocatedCredit: BigNumber.from("0"),
+      leverage: BigNumber.from("0"),
+      withdrawable: BigNumber.from("0"),
+      rate: BigNumber.from("0"),
+      children: []
+    }
+
+    accounts = [alice, bob, chad, tom];
+
+    for(i=0; i<accounts.length; i++){
+      u[`${accounts[i].address}`] = {
+        "balance": initialMint, 
+        "deposited": {}, 
+        "lp": {}
+      }; //will mint for them later
+
+      for(j=0; j< markets.length; j++){
+        u[`${accounts[i].address}`].deposited[`${markets[j].address}`] = ZERO
+        u[`${accounts[i].address}`].lp[`${markets[j].address}`] = ZERO
+      }
+    }
+    console.log(u[`${alice.address}`])
+
     await registry.setCDS(ZERO_ADDRESS, cds.address);
 
     await index.set("0", market1.address, "1000");
     await index.set("1", market2.address, "1000");
     await index.setLeverage("2000");
+
+    m[`${index.address}`].leverage = BigNumber.from("2000")
   })
 
   beforeEach(async () => {
@@ -232,9 +404,36 @@ describe("Index", function () {
 
   afterEach(async () => {
     await restore(snapshotId)
+
+    for(i=0; i<accounts.length; i++){
+      u[`${accounts[i].address}`] = {
+        "balance": initialMint, 
+        "deposited": {}, 
+        "lp": {}
+      }; //will mint for them later
+
+      for(j=0; j< markets.length; j++){
+        u[`${accounts[i].address}`].deposited[`${markets[j].address}`] = ZERO
+        u[`${accounts[i].address}`].lp[`${markets[j].address}`] = ZERO
+      }
+    }
+
+    for(i=0; i< markets.length; i++){
+      switch(m[`${markets[i].address}`].type){
+        case 'index':
+          break;
+
+        case 'pool':
+          break;
+
+        case 'cds':
+          break;
+      }
+    }
+
   })
 
-  describe("Condition", function () {
+  describe.skip("Condition", function () {
     it("Should contracts be deployed", async () => {
       expect(dai.address).to.exist;
       expect(factory.address).to.exist;
@@ -251,62 +450,6 @@ describe("Index", function () {
 
   describe("deposit", function(){
     beforeEach(async () => {
-      //check initial status
-      //index
-      await verifyIndexStatus({
-        index: index,
-        totalSupply: 0, //LP token
-        totalLiquidity: 0, //underwriting asset
-        totalAllocatedCredit: 0, //totalLiquidity * (leverage/1000)
-        leverage: 0,
-        withdrawable: 0, //un-utilized underwriting asset
-        rate: "0"
-      })
-
-      //pool
-      await verifyPoolsStatus({
-        pools: [
-          {
-            pool: market1,
-            totalLiquidity: 0,
-            availableBalance: 0
-          },
-          {
-            pool: market2,
-            totalLiquidity: 0,
-            availableBalance: 0
-          }
-        ]
-      })
-
-      await verifyPoolsStatusOf({
-        pools: [
-          {
-            pool: market1,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 0,
-          },
-          {
-            pool: market2,
-            allocatedCreditOf: index.address,
-            allocatedCredit: 0,
-          }
-        ]
-      })
-
-      //vault
-      await verifyVaultStatus({
-        vault: vault,
-        valueAll: 0,
-        totalAttributions: 0,
-      })
-
-      await verifyVaultStatusOf({
-        vault: vault,
-        target: index.address,
-        attributions: 0,
-        underlyingValue: 0
-      })
     });
 
     it("deposit success", async function () {
@@ -314,7 +457,7 @@ describe("Index", function () {
         token: dai,
         target: index,
         depositer: alice,
-        amount: 10000
+        amount: depositAmount
       })
 
       //CHECK ALL STATUS
@@ -376,7 +519,7 @@ describe("Index", function () {
     });
 
 
-    it("revert when paused", async function () {
+    it.skip("revert when paused", async function () {
       await index.setPaused(true);
 
       await expect(index.connect(alice).deposit("10000")).to.revertedWith(
@@ -384,14 +527,14 @@ describe("Index", function () {
       );
     });
 
-    it("revert when locked", async function () {
+    it.skip("revert when locked", async function () {
     });
 
-    it("revert when amount is 0", async function () {
+    it.skip("revert when amount is 0", async function () {
     });
   })
 
-  describe("withdraw", function () {
+  describe.skip("withdraw", function () {
     beforeEach(async () => {
       //deposit and withdraw request
       await approveDepositAndWithdrawRequest({
@@ -626,7 +769,7 @@ describe("Index", function () {
     });
   });
 
-  describe("else", function(){
+  describe.skip("else", function(){
     beforeEach(async () => {
     });
 
@@ -1093,7 +1236,7 @@ describe("Index", function () {
 
   })
 
-  describe("Index parameter configurations (case un-equal allocation)", function () {
+  describe.skip("Index parameter configurations (case un-equal allocation)", function () {
     beforeEach(async () => {
       //Deploy a new pool
       const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
@@ -1930,7 +2073,7 @@ describe("Index", function () {
     });
   });
 
-  describe("Admin functions", function () {
+  describe.skip("Admin functions", function () {
     it("allows changing metadata", async function () {
       expect(await index.metadata()).to.equal("Here is metadata.");
       await index.changeMetadata("new metadata");
