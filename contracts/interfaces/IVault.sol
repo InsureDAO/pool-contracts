@@ -13,9 +13,13 @@ interface IVault {
 
     function transferValue(uint256 _amount, address _destination) external;
 
-    function withdrawAttribution(uint256 _attribution, address _to) external returns (uint256 _retVal);
+    function withdrawAttribution(uint256 _attribution, address _to)
+        external
+        returns (uint256 _retVal);
 
-    function withdrawAllAttribution(address _to) external returns (uint256 _retVal);
+    function withdrawAllAttribution(address _to)
+        external
+        returns (uint256 _retVal);
 
     function transferAttribution(uint256 _amount, address _destination)
         external;
@@ -32,4 +36,18 @@ interface IVault {
     function utilize() external returns (uint256 _amount);
 
     function token() external returns (address);
+
+    function borrowValue(uint256 _amount, address _to)
+        external
+        returns (uint256 _attributions);
+
+    function repayDebt(uint256 _amount, address _target)
+        external
+        returns (uint256 _attributions);
+
+    function settleDebt(address _debtor)
+        external
+        returns (uint256 _attributions);
+
+    function debts(address _debtor) external view returns (uint256);
 }
