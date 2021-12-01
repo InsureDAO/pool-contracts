@@ -111,6 +111,13 @@ contract Vault is IVault {
         );
         _attributions = (totalAttributions * _amount) / valueAll();
         attributions[msg.sender] -= _attributions;
+        console.log(
+            "withdraw  totalAttributions: %s _attributions: %s amount %s",
+            totalAttributions,
+            _attributions,
+            _amount
+        );
+
         totalAttributions -= _attributions;
         if (available() < _amount) {
             uint256 _shortage = _amount - available();
@@ -194,11 +201,7 @@ contract Vault is IVault {
         returns (uint256 _attributions)
     {
         uint256 _remainingDebt = debts[_debtor];
-        console.log(
-            "settleDebt: _remainingDebt %s underlyingValue(msg.sender) %s",
-            _remainingDebt,
-            underlyingValue(msg.sender)
-        );
+
         if (_remainingDebt > 0) {
             require(
                 attributions[msg.sender] > 0 &&
@@ -206,6 +209,12 @@ contract Vault is IVault {
                 "ERROR_SETTLE_DEBT_BADCONDITOONS"
             );
             _attributions = (_remainingDebt * totalAttributions) / valueAll();
+            console.log(
+                "settle attributions[msg.sender]: %s _attributions: %s",
+                attributions[msg.sender],
+                _attributions,
+                _remainingDebt
+            );
             attributions[msg.sender] -= _attributions;
             debts[_debtor] = 0;
         }
