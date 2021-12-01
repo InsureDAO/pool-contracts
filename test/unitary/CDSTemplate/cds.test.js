@@ -8,8 +8,8 @@ const {
   verifyBalance,
   verifyBalances,
   verifyAllowance,
-  verifyPoolsStatus,
-  verifyPoolsStatusOf,
+  verifyPoolsStatus_legacy,
+  verifyPoolsStatusForIndex_legacy,
   verifyIndexStatus,
   verifyCDSStatus,
   verifyVaultStatus,
@@ -547,7 +547,7 @@ describe("CDS", function () {
         rate: "1000000000000000000"
       })
 
-      await verifyPoolsStatus({
+      await verifyPoolsStatus_legacy({
         pools: [
           {
             pool: market1,
@@ -557,7 +557,7 @@ describe("CDS", function () {
         ]
       })
 
-      await verifyPoolsStatusOf({
+      await verifyPoolsStatusForIndex_legacy({
         pools: [
           {
             pool: market1,
@@ -654,7 +654,7 @@ describe("CDS", function () {
         rate: "0"
       })
 
-      await verifyPoolsStatus({
+      await verifyPoolsStatus_legacy({
         pools: [
           {
             pool: market1,
@@ -664,7 +664,7 @@ describe("CDS", function () {
         ]
       })
 
-      await verifyPoolsStatusOf({
+      await verifyPoolsStatusForIndex_legacy({
         pools: [
           {
             pool: market1,
@@ -742,7 +742,7 @@ describe("CDS", function () {
         rate: "1000000000000000000"
       })
 
-      await verifyPoolsStatus({
+      await verifyPoolsStatus_legacy({
         pools: [
           {
             pool: market1,
@@ -752,7 +752,7 @@ describe("CDS", function () {
         ]
       })
 
-      await verifyPoolsStatusOf({
+      await verifyPoolsStatusForIndex_legacy({
         pools: [
           {
             pool: market1,
@@ -846,7 +846,7 @@ describe("CDS", function () {
         rate: 0
       })
 
-      await verifyPoolsStatus({
+      await verifyPoolsStatus_legacy({
         pools: [
           {
             pool: market1,
@@ -856,7 +856,7 @@ describe("CDS", function () {
         ]
       })
 
-      await verifyPoolsStatusOf({
+      await verifyPoolsStatusForIndex_legacy({
         pools: [
           {
             pool: market1,

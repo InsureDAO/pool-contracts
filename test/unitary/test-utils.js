@@ -58,6 +58,21 @@ const verifyPoolsStatus = async({pools}) => {
     }
 }
 
+const _verifyPoolStatus_legacy = async({pool, totalLiquidity, availableBalance}) => {
+    expect(await pool.totalLiquidity()).to.equal(totalLiquidity);
+    expect(await pool.availableBalance()).to.equal(availableBalance);
+}
+
+const verifyPoolsStatus_legacy = async({pools}) => {
+    for (i = 0; i < pools.length; i++) {
+        await _verifyPoolStatus_legacy({ 
+            pool: pools[i].pool,
+            totalLiquidity: pools[i].totalLiquidity,
+            availableBalance: pools[i].availableBalance
+        })
+    }
+}
+
 
 const _verifyPoolStatusForIndex = async({pool, indexAddress, allocatedCredit, pendingPremium}) => {
     expect(await pool.allocatedCredit(indexAddress)).to.equal(allocatedCredit);
@@ -71,6 +86,20 @@ const verifyPoolsStatusForIndex = async({pools}) => {
             indexAddress: pools[i].allocatedCreditOf,
             allocatedCredit: pools[i].allocatedCredit,
             pendingPremium: pools[i].pendingPremium
+        })
+    }
+}
+
+const _verifyPoolStatusForIndex_legacy = async({pool, allocatedCreditOf, allocatedCredit}) => {
+    expect(await pool.allocatedCredit(allocatedCreditOf)).to.equal(allocatedCredit);
+}
+
+const verifyPoolsStatusForIndex_legacy = async({pools}) => {
+    for (i = 0; i < pools.length; i++) {
+        await _verifyPoolStatusForIndex_legacy({ 
+            pool: pools[i].pool,
+            allocatedCreditOf: pools[i].allocatedCreditOf,
+            allocatedCredit: pools[i].allocatedCredit
         })
     }
 }
@@ -133,7 +162,9 @@ Object.assign(exports, {
 
     //pool
     verifyPoolsStatus,
+    verifyPoolsStatus_legacy,
     verifyPoolsStatusForIndex,
+    verifyPoolsStatusForIndex_legacy,
 
     //index
     verifyIndexStatus,
