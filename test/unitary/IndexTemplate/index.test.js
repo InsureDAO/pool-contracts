@@ -18,7 +18,7 @@ const {
 } = require('../test-utils')
 
 
-const{ 
+const {
   ZERO_ADDRESS,
   long,
   wrong,
@@ -30,11 +30,11 @@ const{
 } = require('../constant-utils');
 
 
-async function snapshot () {
+async function snapshot() {
   return network.provider.send('evm_snapshot', [])
 }
 
-async function restore (snapshotId) {
+async function restore(snapshotId) {
   return network.provider.send('evm_revert', [snapshotId])
 }
 
@@ -43,7 +43,7 @@ async function now() {
   return now
 }
 
-async function moveForwardPeriods (days) {
+async function moveForwardPeriods(days) {
   await ethers.provider.send("evm_increaseTime", [DAY.mul(days).toNumber()]);
   await ethers.provider.send("evm_mine");
 
@@ -58,6 +58,9 @@ describe("Index", function () {
   const depositAmountLarge = BigNumber.from("40000");
   const defaultRate = BigNumber.from("1000000000000000000");
   const insureAmount = BigNumber.from("10000");
+  const leverage = 2000;
+  const allocPoint1 = 1000;
+  const allocPoint2 = 1000;
 
   const governanceFeeRate = BigNumber.from("10000"); //10%
   const RATE_DIVIDER = BigNumber.from("100000"); //1e5
@@ -69,20 +72,20 @@ describe("Index", function () {
 
   /** will be like below in the "before(async..." execution
   * let m1 = {
-  *   totalLP: BigNumber.from("0"),
-  *   depositAmount: BigNumber.from("0"),
-  *   marketBalance: BigNumber.from("0"),
-  *   insured: BigNumber.from("0"),
-  *   rate: BigNumber.from("0"),
-  *   utilizationRate: BigNumber.from("0"),
-  *   allInsuranceCount: BigNumber.from("0")
+  *   totalLP: ZERO,
+  *   depositAmount: ZERO,
+  *   marketBalance: ZERO,
+  *   insured: ZERO,
+  *   rate: ZERO,
+  *   utilizationRate: ZERO,
+  *   allInsuranceCount: ZERO
   * }
   */
 
   //global status tracker
   let g = {
-    totalBalance: BigNumber.from("0"),
-    govBalance: BigNumber.from("0"),
+    totalBalance: ZERO,
+    govBalance: ZERO,
   }
 
   //user balance tracker (this assumes there is only one market)
@@ -97,22 +100,24 @@ describe("Index", function () {
    *  }
    */
 
-  const approveDeposit = async ({token, target, depositer, amount}) => {
+  const approveDeposit = async ({ token, target, depositer, amount }) => {
     await token.connect(depositer).approve(vault.address, amount);
     let tx = await target.connect(depositer).deposit(amount);
     let receipt = await tx.wait();
+    console.log('receipt: ', receipt);
 
 
-    if(m[target.address].type == "index"){
+    if (m[target.address].type == "index") {
       console.log("type: index")
       let _mintAmount = receipt.events[6].args["mint"].toString();
 
-      u[`${depositer.address}`].balance = u[`${depositer.address}`].balance.sub(amount)
-      u[`${depositer.address}`].deposited[`${target.address}`] = u[`${depositer.address}`].deposited[`${target.address}`].add(amount)
-      u[`${depositer.address}`].lp[`${target.address}`] = u[`${depositer.address}`].lp[`${target.address}`].add(_mintAmount)
-      
-      
-    }else if(m[target.address].type == "type: pool"){
+      u[`${depositer.address}`].balance = u[`${depositer.address}`].balance.sub(amount);
+      u[`${depositer.address}`].deposited[`${target.address}`] = u[`${depositer.address}`].deposited[`${target.address}`].add(amount);
+      u[`${depositer.address}`].lp[`${target.address}`] = u[`${depositer.address}`].lp[`${target.address}`].add(_mintAmount);
+
+      m[target.address].totalLP = m[target.address].totalLP.add(_mintAmount);
+
+    } else if (m[target.address].type == "pool") {
       //update user info => check
       let _mintAmount = (await tx.wait()).events[2].args["mint"].toString()
 
@@ -123,7 +128,7 @@ describe("Index", function () {
       expect(await token.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].balance)
       expect(await target.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].lp)
 
-      
+
       //update global and market status => check
       g.totalBalance = g.totalBalance.add(amount)
 
@@ -131,15 +136,15 @@ describe("Index", function () {
       m1.depositAmount = m1.depositAmount.add(amount)
       m1.marketBalance = m1.marketBalance.add(amount)
 
-      if(!m1.depositAmount.isZero()){
+      if (!m1.depositAmount.isZero()) {
         m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP)
-      }else{
+      } else {
         m1.rate = ZERO
       }
 
-      if(!m1.utilizationRate.isZero()){
+      if (!m1.utilizationRate.isZero()) {
         m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E8.mul(m1.insured).div(m1.marketBalance)
-      }else{
+      } else {
         m1.utilizationRate = ZERO
       }
 
@@ -163,18 +168,18 @@ describe("Index", function () {
         valueOfUnderlying: u[`${depositer.address}`].lp.mul(m1.rate).div(defaultRate)
       })
 
-    }else if(m[target.address].type == "cds"){
+    } else if (m[target.address].type == "cds") {
 
     }
   }
 
-  const approveDepositAndWithdrawRequest = async ({token, target, depositer, amount}) => {
+  const approveDepositAndWithdrawRequest = async ({ token, target, depositer, amount }) => {
     await token.connect(depositer).approve(vault.address, amount);
     await target.connect(depositer).deposit(amount);
     await target.connect(depositer).requestWithdraw(amount);
   }
 
-  const applyCover = async ({pool, pending, payoutNumerator, payoutDenominator, incidentTimestamp}) => {
+  const applyCover = async ({ pool, pending, payoutNumerator, payoutDenominator, incidentTimestamp }) => {
 
     const tree = await new MerkleTree(short, keccak256, {
       hashLeaves: true,
@@ -198,7 +203,7 @@ describe("Index", function () {
     return proof
   }
 
-  before('deploy & setup contracts', async()=>{
+  before('deploy & setup contracts', async () => {
     //import
     [creator, alice, bob, chad, tom, minter] = await ethers.getSigners();
 
@@ -234,9 +239,9 @@ describe("Index", function () {
     indexTemplate = await IndexTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
 
-    await dai.mint(chad.address, (100000).toString());
-    await dai.mint(bob.address, (100000).toString());
-    await dai.mint(alice.address, (100000).toString());
+    await dai.mint(chad.address, (initialMint).toString());
+    await dai.mint(bob.address, (initialMint).toString());
+    await dai.mint(alice.address, (initialMint).toString());
 
     await registry.setFactory(factory.address);
 
@@ -335,54 +340,54 @@ describe("Index", function () {
 
     m[`${market1.address}`] = {
       type: "pool",
-      totalLP: BigNumber.from("0"),
-      depositAmount: BigNumber.from("0"),
-      marketBalance: BigNumber.from("0"),
-      insured: BigNumber.from("0"),
-      rate: BigNumber.from("0"),
-      utilizationRate: BigNumber.from("0"),
-      allInsuranceCount: BigNumber.from("0")
+      totalLP: ZERO,
+      depositAmount: ZERO,
+      marketBalance: ZERO,
+      insured: ZERO,
+      rate: ZERO,
+      utilizationRate: ZERO,
+      allInsuranceCount: ZERO
     }
 
     m[`${market2.address}`] = {
       type: "pool",
-      totalLP: BigNumber.from("0"),
-      depositAmount: BigNumber.from("0"),
-      marketBalance: BigNumber.from("0"),
-      insured: BigNumber.from("0"),
-      rate: BigNumber.from("0"),
-      utilizationRate: BigNumber.from("0"),
-      allInsuranceCount: BigNumber.from("0")
+      totalLP: ZERO,
+      depositAmount: ZERO,
+      marketBalance: ZERO,
+      insured: ZERO,
+      rate: ZERO,
+      utilizationRate: ZERO,
+      allInsuranceCount: ZERO
     }
 
     m[`${cds.address}`] = {
       type: "cds",
-      totalSupply: BigNumber.from("0"),
-      totalLiquidity: BigNumber.from("0"),
-      rate: BigNumber.from("0")
+      totalSupply: ZERO,
+      totalLiquidity: ZERO,
+      rate: ZERO
     }
 
     m[`${index.address}`] = {
       type: "index",
-      totalSupply: BigNumber.from("0"),
-      totalLiquidity: BigNumber.from("0"),
-      totalAllocatedCredit: BigNumber.from("0"),
-      leverage: BigNumber.from("0"),
-      withdrawable: BigNumber.from("0"),
-      rate: BigNumber.from("0"),
+      totalSupply: ZERO,
+      totalLiquidity: ZERO,
+      totalAllocatedCredit: ZERO,
+      leverage: ZERO,
+      withdrawable: ZERO,
+      rate: ZERO,
       children: []
     }
 
     accounts = [alice, bob, chad, tom];
 
-    for(i=0; i<accounts.length; i++){
+    for (i = 0; i < accounts.length; i++) {
       u[`${accounts[i].address}`] = {
-        "balance": initialMint, 
-        "deposited": {}, 
+        "balance": initialMint,
+        "deposited": {},
         "lp": {}
       }; //will mint for them later
 
-      for(j=0; j< markets.length; j++){
+      for (j = 0; j < markets.length; j++) {
         u[`${accounts[i].address}`].deposited[`${markets[j].address}`] = ZERO
         u[`${accounts[i].address}`].lp[`${markets[j].address}`] = ZERO
       }
@@ -391,11 +396,11 @@ describe("Index", function () {
 
     await registry.setCDS(ZERO_ADDRESS, cds.address);
 
-    await index.set("0", market1.address, "1000");
-    await index.set("1", market2.address, "1000");
-    await index.setLeverage("2000");
+    await index.set("0", market1.address, allocPoint1);
+    await index.set("1", market2.address, allocPoint2);
+    await index.setLeverage(leverage);  /// why string?
 
-    m[`${index.address}`].leverage = BigNumber.from("2000")
+    m[`${index.address}`].leverage = BigNumber.from(leverage)
   })
 
   beforeEach(async () => {
@@ -405,21 +410,21 @@ describe("Index", function () {
   afterEach(async () => {
     await restore(snapshotId)
 
-    for(i=0; i<accounts.length; i++){
+    for (i = 0; i < accounts.length; i++) {
       u[`${accounts[i].address}`] = {
-        "balance": initialMint, 
-        "deposited": {}, 
+        "balance": initialMint,
+        "deposited": {},
         "lp": {}
       }; //will mint for them later
 
-      for(j=0; j< markets.length; j++){
+      for (j = 0; j < markets.length; j++) {
         u[`${accounts[i].address}`].deposited[`${markets[j].address}`] = ZERO
         u[`${accounts[i].address}`].lp[`${markets[j].address}`] = ZERO
       }
     }
 
-    for(i=0; i< markets.length; i++){
-      switch(m[`${markets[i].address}`].type){
+    for (i = 0; i < markets.length; i++) {
+      switch (m[`${markets[i].address}`].type) {
         case 'index':
           break;
 
@@ -433,7 +438,7 @@ describe("Index", function () {
 
   })
 
-  describe.skip("Condition", function () {
+  describe("Condition", function () {
     it("Should contracts be deployed", async () => {
       expect(dai.address).to.exist;
       expect(factory.address).to.exist;
@@ -443,12 +448,12 @@ describe("Index", function () {
       expect(market2.address).to.exist;
       expect(index.address).to.exist;
       expect(cds.address).to.exist;
-      expect(await index.totalAllocPoint()).to.equal("2000");
-      expect(await index.targetLev()).to.equal("2000");
+      expect(await index.totalAllocPoint()).to.equal(BigNumber.from(allocPoint1 + allocPoint2));
+      expect(await index.targetLev()).to.equal(BigNumber.from(leverage));
     });
   });
 
-  describe.skip("deposit", function(){
+  describe("deposit", function () {
     beforeEach(async () => {
     });
 
@@ -464,10 +469,10 @@ describe("Index", function () {
       //index
       await verifyIndexStatus({
         index: index,
-        totalSupply: 10000, //LP token
+        totalSupply: m[index.address].totalLP, //LP token
         totalLiquidity: 10000, //underwriting asset
-        totalAllocatedCredit: 20000, //totalLiquidity * (leverage/1000)
-        leverage: 2000,
+        totalAllocatedCredit: m1.totalLP * (leverage / 1000), //totalLiquidity * (leverage/1000)
+        leverage: leverage,
         withdrawable: 10000, //un-utilized underwriting asset
         rate: "1000000000000000000"
       })
@@ -541,7 +546,7 @@ describe("Index", function () {
         token: dai,
         target: index,
         depositer: alice,
-        amount: 10000
+        amount: depositAmount
       })
 
       //CHECK ALL STATUS
@@ -676,13 +681,13 @@ describe("Index", function () {
       await moveForwardPeriods(8);
 
       await index.connect(alice).withdraw("10000");
-      
+
       await verifyBalance({
         token: dai,
         address: alice.address,
         expectedBalance: 100000
       })
-      
+
     });
 
     it("revert WITHDRAWAL_PENDING", async function () {
@@ -718,14 +723,14 @@ describe("Index", function () {
     it("revert withdraw when liquidity is locked for insurance", async function () {
 
       await dai.connect(bob).approve(vault.address, 20000);
-      
+
       let receipt = await insure({
         pool: market1,
         insurer: bob,
         amount: 10000,
         maxCost: 10000,
         span: YEAR,
-        target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
+        target: short
       })
 
 
@@ -748,7 +753,7 @@ describe("Index", function () {
         address: vault.address,
         expectedBalance: 11000
       })
-      
+
 
       //after insure(), index gains premium, but aloc doesn't change. this leads to lower the leverage
       await verifyIndexStatus({
@@ -769,7 +774,7 @@ describe("Index", function () {
     });
   });
 
-  describe.skip("else", function(){
+  describe.skip("else", function () {
     beforeEach(async () => {
     });
 
@@ -888,7 +893,7 @@ describe("Index", function () {
     });
 
     it("DISABLE deposit when paused(withdrawal is possible)", async function () {
-      
+
       await approveDepositAndWithdrawRequest({
         token: dai,
         target: index,
@@ -915,13 +920,13 @@ describe("Index", function () {
       await moveForwardPeriods(8);
 
       await index.connect(alice).withdraw("10000");
-      
+
       await verifyBalance({
         token: dai,
         address: alice.address,
         expectedBalance: 100000
       })
-      
+
     });
 
     it("DISABLE deposit and withdrawal when reporting or payingout", async function () {
@@ -945,7 +950,7 @@ describe("Index", function () {
 
       await moveForwardPeriods(8);
 
-      let incident = await now();  
+      let incident = await now();
 
       await applyCover({
         pool: market1,
@@ -976,7 +981,7 @@ describe("Index", function () {
         withdrawable: 10000,
         rate: "1000000000000000000"
       })
-      
+
       await index.connect(alice).withdraw("10000");
       await verifyBalance({
         token: dai,
@@ -1050,7 +1055,7 @@ describe("Index", function () {
       let expectPremium = BigNumber.from("10000").mul(premiumRate).div(divider); //amount * premium rate
       expect(premium).to.equal(expectPremium);
 
-      
+
       expect(await dai.balanceOf(bob.address)).to.equal("99000");
 
       let incident = await now()
@@ -1090,7 +1095,7 @@ describe("Index", function () {
         attributions: 10000,
         underlyingValue: 10000
       })
-      
+
 
 
       expect(await market1.totalLiquidity()).to.closeTo("10000", "1");
@@ -1194,8 +1199,8 @@ describe("Index", function () {
         span: 86400 * 8,
         target: '0x4e69636b00000000000000000000000000000000000000000000000000000000'
       })
-      
-      incident = await now();  
+
+      incident = await now();
 
       proof = await applyCover({
         pool: market1,
@@ -1284,7 +1289,7 @@ describe("Index", function () {
         attributions: 10000,
         underlyingValue: 10000
       })
-      
+
 
       await verifyPoolsStatus_legacy({
         pools: [
