@@ -52,19 +52,19 @@ async function now () {
 }
 
 describe("Pool", function () {
-  const initialMint = BigNumber.from("100000");
+  const initialMint = BigNumber.from("100000"); //initial token amount for users
 
-  const depositAmount = BigNumber.from("10000");
-  const depositAmountLarge = BigNumber.from("40000");
-  const defaultRate = BigNumber.from("1000000000000000000");
-  const insureAmount = BigNumber.from("10000");
+  const depositAmount = BigNumber.from("10000"); //default deposit amount for test
+  const depositAmountLarge = BigNumber.from("40000"); //default deposit amount (large) for test
+  const defaultRate = BigNumber.from("1000000000000000000"); //initial rate between USDC and LP token
+  const insureAmount = BigNumber.from("10000"); //default insure amount for test
 
-  const governanceFeeRate = BigNumber.from("10000");
+  const governanceFeeRate = BigNumber.from("10000"); //10% of the Premium
   const RATE_DIVIDER = BigNumber.from("100000"); //1e5
   const UTILIZATION_RATE_LENGTH_1E8 = BigNumber.from("100000000"); //1e8
 
 
-  //market status tracker
+  //market status tracker.
   let m1 = {
     totalLP: BigNumber.from("0"),
     depositAmount: BigNumber.from("0"),
@@ -94,7 +94,8 @@ describe("Pool", function () {
    */
 
 
-  //function wrappers
+  //======== Function Wrappers ========//
+  //execute function and update tracker.
   const approveDeposit = async ({token, target, depositer, amount}) => {
 
     //execute
@@ -102,26 +103,26 @@ describe("Pool", function () {
     let tx = await target.connect(depositer).deposit(amount);
 
 
-    //update user info => check
+    //1. update user info => check
     let _mintAmount = (await tx.wait()).events[2].args["mint"].toString();
 
-    u[`${depositer.address}`].balance = u[`${depositer.address}`].balance.sub(amount)
-    u[`${depositer.address}`].deposited = u[`${depositer.address}`].deposited.add(amount)
-    u[`${depositer.address}`].lp = u[`${depositer.address}`].lp.add(_mintAmount)
+    u[`${depositer.address}`].balance = u[`${depositer.address}`].balance.sub(amount) //track user wallet
+    u[`${depositer.address}`].deposited = u[`${depositer.address}`].deposited.add(amount) //track amount of deposited USDC
+    u[`${depositer.address}`].lp = u[`${depositer.address}`].lp.add(_mintAmount) //track amount of LP token
 
-    expect(await token.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].balance)
-    expect(await target.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].lp)
+    expect(await token.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].balance) //sanity check
+    expect(await target.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].lp) //sanity check
 
     
-    //update global and market status => check
-    g.totalBalance = g.totalBalance.add(amount)
+    //2. update global and market status => check
+    g.totalBalance = g.totalBalance.add(amount) //global balance of USDC increase
 
-    m1.totalLP = m1.totalLP.add(_mintAmount)
-    m1.depositAmount = m1.depositAmount.add(amount)
-    m1.marketBalance = m1.marketBalance.add(amount)
+    m1.totalLP = m1.totalLP.add(_mintAmount) //market1 (Pool) total LP balance increase as much as newly minted LP token.
+    m1.depositAmount = m1.depositAmount.add(amount) //USDC deposited
+    m1.marketBalance = m1.marketBalance.add(amount) //USDC deposited
 
     if(!m1.depositAmount.isZero()){
-      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP)
+      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP) //rate = (USDC balance in this contract) / (LP totalBalance)
     }else{
       m1.rate = ZERO
     }
@@ -132,13 +133,14 @@ describe("Pool", function () {
       m1.utilizationRate = ZERO
     }
 
+    //sanity check
     await verifyPoolsStatus({
       pools: [
         {
           pool: target,
           totalLP: m1.totalLP,
-          totalLiquidity: m1.marketBalance,
-          availableBalance: m1.marketBalance.sub(m1.insured),
+          totalLiquidity: m1.marketBalance, //all deposited amount 
+          availableBalance: m1.marketBalance.sub(m1.insured), //all amount - locked amount = available amount
           rate: m1.rate,
           utilizationRate: m1.utilizationRate,
           allInsuranceCount: m1.allInsuranceCount
@@ -146,6 +148,7 @@ describe("Pool", function () {
       ]
     })
 
+    //sanity check
     await verifyValueOfUnderlying({
       template: target,
       valueOfUnderlyingOf: depositer.address,
@@ -168,8 +171,8 @@ describe("Pool", function () {
     u[`${depositer.address}`].deposited = u[`${depositer.address}`].deposited.add(amount)
     u[`${depositer.address}`].lp = u[`${depositer.address}`].lp.add(_mintAmount)
 
-    expect(await token.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].balance)
-    expect(await target.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].lp)
+    expect(await token.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].balance) //sanity check
+    expect(await target.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].lp) //sanity check
 
     
     //update global and market status => check
@@ -191,6 +194,7 @@ describe("Pool", function () {
       m1.utilizationRate = ZERO
     }
 
+    //sanity check of m1
     await verifyPoolsStatus({
       pools: [
         {
@@ -205,6 +209,7 @@ describe("Pool", function () {
       ]
     })
 
+    //sanity check
     await verifyValueOfUnderlying({
       template: target,
       valueOfUnderlyingOf: depositer.address,
