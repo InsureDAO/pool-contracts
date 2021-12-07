@@ -1,5 +1,10 @@
 pragma solidity 0.8.7;
-
+/**
+ * @title BondingPremium
+ * @author @InsureDAO
+ * @notice Insurance Premium Calclator
+ * SPDX-License-Identifier: GPL-3.0
+ */
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../interfaces/IOwnership.sol";
