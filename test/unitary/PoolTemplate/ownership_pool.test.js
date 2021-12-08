@@ -93,7 +93,6 @@ describe.skip("Pool Ownership", function () {
     const Factory = await ethers.getContractFactory("Factory");
     const Vault = await ethers.getContractFactory("Vault");
     const Registry = await ethers.getContractFactory("Registry");
-    const FeeModel = await ethers.getContractFactory("FeeModel");
     const PremiumModel = await ethers.getContractFactory("TestPremiumModel");
     const Parameters = await ethers.getContractFactory("Parameters");
     const Contorller = await ethers.getContractFactory("ControllerMock");
@@ -103,7 +102,6 @@ describe.skip("Pool Ownership", function () {
     dai = await DAI.deploy();
     registry = await Registry.deploy(ownership.address);
     factory = await Factory.deploy(registry.address, ownership.address);
-    fee = await FeeModel.deploy(ownership.address);
     premium = await PremiumModel.deploy();
     controller = await Contorller.deploy(dai.address, ownership.address);
     vault = await Vault.deploy(
@@ -139,12 +137,11 @@ describe.skip("Pool Ownership", function () {
     );
 
     //set default parameters
-    await fee.setFee("5000"); //5%
+    await parameters.setFeeRate(ZERO_ADDRESS, "5000"); //5%
     await parameters.setGrace(ZERO_ADDRESS, "259200");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
     await parameters.setMindate(ZERO_ADDRESS, "604800");
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
-    await parameters.setFeeModel(ZERO_ADDRESS, fee.address);
     await parameters.setWithdrawable(ZERO_ADDRESS, "2592000");
     await parameters.setVault(dai.address, vault.address);
 

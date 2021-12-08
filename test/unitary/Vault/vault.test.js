@@ -63,7 +63,7 @@ describe("Vault", function () {
     });
   });
 
-  describe("vault functions", function () {
+  describe.skip("vault functions", function () {
     beforeEach(async () => {
       await dai.connect(alice).approve(vault.address, 10000);
     });

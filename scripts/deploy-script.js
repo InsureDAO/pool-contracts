@@ -144,12 +144,6 @@ async function main() {
   );
   await tx.wait();
   console.log("parameters configured 1");
-  tx = await fee.setFee("10000");
-  await tx.wait();
-  tx = await parameters.setCDSPremium(ZERO_ADDRESS, "2000");
-  await tx.wait();
-  tx = await parameters.setDepositFee(ZERO_ADDRESS, "1000");
-  await tx.wait();
   tx = await parameters.setGrace(ZERO_ADDRESS, "259200");
   await tx.wait();
   tx = await parameters.setLockup(ZERO_ADDRESS, "7200");
@@ -157,8 +151,6 @@ async function main() {
   tx = await parameters.setMindate(ZERO_ADDRESS, "604800");
   await tx.wait();
   tx = await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
-  await tx.wait();
-  tx = await parameters.setFeeModel(ZERO_ADDRESS, fee.address);
   await tx.wait();
   tx = await parameters.setWithdrawable(ZERO_ADDRESS, "604800");
   await tx.wait();

@@ -30,8 +30,7 @@ describe("Factory", function () {
     const Factory = await ethers.getContractFactory("Factory");
     const Vault = await ethers.getContractFactory("Vault");
     const Registry = await ethers.getContractFactory("Registry");
-    const FeeModel = await ethers.getContractFactory("FeeModel");
-    const PremiumModel = await ethers.getContractFactory("PremiumModel");
+    const PremiumModel = await ethers.getContractFactory("TestPremiumModel");
     const Parameters = await ethers.getContractFactory("Parameters");
     const Contorller = await ethers.getContractFactory("ControllerMock");
 
@@ -40,7 +39,6 @@ describe("Factory", function () {
     dai = await DAI.deploy();
     registry = await Registry.deploy(ownership.address);
     factory = await Factory.deploy(registry.address, ownership.address);
-    fee = await FeeModel.deploy(ownership.address);
     premium = await PremiumModel.deploy();
     controller = await Contorller.deploy(dai.address, ownership.address);
     vault = await Vault.deploy(
@@ -75,15 +73,11 @@ describe("Factory", function () {
       true
     );
 
-    await premium.setPremium("2000", "50000");
-    await fee.setFee("1000");
-    await parameters.setCDSPremium(ZERO_ADDRESS, "2000");
-    await parameters.setDepositFee(ZERO_ADDRESS, "1000");
+    await parameters.setFeeRate(ZERO_ADDRESS, "10000");
     await parameters.setGrace(ZERO_ADDRESS, "259200");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
     await parameters.setMindate(ZERO_ADDRESS, "604800");
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
-    await parameters.setFeeModel(ZERO_ADDRESS, fee.address);
     await parameters.setWithdrawable(ZERO_ADDRESS, "2592000");
     await parameters.setVault(dai.address, vault.address);
 
@@ -105,7 +99,13 @@ describe("Factory", function () {
     await restore(snapshotId)
   })
 
-  describe("duplicate market", function () {
+  describe("Condition", function () {
+    it("Should contracts be deployed", async () => {
+      expect(registry.address).to.exist;
+    });
+  });
+
+  describe.skip("duplicate market", function () {
     it("Should revert when it's not allowed", async () => {
       await factory.approveTemplate(poolTemplate.address, true, false, false);
       await expect(
@@ -125,11 +125,6 @@ describe("Factory", function () {
         [1, 0],
         [dai.address, dai.address, registry.address, parameters.address]
       );
-    });
-  });
-  describe("Condition", function () {
-    it("Should contracts be deployed", async () => {
-      expect(registry.address).to.exist;
     });
   });
   

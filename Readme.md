@@ -20,7 +20,6 @@ This repository contains pool related contracts. For goveranance related contrac
 - [`Factory`](contracts/Factory.sol): Factory contract to deploy new pools/indicies/cds at lowest gas cost and control delpoying addresses
 - [`Parameters`](contracts/Parameters.sol): Store market parameters to each markets. the DAO control address can operate upgrades
 - [`PremiumModel`](contracts/PremiumModel.sol): Stores logic of premium calculation
-- [`FeeModel`](contracts/FeeModel.sol): Stores logic of fee calculation
 - [`Registry`](contracts/Registry.sol): Registeres InsureDAO's official pools.
 
 ## Testing and Development
