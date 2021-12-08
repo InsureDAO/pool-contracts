@@ -242,7 +242,13 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         _mintAmount = worth(_amount);
 
-        vault.addValue(_amount, msg.sender, address(this));
+        vault.addValue(
+            _amount,
+            msg.sender,
+            [address(this), address(0)],
+            [uint256(1e5), uint256(0)],
+            1
+        );
 
         emit Deposit(msg.sender, _amount, _mintAmount);
 
@@ -456,8 +462,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         //Distribute premium and fee
         uint256 _endTime = _span + block.timestamp;
         uint256 _premium = getPremium(_amount, _span);
-        uint256 _fee = parameters.getFee(_premium, msg.sender);
-        uint256 _deducted = _premium - _fee;
+        uint256 _fee = parameters.getFee(msg.sender);
 
         require(
             _amount <= availableBalance(),
@@ -478,13 +483,15 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         //current liquidity
         uint256 _liquidity = totalLiquidity();
-        //accrue fee
-        vault.addValue(_fee, msg.sender, parameters.getOwner());
-        //accrue premium
+
+        //accrue premium/fee
+
         uint256 _newAttribution = vault.addValue(
-            _deducted,
+            _premium,
             msg.sender,
-            address(this)
+            [address(this), parameters.getOwner()],
+            [1e5 - _fee, _fee],
+            2
         );
 
         //Lock covered amount
@@ -680,7 +687,12 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         uint256 _deductionFromIndex = (_debt * totalCredit * MAGIC_SCALE_1E8) /
             totalLiquidity();
-
+        console.log(
+            "pool-resume 1 debt: %s totalLiquidity %s",
+            _debt,
+            totalLiquidity()
+        );
+        uint256 _actualDeduction;
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indicies[indexList[i]].credit > 0) {
                 uint256 _shareOfIndex = (indicies[indexList[i]].credit *
@@ -689,11 +701,29 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                     _deductionFromIndex,
                     _shareOfIndex
                 );
-                IIndexTemplate(indexList[i]).compensate(_redeemAmount);
+                _actualDeduction += IIndexTemplate(indexList[i]).compensate(
+                    _redeemAmount
+                );
             }
         }
 
-        vault.settleDebt(address(this));
+        uint256 _deductionFromPool = _debt -
+            _deductionFromIndex /
+            MAGIC_SCALE_1E8;
+        uint256 _shortage = _deductionFromIndex /
+            MAGIC_SCALE_1E8 -
+            _actualDeduction;
+        console.log(
+            "pool-resume 2 debt: %s _deductionFromPool %s _shortage %s ",
+            _debt,
+            _deductionFromPool,
+            _shortage
+        );
+        if (_deductionFromPool > 0) {
+            vault.offsetDebt(_deductionFromPool, address(this));
+        }
+        console.log("pool-resume 3 totalLiquidity: %s ", totalLiquidity());
+        vault.transferDebt(_shortage);
 
         marketStatus = MarketStatus.Trading;
         emit MarketStatusChanged(marketStatus);

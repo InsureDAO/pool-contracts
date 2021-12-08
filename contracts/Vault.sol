@@ -68,18 +68,24 @@ contract Vault is IVault {
      * @notice A registered contract can deposit collateral and get attribution point in return
      * @param  _amount amount of token to deposit
      * @param _from sender's address
-     * @param _beneficiary beneficiary's address
+     * @param _beneficiaries beneficiary's address array
+     * @param _shares funds share within beneficiaries (100% = 100000)
+     * @param _length array length
      * @return _attributions attribution amount generated from the transaction
      */
     function addValue(
         uint256 _amount,
         address _from,
-        address _beneficiary
+        address[2] memory _beneficiaries,
+        uint256[2] memory _shares,
+        uint256 _length
     ) external override returns (uint256 _attributions) {
+        /*
         require(
             IRegistry(registry).isListed(msg.sender),
             "ERROR_ADD-VALUE_BADCONDITOONS"
         );
+        */
         if (totalAttributions == 0) {
             _attributions = _amount;
         } else {
@@ -90,7 +96,10 @@ contract Vault is IVault {
 
         balance += _amount;
         totalAttributions += _attributions;
-        attributions[_beneficiary] += _attributions;
+        for (uint128 i = 0; i < _length; i++) {
+            uint256 _allocation = (_attributions * 1e5) / _shares[i];
+            attributions[_beneficiaries[i]] += _allocation;
+        }
     }
 
     /**
@@ -136,15 +145,16 @@ contract Vault is IVault {
     function transferValue(uint256 _amount, address _destination)
         external
         override
+        returns (uint256 _attributions)
     {
         require(
             attributions[msg.sender] > 0 &&
                 underlyingValue(msg.sender) >= _amount,
             "ERROR_TRANSFER-VALUE_BADCONDITOONS"
         );
-        uint256 _targetAttribution = (_amount * totalAttributions) / valueAll();
-        attributions[msg.sender] -= _targetAttribution;
-        attributions[_destination] += _targetAttribution;
+        _attributions = (_amount * totalAttributions) / valueAll();
+        attributions[msg.sender] -= _attributions;
+        attributions[_destination] += _attributions;
     }
 
     /**
@@ -172,14 +182,50 @@ contract Vault is IVault {
     /**
      * @notice an address that has balance in the vault can transfer underlying value
      * @param _amount sender of value
-     * @param _target reciepient of value
      */
 
-    function repayDebt(uint256 _amount, address _target)
+    function transferDebt(uint256 _amount) external override {
+        require(
+            IRegistry(registry).isListed(msg.sender),
+            "ERROR_TRANSFER-DEBT_BADCONDITOONS"
+        );
+        debts[msg.sender] -= _amount;
+        debts[address(0)] += _amount;
+    }
+
+    /*
+    function borrowAndTransfer(uint256 _amount, address _to)
         external
         override
         returns (uint256 _attributions)
     {
+        require(
+            IRegistry(registry).isListed(msg.sender),
+            "ERROR_BORROW-VALUE_BADCONDITOONS"
+        );
+        _attributions = (totalAttributions * _amount) / valueAll();
+
+        debts[msg.sender] += _amount;
+        attributions[_to] += _attributions;
+    }
+    */
+
+    /**
+     * @notice an address that has balance in the vault can transfer underlying value
+     * @param _amount sender of value
+     * @param _target reciepient of value
+     */
+
+    function offsetDebt(uint256 _amount, address _target)
+        external
+        override
+        returns (uint256 _attributions)
+    {
+        console.log(
+            "offset underlyingValue(msg.sender): %s _amount: %s",
+            underlyingValue(msg.sender),
+            _amount
+        );
         require(
             attributions[msg.sender] > 0 &&
                 underlyingValue(msg.sender) >= _amount,
@@ -191,9 +237,27 @@ contract Vault is IVault {
     }
 
     /**
+     * @notice repay debt by non attribution holders
+     * @param _amount sender of value
+     * @param _target reciepient of value
+     */
+
+    function repayDebt(uint256 _amount, address _target) external override {
+        uint256 _debt = debts[_target];
+        if (_debt >= _amount) {
+            IERC20(token).safeTransfer(_target, _amount);
+            debts[_target] -= _amount;
+        } else {
+            IERC20(token).safeTransfer(_target, _debt);
+            debts[_target] = 0;
+        }
+    }
+
+    /**
      * @notice an address that has balance in the vault can transfer underlying value
      * @param _debtor sender of value
      */
+    /*
 
     function settleDebt(address _debtor)
         external
@@ -219,6 +283,7 @@ contract Vault is IVault {
             debts[_debtor] = 0;
         }
     }
+    */
 
     /**
      * @notice an address that has balance in the vault can withdraw value denominated in attribution
