@@ -9,7 +9,6 @@ pragma solidity 0.8.7;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../interfaces/IOwnership.sol";
 import "./ABDKMath64x64.sol";
-import "hardhat/console.sol";
 
 contract BondingPremium {
 
@@ -132,8 +131,6 @@ contract BondingPremium {
         //(u1 area) - (u2 area) = premium rate between u1 and u2
         uint256 premiumRate = _premium_u1 - _premium_u2;
         premiumRate = premiumRate / T_1 / (u1-u2) / BASE ;
-
-        console.log("sc: premiumRate:", premiumRate);
 
         return premiumRate;
     }
