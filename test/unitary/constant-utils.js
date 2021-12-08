@@ -15,6 +15,7 @@ const ten_to_the_18 = BigNumber.from("1000000000000000000");
 const ten_to_the_6 = BigNumber.from("1000000");
 const ten_to_the_5 = BigNumber.from("100000");
 
+const ZERO = ethers.BigNumber.from("0");
 const ONE = ethers.BigNumber.from("1");
 const TWO = ethers.BigNumber.from("2");
 
@@ -82,6 +83,7 @@ Object.assign(exports, {
     ten_to_the_18,
     ten_to_the_6,
     ten_to_the_5,
+    ZERO,
     ONE,
     TWO,
     short,

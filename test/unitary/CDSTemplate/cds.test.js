@@ -8,8 +8,8 @@ const {
   verifyBalance,
   verifyBalances,
   verifyAllowance,
-  verifyPoolsStatus,
-  verifyPoolsStatusOf,
+  verifyPoolsStatus_legacy,
+  verifyPoolsStatusForIndex_legacy,
   verifyIndexStatus,
   verifyCDSStatus,
   verifyVaultStatus,
@@ -543,10 +543,11 @@ describe("CDS", function () {
         totalLiquidity: 970,
         totalAllocatedCredit: 19400,
         leverage: 20000,
-        withdrawable: 970
+        withdrawable: 970,
+        rate: "1000000000000000000"
       })
 
-      await verifyPoolsStatus({
+      await verifyPoolsStatus_legacy({
         pools: [
           {
             pool: market1,
@@ -556,7 +557,7 @@ describe("CDS", function () {
         ]
       })
 
-      await verifyPoolsStatusOf({
+      await verifyPoolsStatusForIndex_legacy({
         pools: [
           {
             pool: market1,
@@ -649,10 +650,11 @@ describe("CDS", function () {
         totalLiquidity: 0,
         totalAllocatedCredit: 0,
         leverage: 0,
-        withdrawable: 0
+        withdrawable: 0,
+        rate: "0"
       })
 
-      await verifyPoolsStatus({
+      await verifyPoolsStatus_legacy({
         pools: [
           {
             pool: market1,
@@ -662,7 +664,7 @@ describe("CDS", function () {
         ]
       })
 
-      await verifyPoolsStatusOf({
+      await verifyPoolsStatusForIndex_legacy({
         pools: [
           {
             pool: market1,
@@ -736,10 +738,11 @@ describe("CDS", function () {
         totalLiquidity: 970,
         totalAllocatedCredit: 19400,
         leverage: 20000,
-        withdrawable: 970
+        withdrawable: 970,
+        rate: "1000000000000000000"
       })
 
-      await verifyPoolsStatus({
+      await verifyPoolsStatus_legacy({
         pools: [
           {
             pool: market1,
@@ -749,7 +752,7 @@ describe("CDS", function () {
         ]
       })
 
-      await verifyPoolsStatusOf({
+      await verifyPoolsStatusForIndex_legacy({
         pools: [
           {
             pool: market1,
@@ -839,10 +842,11 @@ describe("CDS", function () {
         totalLiquidity: 0,
         totalAllocatedCredit: 0,
         leverage: 0,
-        withdrawable: 0
+        withdrawable: 0,
+        rate: 0
       })
 
-      await verifyPoolsStatus({
+      await verifyPoolsStatus_legacy({
         pools: [
           {
             pool: market1,
@@ -852,7 +856,7 @@ describe("CDS", function () {
         ]
       })
 
-      await verifyPoolsStatusOf({
+      await verifyPoolsStatusForIndex_legacy({
         pools: [
           {
             pool: market1,

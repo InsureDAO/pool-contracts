@@ -22,7 +22,12 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
     constructor() {
     }
 
+
     function initializeToken(string memory name_, string memory symbol_, uint8 decimals_) internal{
+        /***
+        *@notice initialize token. Only called internally.
+        *
+        */
         assert(!tokenInitialized);
         tokenInitialized = true;
         _name = name_;
