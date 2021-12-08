@@ -128,7 +128,7 @@ describe("Pool", function () {
     }
 
     if(!m1.utilizationRate.isZero()){
-      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E8.mul(m1.insured).div(m1.marketBalance)
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E8.mul(m1.insured).div(m1.marketBalance) //how much ratio is locked (=bought as insurance) among the pool.
     }else{
       m1.utilizationRate = ZERO
     }
