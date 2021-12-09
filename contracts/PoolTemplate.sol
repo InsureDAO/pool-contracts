@@ -242,13 +242,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         _mintAmount = worth(_amount);
 
-        vault.addValue(
-            _amount,
-            msg.sender,
-            [address(this), address(0)],
-            [uint256(1e5), uint256(0)],
-            1
-        );
+        vault.addValue(_amount, msg.sender, address(this));
 
         emit Deposit(msg.sender, _amount, _mintAmount);
 
@@ -485,13 +479,15 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 _liquidity = totalLiquidity();
 
         //accrue premium/fee
-
-        uint256 _newAttribution = vault.addValue(
+        console.log(
+            "pool-insure 1  vault.underlyingValue(address(this)) %s",
+            vault.underlyingValue(address(this))
+        );
+        uint256[2] memory _newAttribution = vault.addValueBatch(
             _premium,
             msg.sender,
             [address(this), parameters.getOwner()],
-            [1e5 - _fee, _fee],
-            2
+            [1e5 - _fee, _fee]
         );
 
         //Lock covered amount
@@ -510,8 +506,14 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         insuranceHoldings[msg.sender].push(_id);
 
         //Calculate liquidity
-        uint256 _attributionForIndex = (_newAttribution * totalCredit) /
+        uint256 _attributionForIndex = (_newAttribution[0] * totalCredit) /
             _liquidity;
+        console.log(
+            "pool-insure 2 _attributionForIndex: %s _newAttribution %s vault.underlyingValue(address(this)) %s",
+            _attributionForIndex,
+            _newAttribution[0],
+            vault.underlyingValue(address(this))
+        );
         attributionDebt += _attributionForIndex;
 
         if (totalCredit > 0) {
