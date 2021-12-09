@@ -70,15 +70,51 @@ contract Vault is IVault {
      * @param _from sender's address
      * @param _beneficiaries beneficiary's address array
      * @param _shares funds share within beneficiaries (100% = 100000)
-     * @param _length array length
-     * @return _attributions attribution amount generated from the transaction
+     * @return _allocations attribution amount generated from the transaction
      */
-    function addValue(
+    function addValueBatch(
         uint256 _amount,
         address _from,
         address[2] memory _beneficiaries,
-        uint256[2] memory _shares,
-        uint256 _length
+        uint256[2] memory _shares
+    ) external override returns (uint256[2] memory _allocations) {
+        /*
+        require(
+            IRegistry(registry).isListed(msg.sender),
+            "ERROR_ADD-VALUE_BADCONDITOONS"
+        );
+        */
+        uint256 _attributions;
+        if (totalAttributions == 0) {
+            _attributions = _amount;
+        } else {
+            uint256 _pool = valueAll();
+            _attributions = (_amount * totalAttributions) / _pool;
+        }
+        IERC20(token).safeTransferFrom(_from, address(this), _amount);
+
+        balance += _amount;
+        totalAttributions += _attributions;
+        for (uint128 i = 0; i < 2; i++) {
+            uint256 _allocation = (_shares[i] * _attributions) / 1e5;
+            attributions[_beneficiaries[i]] += _allocation;
+            _allocations[i] = _allocation;
+            console.log("vault add", _shares[i], _allocation, _attributions);
+        }
+    }
+
+    /**
+     * @notice A registered contract can deposit collateral and get attribution point in return
+     * @param  _amount amount of token to deposit
+     * @param _from sender's address
+     * @param _beneficiary beneficiary's address
+     * @return _attributions attribution amount generated from the transaction
+     */
+
+    function addValue(
+        uint256 _amount,
+        address _from,
+        address _beneficiary
     ) external override returns (uint256 _attributions) {
         /*
         require(
@@ -93,13 +129,9 @@ contract Vault is IVault {
             _attributions = (_amount * totalAttributions) / _pool;
         }
         IERC20(token).safeTransferFrom(_from, address(this), _amount);
-
         balance += _amount;
         totalAttributions += _attributions;
-        for (uint128 i = 0; i < _length; i++) {
-            uint256 _allocation = (_attributions * 1e5) / _shares[i];
-            attributions[_beneficiaries[i]] += _allocation;
-        }
+        attributions[_beneficiary] += _attributions;
     }
 
     /**

@@ -138,14 +138,7 @@ contract CDSTemplate is InsureDAOERC20, ICDS {
         _beneficiaries[0] = address(this);
         uint256[] memory _shares = new uint256[](1);
         _shares[0] = 1e5;
-        crowdPool += vault.addValue(
-            _amount,
-            msg.sender,
-            [address(this), address(0)],
-            [uint256(1e5), uint256(0)],
-            1
-        );
-
+        crowdPool += vault.addValue(_amount, msg.sender, address(this));
         if (_supply > 0 && _liquidity > 0) {
             _mintAmount = (_amount * _supply) / _liquidity;
         } else if (_supply > 0 && _liquidity == 0) {
@@ -171,9 +164,7 @@ contract CDSTemplate is InsureDAOERC20, ICDS {
         uint256 _attribution = vault.addValue(
             _amount,
             msg.sender,
-            [address(this), address(0)],
-            [uint256(1e5), uint256(0)],
-            1
+            address(this)
         );
 
         surplusPool += _attribution;

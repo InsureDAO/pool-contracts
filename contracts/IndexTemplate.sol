@@ -168,13 +168,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         uint256 _supply = totalSupply();
         uint256 _totalLiquidity = totalLiquidity();
-        vault.addValue(
-            _amount,
-            msg.sender,
-            [address(this), address(0)],
-            [uint256(1e5), uint256(0)],
-            1
-        );
+        vault.addValue(_amount, msg.sender, address(this));
 
         if (_supply > 0 && _totalLiquidity > 0) {
             _mintAmount = (_amount * _supply) / _totalLiquidity;
@@ -251,12 +245,20 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         //Check current leverage rate and get updated target total credit allocation
         uint256 _liquidityAfter = _liquidty - _retVal;
-        uint256 _leverage = (totalAllocatedCredit * LEVERAGE_DIVISOR_1E3) /
-            _liquidityAfter;
-        //execut adjustAlloc only when the leverage became above target + upper-slack
-        if (targetLev + parameters.getUpperSlack(address(this)) < _leverage) {
-            _adjustAlloc(_liquidityAfter);
+
+        if (_liquidityAfter > 0) {
+            uint256 _leverage = (totalAllocatedCredit * LEVERAGE_DIVISOR_1E3) /
+                _liquidityAfter;
+            //execut adjustAlloc only when the leverage became above target + upper-slack
+            if (
+                targetLev + parameters.getUpperSlack(address(this)) < _leverage
+            ) {
+                _adjustAlloc(_liquidityAfter);
+            }
+        } else {
+            _adjustAlloc(0);
         }
+
         //Withdraw liquidity
         vault.withdrawValue(_retVal, msg.sender);
 
