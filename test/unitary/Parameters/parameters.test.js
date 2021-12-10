@@ -41,7 +41,7 @@ describe("Parameters", function () {
     });
   });
 
-  describe.skip("parameters functions", function () {
+  describe("parameters functions", function () {
     describe("general", function(){
       it("registers universal params", async () => {
         await parameters.setGrace(ZERO_ADDRESS, "1000");
@@ -51,9 +51,6 @@ describe("Parameters", function () {
         await parameters.setVault(ZERO_ADDRESS, test.address);
         await parameters.setWithdrawable(ZERO_ADDRESS, "1000");
   
-        expect(await parameters.getCDSPremium("10000", creator.address)).to.equal(
-          "100"
-        );
         expect(await parameters.getGrace(creator.address)).to.equal("1000");
         expect(await parameters.getLockup(creator.address)).to.equal("1000");
         expect(await parameters.getMin(creator.address)).to.equal("1000");
@@ -69,13 +66,7 @@ describe("Parameters", function () {
         await parameters.setMindate(test.address, "10000");
         await parameters.setVault(test.address, test.address);
         await parameters.setWithdrawable(test.address, "10000");
-  
-        expect(
-          await parameters.connect(test).getCDSPremium("10000", test.address)
-        ).to.equal("1000");
-        expect(
-          await parameters.connect(test).getDepositFee(10000, test.address)
-        ).to.equal("1000");
+
         expect(await parameters.connect(test).getGrace(test.address)).to.equal(
           "10000"
         );
