@@ -105,7 +105,7 @@ describe("Factory", function () {
     });
   });
 
-  describe.skip("duplicate market", function () {
+  describe("duplicate market", function () {
     it("Should revert when it's not allowed", async () => {
       await factory.approveTemplate(poolTemplate.address, true, false, false);
       await expect(
@@ -124,44 +124,6 @@ describe("Factory", function () {
         "Here is metadata.",
         [1, 0],
         [dai.address, dai.address, registry.address, parameters.address]
-      );
-    });
-  });
-  
-  describe.skip("ownership functions", function () {
-    //revert test
-    it("test_commit_owner_only", async () => {
-      await expect(
-        registry.connect(alice).commitTransferOwnership(alice.address)
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
-    });
-
-    it("test_apply_owner_only", async () => {
-      await expect(
-        registry.connect(alice).applyTransferOwnership()
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
-    });
-
-    //test
-    it("test_commitTransferOwnership", async () => {
-      await registry.commitTransferOwnership(alice.address);
-
-      expect(await registry.owner()).to.equal(creator.address);
-      expect(await registry.future_owner()).to.equal(alice.address);
-    });
-
-    it("test_applyTransferOwnership", async () => {
-      await registry.commitTransferOwnership(alice.address);
-      await ethers.provider.send("evm_increaseTime", [86400 * 4]);
-      await registry.applyTransferOwnership();
-
-      expect(await registry.owner()).to.equal(alice.address);
-      expect(await registry.future_owner()).to.equal(alice.address);
-    });
-
-    it("test_apply_without_commit", async () => {
-      await expect(registry.applyTransferOwnership()).to.revertedWith(
-        "dev: no active transfer"
       );
     });
   });
