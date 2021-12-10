@@ -38,7 +38,7 @@ describe("registry", function () {
     });
   });
 
-  describe.skip("registry functions", function () {
+  describe("registry functions", function () {
     it("allows register markets", async () => {
       await registry.supportMarket(market1.address);
       await registry.supportMarket(market2.address);
