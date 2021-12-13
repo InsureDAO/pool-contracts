@@ -10,10 +10,8 @@ pragma solidity 0.8.7;
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IUniversalMarket.sol";
 import "./interfaces/IRegistry.sol";
-import "hardhat/console.sol";
 
 contract Factory {
-
     event MarketCreated(
         address indexed market,
         address indexed template,
@@ -74,11 +72,14 @@ contract Factory {
     IOwnership public ownership;
 
     modifier onlyOwner() {
-        require(ownership.owner() == msg.sender, 'Restricted: caller is not allowed to operate');
+        require(
+            ownership.owner() == msg.sender,
+            "Restricted: caller is not allowed to operate"
+        );
         _;
     }
 
-    constructor(address _registry, address _ownership){
+    constructor(address _registry, address _ownership) {
         registry = _registry;
         ownership = IOwnership(_ownership);
     }

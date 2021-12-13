@@ -10,21 +10,21 @@ pragma solidity 0.8.7;
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IFeeModel.sol";
 
-contract FeeModel is IFeeModel{
-
-
-    uint256 public _feeRate; //fee rate represented in 1e5 scale. (100% = 1e5, 10% = 1e4)
-    uint256 public constant MAX_RATE = 30000; //30% of the premium
+contract FeeModel is IFeeModel {
+    uint256 public _feeRate; //fee rate represented in 1e6 scale. (100% = 1e6, 10% = 1e5)
+    uint256 public constant MAX_RATE = 300000; //30% of the premium
 
     IOwnership public ownership;
 
-
     modifier onlyOwner() {
-        require(ownership.owner() == msg.sender, 'Restricted: caller is not allowed to operate');
+        require(
+            ownership.owner() == msg.sender,
+            "Restricted: caller is not allowed to operate"
+        );
         _;
     }
 
-    constructor(address _ownership){
+    constructor(address _ownership) {
         ownership = IOwnership(_ownership);
     }
 
@@ -33,12 +33,12 @@ contract FeeModel is IFeeModel{
      * @param _premium premium amount
      * @return fee amount
      */
-    function getFee(uint256 _premium) external override view returns (uint256) {
-        return _premium * _feeRate / 100000;
+    function getFee(uint256 _premium) external view override returns (uint256) {
+        return (_premium * _feeRate) / 1e6;
     }
 
     /**
-     * @notice Set fee rate in 1e5 scale (100% = 1e5, 10% = 1e4)
+     * @notice Set fee rate in 1e6 scale (100% = 1e6, 10% = 1e5)
      * @param _target fee ratio
      */
     function setFee(uint256 _target) external onlyOwner {
