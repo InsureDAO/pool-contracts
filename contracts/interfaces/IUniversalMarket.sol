@@ -7,7 +7,7 @@ interface IUniversalMarket {
         address[] calldata _references
     ) external;
 
+    //onlyOwner
     function setPaused(bool state) external;
-
     function changeMetadata(string calldata _metadata) external;
 }

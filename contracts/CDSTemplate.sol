@@ -10,14 +10,15 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
+import "./interfaces/IUniversalMarket.sol";
 import "./InsureDAOERC20.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IParameters.sol";
-import "./interfaces/ICDS.sol";
+import "./interfaces/ICDSTemplate.sol";
 import "./interfaces/IMinter.sol";
 
-contract CDSTemplate is InsureDAOERC20, ICDS {
+contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket{
     /**
      * EVENTS
      */
@@ -94,7 +95,7 @@ contract CDSTemplate is InsureDAOERC20, ICDS {
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external {
+    ) external override {
         require(
             initialized == false &&
                 bytes(_metaData).length > 0 &&
@@ -172,7 +173,7 @@ contract CDSTemplate is InsureDAOERC20, ICDS {
         emit Fund(msg.sender, _amount, _attribution);
     }
 
-    function defund(uint256 _amount) external onlyOwner {
+    function defund(uint256 _amount) external override onlyOwner {
         require(paused == false, "ERROR: DEPOSIT_DISABLED");
 
         uint256 _attribution = vault.withdrawValue(_amount, msg.sender);
@@ -315,7 +316,7 @@ contract CDSTemplate is InsureDAOERC20, ICDS {
      * @notice Change metadata string
      * @param _metadata new metadata string
      */
-    function changeMetadata(string calldata _metadata) external onlyOwner {
+    function changeMetadata(string calldata _metadata) external override onlyOwner {
         metadata = _metadata;
         emit MetadataChanged(_metadata);
     }
@@ -324,7 +325,7 @@ contract CDSTemplate is InsureDAOERC20, ICDS {
      * @notice Used for changing settlementFeeRecipient
      * @param _state true to set paused and vice versa
      */
-    function setPaused(bool _state) external onlyOwner {
+    function setPaused(bool _state) external override onlyOwner {
         if (paused != _state) {
             paused = _state;
             emit Paused(_state);

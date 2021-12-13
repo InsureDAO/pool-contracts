@@ -6,9 +6,6 @@ import "./interfaces/IRegistry.sol";
 
 contract Registry is IRegistry{
 
-
-    event CommitNewAdmin(uint256 deadline, address future_admin);
-    event NewAdmin(address admin);
     event ExistenceSet(
         address indexed target,
         uint256 indexed typeId,
@@ -41,7 +38,7 @@ contract Registry is IRegistry{
      * @notice Set the factory address and allow it to regiser a new market
      * @param _factory factory address
      */
-    function setFactory(address _factory) external onlyOwner{
+    function setFactory(address _factory) external override onlyOwner{
         require(_factory != address(0), "dev: zero address");
 
         factory = _factory;
@@ -80,7 +77,7 @@ contract Registry is IRegistry{
      * @param _address address to set CDS
      * @param _cds CDS contract address
      */
-    function setCDS(address _address, address _cds) external onlyOwner{
+    function setCDS(address _address, address _cds) external override onlyOwner{
         require(_cds != address(0), "dev: zero address");
 
         cds[_address] = _cds;

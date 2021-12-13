@@ -646,7 +646,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         bytes32 _merkleRoot,
         bytes32[] calldata _rawdata,
         string calldata _memo
-    ) external onlyOwner {
+    ) external override onlyOwner {
         require(
             marketStatus != MarketStatus.Payingout,
             "ERROR: UNABLE_TO_APPLY"

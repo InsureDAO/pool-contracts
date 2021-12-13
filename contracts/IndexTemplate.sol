@@ -16,7 +16,7 @@ import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IParameters.sol";
 import "./interfaces/IPoolTemplate.sol";
-import "./interfaces/ICDS.sol";
+import "./interfaces/ICDSTemplate.sol";
 
 /**
  * An index pool can index a certain number of pools with leverage.
@@ -436,7 +436,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             if (totalLiquidity() < _amount) {
                 //Insolvency case
                 _shortage = _amount - _value;
-                uint256 _cds = ICDS(registry.getCDS(address(this))).compensate(
+                uint256 _cds = ICDSTemplate(registry.getCDS(address(this))).compensate(
                     _shortage
                 );
                 _compensated = _value + _cds;
@@ -570,7 +570,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice Change target leverate rate for this index x 1e3
      * @param _target new leverage rate
      */
-    function setLeverage(uint256 _target) external onlyOwner {
+    function setLeverage(uint256 _target) external override onlyOwner {
         targetLev = _target;
         adjustAlloc();
         emit LeverageSet(_target);
@@ -586,7 +586,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _index,
         address _pool,
         uint256 _allocPoint
-    ) public onlyOwner {
+    ) public override onlyOwner {
         require(registry.isListed(_pool), "ERROR:UNREGISTERED_POOL");
         require(
             _index <= parameters.getMaxList(address(this)),
