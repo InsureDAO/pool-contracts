@@ -15,6 +15,7 @@ import "hardhat/console.sol";
 
 contract Factory is IFactory{
 
+
     event MarketCreated(
         address indexed market,
         address indexed template,
@@ -66,18 +67,20 @@ contract Factory is IFactory{
     //Each template has different set of conditions
     //true if that address is authorized within the template
     // Example condition list for pool template v1
-    // conditions[0] = target id
-    // conditions[1] = minimim deposit amount
+    // conditions[0] = minimim deposit amount
 
     address public registry;
     IOwnership public ownership;
 
     modifier onlyOwner() {
-        require(ownership.owner() == msg.sender, 'Restricted: caller is not allowed to operate');
+        require(
+            ownership.owner() == msg.sender,
+            "Restricted: caller is not allowed to operate"
+        );
         _;
     }
 
-    constructor(address _registry, address _ownership){
+    constructor(address _registry, address _ownership) {
         registry = _registry;
         ownership = IOwnership(_ownership);
     }

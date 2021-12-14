@@ -6,7 +6,6 @@ pragma solidity 0.8.7;
  * SPDX-License-Identifier: GPL-3.0
  */
 
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
@@ -54,6 +53,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket{
     IVault public vault;
     uint256 public surplusPool;
     uint256 public crowdPool;
+    uint256 public constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
 
     ///@notice user status management
     struct Withdrawal {
@@ -138,12 +138,12 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket{
         address[] memory _beneficiaries = new address[](1);
         _beneficiaries[0] = address(this);
         uint256[] memory _shares = new uint256[](1);
-        _shares[0] = 1e5;
+        _shares[0] = MAGIC_SCALE_1E6;
         crowdPool += vault.addValue(_amount, msg.sender, address(this));
         if (_supply > 0 && _liquidity > 0) {
             _mintAmount = (_amount * _supply) / _liquidity;
         } else if (_supply > 0 && _liquidity == 0) {
-            _mintAmount = _amount / _supply;
+            _mintAmount = (_amount * _supply) / _amount;
         } else {
             _mintAmount = _amount;
         }
@@ -281,12 +281,14 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket{
     }
 
     /**
-     * @notice Get the exchange rate of LP token against underlying asset(scaled by 1e18, if 1e18, the value of iToken vs underlier is 1:1)
+     * @notice Get the exchange rate of LP token against underlying asset(scaled by MAGIC_SCALE_1E6, if MAGIC_SCALE_1E6, the value of iToken vs underlier is 1:1)
      * @return The value against the underlying token balance.
      */
     function rate() external view returns (uint256) {
         if (totalSupply() > 0) {
-            return (vault.attributionValue(crowdPool) * 1e18) / totalSupply();
+            return
+                (vault.attributionValue(crowdPool) * MAGIC_SCALE_1E6) /
+                totalSupply();
         } else {
             return 0;
         }
