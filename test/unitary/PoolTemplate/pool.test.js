@@ -17,6 +17,7 @@ const {
 
   verifyVaultStatus,
   verifyVaultStatusOf,
+  verifyDebtOf,
 
   verifyRate
 } = require('../test-utils')
@@ -72,7 +73,8 @@ describe("Pool", function () {
     insured: BigNumber.from("0"),
     rate: BigNumber.from("0"),
     utilizationRate: BigNumber.from("0"),
-    allInsuranceCount: BigNumber.from("0")
+    allInsuranceCount: BigNumber.from("0"),
+    debt: BigNumber.from("0")
   }
 
   //global status tracker
@@ -148,6 +150,12 @@ describe("Pool", function () {
       ]
     })
 
+    await verifyDebtOf({
+      vault: vault,
+      target: target.address,
+      debt: m1.debt
+    })
+
     //sanity check
     await verifyValueOfUnderlying({
       template: target,
@@ -209,6 +217,12 @@ describe("Pool", function () {
       ]
     })
 
+    await verifyDebtOf({
+      vault: vault,
+      target: target.address,
+      debt: m1.debt
+    })
+
     //sanity check
     await verifyValueOfUnderlying({
       template: target,
@@ -267,6 +281,12 @@ describe("Pool", function () {
       ]
     })
 
+    await verifyDebtOf({
+      vault: vault,
+      target: target.address,
+      debt: m1.debt
+    })
+
     await verifyValueOfUnderlying({
       template: target,
       valueOfUnderlyingOf: withdrawer.address,
@@ -279,7 +299,7 @@ describe("Pool", function () {
     let tx = await pool.connect(insurer).insure(amount, maxCost, span, target);
 
     let receipt = await tx.wait()
-    let premium = receipt.events[4].args[6]
+    let premium = receipt.events[2].args['premium']
 
     let govFee = premium.mul(governanceFeeRate).div(RATE_DIVIDER)
     let fee = premium.sub(govFee)
@@ -325,6 +345,12 @@ describe("Pool", function () {
       ]
     })
 
+    await verifyDebtOf({
+      vault: vault,
+      target: pool.address,
+      debt: m1.debt
+    })
+
     await verifyVaultStatus({
       vault: vault,
       valueAll: g.totalBalance,
@@ -350,7 +376,7 @@ describe("Pool", function () {
 
     //update global and market status => check
     m1.insured = m1.insured.sub(insuredAmount)
-    m1.marketBalance = m1.marketBalance.sub(payoutAmount)
+    m1.debt = m1.debt.add(payoutAmount)
 
     g.totalBalance = g.totalBalance.sub(payoutAmount)
 
@@ -380,6 +406,12 @@ describe("Pool", function () {
       ]
     })
 
+    await verifyDebtOf({
+      vault: vault,
+      target: pool.address,
+      debt: m1.debt
+    })
+
     await verifyVaultStatus({
       vault: vault,
       valueAll: g.totalBalance,
@@ -387,6 +419,36 @@ describe("Pool", function () {
     })
 
 
+  }
+
+  const resume = async({market}) => {
+    await market.resume();
+
+    //no update on user status
+    //update global and market status => check
+    let amount = (m1.marketBalance).gte(m1.debt) ? m1.debt : m1.marketBalance
+
+    m1.debt = m1.debt.sub(amount)
+    m1.marketBalance = m1.marketBalance.sub(amount)
+
+    if(!m1.marketBalance.isZero()){
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E8.mul(m1.insured).div(m1.marketBalance)
+    }else{
+      m1.utilizationRate = ZERO
+    }
+
+    if(!m1.depositAmount.isZero()){
+      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP)
+    }else{
+      m1.rate = ZERO
+    }
+
+    expect(m1.debt).to.equal(ZERO)
+    await verifyDebtOf({
+      vault: vault,
+      target: market.address,
+      debt: m1.debt
+    })
   }
 
 
@@ -500,7 +562,6 @@ describe("Pool", function () {
     const Factory = await ethers.getContractFactory("Factory");
     const Vault = await ethers.getContractFactory("Vault");
     const Registry = await ethers.getContractFactory("Registry");
-    const FeeModel = await ethers.getContractFactory("FeeModel");
     const PremiumModel = await ethers.getContractFactory("TestPremiumModel");
     const Parameters = await ethers.getContractFactory("Parameters");
     const Contorller = await ethers.getContractFactory("ControllerMock");
@@ -510,7 +571,6 @@ describe("Pool", function () {
     dai = await DAI.deploy();
     registry = await Registry.deploy(ownership.address);
     factory = await Factory.deploy(registry.address, ownership.address);
-    fee = await FeeModel.deploy(ownership.address);
     premium = await PremiumModel.deploy();
     controller = await Contorller.deploy(dai.address, ownership.address);
     vault = await Vault.deploy(
@@ -547,12 +607,11 @@ describe("Pool", function () {
     );
 
     //set default parameters
-    await fee.setFee(governanceFeeRate);
+    await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
     await parameters.setGrace(ZERO_ADDRESS, "259200");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
     await parameters.setMindate(ZERO_ADDRESS, "604800");
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
-    await parameters.setFeeModel(ZERO_ADDRESS, fee.address);
     await parameters.setWithdrawable(ZERO_ADDRESS, "2592000");
     await parameters.setVault(dai.address, vault.address);
 
@@ -621,6 +680,7 @@ describe("Pool", function () {
     m1.rate = ZERO
     m1.utilizationRate = ZERO
     m1.allInsuranceCount = ZERO
+    m1.debt = ZERO
 
     //go back to initial block
     await restore(snapshotId)
@@ -1147,7 +1207,10 @@ describe("Pool", function () {
       );
 
       await moveForwardPeriods(11)
-      await market.resume();
+      
+      await resume({
+        market: market
+      })
 
       await withdraw({
         target: market,
@@ -1225,7 +1288,9 @@ describe("Pool", function () {
       })
 
       await moveForwardPeriods(11)
-      await market.resume();
+      await resume({
+        market: market
+      })
 
       await withdraw({
         target: market,
@@ -1292,25 +1357,27 @@ describe("Pool", function () {
       })
 
      //sanity check
-     await verifyPoolsStatus({
-      pools: [
-        {
-          pool: market,
-          totalLP: m1.totalLP,
-          totalLiquidity: m1.marketBalance,
-          availableBalance: m1.marketBalance.sub(m1.insured),
-          rate: m1.rate,
-          utilizationRate: m1.utilizationRate,
-          allInsuranceCount: m1.allInsuranceCount
-        }
-      ]
-    })
+      await verifyPoolsStatus({
+        pools: [
+          {
+            pool: market,
+            totalLP: m1.totalLP,
+            totalLiquidity: m1.marketBalance,
+            availableBalance: m1.marketBalance.sub(m1.insured),
+            rate: m1.rate,
+            utilizationRate: m1.utilizationRate,
+            allInsuranceCount: m1.allInsuranceCount
+          }
+        ]
+      })
 
-      expect(await market.valueOfUnderlying(alice.address)).to.equal("9090");
+      expect(await market.valueOfUnderlying(alice.address)).to.equal(u[alice.address].lp.mul(m1.rate).div(defaultRate));
 
       await moveForwardPeriods(11)
 
-      await market.resume();
+      await resume({
+        market: market
+      })
 
       await withdraw({
         target: market,
@@ -1363,7 +1430,9 @@ describe("Pool", function () {
       })
 
       await moveForwardPeriods(12)
-      await market.resume();
+      await resume({
+        market: market
+      })
 
       await expect(market.unlock("0")).to.revertedWith(
         "ERROR: UNLOCK_BAD_COINDITIONS"
@@ -1421,7 +1490,9 @@ describe("Pool", function () {
       })
 
       await moveForwardPeriods(11)
-      await market.resume();
+      await resume({
+        market: market
+      })
 
       await withdraw({
         target: market,
@@ -1465,7 +1536,9 @@ describe("Pool", function () {
 
       await moveForwardPeriods(12)
 
-      await market.resume();
+      await resume({
+        market: market
+      })
 
       await expect(market.connect(bob).redeem("0", proof)).to.revertedWith(
         "ERROR: NO_APPLICABLE_INCIDENT"
@@ -1553,7 +1626,9 @@ describe("Pool", function () {
 
       await moveForwardPeriods(12)
 
-      await market.resume();
+      await resume({
+        market: market
+      })
 
       await expect(market.connect(bob).redeem("0", proof)).to.revertedWith(
         "ERROR: NO_APPLICABLE_INCIDENT"
@@ -1621,7 +1696,9 @@ describe("Pool", function () {
 
       await moveForwardPeriods(11)
 
-      await market.resume();
+      await resume({
+        market: market
+      })
 
       await insure({
         pool: market,

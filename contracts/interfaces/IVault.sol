@@ -1,12 +1,17 @@
 pragma solidity 0.8.7;
 
 interface IVault {
-    function addValue(
+    function addValueBatch(
         uint256 _amount,
         address _from,
         address[2] memory _beneficiaries,
-        uint256[2] memory _shares,
-        uint256 _length
+        uint256[2] memory _shares
+    ) external returns (uint256[2] memory _allocations);
+
+    function addValue(
+        uint256 _amount,
+        address _from,
+        address _attribution
     ) external returns (uint256 _attributions);
 
     function withdrawValue(uint256 _amount, address _to)
@@ -60,4 +65,9 @@ interface IVault {
     function debts(address _debtor) external view returns (uint256);
 
     function transferDebt(uint256 _amount) external;
+
+    //onlyOwner
+    function withdrawRedundant(address _token, address _to) external;
+    function setController(address _controller) external;
+    function setKeeper(address _keeper) external;
 }

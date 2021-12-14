@@ -138,6 +138,9 @@ const verifyVaultStatusOf = async({vault, target, attributions, underlyingValue}
     expect(await vault.underlyingValue(target)).to.equal(underlyingValue);
 }
 
+const verifyDebtOf = async({vault, target, debt}) => {
+    expect(await vault.debts(target)).to.equal(debt);
+}
 
 
 //function
@@ -174,6 +177,7 @@ Object.assign(exports, {
     verifyCDSStatus,
 
     //vault
+    verifyDebtOf,
     verifyVaultStatus,
     verifyVaultStatusOf,
 

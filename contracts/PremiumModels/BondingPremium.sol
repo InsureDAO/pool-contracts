@@ -6,11 +6,12 @@ pragma solidity 0.8.7;
  * SPDX-License-Identifier: GPL-3.0
  */
 
+import "../interfaces/IPremiumModel.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../interfaces/IOwnership.sol";
 import "./ABDKMath64x64.sol";
 
-contract BondingPremium {
+contract BondingPremium is IPremiumModel {
 
     ABDKMath64x64 public calculator;
     IOwnership public ownership;
@@ -52,7 +53,7 @@ contract BondingPremium {
     function getCurrentPremiumRate(
         uint256 _totalLiquidity,
         uint256 _lockedAmount
-    ) public view returns (uint256){
+    ) public view override returns (uint256){
         // utilization rate (0~1000000)
         uint256 _util = _lockedAmount * BASE / _totalLiquidity;
 
@@ -92,7 +93,7 @@ contract BondingPremium {
         uint256 _amount,
         uint256 _totalLiquidity,
         uint256 _lockedAmount
-    ) public view returns (uint256) {
+    ) public view override returns (uint256) {
         require(_amount + _lockedAmount <= _totalLiquidity, "exceed available balance");
 
         if(_totalLiquidity == 0 || _amount == 0){
@@ -147,7 +148,7 @@ contract BondingPremium {
         uint256 _term,
         uint256 _totalLiquidity,
         uint256 _lockedAmount
-    ) external view returns (uint256) {
+    ) external view override returns (uint256) {
         require(_amount + _lockedAmount <= _totalLiquidity, "Amount exceeds.");
         require(_totalLiquidity != 0, "_totalLiquidity cannnot be 0");
 
@@ -172,6 +173,7 @@ contract BondingPremium {
      */
     function setPremium(uint256 _multiplierPerYear, uint256 _initialBaseRatePerYear, uint256 _finalBaseRatePerYear, uint256 _goalTVL)
         external
+        override
         onlyOwner
     {
         k = _multiplierPerYear;

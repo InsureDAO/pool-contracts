@@ -1,9 +1,8 @@
 pragma solidity 0.8.7;
 
-interface ICDS {
+interface ICDSTemplate {
     function compensate(uint256) external returns (uint256 _compensated);
 
-    //function lock() external;
-
-    //function resume() external;
+    //onlyOwner
+    function defund(uint256 _amount) external;
 }

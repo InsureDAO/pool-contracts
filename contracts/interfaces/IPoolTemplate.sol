@@ -34,4 +34,15 @@ abstract contract IPoolTemplate {
         returns (uint256);
 
     function paused() external view virtual returns (bool);
+
+    //onlyOwner
+    function applyCover(
+        uint256 _pending,
+        uint256 _payoutNumerator,
+        uint256 _payoutDenominator,
+        uint256 _incidentTimestamp,
+        bytes32 _merkleRoot,
+        string calldata _rawdata,
+        string calldata _memo
+    ) external virtual;
 }

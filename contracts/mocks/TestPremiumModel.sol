@@ -7,10 +7,6 @@ contract TestPremiumModel {
     using SafeMath for uint256;
     using Address for address;
 
-    event CommitNewAdmin(uint256 deadline, address future_admin);
-    event NewAdmin(address admin);
-
-
     constructor() {
     }
 

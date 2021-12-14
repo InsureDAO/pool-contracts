@@ -6,18 +6,18 @@ pragma solidity 0.8.7;
  * SPDX-License-Identifier: GPL-3.0
  */
 
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
+import "./interfaces/IUniversalMarket.sol";
 import "./InsureDAOERC20.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IParameters.sol";
-import "./interfaces/ICDS.sol";
+import "./interfaces/ICDSTemplate.sol";
 import "./interfaces/IMinter.sol";
 
-contract CDSTemplate is InsureDAOERC20, ICDS {
+contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket{
     /**
      * EVENTS
      */
@@ -53,6 +53,7 @@ contract CDSTemplate is InsureDAOERC20, ICDS {
     IVault public vault;
     uint256 public surplusPool;
     uint256 public crowdPool;
+    uint256 public constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
 
     ///@notice user status management
     struct Withdrawal {
@@ -94,7 +95,7 @@ contract CDSTemplate is InsureDAOERC20, ICDS {
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external {
+    ) external override {
         require(
             initialized == false &&
                 bytes(_metaData).length > 0 &&
@@ -137,19 +138,12 @@ contract CDSTemplate is InsureDAOERC20, ICDS {
         address[] memory _beneficiaries = new address[](1);
         _beneficiaries[0] = address(this);
         uint256[] memory _shares = new uint256[](1);
-        _shares[0] = 1e5;
-        crowdPool += vault.addValue(
-            _amount,
-            msg.sender,
-            [address(this), address(0)],
-            [uint256(1e5), uint256(0)],
-            1
-        );
-
+        _shares[0] = MAGIC_SCALE_1E6;
+        crowdPool += vault.addValue(_amount, msg.sender, address(this));
         if (_supply > 0 && _liquidity > 0) {
             _mintAmount = (_amount * _supply) / _liquidity;
         } else if (_supply > 0 && _liquidity == 0) {
-            _mintAmount = _amount / _supply;
+            _mintAmount = (_amount * _supply) / _amount;
         } else {
             _mintAmount = _amount;
         }
@@ -171,9 +165,7 @@ contract CDSTemplate is InsureDAOERC20, ICDS {
         uint256 _attribution = vault.addValue(
             _amount,
             msg.sender,
-            [address(this), address(0)],
-            [uint256(1e5), uint256(0)],
-            1
+            address(this)
         );
 
         surplusPool += _attribution;
@@ -181,7 +173,7 @@ contract CDSTemplate is InsureDAOERC20, ICDS {
         emit Fund(msg.sender, _amount, _attribution);
     }
 
-    function defund(uint256 _amount) external onlyOwner {
+    function defund(uint256 _amount) external override onlyOwner {
         require(paused == false, "ERROR: DEPOSIT_DISABLED");
 
         uint256 _attribution = vault.withdrawValue(_amount, msg.sender);
@@ -289,12 +281,14 @@ contract CDSTemplate is InsureDAOERC20, ICDS {
     }
 
     /**
-     * @notice Get the exchange rate of LP token against underlying asset(scaled by 1e18, if 1e18, the value of iToken vs underlier is 1:1)
+     * @notice Get the exchange rate of LP token against underlying asset(scaled by MAGIC_SCALE_1E6, if MAGIC_SCALE_1E6, the value of iToken vs underlier is 1:1)
      * @return The value against the underlying token balance.
      */
     function rate() external view returns (uint256) {
         if (totalSupply() > 0) {
-            return (vault.attributionValue(crowdPool) * 1e18) / totalSupply();
+            return
+                (vault.attributionValue(crowdPool) * MAGIC_SCALE_1E6) /
+                totalSupply();
         } else {
             return 0;
         }
@@ -324,7 +318,7 @@ contract CDSTemplate is InsureDAOERC20, ICDS {
      * @notice Change metadata string
      * @param _metadata new metadata string
      */
-    function changeMetadata(string calldata _metadata) external onlyOwner {
+    function changeMetadata(string calldata _metadata) external override onlyOwner {
         metadata = _metadata;
         emit MetadataChanged(_metadata);
     }
@@ -333,7 +327,7 @@ contract CDSTemplate is InsureDAOERC20, ICDS {
      * @notice Used for changing settlementFeeRecipient
      * @param _state true to set paused and vice versa
      */
-    function setPaused(bool _state) external onlyOwner {
+    function setPaused(bool _state) external override onlyOwner {
         if (paused != _state) {
             paused = _state;
             emit Paused(_state);

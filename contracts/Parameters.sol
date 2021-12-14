@@ -10,8 +10,6 @@ pragma solidity 0.8.7;
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IParameters.sol";
 import "./interfaces/IPremiumModel.sol";
-import "./interfaces/IFeeModel.sol";
-
 import "hardhat/console.sol";
 
 contract Parameters is IParameters {
@@ -32,7 +30,7 @@ contract Parameters is IParameters {
     address public ownership;
 
     mapping(address => address) private _vaults; //address of the vault contract for each token
-    mapping(address => uint256) private _fee; //fee rate in 1e5 (100% = 1e5)
+    mapping(address => uint256) private _fee; //fee rate in 1e6 (100% = 1e6)
     mapping(address => address) private _premium; //address for each premium model contract
     mapping(address => uint256) private _lowerSlack; //lower slack range before adjustAlloc for index
     mapping(address => uint256) private _upperSlack; //upper slack range before adjustAlloc for index

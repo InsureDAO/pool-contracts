@@ -6,4 +6,12 @@ interface IIndexTemplate {
     function lock(uint256) external;
 
     function resume() external;
+
+    //onlyOwner
+    function setLeverage(uint256 _target) external;
+    function set(
+        uint256 _index,
+        address _pool,
+        uint256 _allocPoint
+    ) external;
 }

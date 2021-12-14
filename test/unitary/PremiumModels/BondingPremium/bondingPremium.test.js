@@ -67,8 +67,6 @@ describe("test BondingPremium", () => {
 
     let premiumRate = (premium_u1 - premium_u2) / (u1-u2);
 
-    console.log("a",a)
-
     return BigNumber.from(Math.round(premiumRate).toString())
   }
 
