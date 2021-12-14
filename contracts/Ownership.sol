@@ -12,52 +12,60 @@ contract Ownership is IOwnership {
     event AcceptNewOwnership(address owner);
 
     /**
-    * @dev Initializes the contract setting the deployer as the initial owner.
-    */
+     * @dev Initializes the contract setting the deployer as the initial owner.
+     */
     constructor() {
         _owner = msg.sender;
         emit AcceptNewOwnership(_owner);
     }
 
     /**
-    * @dev Returns the address of the current owner.
-    */
+     * @dev Returns the address of the current owner.
+     */
     function owner() external view override returns (address) {
         return _owner;
     }
-    
+
     function future_owner() external view override returns (address) {
         return _future_owner;
     }
 
-
     /**
-    * @dev Throws if called by any account other than the owner.
-    */
+     * @dev Throws if called by any account other than the owner.
+     */
     modifier onlyOwner() {
-        require(_owner == msg.sender, 'Restricted: caller is not allowed to operate');
+        require(
+            _owner == msg.sender,
+            "Restricted: caller is not allowed to operate"
+        );
         _;
     }
 
     modifier onlyFutureOwner() {
-        require(_future_owner == msg.sender, 'Restricted: caller is not allowed to operate');
+        require(
+            _future_owner == msg.sender,
+            "Restricted: caller is not allowed to operate"
+        );
         _;
     }
 
-
-    function commitTransferOwnership(address newOwner)external onlyOwner{
+    function commitTransferOwnership(address newOwner)
+        external
+        override
+        onlyOwner
+    {
         /***
-        *@notice Transfer ownership of GaugeController to `newOwner`
-        *@param newOwner Address to have ownership transferred to
-        */
+         *@notice Transfer ownership of GaugeController to `newOwner`
+         *@param newOwner Address to have ownership transferred to
+         */
         _future_owner = newOwner;
         emit CommitNewOwnership(_future_owner);
     }
 
-    function acceptTransferOwnership()external onlyFutureOwner{
+    function acceptTransferOwnership() external override onlyFutureOwner {
         /***
-        *@notice Accept a transfer of ownership
-        */
+         *@notice Accept a transfer of ownership
+         */
         _owner = _future_owner;
         emit AcceptNewOwnership(_owner);
     }
