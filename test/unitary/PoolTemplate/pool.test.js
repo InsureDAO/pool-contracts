@@ -25,6 +25,8 @@ const {
 
 const{ 
   ZERO_ADDRESS,
+  TEST_ADDRESS,
+  NULL_ADDRESS,
   short,
   YEAR,
   WEEK,
@@ -57,12 +59,13 @@ describe("Pool", function () {
 
   const depositAmount = BigNumber.from("10000"); //default deposit amount for test
   const depositAmountLarge = BigNumber.from("40000"); //default deposit amount (large) for test
-  const defaultRate = BigNumber.from("1000000000000000000"); //initial rate between USDC and LP token
+  const defaultRate = BigNumber.from("1000000"); //initial rate between USDC and LP token
   const insureAmount = BigNumber.from("10000"); //default insure amount for test
 
-  const governanceFeeRate = BigNumber.from("10000"); //10% of the Premium
-  const RATE_DIVIDER = BigNumber.from("100000"); //1e5
-  const UTILIZATION_RATE_LENGTH_1E8 = BigNumber.from("100000000"); //1e8
+  const governanceFeeRate = BigNumber.from("100000"); //10% of the Premium
+  const RATE_DIVIDER = BigNumber.from("1000000"); //1e6
+  const UTILIZATION_RATE_LENGTH_1E8 = BigNumber.from("1000000"); //1e6
+  const padded1 = ethers.utils.hexZeroPad("0x1", 32);
 
 
   //market status tracker.
@@ -98,22 +101,22 @@ describe("Pool", function () {
 
   //======== Function Wrappers ========//
   //execute function and update tracker.
-  const approveDeposit = async ({token, target, depositer, amount}) => {
+  const approveDeposit = async ({token, target, depositor, amount}) => {
 
     //execute
-    await token.connect(depositer).approve(vault.address, amount);
-    let tx = await target.connect(depositer).deposit(amount);
+    await token.connect(depositor).approve(vault.address, amount);
+    let tx = await target.connect(depositor).deposit(amount);
 
 
     //1. update user info => check
     let _mintAmount = (await tx.wait()).events[2].args["mint"].toString();
 
-    u[`${depositer.address}`].balance = u[`${depositer.address}`].balance.sub(amount) //track user wallet
-    u[`${depositer.address}`].deposited = u[`${depositer.address}`].deposited.add(amount) //track amount of deposited USDC
-    u[`${depositer.address}`].lp = u[`${depositer.address}`].lp.add(_mintAmount) //track amount of LP token
+    u[`${depositor.address}`].balance = u[`${depositor.address}`].balance.sub(amount) //track user wallet
+    u[`${depositor.address}`].deposited = u[`${depositor.address}`].deposited.add(amount) //track amount of deposited USDC
+    u[`${depositor.address}`].lp = u[`${depositor.address}`].lp.add(_mintAmount) //track amount of LP token
 
-    expect(await token.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].balance) //sanity check
-    expect(await target.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].lp) //sanity check
+    expect(await token.balanceOf(depositor.address)).to.equal(u[`${depositor.address}`].balance) //sanity check
+    expect(await target.balanceOf(depositor.address)).to.equal(u[`${depositor.address}`].lp) //sanity check
 
     
     //2. update global and market status => check
@@ -159,28 +162,28 @@ describe("Pool", function () {
     //sanity check
     await verifyValueOfUnderlying({
       template: target,
-      valueOfUnderlyingOf: depositer.address,
-      valueOfUnderlying: u[`${depositer.address}`].lp.mul(m1.rate).div(defaultRate)
+      valueOfUnderlyingOf: depositor.address,
+      valueOfUnderlying: u[`${depositor.address}`].lp.mul(m1.rate).div(defaultRate)
     })
   }
 
-  const approveDepositAndWithdrawRequest = async ({token, target, depositer, amount}) => {
+  const approveDepositAndWithdrawRequest = async ({token, target, depositor, amount}) => {
 
     //execute
-    await token.connect(depositer).approve(vault.address, amount);
-    let tx = await target.connect(depositer).deposit(amount);
-    await target.connect(depositer).requestWithdraw(amount);
+    await token.connect(depositor).approve(vault.address, amount);
+    let tx = await target.connect(depositor).deposit(amount);
+    await target.connect(depositor).requestWithdraw(amount);
 
 
     //update user info => check
     let _mintAmount = (await tx.wait()).events[2].args["mint"].toString()
 
-    u[`${depositer.address}`].balance = u[`${depositer.address}`].balance.sub(amount)
-    u[`${depositer.address}`].deposited = u[`${depositer.address}`].deposited.add(amount)
-    u[`${depositer.address}`].lp = u[`${depositer.address}`].lp.add(_mintAmount)
+    u[`${depositor.address}`].balance = u[`${depositor.address}`].balance.sub(amount)
+    u[`${depositor.address}`].deposited = u[`${depositor.address}`].deposited.add(amount)
+    u[`${depositor.address}`].lp = u[`${depositor.address}`].lp.add(_mintAmount)
 
-    expect(await token.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].balance) //sanity check
-    expect(await target.balanceOf(depositer.address)).to.equal(u[`${depositer.address}`].lp) //sanity check
+    expect(await token.balanceOf(depositor.address)).to.equal(u[`${depositor.address}`].balance) //sanity check
+    expect(await target.balanceOf(depositor.address)).to.equal(u[`${depositor.address}`].lp) //sanity check
 
     
     //update global and market status => check
@@ -226,8 +229,8 @@ describe("Pool", function () {
     //sanity check
     await verifyValueOfUnderlying({
       template: target,
-      valueOfUnderlyingOf: depositer.address,
-      valueOfUnderlying: u[`${depositer.address}`].lp.mul(m1.rate).div(defaultRate)
+      valueOfUnderlyingOf: depositor.address,
+      valueOfUnderlying: u[`${depositor.address}`].lp.mul(m1.rate).div(defaultRate)
     })
   }
 
@@ -243,7 +246,7 @@ describe("Pool", function () {
     u[`${withdrawer.address}`].deposited = u[`${withdrawer.address}`].deposited.sub(withdrawAmount)
     u[`${withdrawer.address}`].lp = u[`${withdrawer.address}`].lp.sub(amount)
 
-    expect(await dai.balanceOf(withdrawer.address)).to.equal(u[`${withdrawer.address}`].balance)
+    expect(await usdc.balanceOf(withdrawer.address)).to.equal(u[`${withdrawer.address}`].balance)
     expect(await target.balanceOf(withdrawer.address)).to.equal(u[`${withdrawer.address}`].lp)
 
 
@@ -295,7 +298,7 @@ describe("Pool", function () {
   }
 
   const insure = async ({pool, insurer, amount, maxCost, span, target}) => {
-    await dai.connect(insurer).approve(vault.address, maxCost)
+    await usdc.connect(insurer).approve(vault.address, maxCost)
     let tx = await pool.connect(insurer).insure(amount, maxCost, span, target);
 
     let receipt = await tx.wait()
@@ -304,10 +307,9 @@ describe("Pool", function () {
     let govFee = premium.mul(governanceFeeRate).div(RATE_DIVIDER)
     let fee = premium.sub(govFee)
 
-
     //update global and market status => check
     u[`${insurer.address}`].balance = u[`${insurer.address}`].balance.sub(premium)
-    expect(await dai.balanceOf(insurer.address)).to.equal(u[`${insurer.address}`].balance)
+    expect(await usdc.balanceOf(insurer.address)).to.equal(u[`${insurer.address}`].balance)
 
 
 
@@ -371,7 +373,7 @@ describe("Pool", function () {
 
     //update global and market status => check
     u[`${redeemer.address}`].balance = u[`${redeemer.address}`].balance.add(payoutAmount)
-    expect(await dai.balanceOf(redeemer.address)).to.equal(u[`${redeemer.address}`].balance)
+    expect(await usdc.balanceOf(redeemer.address)).to.equal(u[`${redeemer.address}`].balance)
 
 
     //update global and market status => check
@@ -451,6 +453,44 @@ describe("Pool", function () {
     })
   }
 
+  const unlockBatch = async ({market, ids}) => {
+
+    for await(id of ids){
+      let amount = (await market.insurances(id)).amount
+      console.log(amount)
+        //update status
+      m1.insured = m1.insured.sub(amount)
+
+      if(!m1.depositAmount.isZero()){
+        m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP)
+      }else{
+        m1.rate = ZERO
+      }
+
+      if(!m1.utilizationRate.isZero()){
+        m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E8.mul(m1.insured).div(m1.marketBalance)
+      }else{
+        m1.utilizationRate = ZERO
+      }
+    }
+
+    await market.unlockBatch(ids);
+
+
+    await verifyPoolsStatus({
+      pools: [
+        {
+          pool: market,
+          totalLP: m1.totalLP,
+          totalLiquidity: m1.marketBalance,
+          availableBalance: m1.marketBalance.sub(m1.insured),
+          rate: m1.rate,
+          utilizationRate: m1.utilizationRate,
+          allInsuranceCount: m1.allInsuranceCount
+        }
+      ]
+    })
+  }
 
   const unlock = async ({target, id}) => {
 
@@ -488,16 +528,41 @@ describe("Pool", function () {
     })
   }
 
-  const applyCover = async ({pool, pending, payoutNumerator, payoutDenominator, incidentTimestamp}) => {
+  const applyCover = async ({pool, pending, targetAddress, payoutNumerator, payoutDenominator, incidentTimestamp}) => {
 
-    const tree = await new MerkleTree(short, keccak256, {
-      hashLeaves: true,
-      sortPairs: true,
-    });
+    const padded1 = ethers.utils.hexZeroPad("0x1", 32);
+    const padded2 = ethers.utils.hexZeroPad("0x2", 32);
+    
+    const getLeaves = (target) => {
+      return [
+        { id: padded1, account: target },
+        { id: padded1, account: TEST_ADDRESS },
+        { id: padded2, account: TEST_ADDRESS },
+        { id: padded2, account: NULL_ADDRESS },
+        { id: padded1, account: NULL_ADDRESS },
+      ];
+    };
 
+    //test for pools
+    const encoded = (target) => {
+      const list = getLeaves(target);
+
+      return list.map(({ id, account }) => {
+        return ethers.utils.solidityKeccak256(
+          ["bytes32", "address"],
+          [id, account]
+        );
+      });
+    };
+
+    const leaves = encoded(targetAddress);
+    const tree = await new MerkleTree(leaves, keccak256, { sort: true });
     const root = await tree.getHexRoot();
-    const leaf = keccak256(short[0]);
+    const leaf = leaves[0];
     const proof = await tree.getHexProof(leaf);
+    //console.log("tree", tree.toString());
+    //console.log("proof", leaves, proof, root, leaf);
+    //console.log("verify", tree.verify(proof, leaf, root)); // true
 
     await pool.applyCover(
       pending,
@@ -505,7 +570,7 @@ describe("Pool", function () {
       payoutDenominator,
       incidentTimestamp,
       root,
-      short,
+      "raw data",
       "metadata"
     );
 
@@ -546,18 +611,40 @@ describe("Pool", function () {
     await market.connect(from).transferInsurance(id, to_address);
   }
 
+  const createMarket = async({depositAmount, references, depositor}) => {
+    await usdc.connect(depositor).approve(vault.address, depositAmount)
+    
+    let tx = await factory.createMarket(
+      poolTemplate.address,
+      "Here is metadata.",
+      [depositAmount], //initialDeposit
+      references
+    );
+
+    let receipt = await tx.wait()
+    let createdMarketAddress = receipt.events[4].args['market']
+
+
+    //update vault
+    u[`${depositor.address}`].balance = u[`${depositor.address}`].balance.sub(depositAmount)
+    g.totalBalance = g.totalBalance.add(depositAmount)
+
+
+    return createdMarketAddress
+  }
+
 
   before(async () => {
     //import
     [gov, alice, bob, chad, tom] = await ethers.getSigners();
-    accounts = [alice, bob, chad, tom];
+    accounts = [gov, alice, bob, chad, tom];
 
     for(i=0; i<accounts.length; i++){
       u[`${accounts[i].address}`] = {"balance": initialMint, "deposited": ZERO, "lp":ZERO}; //will mint for them later
     }
 
     const Ownership = await ethers.getContractFactory("Ownership");
-    const DAI = await ethers.getContractFactory("TestERC20Mock");
+    const USDC = await ethers.getContractFactory("TestERC20Mock");
     const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
     const Factory = await ethers.getContractFactory("Factory");
     const Vault = await ethers.getContractFactory("Vault");
@@ -568,13 +655,13 @@ describe("Pool", function () {
 
     //deploy
     ownership = await Ownership.deploy();
-    dai = await DAI.deploy();
+    usdc = await USDC.deploy();
     registry = await Registry.deploy(ownership.address);
     factory = await Factory.deploy(registry.address, ownership.address);
     premium = await PremiumModel.deploy();
-    controller = await Contorller.deploy(dai.address, ownership.address);
+    controller = await Contorller.deploy(usdc.address, ownership.address);
     vault = await Vault.deploy(
-      dai.address,
+      usdc.address,
       registry.address,
       controller.address,
       ownership.address
@@ -583,16 +670,17 @@ describe("Pool", function () {
     parameters = await Parameters.deploy(ownership.address);
 
     //set up
-    await dai.mint(chad.address, initialMint);
-    await dai.mint(bob.address, initialMint);
-    await dai.mint(alice.address, initialMint);
-    await dai.mint(tom.address, initialMint);
+    await usdc.mint(gov.address, initialMint);
+    await usdc.mint(chad.address, initialMint);
+    await usdc.mint(bob.address, initialMint);
+    await usdc.mint(alice.address, initialMint);
+    await usdc.mint(tom.address, initialMint);
 
     await registry.setFactory(factory.address);
 
     await factory.approveTemplate(poolTemplate.address, true, false, true);
-    await factory.approveReference(poolTemplate.address, 0, dai.address, true);
-    await factory.approveReference(poolTemplate.address, 1, dai.address, true);
+    await factory.approveReference(poolTemplate.address, 0, usdc.address, true);
+    await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
     await factory.approveReference(
       poolTemplate.address,
       2,
@@ -605,6 +693,7 @@ describe("Pool", function () {
       parameters.address,
       true
     );
+    await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true); //everyone can be initialDepositor
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
@@ -613,17 +702,19 @@ describe("Pool", function () {
     await parameters.setMindate(ZERO_ADDRESS, "604800");
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
     await parameters.setWithdrawable(ZERO_ADDRESS, "2592000");
-    await parameters.setVault(dai.address, vault.address);
+    await parameters.setVault(usdc.address, vault.address);
 
     await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
-      [1, 0],
-      [dai.address, dai.address, registry.address, parameters.address]
+      [0], //deposit 0 USDC
+      [usdc.address, usdc.address, registry.address, parameters.address, gov.address]
     );
+    
     const marketAddress = await factory.markets(0);
     market = await PoolTemplate.attach(marketAddress);
   });
+  
 
   beforeEach(async () => {
     snapshotId = await snapshot()
@@ -688,7 +779,7 @@ describe("Pool", function () {
 
   describe("Condition", function () {
     it("Should contracts be deployed", async () => {
-      expect(dai.address).to.exist;
+      expect(usdc.address).to.exist;
       expect(factory.address).to.exist;
       expect(poolTemplate.address).to.exist;
       expect(parameters.address).to.exist;
@@ -697,190 +788,569 @@ describe("Pool", function () {
     });
   });
 
-  describe("Liquidity providing life cycles", function () {
-    it("allows deposit and withdraw", async function () {
-      //deposit
-      await approveDepositAndWithdrawRequest({
-        token: dai,
-        target: market,
-        depositer: alice,
-        amount: depositAmount
-      })
+  describe("PoolTemplate", function () {
 
-      //CHECK STATUS
-      await verifyPoolsStatus({
-        pools: [
-          {
+    describe("initialize", function () {
+        it("original contract cannot be initialize()", async () => {
+          const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+          pool = await PoolTemplate.deploy();
+
+          await expect(pool.initialize(
+            "Here is metadata.",
+            [0], //deposit 0 USDC
+            [usdc.address, usdc.address, registry.address, parameters.address]
+          )).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS")
+        });
+
+        it("initial deposit", async () => {
+          expect(await usdc.balanceOf(gov.address)).to.equal(initialMint)
+
+          let depositAmount = "1"
+
+          let market2Address = await createMarket({
+            depositAmount: depositAmount,
+            references: [usdc.address, usdc.address, registry.address, parameters.address, gov.address],
+            depositor: gov
+          })
+
+          const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+          let market2 = await PoolTemplate.attach(market2Address)
+
+
+          expect(await market2.balanceOf(gov.address)).to.equal(depositAmount)
+
+
+        });
+
+
+        it("fail when _references[0] is zero address", async () => {
+          //approve whatever an address can be in _references[0].
+          await factory.approveReference(
+            poolTemplate.address,
+            0,
+            ZERO_ADDRESS,
+            true
+          )
+
+          //but this PoolTemplate doesn't want address(0)
+          await expect(factory.createMarket(
+            poolTemplate.address,
+            "Here is metadata.",
+            [0], //deposit 0 USDC
+            [ZERO_ADDRESS, usdc.address, registry.address, parameters.address, gov.address]
+          )).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS")
+        });
+
+        it("fail when _references[1] is zero address", async () => {
+          //approve whatever an address can be in _references[1].
+          await factory.approveReference(
+            poolTemplate.address,
+            1,
+            ZERO_ADDRESS,
+            true
+          )
+
+          //but this PoolTemplate doesn't want address(0)
+          await expect(factory.createMarket(
+            poolTemplate.address,
+            "Here is metadata.",
+            [0], //deposit 0 USDC
+            [usdc.address, ZERO_ADDRESS, registry.address, parameters.address, gov.address]
+          )).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS")
+
+        });
+
+        it("fail when _references[2] is zero address", async () => {
+          //approve whatever an address can be in _references[1].
+          await factory.approveReference(
+            poolTemplate.address,
+            2,
+            ZERO_ADDRESS,
+            true
+          )
+
+          //but this PoolTemplate doesn't want address(0)
+          await expect(factory.createMarket(
+            poolTemplate.address,
+            "Here is metadata.",
+            [0], //deposit 0 USDC
+            [usdc.address, usdc.address, ZERO_ADDRESS, parameters.address, gov.address]
+          )).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS")
+
+
+        });
+
+        it("fail when _references[3] is zero address", async () => {
+          //approve whatever an address can be in _references[1].
+          await factory.approveReference(
+            poolTemplate.address,
+            3,
+            ZERO_ADDRESS,
+            true
+          )
+
+          //but this PoolTemplate doesn't want address(0)
+          await expect(factory.createMarket(
+            poolTemplate.address,
+            "Here is metadata.",
+            [0], //deposit 0 USDC
+            [usdc.address, usdc.address, registry.address, ZERO_ADDRESS, gov.address]
+          )).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS")
+
+
+        });
+
+        it("fail when _references[4] is zero address", async () => {
+          //approve whatever an address can be in _references[1].
+          await factory.approveReference(
+            poolTemplate.address,
+            4,
+            ZERO_ADDRESS,
+            true
+          )
+
+          //but this PoolTemplate doesn't want address(0)
+          await expect(factory.createMarket(
+            poolTemplate.address,
+            "Here is metadata.",
+            [0], //deposit 0 USDC
+            [usdc.address, usdc.address, registry.address, parameters.address, ZERO_ADDRESS]
+          )).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS")
+
+
+        });
+
+        it("fail when bytes(_metaData).length == 0", async () => {
+          await expect(factory.createMarket(
+            poolTemplate.address,
+            "",
+            [0], //deposit 0 USDC
+            [usdc.address, usdc.address, registry.address, parameters.address, gov.address]
+          )).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS")
+        });
+    });
+
+    describe("deposit", function () {
+      it("success deposit", async () => {
+        await approveDeposit({
+          token: usdc,
+          target: market,
+          depositor: alice,
+          amount: depositAmount
+        })
+      });
+
+      it("fail when market is Payingout status", async () => {
+        await approveDeposit({
+          token: usdc,
+          target: market,
+          depositor: alice,
+          amount: depositAmount
+        })
+  
+        let incident = await now()
+        await applyCover({
+          pool: market,
+          pending: 604800,
+          targetAddress: ZERO_ADDRESS, //everyone
+          payoutNumerator: 10000,
+          payoutDenominator: 10000,
+          incidentTimestamp: incident
+        })
+  
+        await expect(market.connect(alice).deposit(depositAmount)).to.revertedWith(
+          "ERROR: DEPOSIT_DISABLED"
+        );
+      });
+
+      it("fail when amount is not more than zero", async () => {
+        await expect(market.connect(alice).deposit(ZERO)).to.revertedWith(
+          "ERROR: DEPOSIT_ZERO"
+        );
+      });
+    });
+
+    describe("requestWithdraw", function () {
+        it("fail when amount is not more than zero", async () => {
+            await expect(market.requestWithdraw(ZERO)).to.revertedWith("ERROR: REQUEST_ZERO")
+        });
+    });
+
+    describe("withdraw", function () {
+
+        it("allows withdraw", async function () {
+          //deposit
+          await approveDepositAndWithdrawRequest({
+            token: usdc,
+            target: market,
+            depositor: alice,
+            amount: depositAmount
+          })
+    
+          //Forward 8days
+          await moveForwardPeriods(8)
+    
+          //withdraw
+          await withdraw({
+            target: market,
+            withdrawer: alice,
+            amount: depositAmount
+          })
+        });
+
+        it("revert withdraw when payingout", async function () {
+          await approveDeposit({
+            token: usdc,
+            target: market,
+            depositor: alice,
+            amount: depositAmount
+          })
+    
+          await market.connect(alice).requestWithdraw(depositAmount);
+    
+          let incident = await now()  
+          await applyCover({
             pool: market,
-            totalLP: m1.totalLP,
-            totalLiquidity: m1.marketBalance,
-            availableBalance: m1.marketBalance.sub(m1.insured),
-            rate: m1.rate,
-            utilizationRate: m1.utilizationRate,
-            allInsuranceCount: m1.allInsuranceCount
-          }
-        ]
-      })
+            pending: 604800,
+            targetAddress: ZERO_ADDRESS, //everyone
+            payoutNumerator: 10000,
+            payoutDenominator: 10000,
+            incidentTimestamp: incident
+          })
+    
+          await expect(market.connect(alice).withdraw(depositAmount)).to.revertedWith(
+            "ERROR: WITHDRAWAL_PENDING"
+          );
+        });
 
-      await verifyVaultStatus({
-        vault: vault,
-        valueAll: g.totalBalance,
-        totalAttributions: g.totalBalance,
-      })
+        it("revert withdraw when earlier than withdrawable timestamp", async () => {
+          await approveDepositAndWithdrawRequest({
+            token: usdc,
+            target: market,
+            depositor: alice,
+            amount: depositAmount
+          })
 
-      await verifyVaultStatusOf({
-        vault: vault,
-        target: market.address,
-        attributions: m1.marketBalance,
-        underlyingValue: m1.marketBalance
-      })
+          await expect(market.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: WITHDRAWAL_QUEUE")
+        });
 
-      //Forward 8days
-      await moveForwardPeriods(8)
-
-      //withdraw
-
-      await withdraw({
-        target: market,
-        withdrawer: alice,
-        amount: depositAmount
-      })
-
-
-      //CHECK STATUS
-      await verifyPoolsStatus({
-        pools: [
-          {
+        it("revert when no deposit", async () => {
+          await expect(market.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: NO_AVAILABLE_LIQUIDITY")
+        });
+    
+        it("revert withdraw when not requested", async function () {
+          await approveDeposit({
+            token: usdc,
+            target: market,
+            depositor: alice,
+            amount: depositAmount
+          })
+    
+          await moveForwardPeriods(8)
+    
+          //withdraw without request
+          await expect(market.connect(alice).withdraw(depositAmount)).to.revertedWith(
+            "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
+          );
+        });
+    
+        it("revert withdraw when amount > requested", async function () {
+          await approveDepositAndWithdrawRequest({
+            token: usdc,
+            target: market,
+            depositor: alice,
+            amount: depositAmount
+          })
+    
+          await moveForwardPeriods(8)
+    
+          await expect(market.connect(alice).withdraw(depositAmount.add(1))).to.revertedWith(
+            "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
+          );
+        });
+    
+        it("revert withdraw when withdrawable span is over", async function () {
+          await approveDepositAndWithdrawRequest({
+            token: usdc,
+            target: market,
+            depositor: alice,
+            amount: depositAmount
+          })
+    
+          //withdraw span is 30days(2592000)
+          await moveForwardPeriods(40)
+    
+          await expect(market.connect(alice).withdraw(depositAmount)).to.revertedWith(
+            "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
+          );
+        });
+    
+        it("revert withdraw request more than balance", async function () {
+          await approveDeposit({
+            token: usdc,
+            target: market,
+            depositor: alice,
+            amount: depositAmount
+          })
+          
+          await expect(
+            market.connect(alice).requestWithdraw(depositAmount.add(1))
+          ).to.revertedWith("ERROR: REQUEST_EXCEED_BALANCE");
+        });
+    
+        it("revert withdraw with zero balance", async function () {
+          await approveDepositAndWithdrawRequest({
+            token: usdc,
+            target: market,
+            depositor: alice,
+            amount: depositAmount
+          })
+    
+          await moveForwardPeriods(8)
+          await expect(market.connect(alice).withdraw("0")).to.revertedWith(
+            "ERROR: WITHDRAWAL_ZERO"
+          );
+        });
+    
+        it("revert withdraw when liquidity is locked for insurance", async function () {
+          await approveDepositAndWithdrawRequest({
+            token: usdc,
+            target: market,
+            depositor: alice,
+            amount: depositAmount
+          })
+    
+          await usdc.connect(bob).approve(vault.address, insureAmount);
+    
+          await insure({
             pool: market,
-            totalLP: m1.totalLP,
-            totalLiquidity: m1.marketBalance,
-            availableBalance: m1.marketBalance.sub(m1.insured),
-            rate: m1.rate,
-            utilizationRate: m1.utilizationRate,
-            allInsuranceCount: m1.allInsuranceCount
-          }
-        ]
-      })
-
-      await verifyVaultStatus({
-        vault: vault,
-        valueAll: g.totalBalance,
-        totalAttributions: g.totalBalance,
-      })
-
-      await verifyVaultStatusOf({
-        vault: vault,
-        target: market.address,
-        attributions: m1.marketBalance,
-        underlyingValue: m1.marketBalance
-      })
+            insurer: bob,
+            amount: insureAmount,
+            maxCost: insureAmount,
+            span: WEEK,
+            target: padded1
+          })
+    
+          await moveForwardPeriods(8)
+    
+          await expect(market.connect(alice).withdraw(depositAmount)).to.revertedWith(
+            "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
+          );
+        });
     });
 
-    it("revert withdraw when not requested", async function () {
-      await approveDeposit({
-        token: dai,
-        target: market,
-        depositer: alice,
-        amount: depositAmount
-      })
+    describe("unlockBatch", function () {
+        it("Unlocks an array of insurances", async () => {
+          await approveDeposit({
+            token: usdc,
+            target: market,
+            depositor: alice,
+            amount: depositAmount
+          })
+          
+          await insure({
+            pool: market,
+            insurer: bob,
+            amount: depositAmount.div("2"),
+            maxCost: depositAmount,
+            span: WEEK,
+            target: padded1
+          })
 
-      await moveForwardPeriods(8)
+          await insure({
+            pool: market,
+            insurer: bob,
+            amount: depositAmount.div("2"),
+            maxCost: depositAmount,
+            span: WEEK,
+            target: padded1
+          })
 
-      //withdraw without request
-      await expect(market.connect(alice).withdraw(depositAmount)).to.revertedWith(
-        "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
-      );
+
+          await moveForwardPeriods(10)
+    
+          await unlockBatch({
+            market: market,
+            ids: [0,1]
+          })
+
+        });
     });
 
-    it("revert withdraw when amount > requested", async function () {
-      await approveDepositAndWithdrawRequest({
-        token: dai,
-        target: market,
-        depositer: alice,
-        amount: depositAmount
-      })
+    describe("allocateCredit", function () {
+        it("bat condition", async () => {
+            await expect(market.allocateCredit(ZERO)).to.revertedWith("ERROR: ALLOCATE_CREDIT_BAD_CONDITIONS")
+        })
 
-      await moveForwardPeriods(8)
+        it("", async () => {
 
-      await expect(market.connect(alice).withdraw(depositAmount.add(1))).to.revertedWith(
-        "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
-      );
+        });
+
+        it("", async () => {
+            
+        });
     });
 
-    it("revert withdraw when withdrawable span is over", async function () {
-      await approveDepositAndWithdrawRequest({
-        token: dai,
-        target: market,
-        depositer: alice,
-        amount: depositAmount
-      })
-
-      //withdraw span is 30days(2592000)
-      await moveForwardPeriods(40)
-
-      await expect(market.connect(alice).withdraw(depositAmount)).to.revertedWith(
-        "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
-      );
-    });
-
-    it("revert withdraw request more than balance", async function () {
-      await approveDeposit({
-        token: dai,
-        target: market,
-        depositer: alice,
-        amount: depositAmount
-      })
+    describe("insure", function () {
+        it("exeeded amount", async () => {
+            await approveDepositAndWithdrawRequest({
+              token: usdc,
+              target: market,
+              depositor: alice,
+              amount: depositAmount
+            })
       
-      await expect(
-        market.connect(alice).requestWithdraw(depositAmount.add(1))
-      ).to.revertedWith("ERROR: REQUEST_EXCEED_BALANCE");
+            await expect(
+              market
+                .connect(bob)
+                .insure(
+                  depositAmount.add(1), //more than deposited
+                  depositAmount,
+                  WEEK,
+                  padded1
+                )
+            ).to.revertedWith("ERROR: INSURE_EXCEEDED_AVAILABLE_BALANCE");
+        });
+
+        it("revert when exceed max cost", async () => {
+            // 455
+            // ERROR: INSURE_EXCEEDED_MAX_COST
+            await approveDepositAndWithdrawRequest({
+              token: usdc,
+              target: market,
+              depositor: alice,
+              amount: depositAmount
+            })
+      
+            await expect(
+              market
+                .connect(bob)
+                .insure(
+                  depositAmount,
+                  ZERO, //zero
+                  WEEK,
+                  padded1
+                )
+            ).to.revertedWith("ERROR: INSURE_EXCEEDED_MAX_COST");
+        });
+        it("revert when exceed max period", async () => {
+            // 456
+            // ERROR: INSURE_EXCEEDED_MAX_SPAN
+            await approveDepositAndWithdrawRequest({
+              token: usdc,
+              target: market,
+              depositor: alice,
+              amount: depositAmount
+            })
+      
+            await expect(
+              market
+                .connect(bob)
+                .insure(
+                  depositAmount,
+                  depositAmount,
+                  YEAR.add(1), //max is YEAR
+                  padded1
+                )
+            ).to.revertedWith("ERROR: INSURE_EXCEEDED_MAX_SPAN");
+        });
+        it("revert when blow min period", async () => {
+            // 457
+            // ERROR: INSURE_SPAN_BELOW_MIN
+            await approveDepositAndWithdrawRequest({
+              token: usdc,
+              target: market,
+              depositor: alice,
+              amount: depositAmount
+            })
+      
+            await expect(
+              market
+                .connect(bob)
+                .insure(
+                  depositAmount,
+                  depositAmount,
+                  WEEK.sub(1), //min is WEEK
+                  padded1
+                )
+            ).to.revertedWith("ERROR: INSURE_SPAN_BELOW_MIN");
+        });
+
+        it("revert when market is pending", async () => {
+            // 462
+            // ERROR: INSURE_MARKET_PENDING"
+            await approveDepositAndWithdrawRequest({
+              token: usdc,
+              target: market,
+              depositor: alice,
+              amount: depositAmount
+            })
+
+            incident = await now()
+            await applyCover({
+              pool: market,
+              pending: 604800,
+              targetAddress: ZERO_ADDRESS,
+              payoutNumerator: 10000,
+              payoutDenominator: 10000,
+              incidentTimestamp: incident
+            })
+      
+            await expect(
+              market
+                .connect(bob)
+                .insure(
+                  depositAmount,
+                  depositAmount,
+                  WEEK,
+                  padded1
+                )
+            ).to.revertedWith("ERROR: INSURE_MARKET_PENDING");
+        });
+
+        it("revert when paused", async () => {
+            await approveDepositAndWithdrawRequest({
+              token: usdc,
+              target: market,
+              depositor: alice,
+              amount: depositAmount
+            })
+
+            await market.setPaused(true);
+            await expect(
+              market
+                .connect(bob)
+                .insure(
+                  insureAmount,
+                  insureAmount,
+                  WEEK,
+                  padded1
+                )
+            ).to.revertedWith("ERROR: INSURE_MARKET_PAUSED");
+        });
     });
 
-    it("revert withdraw with zero balance", async function () {
-      await approveDepositAndWithdrawRequest({
-        token: dai,
-        target: market,
-        depositer: alice,
-        amount: depositAmount
-      })
+    describe("redeem", function () {
+        it("", async () => {});
 
-      await moveForwardPeriods(8)
-      await expect(market.connect(alice).withdraw("0")).to.revertedWith(
-        "ERROR: WITHDRAWAL_ZERO"
-      );
     });
 
-    it("revert withdraw when liquidity is locked for insurance", async function () {
-      await approveDepositAndWithdrawRequest({
-        token: dai,
-        target: market,
-        depositer: alice,
-        amount: depositAmount
-      })
-
-      await dai.connect(bob).approve(vault.address, insureAmount);
-
-      await insure({
-        pool: market,
-        insurer: bob,
-        amount: insureAmount,
-        maxCost: insureAmount,
-        span: WEEK,
-        target: short[0]
-      })
-
-      await moveForwardPeriods(8)
-
-      await expect(market.connect(alice).withdraw(depositAmount)).to.revertedWith(
-        "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
-      );
+    describe("transferInsurance", function () {
+        it("", async () => {});
     });
+
+    describe("resume", function () {
+        
+    });
+  });
+
+  describe("Liquidity providing life cycles", function () {
 
     it("allows unlock liquidity only after an insurance period over", async function () {
       await approveDepositAndWithdrawRequest({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: alice,
+        depositor: alice,
         amount: depositAmount
       })
 
@@ -892,7 +1362,7 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: WEEK,
-        target: short[0]
+        target: padded1
       })
 
       await expect(market.unlock("0")).to.revertedWith(
@@ -905,90 +1375,19 @@ describe("Pool", function () {
         target: market,
         id: 0
       })
-
-
-      await verifyVaultStatusOf({
-        vault: vault,
-        target: market.address,
-        attributions: m1.marketBalance,
-        underlyingValue: m1.marketBalance
-      })
-
-      await verifyVaultStatusOf({
-        vault: vault,
-        target: gov.address,
-        attributions: g.govBalance,
-        underlyingValue: g.govBalance
-      })
-
-      await verifyVaultStatus({
-        vault: vault,
-        valueAll: g.totalBalance,
-        totalAttributions: g.totalBalance,
-      })
-
-      await verifyPoolsStatus({
-        pools: [
-          {
-            pool: market,
-            totalLP: m1.totalLP,
-            totalLiquidity: m1.marketBalance,
-            availableBalance: m1.marketBalance.sub(m1.insured),
-            rate: m1.rate,
-            utilizationRate: m1.utilizationRate,
-            allInsuranceCount: m1.allInsuranceCount
-          }
-        ]
-      })
-
-      await verifyBalances({
-        token: dai,
-        userBalances: {
-          [alice.address]: initialMint.sub(depositAmount),
-        }
-      })
       
       await withdraw({
         target: market,
         withdrawer: alice,
         amount: depositAmount
       })
-
-      await verifyPoolsStatus({
-        pools: [
-          {
-            pool: market,
-            totalLP: m1.totalLP,
-            totalLiquidity: m1.marketBalance,
-            availableBalance: m1.marketBalance.sub(m1.insured),
-            rate: m1.rate,
-            utilizationRate: m1.utilizationRate,
-            allInsuranceCount: m1.allInsuranceCount
-          }
-        ]
-      })
-
-      //return asset = withdraw (LP amount) * rate
-      await verifyBalances({
-        token: dai,
-        userBalances: {
-          [alice.address]: u[alice.address].balance,
-        }
-      })
-
-      //govFee will left
-      await verifyVaultStatus({
-        vault: vault,
-        valueAll: g.totalBalance,
-        totalAttributions: g.totalBalance,
-      })
     });
 
     it("beforeTransfer works", async function () {
       await approveDepositAndWithdrawRequest({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: alice,
+        depositor: alice,
         amount: depositAmount
       })
 
@@ -1014,9 +1413,9 @@ describe("Pool", function () {
 
     it("accrues premium after deposit", async function () {
       await approveDepositAndWithdrawRequest({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: alice,
+        depositor: alice,
         amount: depositAmount
       })
 
@@ -1027,30 +1426,15 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: YEAR,
-        target: short[0]
+        target: padded1
       })
-
-      //Alice should have accrued premium paid by Bob
-      await verifyBalances({
-        token: dai,
-        userBalances: {
-          [bob.address]: u[bob.address].balance,
-        }
-      })
-
-      await verifyValueOfUnderlying({
-        template: market,
-        valueOfUnderlyingOf: alice.address,
-        valueOfUnderlying: m1.marketBalance //only alice underwrite, so
-      })
-
 
       //the premium paid second time should be allocated to both Alice and Chad
       //but the premium paid first time should be directly go to Alice
       await approveDeposit({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: chad,
+        depositor: chad,
         amount: depositAmount
       })
 
@@ -1061,34 +1445,7 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: YEAR,
-        target: short[0]
-      })
-
-      await verifyValueOfUnderlying({
-        template: market,
-        valueOfUnderlyingOf: alice.address,
-        valueOfUnderlying: u[alice.address].lp.mul(m1.rate).div(defaultRate)
-      })
-
-      await verifyValueOfUnderlying({
-        template: market,
-        valueOfUnderlyingOf: chad.address,
-        valueOfUnderlying: u[chad.address].lp.mul(m1.rate).div(defaultRate)
-      })
-
-      //sanity check
-      await verifyPoolsStatus({
-        pools: [
-          {
-            pool: market,
-            totalLP: m1.totalLP,
-            totalLiquidity: m1.marketBalance,
-            availableBalance: m1.marketBalance.sub(m1.insured),
-            rate: m1.rate,
-            utilizationRate: m1.utilizationRate,
-            allInsuranceCount: m1.allInsuranceCount
-          }
-        ]
+        target: padded1
       })
 
       //withdrawal also harvest accrued premium
@@ -1100,6 +1457,7 @@ describe("Pool", function () {
         target: market,
         id: 0
       })
+
       await unlock({
         target: market,
         id: 1
@@ -1112,29 +1470,19 @@ describe("Pool", function () {
         withdrawer: alice,
         amount: depositAmount
       })
-
-
-      //Harvested premium is reflected on their account balance
-      await verifyBalances({
-        token: dai,
-        userBalances: {
-          [alice.address]: u[alice.address].balance,
-          [chad.address]: u[chad.address].balance,
-        }
-      })
     });
 
     it("revert deposit when paused (withdrawal is possible)", async function () {
       await approveDepositAndWithdrawRequest({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: alice,
+        depositor: alice,
         amount: depositAmount
       })
 
       await market.setPaused(true);
 
-      await dai.connect(alice).approve(vault.address, depositAmount);
+      await usdc.connect(alice).approve(vault.address, depositAmount);
       await expect(market.connect(alice).deposit(depositAmount)).to.revertedWith(
         "ERROR: DEPOSIT_DISABLED"
       );
@@ -1148,78 +1496,7 @@ describe("Pool", function () {
       })
 
       await verifyBalances({
-        token: dai,
-        userBalances: {
-          [alice.address]: initialMint
-        }
-      })
-    });
-
-    it("revert deposit and withdrawal when payingout", async function () {
-      //Can deposit and withdraw in normal time
-      await approveDepositAndWithdrawRequest({
-        token: dai,
-        target: market,
-        depositer: alice,
-        amount: depositAmount
-      })
-
-      await moveForwardPeriods(8)
-
-      await withdraw({
-        target: market,
-        withdrawer: alice,
-        amount: depositAmount
-      })
-
-      await verifyBalances({
-        token: dai,
-        userBalances: {
-          [alice.address]: initialMint
-        }
-      })
-      //Cannot deposit and withdraw when payingout
-
-      await approveDeposit({
-        token: dai,
-        target: market,
-        depositer: alice,
-        amount: depositAmount
-      })
-
-      await market.connect(alice).requestWithdraw(depositAmount);
-
-      let incident = (await now()).sub(DAY.mul(2));  
-      await applyCover({
-        pool: market,
-        pending: 604800,
-        payoutNumerator: 10000,
-        payoutDenominator: 10000,
-        incidentTimestamp: incident
-      })
-
-      await expect(market.connect(alice).deposit(depositAmount)).to.revertedWith(
-        "ERROR: DEPOSIT_DISABLED"
-      );
-
-      await expect(market.connect(alice).withdraw(depositAmount)).to.revertedWith(
-        "ERROR: WITHDRAWAL_PENDING"
-      );
-
-      await moveForwardPeriods(11)
-      
-      await resume({
-        market: market
-      })
-
-      await withdraw({
-        target: market,
-        withdrawer: alice,
-        amount: depositAmount
-      })
-
-      await verifyBalances({
-        token: dai,
+        token: usdc,
         userBalances: {
           [alice.address]: initialMint
         }
@@ -1229,9 +1506,9 @@ describe("Pool", function () {
     it("devaluate underlying but premium is not affected when cover claim is accepted", async function () {
       //Simulation: partial payout
       await approveDepositAndWithdrawRequest({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: alice,
+        depositor: alice,
         amount: depositAmount
       })
 
@@ -1242,7 +1519,7 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: WEEK,
-        target: short[0]
+        target: padded1
       })
 
       let incident = await now()
@@ -1250,15 +1527,17 @@ describe("Pool", function () {
       let proof = await applyCover({
         pool: market,
         pending: 604800,
+        targetAddress: ZERO_ADDRESS,
         payoutNumerator: 5000,
         payoutDenominator: 10000,
         incidentTimestamp: incident
       })
+      
 
       await redeem ({
         pool: market,
         redeemer: bob, 
-        id: "0", 
+        id: 0, 
         proof: proof
       })
 
@@ -1266,28 +1545,9 @@ describe("Pool", function () {
         "ERROR: UNLOCK_BAD_COINDITIONS"
       );
 
-      await verifyValueOfUnderlying({
-        template: market,
-        valueOfUnderlyingOf: alice.address,
-        valueOfUnderlying: u[alice.address].lp.mul(m1.rate).div(defaultRate)
-      })
-
-      //sanity check
-      await verifyPoolsStatus({
-        pools: [
-          {
-            pool: market,
-            totalLP: m1.totalLP,
-            totalLiquidity: m1.marketBalance,
-            availableBalance: m1.marketBalance.sub(m1.insured),
-            rate: m1.rate,
-            utilizationRate: m1.utilizationRate,
-            allInsuranceCount: m1.allInsuranceCount
-          }
-        ]
-      })
-
+      
       await moveForwardPeriods(11)
+
       await resume({
         market: market
       })
@@ -1298,35 +1558,13 @@ describe("Pool", function () {
         amount: depositAmount
       })
 
-      await verifyBalances({
-        token: dai,
-        userBalances: {
-          [alice.address]: u[alice.address].balance,
-          [bob.address]: u[bob.address].balance
-        }
-      })
 
       //Simulation: full payout
       await approveDepositAndWithdrawRequest({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: alice,
+        depositor: alice,
         amount: depositAmount
-      })
-
-      //sanity check
-      await verifyPoolsStatus({
-        pools: [
-          {
-            pool: market,
-            totalLP: m1.totalLP,
-            totalLiquidity: m1.marketBalance,
-            availableBalance: m1.marketBalance.sub(m1.insured),
-            rate: defaultRate,
-            utilizationRate: m1.utilizationRate,
-            allInsuranceCount: m1.allInsuranceCount
-          }
-        ]
       })
 
 
@@ -1337,13 +1575,14 @@ describe("Pool", function () {
         amount: insureAmount.div(10), 
         maxCost: insureAmount.div(10),
         span: WEEK,
-        target: short[0]
+        target: padded1
       })
 
       incident = await now()
       proof = await applyCover({
         pool: market,
         pending: 604800,
+        targetAddress: ZERO_ADDRESS,
         payoutNumerator: 10000,
         payoutDenominator: 10000,
         incidentTimestamp: incident
@@ -1354,21 +1593,6 @@ describe("Pool", function () {
         redeemer: bob, 
         id: "1", 
         proof: proof
-      })
-
-     //sanity check
-      await verifyPoolsStatus({
-        pools: [
-          {
-            pool: market,
-            totalLP: m1.totalLP,
-            totalLiquidity: m1.marketBalance,
-            availableBalance: m1.marketBalance.sub(m1.insured),
-            rate: m1.rate,
-            utilizationRate: m1.utilizationRate,
-            allInsuranceCount: m1.allInsuranceCount
-          }
-        ]
       })
 
       expect(await market.valueOfUnderlying(alice.address)).to.equal(u[alice.address].lp.mul(m1.rate).div(defaultRate));
@@ -1384,23 +1608,15 @@ describe("Pool", function () {
         withdrawer: alice,
         amount: depositAmount
       })
-
-      await verifyBalances({
-        token: dai,
-        userBalances: {
-          [alice.address]: u[alice.address].balance,
-          [bob.address]: u[bob.address].balance
-        }
-      })
     });
   });
 
   describe("Getting insured", function () {
     it("allows protection", async function () {
       await approveDepositAndWithdrawRequest({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: alice,
+        depositor: alice,
         amount: depositAmount
       })
 
@@ -1410,13 +1626,14 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: WEEK,
-        target: short[0]
+        target: padded1
       })
 
       let incident = await now()
       let proof = await applyCover({
         pool: market,
         pending: 604800,
+        targetAddress: ZERO_ADDRESS,
         payoutNumerator: 5000,
         payoutDenominator: 10000,
         incidentTimestamp: incident
@@ -1443,21 +1660,13 @@ describe("Pool", function () {
         withdrawer: alice,
         amount: depositAmount
       })
-
-      await verifyBalances({
-        token: dai,
-        userBalances: {
-          [alice.address]: 95900,
-          [bob.address]: 104000
-        }
-      })
     });
 
     it("allows insurance transfer", async function () {
       await approveDepositAndWithdrawRequest({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: alice,
+        depositor: alice,
         amount: depositAmount
       })
 
@@ -1467,7 +1676,7 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: WEEK,
-        target: short[0]
+        target: padded1
       })
 
       await market.connect(bob).transferInsurance("0", tom.address);
@@ -1477,6 +1686,7 @@ describe("Pool", function () {
       let proof = await applyCover({
         pool: market,
         pending: 604800,
+        targetAddress: ZERO_ADDRESS,
         payoutNumerator: 5000,
         payoutDenominator: 10000,
         incidentTimestamp: incident
@@ -1501,7 +1711,7 @@ describe("Pool", function () {
       })
 
       await verifyBalances({
-        token: dai,
+        token: usdc,
         userBalances: {
           [alice.address]: u[alice.address].balance,
           [tom.address]: u[tom.address].balance
@@ -1510,9 +1720,9 @@ describe("Pool", function () {
     });
     it("revert redemption when insurance is not m1 target", async function () {
       await approveDepositAndWithdrawRequest({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: alice,
+        depositor: alice,
         amount: depositAmount
       })
 
@@ -1522,13 +1732,14 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: WEEK,
-        target: short[0]
+        target: padded1
       })
 
       let incident = await now()
       let proof = await applyCover({
         pool: market,
         pending: 604800,
+        targetAddress: ZERO_ADDRESS,
         payoutNumerator: 5000,
         payoutDenominator: 10000,
         incidentTimestamp: incident
@@ -1556,7 +1767,7 @@ describe("Pool", function () {
       })
       
       await verifyBalances({
-        token: dai,
+        token: usdc,
         userBalances: {
           [alice.address]: u[alice.address].balance,
         }
@@ -1564,9 +1775,9 @@ describe("Pool", function () {
     });
     it("revert getting insured when there is not enough liquidity", async function () {
       await approveDepositAndWithdrawRequest({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: alice,
+        depositor: alice,
         amount: depositAmount
       })
 
@@ -1577,7 +1788,7 @@ describe("Pool", function () {
             depositAmount.add(1),
             depositAmount,
             WEEK,
-            short[0]
+            padded1
           )
       ).to.revertedWith("ERROR: INSURE_EXCEEDED_AVAILABLE_BALANCE");
 
@@ -1591,7 +1802,7 @@ describe("Pool", function () {
       })
       
       await verifyBalances({
-        token: dai,
+        token: usdc,
         userBalances: {
           [alice.address]: initialMint
         }
@@ -1600,9 +1811,9 @@ describe("Pool", function () {
 
     it("revert redemption when redemption period is over", async function () {
       await approveDepositAndWithdrawRequest({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: alice,
+        depositor: alice,
         amount: depositAmount
       })
 
@@ -1612,13 +1823,14 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: WEEK,
-        target: short[0]
+        target: padded1
       })
 
       let incident = await now()
       let proof = await applyCover({
         pool: market,
         pending: 604800,
+        targetAddress: ZERO_ADDRESS,
         payoutNumerator: 5000,
         payoutDenominator: 10000,
         incidentTimestamp: incident
@@ -1646,7 +1858,7 @@ describe("Pool", function () {
       })
 
       await verifyBalances({
-        token: dai,
+        token: usdc,
         userBalances: {
           [alice.address]: u[alice.address].balance,
         }
@@ -1656,9 +1868,9 @@ describe("Pool", function () {
     it("revert getting insured when paused, reporting, or payingout", async function () {
       //Can get insured in normal time
       await approveDeposit({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: alice,
+        depositor: alice,
         amount: depositAmountLarge
       })
 
@@ -1670,7 +1882,7 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: WEEK,
-        target: short[0]
+        target: padded1
       })
 
       //Cannot get insured when payingout
@@ -1678,6 +1890,7 @@ describe("Pool", function () {
       await applyCover({
         pool: market,
         pending: 604800,
+        targetAddress: ZERO_ADDRESS,
         payoutNumerator: 10000,
         payoutDenominator: 10000,
         incidentTimestamp: incident
@@ -1690,7 +1903,7 @@ describe("Pool", function () {
             insureAmount,
             insureAmount,
             DAY.mul(6),
-            short[0]
+            padded1
           )
       ).to.revertedWith("ERROR: INSURE_SPAN_BELOW_MIN");
 
@@ -1706,7 +1919,7 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: WEEK,
-        target: short[0]
+        target: padded1
       })
 
       //Cannot get insured when paused
@@ -1718,7 +1931,7 @@ describe("Pool", function () {
             insureAmount,
             insureAmount,
             WEEK,
-            short[0]
+            padded1
           )
       ).to.revertedWith("ERROR: INSURE_MARKET_PAUSED");
 
@@ -1730,16 +1943,16 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: WEEK,
-        target: short[0]
+        target: padded1
       })
     });
 
     it("revert more than 365 days insurance", async function () {
       //Can get insured in normal time
       await approveDeposit({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: alice,
+        depositor: alice,
         amount: depositAmountLarge
       })
       await market.connect(alice).requestWithdraw("10000");
@@ -1750,7 +1963,7 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: YEAR,
-        target: short[0]
+        target: padded1
       })
       //Cannot get insured for more than 365 days
       await expect(
@@ -1760,16 +1973,16 @@ describe("Pool", function () {
             insureAmount,
             insureAmount,
             YEAR.add(DAY),
-            short[0]
+            padded1
           )
       ).to.revertedWith("ERROR: INSURE_EXCEEDED_MAX_SPAN");
     });
 
     it("revert insurance transfer if its expired or non existent", async function () {
       await approveDeposit({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: alice,
+        depositor: alice,
         amount: depositAmountLarge
       })
       await market.connect(alice).requestWithdraw("10000");
@@ -1781,7 +1994,7 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: WEEK,
-        target: short[0]
+        target: padded1
       })
 
       await moveForwardPeriods(9)
@@ -1797,13 +2010,14 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: WEEK,
-        target: short[0]
+        target: padded1
       })
 
       let incident = await now()
       let proof = await applyCover({
         pool: market,
         pending: 604800,
+        targetAddress: ZERO_ADDRESS,
         payoutNumerator: 5000,
         payoutDenominator: 10000,
         incidentTimestamp: incident
@@ -1825,9 +2039,9 @@ describe("Pool", function () {
   describe("Utilities", function () {
     it("retunrs accurate data", async function () {
       await approveDeposit({
-        token: dai,
+        token: usdc,
         target: market,
-        depositer: alice,
+        depositor: alice,
         amount: depositAmountLarge
       })
 
@@ -1839,7 +2053,7 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: YEAR,
-        target: short[0]
+        target: padded1
       })
 
       await insure({
@@ -1848,105 +2062,10 @@ describe("Pool", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: YEAR,
-        target: short[0]
+        target: padded1
       })
       
       expect(await market.allInsuranceCount()).to.equal("2");
-      expect(await market.getInsuranceCount(bob.address)).to.equal("1");
-      expect(await market.getInsuranceCount(chad.address)).to.equal("1");
     });
   });
-
-  describe("functions", function() {
-    describe("Initialize", function () {
-      it("", async () => {
-      });
-    });
-  
-    describe("Initialize", function () {
-      it("", async () => {
-      });
-    });
-  
-    describe("deposit", function () {
-      it("deposit, insure, deposit", async () => {
-        //deposit
-        await approveDepositAndWithdrawRequest({
-          token: dai,
-          target: market,
-          depositer: alice,
-          amount: depositAmount
-        })
-
-        await insure({
-          pool: market,
-          insurer: bob,
-          amount: insureAmount,
-          maxCost: insureAmount,
-          span: WEEK,
-          target: short[0]
-        })
-
-        await moveForwardPeriods(11)
-
-        await unlock({
-          target: market,
-          id: 0
-        })
-        
-      });
-    });
-  
-    describe("withdraw", function () {
-      it("", async () => {
-      });
-    });
-  
-    describe("unlockBatch", function () {
-      it("", async () => {
-      });
-    });
-  
-    describe("unlock", function () {
-      it("", async () => {
-      });
-    });
-  
-    /***  Only testable with index
-    describe("allocateCredit", function () {
-      it("", async () => {
-      });
-    });
-    describe("withdrawCredit", function () {
-      it("", async () => {
-      });
-    });
-    */
-  
-    describe("insure", function () {
-      it("", async () => {
-      });
-    });
-  
-    describe("redeem", function () {
-      it("", async () => {
-      });
-    });
-  
-    describe("transferInsurance", function () {
-      it("", async () => {
-      });
-    });
-  
-    describe("applyCover", function () {
-      it("", async () => {
-      });
-    });
-  
-    describe("resume", function () {
-      it("", async () => {
-      });
-    });
-  
-  })
 });
