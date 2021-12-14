@@ -2,6 +2,25 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
+
+const {
+  verifyBalances,
+  verifyAllowance,
+
+  verifyPoolsStatus,
+  verifyPoolsStatusForIndex,
+
+  verifyValueOfUnderlying,
+
+  verifyIndexStatus,
+
+  verifyVaultStatus,
+  verifyVaultStatusOf,
+  verifyDebtOf,
+
+  verifyRate
+} = require('../test-utils')
+
 const{ 
   NULL_ADDRESS
 } = require('../constant-utils');
@@ -15,6 +34,19 @@ async function restore (snapshotId) {
 }
 
 describe("Vault", function () {
+
+  const initialMint = BigNumber.from("100000"); //initial token amount for users
+
+  const depositAmount = BigNumber.from("10000"); //default deposit amount for test
+  const depositAmountLarge = BigNumber.from("40000"); //default deposit amount (large) for test
+  const defaultRate = BigNumber.from("1000000"); //initial rate between USDC and LP token
+  const insureAmount = BigNumber.from("10000"); //default insure amount for test
+
+  const governanceFeeRate = BigNumber.from("100000"); //10% of the Premium
+  const RATE_DIVIDER = BigNumber.from("1000000"); //1e6
+  const UTILIZATION_RATE_LENGTH_1E8 = BigNumber.from("1000000"); //1e6
+  const padded1 = ethers.utils.hexZeroPad("0x1", 32);
+
 
   before(async () => {
     //import
