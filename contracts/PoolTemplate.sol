@@ -601,7 +601,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 _span,
                 totalLiquidity(),
                 lockedAmount,
-                msg.sender
+                address(this)
             );
     }
 
@@ -628,7 +628,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         bytes32 _merkleRoot,
         string calldata _rawdata,
         string calldata _memo
-    ) external onlyOwner {
+    ) external override onlyOwner {
         require(paused == false, "ERROR: UNABLE_TO_APPLY");
         incident.payoutNumerator = _payoutNumerator;
         incident.payoutDenominator = _payoutDenominator;

@@ -6,6 +6,8 @@ const { expect } = require("chai");
 const { MerkleTree } = require("merkletreejs");
 const keccak256 = require("keccak256");
 
+
+//======== TOKEN ========//
 const verifyBalance = async ({ token, address, expectedBalance }) => {
     const balance = await token.balanceOf(address)
     assert.equal(balance.toString(), expectedBalance.toString(), `token balance incorrect for ${token.address} with ${address}`)
@@ -23,9 +25,9 @@ const verifyAllowance = async ({ token, owner, spender, expectedAllowance }) => 
 }
 
 
-//univarsal
+//======== UNIVARSAL POOLs========//
 const verifyValueOfUnderlying = async({template, valueOfUnderlyingOf, valueOfUnderlying}) => {
-    expect(await template.valueOfUnderlying(valueOfUnderlyingOf)).to.equal(valueOfUnderlying);
+    expect(await template.valueOfUnderlying(valueOfUnderlyingOf)).to.closeTo(valueOfUnderlying, 1); //rounding error
 }
 
 const verifyRate = async({template, rate}) => {
@@ -34,31 +36,70 @@ const verifyRate = async({template, rate}) => {
 
 
 
-//pool
-const _verifyPoolStatus = async({pool, totalLiquidity, availableBalance}) => {
+//======== POOLs ========//
+const _verifyPoolStatus = async({pool, totalLP, totalLiquidity, availableBalance, rate, utilizationRate, allInsuranceCount}) => {
+    expect(await pool.totalSupply()).to.equal(totalLP);
     expect(await pool.totalLiquidity()).to.equal(totalLiquidity);
     expect(await pool.availableBalance()).to.equal(availableBalance);
+    expect(await pool.rate()).to.equal(rate);
+    expect(await pool.utilizationRate()).to.equal(utilizationRate);
+    expect(await pool.allInsuranceCount()).to.equal(allInsuranceCount);
 }
 
 const verifyPoolsStatus = async({pools}) => {
     for (i = 0; i < pools.length; i++) {
         await _verifyPoolStatus({ 
             pool: pools[i].pool,
+            totalLP: pools[i].totalLP,
             totalLiquidity: pools[i].totalLiquidity,
             availableBalance: pools[i].availableBalance,
-            rate: pools[i].rate
+            rate: pools[i].rate,
+            utilizationRate: pools[i].utilizationRate,
+            allInsuranceCount: pools[i].allInsuranceCount
+        })
+    }
+}
+
+const _verifyPoolStatusForIndex = async({pool, indexAddress, allocatedCredit, pendingPremium}) => {
+    expect(await pool.allocatedCredit(indexAddress)).to.equal(allocatedCredit);
+    expect(await pool.pendingPremium(indexAddress)).to.equal(pendingPremium);
+}
+
+const verifyPoolsStatusForIndex = async({pools}) => {
+    for (i = 0; i < pools.length; i++) {
+        await _verifyPoolStatusForIndex({ 
+            pool: pools[i].pool,
+            indexAddress: pools[i].allocatedCreditOf,
+            allocatedCredit: pools[i].allocatedCredit,
+            pendingPremium: pools[i].pendingPremium
         })
     }
 }
 
 
-const _verifyPoolStatusOf = async({pool, allocatedCreditOf, allocatedCredit}) => {
+//those legacy functions are used for tests that are not refactored yet.
+const _verifyPoolStatus_legacy = async({pool, totalLiquidity, availableBalance}) => {
+    expect(await pool.totalLiquidity()).to.equal(totalLiquidity);
+    expect(await pool.availableBalance()).to.equal(availableBalance);
+}
+
+const verifyPoolsStatus_legacy = async({pools}) => {
+    for (i = 0; i < pools.length; i++) {
+        await _verifyPoolStatus_legacy({ 
+            pool: pools[i].pool,
+            totalLiquidity: pools[i].totalLiquidity,
+            availableBalance: pools[i].availableBalance
+        })
+    }
+}
+
+const _verifyPoolStatusForIndex_legacy = async({pool, allocatedCreditOf, allocatedCredit}) => {
     expect(await pool.allocatedCredit(allocatedCreditOf)).to.equal(allocatedCredit);
 }
 
-const verifyPoolsStatusOf = async({pools}) => {
+const verifyPoolsStatusForIndex_legacy = async({pools}) => {
     for (i = 0; i < pools.length; i++) {
-        await _verifyPoolStatusOf({ 
+        await _verifyPoolStatusForIndex_legacy({ 
             pool: pools[i].pool,
             allocatedCreditOf: pools[i].allocatedCreditOf,
             allocatedCredit: pools[i].allocatedCredit
@@ -67,17 +108,18 @@ const verifyPoolsStatusOf = async({pools}) => {
 }
 
 
-//index
-const verifyIndexStatus = async ({index, totalSupply, totalLiquidity, totalAllocatedCredit, leverage, withdrawable}) => {
+//======== INDEXs ========//
+const verifyIndexStatus = async ({index, totalSupply, totalLiquidity, totalAllocatedCredit, leverage, withdrawable, rate}) => {
     expect(await index.totalSupply()).to.equal(totalSupply);
     expect(await index.totalLiquidity()).to.equal(totalLiquidity);
     expect(await index.totalAllocatedCredit()).to.equal(totalAllocatedCredit);
     expect(await index.leverage()).to.equal(leverage);
     expect(await index.withdrawable()).to.equal(withdrawable);
+    expect(await index.rate()).to.equal(rate);
 }
 
 
-//cds
+//======== CDS ========//
 const verifyCDSStatus = async({cds, totalSupply, totalLiquidity, rate}) => {
     expect(await cds.totalSupply()).to.equal(totalSupply);
     expect(await cds.totalLiquidity()).to.equal(totalLiquidity);
@@ -85,7 +127,7 @@ const verifyCDSStatus = async({cds, totalSupply, totalLiquidity, rate}) => {
 }
 
 
-//Vault
+//======== VAULT ========//
 const verifyVaultStatus = async({vault, valueAll, totalAttributions}) => {
     expect(await vault.valueAll()).to.equal(valueAll);
     expect(await vault.totalAttributions()).to.equal(totalAttributions);
@@ -96,11 +138,19 @@ const verifyVaultStatusOf = async({vault, target, attributions, underlyingValue}
     expect(await vault.underlyingValue(target)).to.equal(underlyingValue);
 }
 
+const verifyDebtOf = async({vault, target, debt}) => {
+    expect(await vault.debts(target)).to.equal(debt);
+}
 
 
 //function
 const insure = async({pool, insurer, amount, maxCost, span, target}) => {
-    await pool.connect(insurer).insure(amount, maxCost, span, target);
+    let tx = await pool.connect(insurer).insure(amount, maxCost, span, target);
+
+    let receipt = await tx.wait()
+    let premium = receipt.events[4].args[6]
+
+    return premium
 }
 
 
@@ -116,7 +166,9 @@ Object.assign(exports, {
 
     //pool
     verifyPoolsStatus,
-    verifyPoolsStatusOf,
+    verifyPoolsStatus_legacy,
+    verifyPoolsStatusForIndex,
+    verifyPoolsStatusForIndex_legacy,
 
     //index
     verifyIndexStatus,
@@ -125,6 +177,7 @@ Object.assign(exports, {
     verifyCDSStatus,
 
     //vault
+    verifyDebtOf,
     verifyVaultStatus,
     verifyVaultStatusOf,
 

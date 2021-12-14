@@ -7,10 +7,6 @@ contract TestPremiumModel {
     using SafeMath for uint256;
     using Address for address;
 
-    event CommitNewAdmin(uint256 deadline, address future_admin);
-    event NewAdmin(address admin);
-
-
     constructor() {
     }
 
@@ -20,6 +16,7 @@ contract TestPremiumModel {
         uint256 _totalLiquidity,
         uint256 _lockedAmount
     ) external view returns (uint256) {
-        return 100;
+        //always return premium as rate of 10%
+        return _amount / 10;
     }
 }

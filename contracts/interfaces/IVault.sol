@@ -65,4 +65,9 @@ interface IVault {
     function debts(address _debtor) external view returns (uint256);
 
     function transferDebt(uint256 _amount) external;
+
+    //onlyOwner
+    function withdrawRedundant(address _token, address _to) external;
+    function setController(address _controller) external;
+    function setKeeper(address _keeper) external;
 }

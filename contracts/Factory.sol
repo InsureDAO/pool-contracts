@@ -10,8 +10,12 @@ pragma solidity 0.8.7;
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IUniversalMarket.sol";
 import "./interfaces/IRegistry.sol";
+import "./interfaces/IFactory.sol";
+import "hardhat/console.sol";
 
-contract Factory {
+contract Factory is IFactory{
+
+
     event MarketCreated(
         address indexed market,
         address indexed template,
@@ -36,8 +40,6 @@ contract Factory {
         uint256 indexed slot,
         uint256 target
     );
-    event CommitNewAdmin(uint256 deadline, address future_admin);
-    event NewAdmin(address admin);
 
     address[] public markets;
 
@@ -65,8 +67,7 @@ contract Factory {
     //Each template has different set of conditions
     //true if that address is authorized within the template
     // Example condition list for pool template v1
-    // conditions[0] = target id
-    // conditions[1] = minimim deposit amount
+    // conditions[0] = minimim deposit amount
 
     address public registry;
     IOwnership public ownership;
@@ -97,7 +98,7 @@ contract Factory {
         bool _approval,
         bool _isOpen,
         bool _duplicate
-    ) external onlyOwner {
+    ) external override onlyOwner {
         require(address(_template) != address(0));
         templates[address(_template)].approval = _approval;
         templates[address(_template)].isOpen = _approval;
@@ -118,7 +119,7 @@ contract Factory {
         uint256 _slot,
         address _target,
         bool _approval
-    ) external onlyOwner {
+    ) external override onlyOwner {
         require(templates[address(_template)].approval == true);
         reflist[address(_template)][_slot][_target] = _approval;
         emit ReferenceApproval(_template, _slot, _target, _approval);
@@ -135,7 +136,7 @@ contract Factory {
         IUniversalMarket _template,
         uint256 _slot,
         uint256 _target
-    ) external onlyOwner {
+    ) external override onlyOwner {
         require(templates[address(_template)].approval == true);
         conditionlist[address(_template)][_slot] = _target;
         emit ConditionApproval(_template, _slot, _target);
@@ -155,7 +156,7 @@ contract Factory {
         string memory _metaData,
         uint256[] memory _conditions,
         address[] memory _references
-    ) public returns (address) {
+    ) public override returns (address) {
         require(
             templates[address(_template)].approval == true,
             "UNAUTHORIZED_TEMPLATE"

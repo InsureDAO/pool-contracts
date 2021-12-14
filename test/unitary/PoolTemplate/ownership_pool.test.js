@@ -1,14 +1,33 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
+const { MerkleTree } = require("merkletreejs");
+const keccak256 = require("keccak256");
 
 const {
-  verifyBalance,
+  verifyBalances,
+  verifyAllowance,
+  verifyPoolsStatus,
+  verifyPoolsStatusOf,
+  verifyValueOfUnderlying,
+  verifyIndexStatus,
+  verifyVaultStatus,
+  verifyVaultStatusOf,
+  verifyRate,
+  insure
 } = require('../test-utils')
+
 
 const{ 
   ZERO_ADDRESS,
+  long,
+  wrong,
+  short,
+  YEAR,
+  WEEK,
+  DAY
 } = require('../constant-utils');
+
 
 async function snapshot () {
   return network.provider.send('evm_snapshot', [])
@@ -18,8 +37,52 @@ async function restore (snapshotId) {
   return network.provider.send('evm_revert', [snapshotId])
 }
 
+async function moveForwardPeriods (days) {
+  await ethers.provider.send("evm_increaseTime", [DAY.mul(days).toNumber()]);
+  await ethers.provider.send("evm_mine");
 
-describe("Factory", function () {
+  return true
+}
+
+async function now () {
+  return BigNumber.from((await ethers.provider.getBlock("latest")).timestamp);
+}
+
+describe.skip("Pool Ownership", function () {
+  const approveDeposit = async ({token, target, depositer, amount}) => {
+    await token.connect(depositer).approve(vault.address, amount);
+    await target.connect(depositer).deposit(amount);
+  }
+
+  const approveDepositAndWithdrawRequest = async ({token, target, depositer, amount}) => {
+    await token.connect(depositer).approve(vault.address, amount);
+    await target.connect(depositer).deposit(amount);
+    await target.connect(depositer).requestWithdraw(amount);
+  }
+
+  const applyCover = async ({pool, pending, payoutNumerator, payoutDenominator, incidentTimestamp}) => {
+
+    const tree = await new MerkleTree(short, keccak256, {
+      hashLeaves: true,
+      sortPairs: true,
+    });
+
+    const root = await tree.getHexRoot();
+    const leaf = keccak256(short[0]);
+    const proof = await tree.getHexProof(leaf);
+
+    await pool.applyCover(
+      pending,
+      payoutNumerator,
+      payoutDenominator,
+      incidentTimestamp,
+      root,
+      short,
+      "metadata"
+    );
+
+    return proof
+  }
 
   before(async () => {
     //import
@@ -73,7 +136,8 @@ describe("Factory", function () {
       true
     );
 
-    await parameters.setFeeRate(ZERO_ADDRESS, "10000");
+    //set default parameters
+    await parameters.setFeeRate(ZERO_ADDRESS, "5000"); //5%
     await parameters.setGrace(ZERO_ADDRESS, "259200");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
     await parameters.setMindate(ZERO_ADDRESS, "604800");
@@ -99,32 +163,8 @@ describe("Factory", function () {
     await restore(snapshotId)
   })
 
-  describe("Condition", function () {
-    it("Should contracts be deployed", async () => {
-      expect(registry.address).to.exist;
-    });
-  });
-
-  describe("duplicate market", function () {
-    it("Should revert when it's not allowed", async () => {
-      await factory.approveTemplate(poolTemplate.address, true, false, false);
-      await expect(
-        factory.createMarket(
-          poolTemplate.address,
-          "Here is metadata.",
-          [1, 0],
-          [dai.address, dai.address, registry.address, parameters.address]
-        )
-      ).to.revertedWith("DUPLICATE_MARKET");
-    });
-    it("Should not revert when it's not allowed", async () => {
-      await factory.approveTemplate(poolTemplate.address, true, false, true);
-      factory.createMarket(
-        poolTemplate.address,
-        "Here is metadata.",
-        [1, 0],
-        [dai.address, dai.address, registry.address, parameters.address]
-      );
+  describe("onlyOwner", function () {
+    it("", async function () {
     });
   });
 });

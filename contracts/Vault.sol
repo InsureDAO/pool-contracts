@@ -34,9 +34,7 @@ contract Vault is IVault {
     uint256 public balance; //balance of underlying token
 
     IOwnership public ownership;
-
-    event CommitNewAdmin(uint256 deadline, address future_admin);
-    event NewAdmin(address admin);
+    
     event ControllerSet(address controller);
 
     modifier onlyOwner() {
@@ -427,7 +425,7 @@ contract Vault is IVault {
      * @param _token token address
      * @param _to beneficiary's address
      */
-    function withdrawRedundant(address _token, address _to) external onlyOwner {
+    function withdrawRedundant(address _token, address _to) external override onlyOwner {
         if (
             _token == address(token) &&
             balance < IERC20(token).balanceOf(address(this))
@@ -447,7 +445,7 @@ contract Vault is IVault {
      * @notice admin function to set controller address
      * @param _controller address of the controller
      */
-    function setController(address _controller) public onlyOwner {
+    function setController(address _controller) public override onlyOwner {
         controller.migrate(address(_controller));
         controller = IController(_controller);
         emit ControllerSet(_controller);
@@ -457,7 +455,7 @@ contract Vault is IVault {
      * @notice the controller can utilize all available stored funds
      * @param _keeper keeper address
      */
-    function setKeeper(address _keeper) external onlyOwner {
+    function setKeeper(address _keeper) external override onlyOwner {
         if (keeper != _keeper) {
             keeper = _keeper;
         }
