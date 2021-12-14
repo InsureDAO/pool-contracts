@@ -10,8 +10,6 @@ pragma solidity 0.8.7;
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IParameters.sol";
 import "./interfaces/IPremiumModel.sol";
-import "./interfaces/IFeeModel.sol";
-
 import "hardhat/console.sol";
 
 contract Parameters is IParameters {

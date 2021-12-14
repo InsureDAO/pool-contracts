@@ -42,9 +42,7 @@ abstract contract IPoolTemplate {
         uint256 _payoutDenominator,
         uint256 _incidentTimestamp,
         bytes32 _merkleRoot,
-        bytes32[] calldata _rawdata,
+        string calldata _rawdata,
         string calldata _memo
     ) external virtual;
-
-
 }
