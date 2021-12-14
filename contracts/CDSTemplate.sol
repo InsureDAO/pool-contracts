@@ -140,6 +140,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket{
         uint256[] memory _shares = new uint256[](1);
         _shares[0] = MAGIC_SCALE_1E6;
         crowdPool += vault.addValue(_amount, msg.sender, address(this));
+        
         if (_supply > 0 && _liquidity > 0) {
             _mintAmount = (_amount * _supply) / _liquidity;
         } else if (_supply > 0 && _liquidity == 0) {

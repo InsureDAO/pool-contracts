@@ -64,7 +64,7 @@ describe("Pool", function () {
 
   const governanceFeeRate = BigNumber.from("100000"); //10% of the Premium
   const RATE_DIVIDER = BigNumber.from("1000000"); //1e6
-  const UTILIZATION_RATE_LENGTH_1E8 = BigNumber.from("1000000"); //1e6
+  const UTILIZATION_RATE_LENGTH_1E6 = BigNumber.from("1000000"); //1e6
   const padded1 = ethers.utils.hexZeroPad("0x1", 32);
 
 
@@ -133,7 +133,7 @@ describe("Pool", function () {
     }
 
     if(!m1.utilizationRate.isZero()){
-      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E8.mul(m1.insured).div(m1.marketBalance) //how much ratio is locked (=bought as insurance) among the pool.
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance) //how much ratio is locked (=bought as insurance) among the pool.
     }else{
       m1.utilizationRate = ZERO
     }
@@ -200,7 +200,7 @@ describe("Pool", function () {
     }
 
     if(!m1.utilizationRate.isZero()){
-      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E8.mul(m1.insured).div(m1.marketBalance)
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance)
     }else{
       m1.utilizationRate = ZERO
     }
@@ -265,7 +265,7 @@ describe("Pool", function () {
     }
 
     if(!m1.utilizationRate.isZero()){
-      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E8.mul(m1.insured).div(m1.marketBalance)
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance)
     }else{
       m1.utilizationRate = ZERO
     }
@@ -320,7 +320,7 @@ describe("Pool", function () {
     g.totalBalance = g.totalBalance.add(premium)
 
     if(!m1.marketBalance.isZero()){
-      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E8.mul(m1.insured).div(m1.marketBalance)
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance)
     }else{
       m1.utilizationRate = ZERO
     }
@@ -383,7 +383,7 @@ describe("Pool", function () {
     g.totalBalance = g.totalBalance.sub(payoutAmount)
 
     if(!m1.marketBalance.isZero()){
-      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E8.mul(m1.insured).div(m1.marketBalance)
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance)
     }else{
       m1.utilizationRate = ZERO
     }
@@ -434,7 +434,7 @@ describe("Pool", function () {
     m1.marketBalance = m1.marketBalance.sub(amount)
 
     if(!m1.marketBalance.isZero()){
-      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E8.mul(m1.insured).div(m1.marketBalance)
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance)
     }else{
       m1.utilizationRate = ZERO
     }
@@ -468,7 +468,7 @@ describe("Pool", function () {
       }
 
       if(!m1.utilizationRate.isZero()){
-        m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E8.mul(m1.insured).div(m1.marketBalance)
+        m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance)
       }else{
         m1.utilizationRate = ZERO
       }
@@ -508,7 +508,7 @@ describe("Pool", function () {
     }
 
     if(!m1.utilizationRate.isZero()){
-      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E8.mul(m1.insured).div(m1.marketBalance)
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance)
     }else{
       m1.utilizationRate = ZERO
     }
