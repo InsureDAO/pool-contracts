@@ -4,13 +4,8 @@ pragma solidity 0.8.7;
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IRegistry.sol";
 
-contract Registry is IRegistry{
-
-    event ExistenceSet(
-        address indexed target,
-        uint256 indexed typeId,
-        bytes32 indexed hashId
-    );
+contract Registry is IRegistry {
+    event ExistenceSet(address indexed template, address indexed target);
     event NewMarketRegistered(address market);
     event FactorySet(address factory);
     event CDSSet(address indexed target, address cds);
@@ -19,16 +14,18 @@ contract Registry is IRegistry{
 
     mapping(address => address) cds; //index => cds
     mapping(address => bool) markets; //true if the market is registered
-    mapping(bytes32 => bool) existence; //true if the certain id is already registered in market
+    mapping(address => mapping(address => bool)) existence; //true if the certain id is already registered in market
     address[] allMarkets;
 
     IOwnership public ownership;
 
     modifier onlyOwner() {
-        require(ownership.owner() == msg.sender, 'Restricted: caller is not allowed to operate');
+        require(
+            ownership.owner() == msg.sender,
+            "Restricted: caller is not allowed to operate"
+        );
         _;
     }
-
 
     constructor(address _ownership) {
         ownership = IOwnership(_ownership);
@@ -38,8 +35,8 @@ contract Registry is IRegistry{
      * @notice Set the factory address and allow it to regiser a new market
      * @param _factory factory address
      */
-    function setFactory(address _factory) external override onlyOwner{
-        require(_factory != address(0), "dev: zero address");
+    function setFactory(address _factory) external override onlyOwner {
+        require(_factory != address(0), "ERROR: ZERO_ADDRESS");
 
         factory = _factory;
         emit FactorySet(_factory);
@@ -50,26 +47,34 @@ contract Registry is IRegistry{
      * @param _market market address to register
      */
     function supportMarket(address _market) external override {
-        require(!markets[_market]);
-        require(msg.sender == factory || msg.sender == ownership.owner());
-        require(_market != address(0), "dev: zero address");
-        
+        require(!markets[_market], "ERROR: ALREADY_REGISTERED");
+        require(
+            msg.sender == factory || msg.sender == ownership.owner(),
+            "ERROR: UNAUTHORIZED_CALLER"
+        );
+        require(_market != address(0), "ERROR: ZERO_ADDRESS");
+
         allMarkets.push(_market);
         markets[_market] = true;
         emit NewMarketRegistered(_market);
     }
 
     /**
-     * @notice Register a new bytes32 id and address set.
+     * @notice Register a new target address id and template address set.
+     * @param _template template address
      * @param _target target address
-     * @param _typeId id
      */
-    function setExistence(address _target, uint256 _typeId) external override {
-        require(msg.sender == factory || msg.sender == ownership.owner());
+    function setExistence(address _template, address _target)
+        external
+        override
+    {
+        require(
+            msg.sender == factory || msg.sender == ownership.owner(),
+            "ERROR: UNAUTHORIZED_CALLER"
+        );
 
-        bytes32 _hashId = keccak256(abi.encodePacked(_target, _typeId));
-        existence[_hashId] = true;
-        emit ExistenceSet(_target, _typeId, _hashId);
+        existence[_template][_target] = true;
+        emit ExistenceSet(_template, _target);
     }
 
     /**
@@ -77,8 +82,12 @@ contract Registry is IRegistry{
      * @param _address address to set CDS
      * @param _cds CDS contract address
      */
-    function setCDS(address _address, address _cds) external override onlyOwner{
-        require(_cds != address(0), "dev: zero address");
+    function setCDS(address _address, address _cds)
+        external
+        override
+        onlyOwner
+    {
+        require(_cds != address(0), "ERROR: ZERO_ADDRESS");
 
         cds[_address] = _cds;
         emit CDSSet(_address, _cds);
@@ -89,7 +98,7 @@ contract Registry is IRegistry{
      * @param _address address covered by CDS
      * @return true if the id within the market already exists
      */
-    function getCDS(address _address) external override view returns (address) {
+    function getCDS(address _address) external view override returns (address) {
         if (cds[_address] == address(0)) {
             return cds[address(0)];
         } else {
@@ -99,16 +108,17 @@ contract Registry is IRegistry{
 
     /**
      * @notice Get whether the target address and id set exists
+     * @param _template template address
      * @param _target target address
-     * @param _typeId id
      * @return true if the id within the market already exists
      */
-    function confirmExistence(address _target, uint256 _typeId)
-        external override
+    function confirmExistence(address _template, address _target)
+        external
         view
+        override
         returns (bool)
     {
-        return existence[keccak256(abi.encodePacked(_target, _typeId))];
+        return existence[_template][_target];
     }
 
     /**
@@ -116,7 +126,7 @@ contract Registry is IRegistry{
      * @param _market market address to inquire
      * @return true if listed
      */
-    function isListed(address _market) external override view returns (bool) {
+    function isListed(address _market) external view override returns (bool) {
         return markets[_market];
     }
 

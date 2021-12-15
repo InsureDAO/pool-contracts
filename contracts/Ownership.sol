@@ -6,10 +6,10 @@ import "./interfaces/IOwnership.sol";
 
 contract Ownership is IOwnership {
     address private _owner;
-    address private _future_owner;
+    address private _futureOwner;
 
-    event CommitNewOwnership(address future_owner);
-    event AcceptNewOwnership(address owner);
+    event CommitNewOwnership(address indexed futureOwner);
+    event AcceptNewOwnership(address indexed owner);
 
     /**
      * @dev Initializes the contract setting the deployer as the initial owner.
@@ -26,8 +26,8 @@ contract Ownership is IOwnership {
         return _owner;
     }
 
-    function future_owner() external view override returns (address) {
-        return _future_owner;
+    function futureOwner() external view override returns (address) {
+        return _futureOwner;
     }
 
     /**
@@ -43,7 +43,7 @@ contract Ownership is IOwnership {
 
     modifier onlyFutureOwner() {
         require(
-            _future_owner == msg.sender,
+            _futureOwner == msg.sender,
             "Restricted: caller is not allowed to operate"
         );
         _;
@@ -58,15 +58,15 @@ contract Ownership is IOwnership {
          *@notice Transfer ownership of GaugeController to `newOwner`
          *@param newOwner Address to have ownership transferred to
          */
-        _future_owner = newOwner;
-        emit CommitNewOwnership(_future_owner);
+        _futureOwner = newOwner;
+        emit CommitNewOwnership(_futureOwner);
     }
 
     function acceptTransferOwnership() external override onlyFutureOwner {
         /***
          *@notice Accept a transfer of ownership
          */
-        _owner = _future_owner;
+        _owner = _futureOwner;
         emit AcceptNewOwnership(_owner);
     }
 }
