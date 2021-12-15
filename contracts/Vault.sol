@@ -32,9 +32,10 @@ contract Vault is IVault {
 
     address public keeper; //keeper can operate utilize(), if address zero, anyone can operate.
     uint256 public balance; //balance of underlying token
+    uint256 public totalDebt; //total debt balance
 
     IOwnership public ownership;
-    
+
     event ControllerSet(address controller);
 
     modifier onlyOwner() {
@@ -81,7 +82,7 @@ contract Vault is IVault {
         uint256[2] memory _shares
     ) external override returns (uint256[2] memory _allocations) {
         require(_shares[0] + _shares[1] == 1000000, "ERROR_INCORRECT_SHARE");
-        
+
         uint256 _attributions;
         if (totalAttributions == 0) {
             _attributions = _amount;
@@ -142,7 +143,7 @@ contract Vault is IVault {
             "ERROR_WITHDRAW-VALUE_BADCONDITOONS"
         );
         _attributions = (totalAttributions * _amount) / valueAll();
-        
+
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
 
@@ -185,19 +186,13 @@ contract Vault is IVault {
      * @param _to borrower's address
      */
 
-    function borrowValue(uint256 _amount, address _to)
-        external
-        override
-        returns (uint256 _attributions)
-    {
+    function borrowValue(uint256 _amount, address _to) external override {
         require(
             IRegistry(registry).isListed(msg.sender),
             "ERROR_BORROW-VALUE_BADCONDITOONS"
         );
-        _attributions = (totalAttributions * _amount) / valueAll();
         debts[msg.sender] += _amount;
-        totalAttributions -= _attributions;
-        balance -= _amount;
+        totalDebt += _amount;
         IERC20(token).safeTransfer(_to, _amount);
     }
 
@@ -233,7 +228,9 @@ contract Vault is IVault {
         );
         _attributions = (_amount * totalAttributions) / valueAll();
         attributions[msg.sender] -= _attributions;
+        totalAttributions -= _attributions;
         debts[_target] -= _amount;
+        totalDebt -= _amount;
     }
 
     /**
@@ -246,11 +243,11 @@ contract Vault is IVault {
         uint256 _debt = debts[_target];
         if (_debt >= _amount) {
             debts[_target] -= _amount;
-            balance += _amount;
+            totalDebt -= _amount;
             IERC20(token).safeTransferFrom(msg.sender, _target, _amount);
         } else {
-            balance += _debt;
             debts[_target] = 0;
+            totalDebt -= _amount;
             IERC20(token).safeTransferFrom(msg.sender, _target, _debt);
         }
     }
@@ -306,7 +303,7 @@ contract Vault is IVault {
             _unutilize(_shortage);
         }
 
-        balance = balance - _retVal;
+        balance -= _retVal;
         IERC20(token).safeTransfer(_to, _retVal);
     }
 
@@ -410,12 +407,11 @@ contract Vault is IVault {
      * @return all token value of the vault
      */
     function valueAll() public view returns (uint256) {
-        if(address(controller) != address(0)){
+        if (address(controller) != address(0)) {
             return balance + controller.valueAll();
-        }else{
+        } else {
             return balance;
         }
-        
     }
 
     /**
@@ -434,7 +430,7 @@ contract Vault is IVault {
      * @return available balance to utilize
      */
     function available() public view returns (uint256) {
-        return balance;
+        return balance - totalDebt;
     }
 
     /**
@@ -454,7 +450,11 @@ contract Vault is IVault {
      * @param _token token address
      * @param _to beneficiary's address
      */
-    function withdrawRedundant(address _token, address _to) external override onlyOwner {
+    function withdrawRedundant(address _token, address _to)
+        external
+        override
+        onlyOwner
+    {
         if (
             _token == address(token) &&
             balance < IERC20(token).balanceOf(address(this))
@@ -477,13 +477,13 @@ contract Vault is IVault {
     function setController(address _controller) public override onlyOwner {
         require(_controller != address(0), "ERROR_ZERO_ADDRESS");
 
-        if(address(controller) != address(0)){
+        if (address(controller) != address(0)) {
             controller.migrate(address(_controller));
             controller = IController(_controller);
-        }else{
+        } else {
             controller = IController(_controller);
         }
-    
+
         emit ControllerSet(_controller);
     }
 
