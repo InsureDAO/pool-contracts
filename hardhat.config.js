@@ -31,7 +31,7 @@ module.exports = {
   },
   paths: {
     sources: "./contracts",
-    tests: "./test/unitary/CDSTemplate",
+    tests: "./test/unitary",
     cache: "./cache",
     artifacts: "./artifacts",
   },

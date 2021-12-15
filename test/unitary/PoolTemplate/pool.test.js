@@ -380,8 +380,6 @@ describe("Pool", function () {
     m1.insured = m1.insured.sub(insuredAmount)
     m1.debt = m1.debt.add(payoutAmount)
 
-    g.totalBalance = g.totalBalance.sub(payoutAmount)
-
     if(!m1.marketBalance.isZero()){
       m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance)
     }else{
@@ -432,6 +430,7 @@ describe("Pool", function () {
 
     m1.debt = m1.debt.sub(amount)
     m1.marketBalance = m1.marketBalance.sub(amount)
+    g.totalBalance = g.totalBalance.sub(amount)
 
     if(!m1.marketBalance.isZero()){
       m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance)

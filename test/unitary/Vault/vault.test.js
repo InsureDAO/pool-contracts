@@ -106,7 +106,7 @@ describe("Vault", function () {
 
       expect(await vault.underlyingValue(alice.address)).to.equal(15000);
       expect(await vault.getPricePerFullShare()).to.equal(
-        "1500000000000000000"
+        "1500000"
       );
 
       await vault.connect(alice).withdrawAllAttribution(alice.address);
@@ -127,7 +127,7 @@ describe("Vault", function () {
       await controller.yield();
 
       expect(await vault.underlyingValue(alice.address)).to.equal(15000);
-      expect(await vault.getPricePerFullShare()).to.equal("1500000000000000000");
+      expect(await vault.getPricePerFullShare()).to.equal("1500000");
 
       await expect(vault.connect(alice).utilize()).to.revertedWith("ERROR_NOT_KEEPER");
     });

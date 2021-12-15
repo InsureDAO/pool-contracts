@@ -259,6 +259,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
             _attribution = vault.transferValue(_amount, msg.sender);
             emit Compensated(msg.sender, _amount);
         } else {
+            //when CDS cannot afford, pay as much as possible
             _compensated = _available;
             _attribution = vault.transferValue(_available, msg.sender);
             emit Compensated(msg.sender, _available);

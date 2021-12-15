@@ -136,10 +136,11 @@ const verifyCDSStatus_legacy = async({cds, totalSupply, totalLiquidity, rate}) =
 
 
 //======== VAULT ========//
-const verifyVaultStatus = async({vault, balance, valueAll, totalAttributions}) => {
+const verifyVaultStatus = async({vault, balance, valueAll, totalAttributions, totalDebt}) => {
     expect(await vault.balance()).to.equal(balance);
     expect(await vault.valueAll()).to.equal(valueAll);
     expect(await vault.totalAttributions()).to.equal(totalAttributions);
+    expect(await vault.totalDebt()).to.equal(totalDebt);
 }
 
 const verifyVaultStatusOf = async({vault, target, attributions, underlyingValue, debt}) => {
