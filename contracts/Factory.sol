@@ -13,9 +13,7 @@ import "./interfaces/IRegistry.sol";
 import "./interfaces/IFactory.sol";
 import "hardhat/console.sol";
 
-contract Factory is IFactory{
-
-
+contract Factory is IFactory {
     event MarketCreated(
         address indexed market,
         address indexed template,
@@ -45,7 +43,7 @@ contract Factory is IFactory{
 
     struct Template {
         bool isOpen; //true if the market allows anyone to create a market
-        bool approval; //true if the market exists
+        bool approval; //true if the template exists
         bool allowDuplicate; //true if the market with same ID is allowed
     }
     mapping(address => Template) public templates;
@@ -101,7 +99,7 @@ contract Factory is IFactory{
     ) external override onlyOwner {
         require(address(_template) != address(0));
         templates[address(_template)].approval = _approval;
-        templates[address(_template)].isOpen = _approval;
+        templates[address(_template)].isOpen = _isOpen;
         templates[address(_template)].allowDuplicate = _duplicate;
         emit TemplateApproval(_template, _approval, _isOpen, _duplicate);
     }
@@ -120,7 +118,10 @@ contract Factory is IFactory{
         address _target,
         bool _approval
     ) external override onlyOwner {
-        require(templates[address(_template)].approval == true);
+        require(
+            templates[address(_template)].approval == true,
+            "ERROR: UNAUTHORIZED_TEMPLATE"
+        );
         reflist[address(_template)][_slot][_target] = _approval;
         emit ReferenceApproval(_template, _slot, _target, _approval);
     }
@@ -137,7 +138,10 @@ contract Factory is IFactory{
         uint256 _slot,
         uint256 _target
     ) external override onlyOwner {
-        require(templates[address(_template)].approval == true);
+        require(
+            templates[address(_template)].approval == true,
+            "ERROR: UNAUTHORIZED_TEMPLATE"
+        );
         conditionlist[address(_template)][_slot] = _target;
         emit ConditionApproval(_template, _slot, _target);
     }
@@ -159,17 +163,20 @@ contract Factory is IFactory{
     ) public override returns (address) {
         require(
             templates[address(_template)].approval == true,
-            "UNAUTHORIZED_TEMPLATE"
+            "ERROR: UNAUTHORIZED_TEMPLATE"
         );
         if (templates[address(_template)].isOpen == false) {
-            require(ownership.owner() == msg.sender, "UNAUTHORIZED_SENDER");
+            require(
+                ownership.owner() == msg.sender,
+                "ERROR: UNAUTHORIZED_SENDER"
+            );
         }
         if (_references.length > 0) {
             for (uint256 i = 0; i < _references.length; i++) {
                 require(
                     reflist[address(_template)][i][_references[i]] == true ||
                         reflist[address(_template)][i][address(0)] == true,
-                    "UNAUTHORIZED_REFERENCE"
+                    "ERROR: UNAUTHORIZED_REFERENCE"
                 );
             }
         }
@@ -200,14 +207,17 @@ contract Factory is IFactory{
 
         if (
             IRegistry(registry).confirmExistence(
-                _references[0],
-                _conditions[0]
+                address(_template),
+                _references[0]
             ) == false
         ) {
-            IRegistry(registry).setExistence(_references[0], _conditions[0]);
+            IRegistry(registry).setExistence(
+                address(_template),
+                _references[0]
+            );
         } else {
             if (templates[address(_template)].allowDuplicate == false) {
-                revert("DUPLICATE_MARKET");
+                revert("ERROR: DUPLICATE_MARKET");
             }
         }
 
