@@ -128,12 +128,25 @@ const verifyCDSStatus = async({cds, totalSupply, totalLiquidity, rate}) => {
 
 
 //======== VAULT ========//
-const verifyVaultStatus = async({vault, valueAll, totalAttributions}) => {
+const verifyVaultStatus = async({vault, balance, valueAll, totalAttributions}) => {
+    expect(await vault.balance()).to.equal(balance);
     expect(await vault.valueAll()).to.equal(valueAll);
     expect(await vault.totalAttributions()).to.equal(totalAttributions);
 }
 
-const verifyVaultStatusOf = async({vault, target, attributions, underlyingValue}) => {
+const verifyVaultStatusOf = async({vault, target, attributions, underlyingValue, debt}) => {
+    expect(await vault.attributions(target)).to.equal(attributions);
+    expect(await vault.underlyingValue(target)).to.equal(underlyingValue);
+    expect(await vault.debts(target)).to.equal(debt);
+}
+
+
+const verifyVaultStatus_legacy = async({vault, valueAll, totalAttributions}) => {
+    expect(await vault.valueAll()).to.equal(valueAll);
+    expect(await vault.totalAttributions()).to.equal(totalAttributions);
+}
+
+const verifyVaultStatusOf_legacy = async({vault, target, attributions, underlyingValue}) => {
     expect(await vault.attributions(target)).to.equal(attributions);
     expect(await vault.underlyingValue(target)).to.equal(underlyingValue);
 }
@@ -178,6 +191,8 @@ Object.assign(exports, {
 
     //vault
     verifyDebtOf,
+    verifyVaultStatus_legacy,
+    verifyVaultStatusOf_legacy,
     verifyVaultStatus,
     verifyVaultStatusOf,
 

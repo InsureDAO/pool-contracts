@@ -168,6 +168,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * references[1] = underlying token address
      * references[2] = registry
      * references[3] = parameter
+     * references[4] = initialDepositor
      * conditions[0] = minimim deposit amount
      * @param _metaData arbitrary string to store market information
      * @param _conditions array of conditions
@@ -177,14 +178,15 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external override {
+    ) external override{
         require(
             initialized == false &&
                 bytes(_metaData).length > 0 &&
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
                 _references[2] != address(0) &&
-                _references[3] != address(0),
+                _references[3] != address(0) &&
+                _references[4] != address(0),
             "ERROR: INITIALIZATION_BAD_CONDITIONS"
         );
         initialized = true;
@@ -211,8 +213,11 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         marketStatus = MarketStatus.Trading;
 
-        if (_conditions[0] > 0) {
-            deposit(_conditions[0]);
+        uint256 depositAmount = _conditions[0];
+        address initialDepositor = _references[4];
+
+        if (depositAmount > 0) {
+            depositFor(depositAmount, initialDepositor);
         }
     }
 
@@ -242,6 +247,23 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         _mint(msg.sender, _mintAmount);
     }
 
+    function depositFor(uint256 _amount, address _to) public returns (uint256 _mintAmount) {
+        require(
+            marketStatus == MarketStatus.Trading && paused == false,
+            "ERROR: DEPOSIT_DISABLED"
+        );
+        require(_amount > 0, "ERROR: DEPOSIT_ZERO");
+
+        _mintAmount = worth(_amount);
+
+        vault.addValue(_amount, _to, address(this));
+
+        emit Deposit(_to, _amount, _mintAmount);
+
+        //mint iToken
+        _mint(_to, _mintAmount);
+    }
+
     /**
      * @notice A liquidity provider request withdrawal of collateral
      * @param _amount amount of iTokens to burn
@@ -261,7 +283,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return _retVal the amount underlying tokens returned
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
+
         uint256 _supply = totalSupply();
+        require(_supply != 0, "ERROR: NO_AVAILABLE_LIQUIDITY");
+
         uint256 _liquidity = originalLiquidity();
         _retVal = (_amount * _liquidity) / _supply;
 

@@ -51,6 +51,11 @@ contract Vault is IVault {
         address _controller,
         address _ownership
     ) {
+        require(_token != address(0));
+        require(_registry != address(0));
+        require(_ownership != address(0));
+        //controller can be zero
+
         token = _token;
         registry = IRegistry(_registry);
         controller = IController(_controller);
@@ -75,6 +80,8 @@ contract Vault is IVault {
         address[2] memory _beneficiaries,
         uint256[2] memory _shares
     ) external override returns (uint256[2] memory _allocations) {
+        require(_shares[0] + _shares[1] == 1000000, "ERROR_INCORRECT_SHARE");
+        
         uint256 _attributions;
         if (totalAttributions == 0) {
             _attributions = _amount;
@@ -135,12 +142,18 @@ contract Vault is IVault {
             "ERROR_WITHDRAW-VALUE_BADCONDITOONS"
         );
         _attributions = (totalAttributions * _amount) / valueAll();
+        
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
+
         if (available() < _amount) {
+            //when USDC in this contract isn't enough
             uint256 _shortage = _amount - available();
             _unutilize(_shortage);
+
+            assert(available() >= _amount);
         }
+
         balance -= _amount;
         IERC20(token).safeTransfer(_to, _amount);
     }
@@ -168,7 +181,7 @@ contract Vault is IVault {
 
     /**
      * @notice a registered contract can borrow balance from the vault
-     * @param _amount borrow amouunt
+     * @param _amount borrow amount
      * @param _to borrower's address
      */
 
@@ -232,11 +245,13 @@ contract Vault is IVault {
     function repayDebt(uint256 _amount, address _target) external override {
         uint256 _debt = debts[_target];
         if (_debt >= _amount) {
-            IERC20(token).safeTransferFrom(msg.sender, _target, _amount);
             debts[_target] -= _amount;
+            balance += _amount;
+            IERC20(token).safeTransferFrom(msg.sender, _target, _amount);
         } else {
-            IERC20(token).safeTransferFrom(msg.sender, _target, _debt);
+            balance += _debt;
             debts[_target] = 0;
+            IERC20(token).safeTransferFrom(msg.sender, _target, _debt);
         }
     }
 
@@ -282,11 +297,15 @@ contract Vault is IVault {
             "ERROR_WITHDRAW-ATTRIBUTION_BADCONDITOONS"
         );
         _retVal = (_attribution * valueAll()) / totalAttributions;
+
         attributions[msg.sender] -= _attribution;
+        totalAttributions -= _attribution;
+
         if (available() < _retVal) {
             uint256 _shortage = _retVal - available();
             _unutilize(_shortage);
         }
+
         balance = balance - _retVal;
         IERC20(token).safeTransfer(_to, _retVal);
     }
@@ -300,10 +319,13 @@ contract Vault is IVault {
         external
         override
     {
+        require(_destination != address(0), "ERROR_ZERO_ADDRESS");
+
         require(
-            attributions[msg.sender] > 0 && attributions[msg.sender] >= _amount,
+            _amount != 0 && attributions[msg.sender] >= _amount,
             "ERROR_TRANSFER-ATTRIBUTION_BADCONDITOONS"
         );
+
         attributions[msg.sender] -= _amount;
         attributions[_destination] += _amount;
     }
@@ -316,7 +338,7 @@ contract Vault is IVault {
         if (keeper != address(0)) {
             require(msg.sender == keeper, "ERROR_NOT_KEEPER");
         }
-        _amount = available();
+        _amount = available(); //balance
         if (_amount > 0) {
             IERC20(token).safeTransfer(address(controller), _amount);
             balance -= _amount;
@@ -388,7 +410,12 @@ contract Vault is IVault {
      * @return all token value of the vault
      */
     function valueAll() public view returns (uint256) {
-        return balance + controller.valueAll();
+        if(address(controller) != address(0)){
+            return balance + controller.valueAll();
+        }else{
+            return balance;
+        }
+        
     }
 
     /**
@@ -396,6 +423,8 @@ contract Vault is IVault {
      * @param _amount amount to withdraw from controller
      */
     function _unutilize(uint256 _amount) internal {
+        require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
+
         controller.withdraw(address(this), _amount);
         balance += _amount;
     }
@@ -446,8 +475,15 @@ contract Vault is IVault {
      * @param _controller address of the controller
      */
     function setController(address _controller) public override onlyOwner {
-        controller.migrate(address(_controller));
-        controller = IController(_controller);
+        require(_controller != address(0), "ERROR_ZERO_ADDRESS");
+
+        if(address(controller) != address(0)){
+            controller.migrate(address(_controller));
+            controller = IController(_controller);
+        }else{
+            controller = IController(_controller);
+        }
+    
         emit ControllerSet(_controller);
     }
 
