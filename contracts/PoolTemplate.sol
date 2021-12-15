@@ -178,7 +178,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external override{
+    ) external override {
         require(
             initialized == false &&
                 bytes(_metaData).length > 0 &&
@@ -247,7 +247,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         _mint(msg.sender, _mintAmount);
     }
 
-    function depositFor(uint256 _amount, address _to) public returns (uint256 _mintAmount) {
+    function depositFor(uint256 _amount, address _to)
+        public
+        returns (uint256 _mintAmount)
+    {
         require(
             marketStatus == MarketStatus.Trading && paused == false,
             "ERROR: DEPOSIT_DISABLED"
@@ -283,7 +286,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return _retVal the amount underlying tokens returned
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
-
         uint256 _supply = totalSupply();
         require(_supply != 0, "ERROR: NO_AVAILABLE_LIQUIDITY");
 
@@ -464,7 +466,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         //Distribute premium and fee
         uint256 _endTime = _span + block.timestamp;
         uint256 _premium = getPremium(_amount, _span);
-        uint256 _fee = parameters.getFee(msg.sender);
+        uint256 _fee = parameters.getFeeRate(msg.sender);
 
         require(
             _amount <= availableBalance(),
@@ -473,7 +475,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         require(_premium <= _maxCost, "ERROR: INSURE_EXCEEDED_MAX_COST");
         require(_span <= 365 days, "ERROR: INSURE_EXCEEDED_MAX_SPAN");
         require(
-            parameters.getMin(msg.sender) <= _span,
+            parameters.getMinDate(msg.sender) <= _span,
             "ERROR: INSURE_SPAN_BELOW_MIN"
         );
 
