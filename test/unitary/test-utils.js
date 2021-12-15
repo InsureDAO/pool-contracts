@@ -120,7 +120,15 @@ const verifyIndexStatus = async ({index, totalSupply, totalLiquidity, totalAlloc
 
 
 //======== CDS ========//
-const verifyCDSStatus = async({cds, totalSupply, totalLiquidity, rate}) => {
+const verifyCDSStatus = async({cds, surplusPool, crowdPool, totalSupply, totalLiquidity, rate}) => {
+    expect(await cds.surplusPool()).to.equal(surplusPool);
+    expect(await cds.crowdPool()).to.equal(crowdPool);
+    expect(await cds.totalSupply()).to.equal(totalSupply);
+    expect(await cds.totalLiquidity()).to.equal(totalLiquidity);
+    expect(await cds.rate()).to.equal(rate);
+}
+
+const verifyCDSStatus_legacy = async({cds, totalSupply, totalLiquidity, rate}) => {
     expect(await cds.totalSupply()).to.equal(totalSupply);
     expect(await cds.totalLiquidity()).to.equal(totalLiquidity);
     expect(await cds.rate()).to.equal(rate);
@@ -188,6 +196,7 @@ Object.assign(exports, {
 
     //cds
     verifyCDSStatus,
+    verifyCDSStatus_legacy,
 
     //vault
     verifyDebtOf,

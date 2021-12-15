@@ -13,7 +13,7 @@ const {
   verifyPoolsStatusForIndex,
   verifyPoolsStatusForIndex_legacy,
   verifyIndexStatus,
-  verifyCDSStatus,
+  verifyCDSStatus_legacy,
   verifyVaultStatus_legacy,
   verifyVaultStatusOf_legacy,
 } = require('../test-utils')
@@ -373,7 +373,7 @@ describe.skip("CDS", function () {
       })
       await cds.connect(alice).requestWithdraw(depositAmount);
 
-      await verifyCDSStatus({
+      await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: depositAmount,
         totalLiquidity: depositAmount,
@@ -387,7 +387,7 @@ describe.skip("CDS", function () {
         amount: depositAmount
       })
 
-      await verifyCDSStatus({
+      await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: depositAmount,
         totalLiquidity: depositAmount,
@@ -431,7 +431,7 @@ describe.skip("CDS", function () {
 
       await cds.connect(alice).requestWithdraw(depositAmount);
 
-      await verifyCDSStatus({
+      await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: depositAmount,
         totalLiquidity: depositAmount,
@@ -497,7 +497,7 @@ describe.skip("CDS", function () {
         ]
       })
 
-      await verifyCDSStatus({
+      await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: depositAmount,
         totalLiquidity: depositAmount,
@@ -598,7 +598,7 @@ describe.skip("CDS", function () {
         ]
       })
 
-      await verifyCDSStatus({
+      await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: depositAmount,
         totalLiquidity: depositAmount,
@@ -648,7 +648,7 @@ describe.skip("CDS", function () {
         ]
       })
 
-      await verifyCDSStatus({
+      await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: depositAmount,
         totalLiquidity: depositAmount,
@@ -681,7 +681,7 @@ describe.skip("CDS", function () {
       })
       await cds.connect(alice).requestWithdraw("990");
 
-      await verifyCDSStatus({
+      await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: 990,
         totalLiquidity: 990,
@@ -695,7 +695,7 @@ describe.skip("CDS", function () {
         amount: 1000
       })
 
-      await verifyCDSStatus({
+      await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: 990,
         totalLiquidity: 1010,
@@ -732,7 +732,7 @@ describe.skip("CDS", function () {
         ]
       })
 
-      await verifyCDSStatus({
+      await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: 990,
         totalLiquidity: 1010,
@@ -836,7 +836,7 @@ describe.skip("CDS", function () {
         ]
       })
 
-      await verifyCDSStatus({
+      await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: 990,
         totalLiquidity: 0,

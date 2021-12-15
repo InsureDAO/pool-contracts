@@ -48,6 +48,10 @@ async function now () {
   return BigNumber.from((await ethers.provider.getBlock("latest")).timestamp);
 }
 
+async function setNextBlock () {
+  await ethers.provider.send("evm_increaseTime", [DAY.mul(days).toNumber()]);
+}
+
 describe("CDS", function () {
   const initialMint = BigNumber.from("100000"); //initial token amount for users
   const depositAmount = BigNumber.from("10000"); //default deposit amount for test
@@ -166,9 +170,13 @@ describe("CDS", function () {
 
     
     //set up
-    await usdc.mint(chad.address, (100000).toString());
-    await usdc.mint(bob.address, (100000).toString());
-    await usdc.mint(alice.address, (100000).toString());
+    await usdc.mint(alice.address, initialMint);
+    await usdc.mint(bob.address, initialMint);
+    await usdc.mint(chad.address, initialMint);
+
+    await usdc.connect(alice).approve(vault.address, initialMint)
+    await usdc.connect(bob).approve(vault.address, initialMint)
+    await usdc.connect(chad).approve(vault.address, initialMint)
 
     await registry.setFactory(factory.address);
 
@@ -360,15 +368,100 @@ describe("CDS", function () {
       });
     });
 
+    describe('fund', function() {
+      it('success', async () => {
+        //sanity check
+        await verifyCDSStatus({
+          cds: cds, 
+          surplusPool: ZERO, 
+          crowdPool: ZERO, 
+          totalSupply: ZERO, 
+          totalLiquidity: ZERO,
+          rate: ZERO
+        })
+
+        //EXECUTE
+        await cds.connect(alice).fund(depositAmount);
+
+        //sanity check
+        await verifyCDSStatus({
+          cds: cds, 
+          surplusPool: depositAmount,
+          crowdPool: ZERO,
+          totalSupply: ZERO, //lp token wasn't minted
+          totalLiquidity: depositAmount, //liquidity counts
+          rate: ZERO
+        })
+      });
+
+      it('revert when paused', async () => {
+        await cds.setPaused(true)
+
+        //EXECUTE
+        await expect(cds.connect(alice).fund(depositAmount)).to.revertedWith("ERROR: PAUSED")
+      });
+    });
+
+    describe('defund', function() {
+      beforeEach(async () => {
+        await cds.connect(alice).fund(depositAmount);
+
+        //sanity check
+        await verifyCDSStatus({
+          cds: cds, 
+          surplusPool: depositAmount,
+          crowdPool: ZERO,
+          totalSupply: ZERO, //lp token wasn't minted
+          totalLiquidity: depositAmount, //liquidity counts
+          rate: ZERO
+        })
+      });
+
+      it('success', async () => {
+        await cds.defund(depositAmount);
+
+        //sanity check
+        await verifyCDSStatus({
+          cds: cds, 
+          surplusPool: ZERO,
+          crowdPool: ZERO,
+          totalSupply: ZERO,
+          totalLiquidity: ZERO,
+          rate: ZERO
+        })
+      });
+
+      it('revert onlyOwner', async () => {
+        await expect(cds.connect(alice).defund(depositAmount)).to.revertedWith("ERROR: ONLY_OWNER")
+      });
+    });
+
     describe("requestWithdraw", function() {
-        it("balance should be more than amount", async () => {
-            // 156
-            // "ERROR: REQUEST_EXCEED_BALANCE"
-        });
-        it("amount should not be zero", async () => {
-            // 157
-            // "ERROR: REQUEST_ZERO"
-        });
+      beforeEach(async () => {
+        await cds.connect(alice).deposit(depositAmount);
+
+        //sanity check
+        await verifyCDSStatus({
+          cds: cds, 
+          surplusPool: ZERO,
+          crowdPool: depositAmount,
+          totalSupply: depositAmount, //lp token wasn't minted
+          totalLiquidity: depositAmount, //liquidity counts
+          rate: defaultRate
+        })
+
+        expect(await cds.withdrawalReq(alice.address).timestamp).to.equal()
+      });
+
+      it("revert when _amount exceed balance", async () => {
+        await expect(cds.connect(alice).requestWithdraw(depositAmount.add(1)))
+        .to.revertedWith("ERROR: REQUEST_EXCEED_BALANCE")
+      });
+
+      it("amount should not be zero", async () => {
+        await expect(cds.connect(alice).requestWithdraw(ZERO))
+        .to.revertedWith("ERROR: REQUEST_ZERO")
+      });
     });
 
     describe("withdraw", function(){

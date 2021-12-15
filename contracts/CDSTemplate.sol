@@ -67,7 +67,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     modifier onlyOwner() {
         require(
             msg.sender == parameters.getOwner(),
-            "Restricted: caller is not allowed to operate"
+            "ERROR: ONLY_OWNER"
         );
         _;
     }
@@ -128,7 +128,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @param _amount amount of token to deposit
      */
     function deposit(uint256 _amount) external returns (uint256 _mintAmount) {
-        require(paused == false, "ERROR: DEPOSIT_DISABLED");
+        require(paused == false, "ERROR: PAUSED");
         require(_amount > 0, "ERROR: DEPOSIT_ZERO");
 
         //deposit and pay fees
@@ -162,7 +162,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @param _amount amount of token to deposit
      */
     function fund(uint256 _amount) external {
-        require(paused == false, "ERROR: DEPOSIT_DISABLED");
+        require(paused == false, "ERROR: PAUSED");
 
         //deposit and pay fees
         uint256 _attribution = vault.addValue(
@@ -177,7 +177,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     }
 
     function defund(uint256 _amount) external override onlyOwner {
-        require(paused == false, "ERROR: DEPOSIT_DISABLED");
+        require(paused == false, "ERROR: PAUSED");
 
         uint256 _attribution = vault.withdrawValue(_amount, msg.sender);
         surplusPool -= _attribution;
@@ -206,7 +206,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
         //Calculate underlying value
         _retVal = (vault.attributionValue(crowdPool) * _amount) / totalSupply();
-        require(paused == false, "ERROR: WITHDRAWAL_PENDING");
+        require(paused == false, "ERROR: PAUSED");
         require(
             withdrawalReq[msg.sender].timestamp +
                 parameters.getLockup(msg.sender) <
