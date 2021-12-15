@@ -173,6 +173,125 @@ describe("Vault", function () {
 
   });
 
+  describe("addValueBatch", function () {
+
+    it("success when totalAttributions == 0: all for alice", async () => {
+      await vault.addValueBatch(depositAmount, alice.address, [alice.address, bob.address], [1000000, 0]);
+
+
+      //sanity check after
+      await verifyVaultStatus({
+        vault: vault,
+        balance: depositAmount,
+        valueAll: depositAmount,
+        totalAttributions: depositAmount
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: alice.address,
+        attributions: depositAmount,
+        underlyingValue: depositAmount,
+        debt: ZERO
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: bob.address,
+        attributions: ZERO,
+        underlyingValue: ZERO,
+        debt: ZERO
+      })
+
+      //transfer has done successfully
+      await verifyBalances({
+        token: usdc,
+        userBalances: {
+          [alice.address]: initialMint.sub(depositAmount),
+          [bob.address]: initialMint,
+          [vault.address]: depositAmount
+        }
+      })
+
+    });
+
+    it("success when totalAttributions == 0: half and half", async () => {
+      await vault.addValueBatch(depositAmount, alice.address, [alice.address, bob.address], [500000, 500000]);
+
+
+      //sanity check after
+      await verifyVaultStatus({
+        vault: vault,
+        balance: depositAmount,
+        valueAll: depositAmount,
+        totalAttributions: depositAmount
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: alice.address,
+        attributions: depositAmount.div(2),
+        underlyingValue: depositAmount.div(2),
+        debt: ZERO
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: bob.address,
+        attributions: depositAmount.div(2),
+        underlyingValue: depositAmount.div(2),
+        debt: ZERO
+      })
+
+      //transfer has done successfully
+      await verifyBalances({
+        token: usdc,
+        userBalances: {
+          [alice.address]: initialMint.sub(depositAmount),
+          [bob.address]: initialMint,
+          [vault.address]: depositAmount
+        }
+      })
+
+    });
+
+    it("success when totalAttributions != 0", async () => {
+      //setup
+      await vault.addValue(depositAmount, alice.address, alice.address);
+
+
+      //EXECUTE
+      await vault.addValue(depositAmount, alice.address, alice.address);
+
+
+      //sanity check
+      await verifyVaultStatus({
+        vault: vault,
+        balance: depositAmount.mul(2),
+        valueAll: depositAmount.mul(2),
+        totalAttributions: depositAmount.mul(2)
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: alice.address,
+        attributions: depositAmount.mul(2),
+        underlyingValue: depositAmount.mul(2),
+        debt: ZERO
+      })
+
+      //transfer has done successfully
+      await verifyBalances({
+        token: usdc,
+        userBalances: {
+          [alice.address]: initialMint.sub(depositAmount.mul(2)),
+          [vault.address]: depositAmount.mul(2)
+        }
+      })
+    });
+
+  });
+
   describe("withdrawValue", function () {
     beforeEach(async () => {
       await vault.addValue(depositAmount, alice.address, alice.address);
@@ -368,15 +487,142 @@ describe("Vault", function () {
     });
   });
 
+  describe("withdrawAttribution", function () {
+    beforeEach(async () => {
+      await vault.addValue(depositAmount, alice.address, alice.address);
+
+      //status
+      await verifyVaultStatus({
+        vault: vault,
+        balance: depositAmount,
+        valueAll: depositAmount,
+        totalAttributions: depositAmount
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: alice.address,
+        attributions: depositAmount,
+        underlyingValue: depositAmount,
+        debt: ZERO
+      })
+    });
+    
+    it("success", async () => {
+      await vault.connect(alice).withdrawAttribution(depositAmount, alice.address)
+
+      //sanity check
+      await verifyVaultStatus({
+        vault: vault,
+        balance: ZERO,
+        valueAll: ZERO,
+        totalAttributions: ZERO
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: alice.address,
+        attributions: ZERO,
+        underlyingValue: ZERO,
+        debt: ZERO
+      })
+
+      //transfer has done successfully
+      await verifyBalances({
+        token: usdc,
+        userBalances: {
+          [alice.address]: initialMint,
+          [vault.address]: ZERO
+        }
+      })
+    });
+
+    it("revert when he doesn't have enough attribution", async () => {
+      await expect(vault.connect(alice).withdrawAttribution(depositAmount.add(1), alice.address)).to.revertedWith("ERROR_WITHDRAW-ATTRIBUTION_BADCONDITOONS")
+    });
+  });
+
+  describe("transferAttribution", function () {
+    beforeEach(async () => {
+      await vault.addValue(depositAmount, alice.address, alice.address);
+
+      //status
+      await verifyVaultStatus({
+        vault: vault,
+        balance: depositAmount,
+        valueAll: depositAmount,
+        totalAttributions: depositAmount
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: alice.address,
+        attributions: depositAmount,
+        underlyingValue: depositAmount,
+        debt: ZERO
+      })
+    });
+    
+    it("success", async () => {
+      await vault.connect(alice).transferAttribution(depositAmount, bob.address)
+
+      //sanity check
+      await verifyVaultStatus({
+        vault: vault,
+        balance: depositAmount,
+        valueAll: depositAmount,
+        totalAttributions: depositAmount
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: alice.address,
+        attributions: ZERO,
+        underlyingValue: ZERO,
+        debt: ZERO
+      })
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: bob.address,
+        attributions: depositAmount,
+        underlyingValue: depositAmount,
+        debt: ZERO
+      })
+
+      //transfer has done successfully
+      await verifyBalances({
+        token: usdc,
+        userBalances: {
+          [alice.address]: initialMint.sub(depositAmount),
+          [bob.address]: initialMint,
+          [vault.address]: depositAmount
+        }
+      })
+    });
+
+    it("revert when transferring to zero address", async () => {
+      await expect(vault.connect(alice).transferAttribution(depositAmount, ZERO_ADDRESS)).to.revertedWith("ERROR_ZERO_ADDRESS")
+    });
+
+    it("revert when transferring more than he has", async () => {
+      await expect(vault.connect(alice).transferAttribution(depositAmount.add(1), bob.address)).to.revertedWith("ERROR_TRANSFER-ATTRIBUTION_BADCONDITOONS")
+    });
+  });
+
+  //Functions that needs Controller
   describe("Controller", function () {
     beforeEach(async () => {
       const Contorller = await ethers.getContractFactory("ControllerMock");
       controller = await Contorller.deploy(usdc.address, ownership.address);
-
+  
       await controller.setVault(vault.address);
       await vault.setController(controller.address);
     });
 
+    it("utilize", async () => {
+    });
+  
     
   });
 });

@@ -80,6 +80,8 @@ contract Vault is IVault {
         address[2] memory _beneficiaries,
         uint256[2] memory _shares
     ) external override returns (uint256[2] memory _allocations) {
+        require(_shares[0] + _shares[1] == 1000000, "ERROR_INCORRECT_SHARE");
+        
         uint256 _attributions;
         if (totalAttributions == 0) {
             _attributions = _amount;
@@ -303,7 +305,7 @@ contract Vault is IVault {
             uint256 _shortage = _retVal - available();
             _unutilize(_shortage);
         }
-        
+
         balance = balance - _retVal;
         IERC20(token).safeTransfer(_to, _retVal);
     }
@@ -317,10 +319,13 @@ contract Vault is IVault {
         external
         override
     {
+        require(_destination != address(0), "ERROR_ZERO_ADDRESS");
+
         require(
-            attributions[msg.sender] > 0 && attributions[msg.sender] >= _amount,
+            _amount != 0 && attributions[msg.sender] >= _amount,
             "ERROR_TRANSFER-ATTRIBUTION_BADCONDITOONS"
         );
+
         attributions[msg.sender] -= _amount;
         attributions[_destination] += _amount;
     }
