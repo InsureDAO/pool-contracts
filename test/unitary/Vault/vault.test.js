@@ -14,8 +14,8 @@ const {
 
   verifyIndexStatus,
 
-  verifyVaultStatus,
-  verifyVaultStatusOf,
+  verifyVaultStatus_legacy,
+  verifyVaultStatusOf_legacy,
   verifyDebtOf,
 
   verifyRate

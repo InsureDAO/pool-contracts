@@ -15,8 +15,8 @@ const {
 
   verifyIndexStatus,
 
-  verifyVaultStatus,
-  verifyVaultStatusOf,
+  verifyVaultStatus_legacy,
+  verifyVaultStatusOf_legacy,
   verifyDebtOf,
 
   verifyRate
@@ -353,7 +353,7 @@ describe("Pool", function () {
       debt: m1.debt
     })
 
-    await verifyVaultStatus({
+    await verifyVaultStatus_legacy({
       vault: vault,
       valueAll: g.totalBalance,
       totalAttributions: g.totalBalance,
@@ -414,7 +414,7 @@ describe("Pool", function () {
       debt: m1.debt
     })
 
-    await verifyVaultStatus({
+    await verifyVaultStatus_legacy({
       vault: vault,
       valueAll: g.totalBalance,
       totalAttributions: g.totalBalance,
@@ -722,21 +722,21 @@ describe("Pool", function () {
 
   afterEach(async () => {
     //Check status
-    await verifyVaultStatusOf({
+    await verifyVaultStatusOf_legacy({
       vault: vault,
       target: market.address,
       attributions: m1.marketBalance,
       underlyingValue: m1.marketBalance
     })
 
-    await verifyVaultStatusOf({
+    await verifyVaultStatusOf_legacy({
       vault: vault,
       target: gov.address,
       attributions: g.govBalance,
       underlyingValue: g.govBalance
     })
 
-    await verifyVaultStatus({
+    await verifyVaultStatus_legacy({
       vault: vault,
       valueAll: g.totalBalance,
       totalAttributions: g.totalBalance,

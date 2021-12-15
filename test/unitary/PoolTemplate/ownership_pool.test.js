@@ -11,8 +11,8 @@ const {
   verifyPoolsStatusOf,
   verifyValueOfUnderlying,
   verifyIndexStatus,
-  verifyVaultStatus,
-  verifyVaultStatusOf,
+  verifyVaultStatus_legacy,
+  verifyVaultStatusOf_legacy,
   verifyRate,
   insure
 } = require('../test-utils')

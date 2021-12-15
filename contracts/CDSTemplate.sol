@@ -144,8 +144,11 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket{
         if (_supply > 0 && _liquidity > 0) {
             _mintAmount = (_amount * _supply) / _liquidity;
         } else if (_supply > 0 && _liquidity == 0) {
+            //when vault has no balance.
             _mintAmount = (_amount * _supply) / _amount;
         } else {
+            //_supply == 0 && _liquidity > 0
+            //_supply == 0 && _liquidity == 0
             _mintAmount = _amount;
         }
 

@@ -14,8 +14,8 @@ const {
   verifyPoolsStatusForIndex_legacy,
   verifyIndexStatus,
   verifyCDSStatus,
-  verifyVaultStatus,
-  verifyVaultStatusOf,
+  verifyVaultStatus_legacy,
+  verifyVaultStatusOf_legacy,
 } = require('../test-utils')
 
 
@@ -349,14 +349,15 @@ describe("CDS", function () {
     });
 
     describe('deposit', function() {
-        it('should not amount is zero', async ()=>{
-            // 125
-            // "ERROR: DEPOSIT_ZERO"
-            expect(await cds.deposit(0)).to.revertedWith("ERROR: DEPOSIT_ZERO")
-        });
-        it('total liquidity is zero, supply is more than zero', async () => {
-            // 139
-        });
+      it('success', async () => {
+        // 139
+      });
+      it('should not amount is zero', async ()=>{
+          await expect(cds.deposit(0)).to.revertedWith("ERROR: DEPOSIT_ZERO")
+      });
+      it('total liquidity is zero, supply is more than zero', async () => {
+          // 139
+      });
     });
 
     describe("requestWithdraw", function() {

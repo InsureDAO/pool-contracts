@@ -19,7 +19,7 @@ async function restore (snapshotId) {
 }
 
 
-describe("Factory", function () {
+describe.skip("Factory", function () {
 
   before(async () => {
     //import
