@@ -15,9 +15,8 @@ import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IParameters.sol";
 import "./interfaces/ICDSTemplate.sol";
-import "./interfaces/IMinter.sol";
 
-contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket{
+contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     /**
      * EVENTS
      */
@@ -318,7 +317,11 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket{
      * @notice Change metadata string
      * @param _metadata new metadata string
      */
-    function changeMetadata(string calldata _metadata) external override onlyOwner {
+    function changeMetadata(string calldata _metadata)
+        external
+        override
+        onlyOwner
+    {
         metadata = _metadata;
         emit MetadataChanged(_metadata);
     }
