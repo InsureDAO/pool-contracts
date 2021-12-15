@@ -217,7 +217,7 @@ describe("CDS", function () {
     
     await parameters.setLockup(ZERO_ADDRESS, WEEK);
     
-    await parameters.setMindate(ZERO_ADDRESS, WEEK);
+    await parameters.setMinDate(ZERO_ADDRESS, WEEK);
     
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
      

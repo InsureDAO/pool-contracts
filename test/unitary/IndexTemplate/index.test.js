@@ -290,7 +290,7 @@ describe.skip("Index", function () {
     await parameters.setMaxList(ZERO_ADDRESS, "10");
     await parameters.setGrace(ZERO_ADDRESS, "259200");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
-    await parameters.setMindate(ZERO_ADDRESS, "604800");
+    await parameters.setMinDate(ZERO_ADDRESS, "604800");
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
     await parameters.setWithdrawable(ZERO_ADDRESS, "86400000");
     await parameters.setVault(dai.address, vault.address);

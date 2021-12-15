@@ -201,7 +201,7 @@ describe.skip("CDS", function () {
     await parameters.setFeeRate(ZERO_ADDRESS, "10000");
     await parameters.setGrace(ZERO_ADDRESS, "259200");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
-    await parameters.setMindate(ZERO_ADDRESS, "604800");
+    await parameters.setMinDate(ZERO_ADDRESS, "604800");
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
     await parameters.setWithdrawable(ZERO_ADDRESS, "86400000");
     await parameters.setVault(dai.address, vault.address);
