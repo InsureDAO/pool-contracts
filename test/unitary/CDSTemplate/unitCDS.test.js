@@ -57,85 +57,8 @@ describe("CDS", function () {
   const initialMint = BigNumber.from("100000"); //initial token amount for users
   const depositAmount = BigNumber.from("10000"); //default deposit amount for test
   const defaultRate = BigNumber.from("1000000"); //initial rate between USDC and LP token
-  const insureAmount = BigNumber.from("10000"); //default insure amount for test
-
-  const defaultLeverage = BigNumber.from("1000");
-  let leverage = BigNumber.from("20000");
-
+  
   const governanceFeeRate = BigNumber.from("100000"); //10% of the Premium
-  const RATE_DIVIDER = BigNumber.from("1000000"); //1e6
-  const UTILIZATION_RATE_LENGTH_1E6 = BigNumber.from("1000000"); //1e6
-
-  const approveDeposit = async ({token, target, depositer, amount}) => {
-    await token.connect(depositer).approve(vault.address, amount);
-    await target.connect(depositer).deposit(amount);
-  }
-
-  const approveDepositAndWithdrawRequest = async ({token, target, depositer, amount}) => {
-    await token.connect(depositer).approve(vault.address, amount);
-    await target.connect(depositer).deposit(amount);
-    await target.connect(depositer).requestWithdraw(amount);
-  }
-
-  const insure = async ({pool, insurer, amount, maxCost, span, target}) => {
-    await usdc.connect(insurer).approve(vault.address, maxCost)
-    let tx = await pool.connect(insurer).insure(amount, maxCost, span, target);
-
-    let receipt = await tx.wait()
-    let premium = receipt.events[2].args['premium']
-
-    //return value
-    return premium
-  }
-
-  const applyCover = async ({pool, pending, payoutNumerator, payoutDenominator, incidentTimestamp}) => {
-
-    const padded1 = ethers.utils.hexZeroPad("0x1", 32);
-    const padded2 = ethers.utils.hexZeroPad("0x2", 32);
-    
-    const getLeaves = (target) => {
-      return [
-        { id: padded1, account: target },
-        { id: padded1, account: TEST_ADDRESS },
-        { id: padded2, account: TEST_ADDRESS },
-        { id: padded2, account: NULL_ADDRESS },
-        { id: padded1, account: NULL_ADDRESS },
-      ];
-    };
-
-    //test for pools
-    const encoded = (target) => {
-      const list = getLeaves(target);
-
-      return list.map(({ id, account }) => {
-        return ethers.utils.solidityKeccak256(
-          ["bytes32", "address"],
-          [id, account]
-        );
-      });
-    };
-
-    const leaves = encoded(targetAddress);
-    const tree = await new MerkleTree(leaves, keccak256, { sort: true });
-    const root = await tree.getHexRoot();
-    const leaf = leaves[0];
-    const proof = await tree.getHexProof(leaf);
-    //console.log("tree", tree.toString());
-    //console.log("proof", leaves, proof, root, leaf);
-    //console.log("verify", tree.verify(proof, leaf, root)); // true
-
-    await pool.applyCover(
-      pending,
-      payoutNumerator,
-      payoutDenominator,
-      incidentTimestamp,
-      root,
-      "raw data",
-      "metadata"
-    );
-
-    return proof
-  }
 
   before(async () => {
     //import

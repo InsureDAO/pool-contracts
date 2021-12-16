@@ -714,7 +714,6 @@ describe("Pool", function () {
     market = await PoolTemplate.attach(marketAddress);
   });
   
-
   beforeEach(async () => {
     snapshotId = await snapshot()
   });

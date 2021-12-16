@@ -110,8 +110,8 @@ const verifyPoolsStatusForIndex_legacy = async({pools}) => {
 
 //======== INDEXs ========//
 const verifyIndexStatus = async ({index, totalSupply, totalLiquidity, totalAllocatedCredit, leverage, withdrawable, rate}) => {
-    expect(await index.totalSupply()).to.equal(totalSupply);
-    expect(await index.totalLiquidity()).to.equal(totalLiquidity);
+    expect(await index.totalSupply()).to.equal(totalSupply); //LP
+    expect(await index.totalLiquidity()).to.equal(totalLiquidity); //USDC
     expect(await index.totalAllocatedCredit()).to.equal(totalAllocatedCredit);
     expect(await index.leverage()).to.equal(leverage);
     expect(await index.withdrawable()).to.equal(withdrawable);

@@ -217,7 +217,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         address initialDepositor = _references[4];
 
         if (depositAmount > 0) {
-            depositFor(depositAmount, initialDepositor);
+            depositFrom(depositAmount, initialDepositor);
         }
     }
 
@@ -247,7 +247,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         _mint(msg.sender, _mintAmount);
     }
 
-    function depositFor(uint256 _amount, address _to)
+    function depositFrom(uint256 _amount, address _from)
         public
         returns (uint256 _mintAmount)
     {
@@ -259,12 +259,12 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         _mintAmount = worth(_amount);
 
-        vault.addValue(_amount, _to, address(this));
+        vault.addValue(_amount, _from, address(this));
 
-        emit Deposit(_to, _amount, _mintAmount);
+        emit Deposit(_from, _amount, _mintAmount);
 
         //mint iToken
-        _mint(_to, _mintAmount);
+        _mint(_from, _mintAmount);
     }
 
     /**
