@@ -128,6 +128,12 @@ const verifyCDSStatus = async({cds, surplusPool, crowdPool, totalSupply, totalLi
     expect(await cds.rate()).to.equal(rate);
 }
 
+const verifyCDSStatusOf = async({cds, targetAddress, valueOfUnderlying, withdrawTimestamp, withdrawAmount}) => {
+    expect(await cds.valueOfUnderlying(targetAddress)).to.equal(valueOfUnderlying);
+    expect((await cds.withdrawalReq(targetAddress)).timestamp).to.equal(withdrawTimestamp);
+    expect((await cds.withdrawalReq(targetAddress)).amount).to.equal(withdrawAmount);
+}
+
 const verifyCDSStatus_legacy = async({cds, totalSupply, totalLiquidity, rate}) => {
     expect(await cds.totalSupply()).to.equal(totalSupply);
     expect(await cds.totalLiquidity()).to.equal(totalLiquidity);
@@ -197,6 +203,7 @@ Object.assign(exports, {
 
     //cds
     verifyCDSStatus,
+    verifyCDSStatusOf,
     verifyCDSStatus_legacy,
 
     //vault
