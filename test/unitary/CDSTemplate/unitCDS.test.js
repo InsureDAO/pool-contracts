@@ -571,7 +571,7 @@ describe("CDS", function () {
         await expect(cds.deposit(0)).to.revertedWith("ERROR: PAUSED")
       });
 
-      it('when CDS system is failed', async ()=>{
+      it('dilute LP value when CDS system is failed', async ()=>{
         await cds.connect(alice).deposit(depositAmount);
 
         await registry.supportMarket(chad.address) //now chad can act like a market
@@ -610,7 +610,7 @@ describe("CDS", function () {
           await verifyCDSStatusOf({
             cds: cds, 
             targetAddress: bob.address, 
-            valueOfUnderlying: depositAmount.sub(1), 
+            valueOfUnderlying: depositAmount.sub(1),  //
             withdrawTimestamp: ZERO, 
             withdrawAmount: ZERO
           })
