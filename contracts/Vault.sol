@@ -117,6 +117,8 @@ contract Vault is IVault {
         address _from,
         address _beneficiary
     ) external override returns (uint256 _attributions) {
+        
+
         if (totalAttributions == 0) {
             _attributions = _amount;
         } else {

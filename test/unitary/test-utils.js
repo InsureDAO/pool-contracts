@@ -69,7 +69,7 @@ const verifyPoolsStatusForIndex = async({pools}) => {
     for (i = 0; i < pools.length; i++) {
         await _verifyPoolStatusForIndex({ 
             pool: pools[i].pool,
-            indexAddress: pools[i].allocatedCreditOf,
+            indexAddress: pools[i].indexAddress,
             allocatedCredit: pools[i].allocatedCredit,
             pendingPremium: pools[i].pendingPremium
         })
@@ -109,13 +109,25 @@ const verifyPoolsStatusForIndex_legacy = async({pools}) => {
 
 
 //======== INDEXs ========//
-const verifyIndexStatus = async ({index, totalSupply, totalLiquidity, totalAllocatedCredit, leverage, withdrawable, rate}) => {
+const verifyIndexStatus = async ({index, totalSupply, totalLiquidity, totalAllocatedCredit, totalAllocPoint, targetLev, leverage, withdrawable, rate}) => {
     expect(await index.totalSupply()).to.equal(totalSupply); //LP
     expect(await index.totalLiquidity()).to.equal(totalLiquidity); //USDC
-    expect(await index.totalAllocatedCredit()).to.equal(totalAllocatedCredit);
+    expect(await index.totalAllocatedCredit()).to.equal(totalAllocatedCredit); //leveraged
+    expect(await index.totalAllocPoint()).to.equal(totalAllocPoint);
+    expect(await index.targetLev()).to.equal(targetLev);
     expect(await index.leverage()).to.equal(leverage);
     expect(await index.withdrawable()).to.equal(withdrawable);
     expect(await index.rate()).to.equal(rate);
+}
+
+const verifyIndexStatusOf = async({index, targetAddress, valueOfUnderlying, withdrawTimestamp, withdrawAmount}) => {
+    expect(await index.valueOfUnderlying(targetAddress)).to.equal(valueOfUnderlying);
+    expect((await index.withdrawalReq(targetAddress)).timestamp).to.equal(withdrawTimestamp);
+    expect((await index.withdrawalReq(targetAddress)).amount).to.equal(withdrawAmount);
+}
+
+const verifyIndexStatusOfPool = async({index, poolAddress, allocPoints}) => {
+    expect(await index.allocPoints(poolAddress)).to.equal(allocPoints);
 }
 
 
@@ -200,6 +212,8 @@ Object.assign(exports, {
 
     //index
     verifyIndexStatus,
+    verifyIndexStatusOf,
+    verifyIndexStatusOfPool,
 
     //cds
     verifyCDSStatus,
