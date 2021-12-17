@@ -17,6 +17,8 @@ import "./interfaces/IParameters.sol";
 import "./interfaces/IPoolTemplate.sol";
 import "./interfaces/ICDSTemplate.sol";
 
+import "hardhat/console.sol";
+
 /**
  * An index pool can index a certain number of pools with leverage.
  *
@@ -272,6 +274,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     function withdrawable() public view returns (uint256 _retVal) {
         uint256 _leverage = leverage();
 
+        /***
         if (_leverage > targetLev) {
             _retVal = 0;
         } else {
@@ -290,12 +293,37 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             if (_lowest == 0) {
                 _retVal = _totalLiquidity;
             } else {
-                _retVal =
-                    ((MAGIC_SCALE_1E6 - _lowest) *
-                        _totalLiquidity *
-                        MAGIC_SCALE_1E6) /
-                    MAGIC_SCALE_1E6 /
-                    _leverage;
+                _retVal =(MAGIC_SCALE_1E6 - _lowest) * _totalLiquidity / MAGIC_SCALE_1E6;
+            }
+        }
+        */
+
+        //new way of measuring
+        if (_leverage > targetLev) {
+            _retVal = 0;
+        } else {
+            uint256 _length = poolList.length;
+            uint256 _totalLiquidity = totalLiquidity();
+            uint256 _sum;
+            for (uint256 i = 0; i < _length; i++) {
+                console.log(i);
+                if (allocPoints[poolList[i]] > 0) {
+                    uint256 liquidity = IPoolTemplate(poolList[i]).totalLiquidity();
+                    uint256 credit = IPoolTemplate(poolList[i]).totalCredit();
+                    uint256 lockedAmount = IPoolTemplate(poolList[i]).lockedAmount();
+
+                    if(liquidity != 0){
+                        _sum += lockedAmount * credit / liquidity;
+                    }else{
+                        _sum += lockedAmount;
+                    }
+                    console.log(_sum);
+                }
+            }
+            if (_sum == 0) {
+                _retVal = _totalLiquidity;
+            } else {
+                _retVal = _totalLiquidity - (_sum / MAGIC_SCALE_1E6);
             }
         }
     }
@@ -450,7 +478,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         for(uint256 i=0;i<poolLength;i++){
             require(IPoolTemplate(poolList[i]).paused() == false, "ERROR: POOL_IS_PAUSED");
         }
-        
+
         locked = false;
         emit Resumed();
     }

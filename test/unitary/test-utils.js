@@ -116,7 +116,7 @@ const verifyIndexStatus = async ({index, totalSupply, totalLiquidity, totalAlloc
     expect(await index.totalAllocPoint()).to.equal(totalAllocPoint);
     expect(await index.targetLev()).to.equal(targetLev);
     expect(await index.leverage()).to.equal(leverage);
-    expect(await index.withdrawable()).to.equal(withdrawable);
+    expect(await index.withdrawable()).to.closeTo(withdrawable, 1);
     expect(await index.rate()).to.equal(rate);
 }
 
@@ -166,7 +166,6 @@ const verifyVaultStatusOf = async({vault, target, attributions, underlyingValue,
     expect(await vault.underlyingValue(target)).to.equal(underlyingValue);
     expect(await vault.debts(target)).to.equal(debt);
 }
-
 
 const verifyVaultStatus_legacy = async({vault, valueAll, totalAttributions}) => {
     expect(await vault.valueAll()).to.equal(valueAll);

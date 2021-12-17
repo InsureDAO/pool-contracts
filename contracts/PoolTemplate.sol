@@ -77,8 +77,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     /// @notice Market variables
     uint256 public attributionDebt; //pool's attribution for indices
-    uint256 public lockedAmount; //Liquidity locked when utilized
-    uint256 public totalCredit; //Liquidity from index
+    uint256 public override lockedAmount; //Liquidity locked when utilized
+    uint256 public override totalCredit; //Liquidity from index
     uint256 public rewardPerCredit; //Times MAGIC_SCALE_1E6. To avoid reward decimal truncation *See explanation below.
     uint256 public pendingEnd; //pending time when paying out
 
@@ -847,15 +847,15 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     }
 
     /**
-     * @notice total Liquidity of the pool (how much can the pool sell cover)
+     * @notice Pool's Liquidity + Liquidity from Index (how much can the pool sell cover)
      * @return _balance total liquidity of this pool
      */
-    function totalLiquidity() public view returns (uint256 _balance) {
+    function totalLiquidity() public view override returns (uint256 _balance) {
         return originalLiquidity() + totalCredit;
     }
 
     /**
-     * @notice total Liquidity of the pool (how much can the pool sell cover)
+     * @notice Pool's Liquidity
      * @return _balance total liquidity of this pool
      */
     function originalLiquidity() public view returns (uint256 _balance) {

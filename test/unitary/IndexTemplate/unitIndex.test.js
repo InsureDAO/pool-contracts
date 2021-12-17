@@ -41,9 +41,8 @@ async function restore (snapshotId) {
   return network.provider.send('evm_revert', [snapshotId])
 }
 
-async function now() {
-  let now = (await ethers.provider.getBlock('latest')).timestamp
-  return now
+async function now () {
+  return BigNumber.from((await ethers.provider.getBlock("latest")).timestamp);
 }
 
 async function moveForwardPeriods (days) {
@@ -53,6 +52,10 @@ async function moveForwardPeriods (days) {
   return true
 }
 
+async function setNextBlock (time) {
+  await ethers.provider.send("evm_setNextBlockTimestamp", [time.toNumber()]);
+}
+
 
 describe("Index", function () {
   const initialMint = BigNumber.from("100000")
@@ -60,7 +63,6 @@ describe("Index", function () {
   const depositAmount = BigNumber.from("10000")
   const depositAmountLarge = BigNumber.from("40000")
   const defaultRate = BigNumber.from("1000000")
-  const insureAmount = BigNumber.from("10000")
 
   const defaultLeverage = BigNumber.from("1000000")
   let targetLeverage = defaultLeverage.mul(2)
@@ -1019,43 +1021,6 @@ describe("Index", function () {
       
       await market1.connect(chad).redeem(0, proof); //market1 has debt now
 
-      await verifyVaultStatusOf({
-        vault: vault,
-        target: market1.address,
-        attributions: income,
-        underlyingValue: income,
-        debt: depositAmount //debt exist
-      })
-
-      await verifyBalances({
-        token: usdc,
-        userBalances: {
-          //EOA
-          [gov.address]: ZERO,
-          [alice.address]: initialMint,
-          [bob.address]: initialMint.sub(depositAmount),
-          [chad.address]: initialMint.sub(premiumAmount).add(depositAmount), //bought insurance, then got covered.
-          //contracts
-          [market1.address]: ZERO,
-          [market2.address]: ZERO,
-          [index.address]: ZERO,
-          [cds.address]: ZERO,
-          [vault.address]: premiumAmount 
-        }
-      })
-
-      await verifyIndexStatus({
-        index: index,
-        totalSupply: depositAmount,  //lp minted
-        totalLiquidity: depositAmount.add(income),
-        totalAllocatedCredit: depositAmount.mul(targetLeverage).div(defaultLeverage),  //
-        totalAllocPoint: targetLeverage,
-        targetLev: targetLeverage,
-        leverage: depositAmount.mul(targetLeverage).div(depositAmount.add(income)),  //actual leverage
-        withdrawable: depositAmount.add(income),
-        rate: defaultRate.mul(depositAmount.add(income)).div(depositAmount)
-      })
-
       await moveForwardPeriods(1)
 
       await market1.resume() //clean up the debt
@@ -1088,10 +1053,20 @@ describe("Index", function () {
 
       let mintedAmount = (await tx.wait()).events[3].args['value']
 
-      console.log(defaultRate.mul(income).div(depositAmount).toString())
-      console.log(defaultRate.toString())
-
       expect(mintedAmount).to.equal(depositAmount.mul(depositAmount).div(income)) //mintAmount = amount * totalSupply / totalLiquidity
+    })
+
+    it("should incur adjust alloc when deposit amount is large enough", async function () {
+      //after adjust alloc test
+    })
+
+    it("revert when the market is paused", async function () {
+      await index.setPaused(true)
+      await expect(index.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: DEPOSIT_DISABLED")
+    })
+
+    it("revert when the deposit amount is zero", async function () {
+      await expect(index.connect(alice).deposit(ZERO)).to.revertedWith("ERROR: DEPOSIT_ZERO")
     })
   })
 
@@ -1300,13 +1275,247 @@ describe("Index", function () {
       }
     })
 
-    it("", async function () {
+    it("should update timestamp and amount", async function () {
+      {//target scope
+        await verifyIndexStatusOf({
+          index: index,
+          targetAddress: alice.address,
+          valueOfUnderlying: depositAmount,
+          withdrawTimestamp: ZERO,
+          withdrawAmount: ZERO
+        })
+      }
+
+      //setup
+      let next = (await now()).add(10)
+      await setNextBlock(next)
+
+      await index.connect(alice).requestWithdraw(depositAmount)
+
+      {//update check
+        await verifyIndexStatusOf({
+          index: index,
+          targetAddress: alice.address,
+          valueOfUnderlying: depositAmount,
+          withdrawTimestamp: next, //updated
+          withdrawAmount: depositAmount //updated
+        })
+      }
+
+      {//sanity check
+        
+        await verifyPoolsStatus({
+          pools: [
+            {
+              pool: market1,
+              totalSupply: ZERO,
+              totalLiquidity: depositAmount,
+              availableBalance: depositAmount,
+              rate: ZERO,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO
+            },
+            {
+              pool: market2,
+              totalSupply: ZERO,
+              totalLiquidity: depositAmount,
+              availableBalance: depositAmount,
+              rate: ZERO,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO
+            }
+          ]
+        })
+
+        await verifyIndexStatus({
+          index: index,
+          totalSupply: depositAmount,
+          totalLiquidity: depositAmount,
+          totalAllocatedCredit: depositAmount.mul(targetLeverage).div(defaultLeverage),
+          totalAllocPoint: targetLeverage,
+          targetLev: targetLeverage,
+          leverage: targetLeverage,
+          withdrawable: depositAmount,
+          rate: defaultRate
+        })
+
+        {//verifyIndexStatusOf
+          await verifyIndexStatusOf({
+            index: index,
+            targetAddress: alice.address,
+            valueOfUnderlying: depositAmount,
+            withdrawTimestamp: next, //updated
+            withdrawAmount: depositAmount //updated
+          })
+
+          await verifyIndexStatusOf({
+            index: index,
+            targetAddress: bob.address,
+            valueOfUnderlying: ZERO,
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO
+          })
+
+          await verifyIndexStatusOf({
+            index: index,
+            targetAddress: chad.address,
+            valueOfUnderlying: ZERO,
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO
+          })
+
+          await verifyIndexStatusOfPool({
+            index: index,
+            poolAddress: market1.address,
+            allocPoints: targetLeverage.div(2)
+          })
+
+          await verifyIndexStatusOfPool({
+            index: index,
+            poolAddress: market2.address,
+            allocPoints: targetLeverage.div(2)
+          })
+        }
+
+        await verifyPoolsStatusForIndex({
+          pools: [
+            {
+              pool: market1,
+              indexAddress: index.address,
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage),
+              pendingPremium: ZERO,
+            },
+            {
+              pool: market2,
+              indexAddress: index.address,
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage),
+              pendingPremium: ZERO,
+            }
+          ]
+        })
+
+        await verifyCDSStatus({
+          cds: cds, 
+          surplusPool: ZERO,
+          crowdPool: ZERO, 
+          totalSupply: ZERO,
+          totalLiquidity: ZERO, 
+          rate: ZERO
+        })
+
+        await verifyVaultStatus({
+          vault: vault,
+          balance: depositAmount,
+          valueAll: depositAmount,
+          totalAttributions: depositAmount,
+          totalDebt: ZERO
+        })
+
+        { //Vault Status Of 
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: market1.address,
+            attributions: ZERO,
+            underlyingValue: ZERO,
+            debt: ZERO
+          })
+  
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: market2.address,
+            attributions: ZERO,
+            underlyingValue: ZERO,
+            debt: ZERO
+          })
+  
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: index.address,
+            attributions: depositAmount,
+            underlyingValue: depositAmount,
+            debt: ZERO
+          })
+    
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: cds.address,
+            attributions: ZERO,
+            underlyingValue: ZERO,
+            debt: ZERO
+          })
+        }
+
+        { //token, lp token
+          await verifyBalances({
+            token: usdc,
+            userBalances: {
+              //EOA
+              [gov.address]: ZERO,
+              [alice.address]: initialMint.sub(depositAmount),
+              [bob.address]: initialMint,
+              [chad.address]: initialMint,
+              //contracts
+              [market1.address]: ZERO,
+              [market2.address]: ZERO,
+              [index.address]: ZERO,
+              [cds.address]: ZERO,
+              [vault.address]: depositAmount
+            }
+          })
+
+          await verifyBalances({
+            token: market1,
+            userBalances: {
+              [alice.address]: ZERO,
+              [bob.address]: ZERO,
+              [chad.address]: ZERO,
+            }
+          })
+
+          await verifyBalances({
+            token: market2,
+            userBalances: {
+              [alice.address]: ZERO,
+              [bob.address]: ZERO,
+              [chad.address]: ZERO,
+            }
+          })
+
+          await verifyBalances({
+            token: index,
+            userBalances: {
+              [alice.address]: depositAmount, //lp minted
+              [bob.address]: ZERO,
+              [chad.address]: ZERO,
+            }
+          })
+  
+          await verifyBalances({
+            token: cds,
+            userBalances: {
+              [alice.address]: ZERO,
+              [bob.address]: ZERO,
+              [chad.address]: ZERO,
+            }
+          })
+
+        }
+      }
+    })
+
+    it("revert when _amount exceed balance", async function () {
+      await expect(index.connect(alice).requestWithdraw(depositAmount.add(1))).to.revertedWith("ERROR: REQUEST_EXCEED_BALANCE")
+    })
+
+    it("revert when zero amount", async function () {
+      await expect(index.connect(alice).requestWithdraw(ZERO)).to.revertedWith("ERROR: REQUEST_ZERO")
     })
   })
 
   describe("_beforeTokenTransfer", function(){
     beforeEach(async () => {
-      //this is important to check all the variables every time to make sure we forget nothing
+      await index.connect(alice).deposit(depositAmount)
+
       {//sanity check
         
         await verifyPoolsStatus({
@@ -1314,8 +1523,8 @@ describe("Index", function () {
             {
               pool: market1,
               totalSupply: ZERO,
-              totalLiquidity: ZERO,
-              availableBalance: ZERO,
+              totalLiquidity: depositAmount, //+= depositAmount * (allocPoint / totalAllocPoint) * (leverage / defaultLeverage)
+              availableBalance: depositAmount, //increase
               rate: ZERO,
               utilizationRate: ZERO,
               allInsuranceCount: ZERO
@@ -1323,8 +1532,8 @@ describe("Index", function () {
             {
               pool: market2,
               totalSupply: ZERO,
-              totalLiquidity: ZERO,
-              availableBalance: ZERO,
+              totalLiquidity: depositAmount, //+= depositAmount * (allocPoint / totalAllocPoint) * (leverage / defaultLeverage)
+              availableBalance: depositAmount, //increase
               rate: ZERO,
               utilizationRate: ZERO,
               allInsuranceCount: ZERO
@@ -1334,21 +1543,21 @@ describe("Index", function () {
 
         await verifyIndexStatus({
           index: index,
-          totalSupply: ZERO, 
-          totalLiquidity: ZERO, 
-          totalAllocatedCredit: ZERO, 
+          totalSupply: depositAmount,  //lp minted
+          totalLiquidity: depositAmount, //deposited
+          totalAllocatedCredit: depositAmount.mul(targetLeverage).div(defaultLeverage),  //
           totalAllocPoint: targetLeverage,
           targetLev: targetLeverage,
-          leverage: ZERO, 
-          withdrawable: ZERO,
-          rate: ZERO
+          leverage: targetLeverage,  //actual leverage
+          withdrawable: depositAmount,
+          rate: defaultRate
         })
 
         {//verifyIndexStatusOf
           await verifyIndexStatusOf({
             index: index,
             targetAddress: alice.address,
-            valueOfUnderlying: ZERO,
+            valueOfUnderlying: depositAmount,
             withdrawTimestamp: ZERO,
             withdrawAmount: ZERO
           })
@@ -1387,13 +1596,13 @@ describe("Index", function () {
             {
               pool: market1,
               indexAddress: index.address,
-              allocatedCredit: ZERO,
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
               pendingPremium: ZERO,
             },
             {
               pool: market2,
               indexAddress: index.address,
-              allocatedCredit: ZERO,
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
               pendingPremium: ZERO,
             }
           ]
@@ -1410,9 +1619,9 @@ describe("Index", function () {
 
         await verifyVaultStatus({
           vault: vault,
-          balance: ZERO,
-          valueAll: ZERO,
-          totalAttributions: ZERO,
+          balance: depositAmount,
+          valueAll: depositAmount,
+          totalAttributions: depositAmount,
           totalDebt: ZERO
         })
 
@@ -1436,8 +1645,8 @@ describe("Index", function () {
           await verifyVaultStatusOf({
             vault: vault,
             target: index.address,
-            attributions: ZERO,
-            underlyingValue: ZERO,
+            attributions: depositAmount,
+            underlyingValue: depositAmount,
             debt: ZERO
           })
     
@@ -1456,7 +1665,7 @@ describe("Index", function () {
             userBalances: {
               //EOA
               [gov.address]: ZERO,
-              [alice.address]: initialMint,
+              [alice.address]: initialMint.sub(depositAmount), //transfer from here
               [bob.address]: initialMint,
               [chad.address]: initialMint,
               //contracts
@@ -1464,7 +1673,7 @@ describe("Index", function () {
               [market2.address]: ZERO,
               [index.address]: ZERO,
               [cds.address]: ZERO,
-              [vault.address]: ZERO
+              [vault.address]: depositAmount //transfer to here
             }
           })
 
@@ -1489,7 +1698,7 @@ describe("Index", function () {
           await verifyBalances({
             token: index,
             userBalances: {
-              [alice.address]: ZERO,
+              [alice.address]: depositAmount, //lp minted
               [bob.address]: ZERO,
               [chad.address]: ZERO,
             }
@@ -1508,13 +1717,262 @@ describe("Index", function () {
       }
     })
 
-    it("", async function () {
+    it("should decrease the request amount", async function () {
+      //setup
+      let next = (await now()).add(10)
+      await setNextBlock(next)
+
+      await index.connect(alice).requestWithdraw(depositAmount)
+
+      {//target scope check
+        await verifyIndexStatusOf({
+          index: index,
+          targetAddress: alice.address,
+          valueOfUnderlying: depositAmount,
+          withdrawTimestamp: next,
+          withdrawAmount: depositAmount
+        })
+        await verifyIndexStatusOf({
+          index: index,
+          targetAddress: bob.address,
+          valueOfUnderlying: ZERO,
+          withdrawTimestamp: ZERO,
+          withdrawAmount: ZERO
+        })
+      }
+
+      //execute
+      await index.connect(alice).transfer(bob.address, depositAmount.div(2))
+
+      {//target scope check
+        await verifyIndexStatusOf({
+          index: index,
+          targetAddress: alice.address,
+          valueOfUnderlying: depositAmount.div(2), //lp decrease
+          withdrawTimestamp: next,
+          withdrawAmount: depositAmount.div(2) //updated
+        })
+
+        await verifyIndexStatusOf({
+          index: index,
+          targetAddress: bob.address,
+          valueOfUnderlying: depositAmount.div(2), //lp decrease
+          withdrawTimestamp: ZERO,
+          withdrawAmount: ZERO
+        })
+      }
+
+      {//sanity check
+        
+        await verifyPoolsStatus({
+          pools: [
+            {
+              pool: market1,
+              totalSupply: ZERO,
+              totalLiquidity: depositAmount, //+= depositAmount * (allocPoint / totalAllocPoint) * (leverage / defaultLeverage)
+              availableBalance: depositAmount,
+              rate: ZERO,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO
+            },
+            {
+              pool: market2,
+              totalSupply: ZERO,
+              totalLiquidity: depositAmount, //+= depositAmount * (allocPoint / totalAllocPoint) * (leverage / defaultLeverage)
+              availableBalance: depositAmount,
+              rate: ZERO,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO
+            }
+          ]
+        })
+
+        await verifyIndexStatus({
+          index: index,
+          totalSupply: depositAmount,  //lp minted
+          totalLiquidity: depositAmount, //deposited
+          totalAllocatedCredit: depositAmount.mul(targetLeverage).div(defaultLeverage),  //
+          totalAllocPoint: targetLeverage,
+          targetLev: targetLeverage,
+          leverage: targetLeverage,  //actual leverage
+          withdrawable: depositAmount,
+          rate: defaultRate
+        })
+
+        {//verifyIndexStatusOf
+          await verifyIndexStatusOf({
+            index: index,
+            targetAddress: alice.address,
+            valueOfUnderlying: depositAmount.div(2),
+            withdrawTimestamp: next,
+            withdrawAmount: depositAmount.div(2)
+          })
+
+          await verifyIndexStatusOf({
+            index: index,
+            targetAddress: bob.address,
+            valueOfUnderlying: depositAmount.div(2),
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO
+          })
+
+          await verifyIndexStatusOf({
+            index: index,
+            targetAddress: chad.address,
+            valueOfUnderlying: ZERO,
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO
+          })
+
+          await verifyIndexStatusOfPool({
+            index: index,
+            poolAddress: market1.address,
+            allocPoints: targetLeverage.div(2) //alloc evenly
+          })
+
+          await verifyIndexStatusOfPool({
+            index: index,
+            poolAddress: market2.address,
+            allocPoints: targetLeverage.div(2) //alloc evenly
+          })
+        }
+
+        await verifyPoolsStatusForIndex({
+          pools: [
+            {
+              pool: market1,
+              indexAddress: index.address,
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
+              pendingPremium: ZERO,
+            },
+            {
+              pool: market2,
+              indexAddress: index.address,
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
+              pendingPremium: ZERO,
+            }
+          ]
+        })
+
+        await verifyCDSStatus({
+          cds: cds, 
+          surplusPool: ZERO,
+          crowdPool: ZERO, 
+          totalSupply: ZERO,
+          totalLiquidity: ZERO, 
+          rate: ZERO
+        })
+
+        await verifyVaultStatus({
+          vault: vault,
+          balance: depositAmount,
+          valueAll: depositAmount,
+          totalAttributions: depositAmount,
+          totalDebt: ZERO
+        })
+
+        { //Vault Status Of 
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: market1.address,
+            attributions: ZERO,
+            underlyingValue: ZERO,
+            debt: ZERO
+          })
+  
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: market2.address,
+            attributions: ZERO,
+            underlyingValue: ZERO,
+            debt: ZERO
+          })
+  
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: index.address,
+            attributions: depositAmount,
+            underlyingValue: depositAmount,
+            debt: ZERO
+          })
+    
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: cds.address,
+            attributions: ZERO,
+            underlyingValue: ZERO,
+            debt: ZERO
+          })
+        }
+
+        { //token, lp token
+          await verifyBalances({
+            token: usdc,
+            userBalances: {
+              //EOA
+              [gov.address]: ZERO,
+              [alice.address]: initialMint.sub(depositAmount), //transfer from here
+              [bob.address]: initialMint,
+              [chad.address]: initialMint,
+              //contracts
+              [market1.address]: ZERO,
+              [market2.address]: ZERO,
+              [index.address]: ZERO,
+              [cds.address]: ZERO,
+              [vault.address]: depositAmount //transfer to here
+            }
+          })
+
+          await verifyBalances({
+            token: market1,
+            userBalances: {
+              [alice.address]: ZERO,
+              [bob.address]: ZERO,
+              [chad.address]: ZERO,
+            }
+          })
+
+          await verifyBalances({
+            token: market2,
+            userBalances: {
+              [alice.address]: ZERO,
+              [bob.address]: ZERO,
+              [chad.address]: ZERO,
+            }
+          })
+
+          await verifyBalances({
+            token: index,
+            userBalances: {
+              [alice.address]: depositAmount.div(2), //transfer from here
+              [bob.address]: depositAmount.div(2), //transfer to here
+              [chad.address]: ZERO,
+            }
+          })
+  
+          await verifyBalances({
+            token: cds,
+            userBalances: {
+              [alice.address]: ZERO,
+              [bob.address]: ZERO,
+              [chad.address]: ZERO,
+            }
+          })
+
+        }
+      }
     })
   })
 
   describe("withdraw", function(){
     beforeEach(async () => {
-      //this is important to check all the variables every time to make sure we forget nothing
+
+      await index.connect(alice).deposit(depositAmount)
+
+      next = (await now()).add(10)
+      await setNextBlock(next)
+
+      await index.connect(alice).requestWithdraw(depositAmount)
       {//sanity check
         
         await verifyPoolsStatus({
@@ -1522,8 +1980,8 @@ describe("Index", function () {
             {
               pool: market1,
               totalSupply: ZERO,
-              totalLiquidity: ZERO,
-              availableBalance: ZERO,
+              totalLiquidity: depositAmount,
+              availableBalance: depositAmount,
               rate: ZERO,
               utilizationRate: ZERO,
               allInsuranceCount: ZERO
@@ -1531,8 +1989,8 @@ describe("Index", function () {
             {
               pool: market2,
               totalSupply: ZERO,
-              totalLiquidity: ZERO,
-              availableBalance: ZERO,
+              totalLiquidity: depositAmount,
+              availableBalance: depositAmount,
               rate: ZERO,
               utilizationRate: ZERO,
               allInsuranceCount: ZERO
@@ -1542,23 +2000,23 @@ describe("Index", function () {
 
         await verifyIndexStatus({
           index: index,
-          totalSupply: ZERO, 
-          totalLiquidity: ZERO, 
-          totalAllocatedCredit: ZERO, 
+          totalSupply: depositAmount,
+          totalLiquidity: depositAmount,
+          totalAllocatedCredit: depositAmount.mul(targetLeverage).div(defaultLeverage),
           totalAllocPoint: targetLeverage,
           targetLev: targetLeverage,
-          leverage: ZERO, 
-          withdrawable: ZERO,
-          rate: ZERO
+          leverage: targetLeverage,
+          withdrawable: depositAmount,
+          rate: defaultRate
         })
 
         {//verifyIndexStatusOf
           await verifyIndexStatusOf({
             index: index,
             targetAddress: alice.address,
-            valueOfUnderlying: ZERO,
-            withdrawTimestamp: ZERO,
-            withdrawAmount: ZERO
+            valueOfUnderlying: depositAmount,
+            withdrawTimestamp: next, //updated
+            withdrawAmount: depositAmount //updated
           })
 
           await verifyIndexStatusOf({
@@ -1580,13 +2038,13 @@ describe("Index", function () {
           await verifyIndexStatusOfPool({
             index: index,
             poolAddress: market1.address,
-            allocPoints: targetLeverage.div(2) //alloc evenly
+            allocPoints: targetLeverage.div(2)
           })
 
           await verifyIndexStatusOfPool({
             index: index,
             poolAddress: market2.address,
-            allocPoints: targetLeverage.div(2) //alloc evenly
+            allocPoints: targetLeverage.div(2)
           })
         }
 
@@ -1595,13 +2053,13 @@ describe("Index", function () {
             {
               pool: market1,
               indexAddress: index.address,
-              allocatedCredit: ZERO,
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage),
               pendingPremium: ZERO,
             },
             {
               pool: market2,
               indexAddress: index.address,
-              allocatedCredit: ZERO,
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage),
               pendingPremium: ZERO,
             }
           ]
@@ -1618,9 +2076,9 @@ describe("Index", function () {
 
         await verifyVaultStatus({
           vault: vault,
-          balance: ZERO,
-          valueAll: ZERO,
-          totalAttributions: ZERO,
+          balance: depositAmount,
+          valueAll: depositAmount,
+          totalAttributions: depositAmount,
           totalDebt: ZERO
         })
 
@@ -1644,8 +2102,8 @@ describe("Index", function () {
           await verifyVaultStatusOf({
             vault: vault,
             target: index.address,
-            attributions: ZERO,
-            underlyingValue: ZERO,
+            attributions: depositAmount,
+            underlyingValue: depositAmount,
             debt: ZERO
           })
     
@@ -1664,7 +2122,7 @@ describe("Index", function () {
             userBalances: {
               //EOA
               [gov.address]: ZERO,
-              [alice.address]: initialMint,
+              [alice.address]: initialMint.sub(depositAmount),
               [bob.address]: initialMint,
               [chad.address]: initialMint,
               //contracts
@@ -1672,7 +2130,7 @@ describe("Index", function () {
               [market2.address]: ZERO,
               [index.address]: ZERO,
               [cds.address]: ZERO,
-              [vault.address]: ZERO
+              [vault.address]: depositAmount
             }
           })
 
@@ -1697,7 +2155,7 @@ describe("Index", function () {
           await verifyBalances({
             token: index,
             userBalances: {
-              [alice.address]: ZERO,
+              [alice.address]: depositAmount, //lp minted
               [bob.address]: ZERO,
               [chad.address]: ZERO,
             }
@@ -1716,7 +2174,411 @@ describe("Index", function () {
       }
     })
 
-    it("", async function () {
+    it("should decrease attribution", async function () {
+      await moveForwardPeriods(7)
+
+      await index.connect(alice).withdraw(depositAmount.div(2))
+      {//sanity check
+        
+        await verifyPoolsStatus({
+          pools: [
+            {
+              pool: market1,
+              totalSupply: ZERO,
+              totalLiquidity: depositAmount.div(2), //decrease
+              availableBalance: depositAmount.div(2), //decrease
+              rate: ZERO,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO
+            },
+            {
+              pool: market2,
+              totalSupply: ZERO,
+              totalLiquidity: depositAmount.div(2),
+              availableBalance: depositAmount.div(2),
+              rate: ZERO,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO
+            }
+          ]
+        })
+
+        await verifyIndexStatus({
+          index: index,
+          totalSupply: depositAmount.div(2),
+          totalLiquidity: depositAmount.div(2),
+          totalAllocatedCredit: depositAmount.div(2).mul(targetLeverage).div(defaultLeverage),
+          totalAllocPoint: targetLeverage,
+          targetLev: targetLeverage,
+          leverage: targetLeverage,
+          withdrawable: depositAmount.div(2),
+          rate: defaultRate
+        })
+
+        {//verifyIndexStatusOf
+          await verifyIndexStatusOf({
+            index: index,
+            targetAddress: alice.address,
+            valueOfUnderlying: depositAmount.div(2),
+            withdrawTimestamp: next,
+            withdrawAmount: depositAmount.div(2) //decrease
+          })
+
+          await verifyIndexStatusOf({
+            index: index,
+            targetAddress: bob.address,
+            valueOfUnderlying: ZERO,
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO
+          })
+
+          await verifyIndexStatusOf({
+            index: index,
+            targetAddress: chad.address,
+            valueOfUnderlying: ZERO,
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO
+          })
+
+          await verifyIndexStatusOfPool({
+            index: index,
+            poolAddress: market1.address,
+            allocPoints: targetLeverage.div(2)
+          })
+
+          await verifyIndexStatusOfPool({
+            index: index,
+            poolAddress: market2.address,
+            allocPoints: targetLeverage.div(2)
+          })
+        }
+
+        await verifyPoolsStatusForIndex({
+          pools: [
+            {
+              pool: market1,
+              indexAddress: index.address,
+              allocatedCredit: depositAmount.div(2).mul(targetLeverage).div(2).div(defaultLeverage), //decrease
+              pendingPremium: ZERO,
+            },
+            {
+              pool: market2,
+              indexAddress: index.address,
+              allocatedCredit: depositAmount.div(2).mul(targetLeverage).div(2).div(defaultLeverage), //decrease
+              pendingPremium: ZERO,
+            }
+          ]
+        })
+
+        await verifyCDSStatus({
+          cds: cds, 
+          surplusPool: ZERO,
+          crowdPool: ZERO, 
+          totalSupply: ZERO,
+          totalLiquidity: ZERO, 
+          rate: ZERO
+        })
+
+        await verifyVaultStatus({
+          vault: vault,
+          balance: depositAmount.div(2),
+          valueAll: depositAmount.div(2),
+          totalAttributions: depositAmount.div(2),
+          totalDebt: ZERO
+        })
+
+        { //Vault Status Of 
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: market1.address,
+            attributions: ZERO,
+            underlyingValue: ZERO,
+            debt: ZERO
+          })
+  
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: market2.address,
+            attributions: ZERO,
+            underlyingValue: ZERO,
+            debt: ZERO
+          })
+  
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: index.address,
+            attributions: depositAmount.div(2),
+            underlyingValue: depositAmount.div(2),
+            debt: ZERO
+          })
+    
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: cds.address,
+            attributions: ZERO,
+            underlyingValue: ZERO,
+            debt: ZERO
+          })
+        }
+
+        { //token, lp token
+          await verifyBalances({
+            token: usdc,
+            userBalances: {
+              //EOA
+              [gov.address]: ZERO,
+              [alice.address]: initialMint.sub(depositAmount).add(depositAmount.div(2)),
+              [bob.address]: initialMint,
+              [chad.address]: initialMint,
+              //contracts
+              [market1.address]: ZERO,
+              [market2.address]: ZERO,
+              [index.address]: ZERO,
+              [cds.address]: ZERO,
+              [vault.address]: depositAmount.div(2)
+            }
+          })
+
+          await verifyBalances({
+            token: market1,
+            userBalances: {
+              [alice.address]: ZERO,
+              [bob.address]: ZERO,
+              [chad.address]: ZERO,
+            }
+          })
+
+          await verifyBalances({
+            token: market2,
+            userBalances: {
+              [alice.address]: ZERO,
+              [bob.address]: ZERO,
+              [chad.address]: ZERO,
+            }
+          })
+
+          await verifyBalances({
+            token: index,
+            userBalances: {
+              [alice.address]: depositAmount.div(2), //lp minted
+              [bob.address]: ZERO,
+              [chad.address]: ZERO,
+            }
+          })
+  
+          await verifyBalances({
+            token: cds,
+            userBalances: {
+              [alice.address]: ZERO,
+              [bob.address]: ZERO,
+              [chad.address]: ZERO,
+            }
+          })
+
+        }
+      }
+    })
+
+    it("should return same amount ", async function () {
+      await moveForwardPeriods(7)
+      let tx = await index.connect(alice).withdraw(depositAmount.div(2))
+      let returnValue = (await tx.wait()).events[4].args['retVal']
+      expect(returnValue).to.equal(depositAmount.div(2))
+    })
+
+    it("should return smaller amount of underlying token when the rate is low(when compensated)", async function () {
+      let next = (await now()).add(10)
+      await setNextBlock(next)
+
+      //re-do
+      await index.connect(alice).requestWithdraw(depositAmount.div(2))
+
+      let compensate = depositAmount
+
+      //Bob buys insurance and redeem
+      let tx = await market1.connect(chad).insure(
+        depositAmount, //insured amount
+        depositAmount, //max-cost
+        YEAR, //span
+        target //targetID
+      )
+      let premiumAmount = (await tx.wait()).events[2].args['premium']
+      let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER)
+      let income = premiumAmount.sub(govFee)
+      
+
+      let incident = await now()
+      let proof = await applyCover({
+          pool: market1,
+          pending: DAY,
+          targetAddress: ZERO_ADDRESS, //everyone
+          payoutNumerator: 10000,
+          payoutDenominator: 10000,
+          incidentTimestamp: incident
+        })
+      
+      await market1.connect(chad).redeem(0, proof); //market1 has debt now
+
+      await moveForwardPeriods(1)
+
+      await market1.resume() //clean up the debt
+      //index lose depositedAmount to compensate for Market1
+
+      await index.resume();
+
+      await moveForwardPeriods(6)
+
+      {//check
+        await verifyIndexStatusOf({
+          index: index,
+          targetAddress: alice.address,
+          valueOfUnderlying: income,
+          withdrawTimestamp: next,
+          withdrawAmount: depositAmount.div(2) //decrease
+        })
+  
+        await verifyIndexStatus({
+          index: index,
+          totalSupply: depositAmount,
+          totalLiquidity: income,
+          totalAllocatedCredit: income.mul(targetLeverage).div(defaultLeverage),
+          totalAllocPoint: targetLeverage,
+          targetLev: targetLeverage,
+          leverage: targetLeverage,
+          withdrawable: income,
+          rate: defaultRate.mul(income).div(depositAmount)
+        })
+      }
+
+      //now withdraw
+      tx = await index.connect(alice).withdraw(depositAmount.div(2)) //amount of lp token to burn to withdraw USDC
+
+      let withdrawedAmount = (await tx.wait()).events[4].args['retVal']
+
+      expect(withdrawedAmount).to.equal(income.div(2)) //burn 50% of totalSupply should withdraw 50% of totalLiquidity
+    })
+
+    it("should burn iToken", async function () {
+      await moveForwardPeriods(7)
+
+      await index.connect(alice).withdraw(depositAmount.div(2)) //withdraw
+
+      {//check
+        await verifyIndexStatus({
+          index: index,
+          totalSupply: depositAmount.div(2), //burnt
+          totalLiquidity: depositAmount.div(2),
+          totalAllocatedCredit: depositAmount.div(2).mul(targetLeverage).div(defaultLeverage),
+          totalAllocPoint: targetLeverage,
+          targetLev: targetLeverage,
+          leverage: targetLeverage,
+          withdrawable: depositAmount.div(2),
+          rate: defaultRate
+        })
+
+        await verifyBalances({
+          token: index,
+          userBalances: {
+            [alice.address]: depositAmount.div(2), //burnt
+            [bob.address]: ZERO,
+            [chad.address]: ZERO,
+          }
+        })
+      }
+
+    })
+
+    it("should reduce request amount", async function () {
+      {//check
+        await verifyIndexStatusOf({
+          index: index,
+          targetAddress: alice.address,
+          valueOfUnderlying: depositAmount,
+          withdrawTimestamp: next,
+          withdrawAmount: depositAmount
+        })
+      }
+
+      await moveForwardPeriods(7)
+
+      await index.connect(alice).withdraw(depositAmount.div(2)) //withdraw
+
+      {//check
+        await verifyIndexStatusOf({
+          index: index,
+          targetAddress: alice.address,
+          valueOfUnderlying: depositAmount.div(2),
+          withdrawTimestamp: next, //no change
+          withdrawAmount: depositAmount.div(2) //updated
+        })
+      }
+    })
+
+    it("should withdraw even when the market is paused", async function () {
+      await moveForwardPeriods(7)
+
+      await index.setPaused(true)
+
+      await index.connect(alice).withdraw(depositAmount);
+    })
+
+    it("reverts when lockup is not ends", async function () {
+      await moveForwardPeriods(6)
+
+      await expect(index.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: WITHDRAWAL_QUEUE")
+    })
+
+    it("reverts when withdrawable priod ends", async function () {
+      await moveForwardPeriods(7)
+      await moveForwardPeriods(14)
+
+      await expect(index.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST")
+    })
+
+    it("reverts when the withdraw amount exceeded the request", async function () {
+      await moveForwardPeriods(7)
+      await expect(index.connect(alice).withdraw(depositAmount.add(1))).to.revertedWith("ERROR: WITHDRAWAL_EXCEEDED_REQUEST")
+    })
+    
+    it("reverts when zero requests", async function () {
+      await moveForwardPeriods(7)
+      await expect(index.connect(alice).withdraw(ZERO)).to.revertedWith("ERROR: WITHDRAWAL_ZERO")
+    })
+
+    it.skip("reverts exceed withdrawable", async function () {
+      //-----after withdrawable-----
+
+      await moveForwardPeriods(7)
+
+      let insureAmount = depositAmount.div(2)
+
+      await market1.connect(bob).insure(
+        insureAmount, //insured amount
+        depositAmount, //max-cost
+        YEAR, //span
+        target //targetID
+      )
+      
+      
+      let income = insureAmount.div(10).sub(insureAmount.div(10).div(10)) //10% of insureAmount is premium (for test). 10% of premium goes to governance.
+
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: depositAmount,  //lp minted
+        totalLiquidity: depositAmount.add(income),
+        totalAllocatedCredit: depositAmount.mul(targetLeverage).div(defaultLeverage),  //too small, so didn't trigger _adjustAlloc()
+        totalAllocPoint: targetLeverage,
+        targetLev: targetLeverage,
+        leverage: defaultLeverage.mul(depositAmount.mul(targetLeverage).div(defaultLeverage)).div(depositAmount.add(income)),  //actual leverage
+        withdrawable: depositAmount.add(income).sub(insureAmount),
+        rate: defaultRate.mul(income).div(depositAmount.add(income))
+      })
+      
+      await expect(index.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY")
+    })
+
+    it("should incur adjust alloc when withdrawal amount is large enough", async function () {
+      //after adjust alloc
     })
   })
 
