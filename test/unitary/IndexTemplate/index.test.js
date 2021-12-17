@@ -69,7 +69,7 @@ describe.skip("Index", function () {
 
   /** will be like below in the "before(async..." execution
   * let m1 = {
-  *   totalLP: BigNumber.from("0"),
+  *   totalSupply: BigNumber.from("0"),
   *   depositAmount: BigNumber.from("0"),
   *   marketBalance: BigNumber.from("0"),
   *   insured: BigNumber.from("0"),
@@ -127,12 +127,12 @@ describe.skip("Index", function () {
       //update global and market status => check
       g.totalBalance = g.totalBalance.add(amount)
 
-      m1.totalLP = m1.totalLP.add(_mintAmount)
+      m1.totalSupply = m1.totalSupply.add(_mintAmount)
       m1.depositAmount = m1.depositAmount.add(amount)
       m1.marketBalance = m1.marketBalance.add(amount)
 
       if(!m1.depositAmount.isZero()){
-        m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP)
+        m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalSupply)
       }else{
         m1.rate = ZERO
       }
@@ -147,7 +147,7 @@ describe.skip("Index", function () {
         pools: [
           {
             pool: target,
-            totalLP: m1.totalLP,
+            totalSupply: m1.totalSupply,
             totalLiquidity: m1.marketBalance,
             availableBalance: m1.marketBalance.sub(m1.insured),
             rate: m1.rate,
@@ -333,7 +333,7 @@ describe.skip("Index", function () {
 
     m[`${market1.address}`] = {
       type: "pool",
-      totalLP: BigNumber.from("0"),
+      totalSupply: BigNumber.from("0"),
       depositAmount: BigNumber.from("0"),
       marketBalance: BigNumber.from("0"),
       insured: BigNumber.from("0"),
@@ -344,7 +344,7 @@ describe.skip("Index", function () {
 
     m[`${market2.address}`] = {
       type: "pool",
-      totalLP: BigNumber.from("0"),
+      totalSupply: BigNumber.from("0"),
       depositAmount: BigNumber.from("0"),
       marketBalance: BigNumber.from("0"),
       insured: BigNumber.from("0"),

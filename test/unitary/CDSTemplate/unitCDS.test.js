@@ -1266,7 +1266,7 @@ describe("CDS", function () {
             crowdPool: depositAmount.sub(compensate.div(2)), //compensate evenly
             totalSupply: depositAmount, 
             totalLiquidity: depositAmount.mul(2).sub(compensate), 
-            rate: defaultRate.mul(depositAmount.sub(compensate.div(2))).div(depositAmount) //defaultRate * deposited balance / totalLP
+            rate: defaultRate.mul(depositAmount.sub(compensate.div(2))).div(depositAmount) //defaultRate * deposited balance / totalSupply
           })
 
           await verifyCDSStatusOf({
@@ -1346,7 +1346,7 @@ describe("CDS", function () {
             crowdPool: ZERO, //totally used
             totalSupply: depositAmount,
             totalLiquidity: ZERO,
-            rate: ZERO //defaultRate * deposited balance / totalLP
+            rate: ZERO //defaultRate * deposited balance / totalSupply
           })
 
           await verifyCDSStatusOf({

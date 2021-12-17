@@ -445,21 +445,22 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice Resume market
      */
     function resume() external override {
-        require(pendingEnd <= block.timestamp);
+        uint256 poolLength = poolList.length;
+
+        for(uint256 i=0;i<poolLength;i++){
+            require(IPoolTemplate(poolList[i]).paused() == false, "ERROR: POOL_IS_PAUSED");
+        }
+        
         locked = false;
         emit Resumed();
     }
 
     /**
      * @notice lock market withdrawal
-     * @param _pending pending span length in unix timestamp
      */
-    function lock(uint256 _pending) external override {
+    function lock() external override {
         require(allocPoints[msg.sender] > 0);
-        uint256 _tempEnd = block.timestamp + _pending;
-        if (pendingEnd < _tempEnd) {
-            pendingEnd = block.timestamp + _pending;
-        }
+
         locked = true;
         emit Locked();
     }

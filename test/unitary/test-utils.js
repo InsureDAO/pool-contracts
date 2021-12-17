@@ -37,8 +37,8 @@ const verifyRate = async({template, rate}) => {
 
 
 //======== POOLs ========//
-const _verifyPoolStatus = async({pool, totalLP, totalLiquidity, availableBalance, rate, utilizationRate, allInsuranceCount}) => {
-    expect(await pool.totalSupply()).to.equal(totalLP);
+const _verifyPoolStatus = async({pool, totalSupply, totalLiquidity, availableBalance, rate, utilizationRate, allInsuranceCount}) => {
+    expect(await pool.totalSupply()).to.equal(totalSupply);
     expect(await pool.totalLiquidity()).to.equal(totalLiquidity);
     expect(await pool.availableBalance()).to.equal(availableBalance);
     expect(await pool.rate()).to.equal(rate);
@@ -50,7 +50,7 @@ const verifyPoolsStatus = async({pools}) => {
     for (i = 0; i < pools.length; i++) {
         await _verifyPoolStatus({ 
             pool: pools[i].pool,
-            totalLP: pools[i].totalLP,
+            totalSupply: pools[i].totalSupply,
             totalLiquidity: pools[i].totalLiquidity,
             availableBalance: pools[i].availableBalance,
             rate: pools[i].rate,

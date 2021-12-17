@@ -477,7 +477,7 @@ describe.skip("CDS", function () {
         pools: [
           {
             pool: market1,
-            totalLP: ZERO,
+            totalSupply: ZERO,
             totalLiquidity: depositAmount.mul(leverage).div(defaultLeverage), //all deposited amount 
             availableBalance: depositAmount.mul(leverage).div(defaultLeverage), //all amount - locked amount = available amount
             rate: ZERO,

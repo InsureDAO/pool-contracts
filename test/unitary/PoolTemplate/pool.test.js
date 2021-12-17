@@ -70,7 +70,7 @@ describe("Pool", function () {
 
   //market status tracker.
   let m1 = {
-    totalLP: BigNumber.from("0"),
+    totalSupply: BigNumber.from("0"),
     depositAmount: BigNumber.from("0"),
     marketBalance: BigNumber.from("0"),
     insured: BigNumber.from("0"),
@@ -122,12 +122,12 @@ describe("Pool", function () {
     //2. update global and market status => check
     g.totalBalance = g.totalBalance.add(amount) //global balance of USDC increase
 
-    m1.totalLP = m1.totalLP.add(_mintAmount) //market1 (Pool) total LP balance increase as much as newly minted LP token.
+    m1.totalSupply = m1.totalSupply.add(_mintAmount) //market1 (Pool) total LP balance increase as much as newly minted LP token.
     m1.depositAmount = m1.depositAmount.add(amount) //USDC deposited
     m1.marketBalance = m1.marketBalance.add(amount) //USDC deposited
 
     if(!m1.depositAmount.isZero()){
-      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP) //rate = (USDC balance in this contract) / (LP totalBalance)
+      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalSupply) //rate = (USDC balance in this contract) / (LP totalBalance)
     }else{
       m1.rate = ZERO
     }
@@ -143,7 +143,7 @@ describe("Pool", function () {
       pools: [
         {
           pool: target,
-          totalLP: m1.totalLP,
+          totalSupply: m1.totalSupply,
           totalLiquidity: m1.marketBalance, //all deposited amount 
           availableBalance: m1.marketBalance.sub(m1.insured), //all amount - locked amount = available amount
           rate: m1.rate,
@@ -189,12 +189,12 @@ describe("Pool", function () {
     //update global and market status => check
     g.totalBalance = g.totalBalance.add(amount)
 
-    m1.totalLP = m1.totalLP.add(_mintAmount)
+    m1.totalSupply = m1.totalSupply.add(_mintAmount)
     m1.depositAmount = m1.depositAmount.add(amount)
     m1.marketBalance = m1.marketBalance.add(amount)
 
     if(!m1.depositAmount.isZero()){
-      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP)
+      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalSupply)
     }else{
       m1.rate = ZERO
     }
@@ -210,7 +210,7 @@ describe("Pool", function () {
       pools: [
         {
           pool: target,
-          totalLP: m1.totalLP,
+          totalSupply: m1.totalSupply,
           totalLiquidity: m1.marketBalance,
           availableBalance: m1.marketBalance.sub(m1.insured),
           rate: m1.rate,
@@ -254,12 +254,12 @@ describe("Pool", function () {
     //update global and market status => check
     g.totalBalance = g.totalBalance.sub(withdrawAmount)
 
-    m1.totalLP = m1.totalLP.sub(amount)
+    m1.totalSupply = m1.totalSupply.sub(amount)
     m1.depositAmount = m1.depositAmount.sub(withdrawAmount)
     m1.marketBalance = m1.marketBalance.sub(withdrawAmount)
 
-    if(!m1.totalLP.isZero()){
-      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP)
+    if(!m1.totalSupply.isZero()){
+      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalSupply)
     }else{
       m1.rate = ZERO
     }
@@ -274,7 +274,7 @@ describe("Pool", function () {
       pools: [
         {
           pool: target,
-          totalLP: m1.totalLP,
+          totalSupply: m1.totalSupply,
           totalLiquidity: m1.marketBalance,
           availableBalance: m1.marketBalance.sub(m1.insured),
           rate: m1.rate,
@@ -326,7 +326,7 @@ describe("Pool", function () {
     }
 
     if(!m1.depositAmount.isZero()){
-      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP)
+      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalSupply)
     }else{
       m1.rate = ZERO
     }
@@ -337,7 +337,7 @@ describe("Pool", function () {
       pools: [
         {
           pool: pool,
-          totalLP: m1.totalLP,
+          totalSupply: m1.totalSupply,
           totalLiquidity: m1.marketBalance,
           availableBalance: m1.marketBalance.sub(m1.insured),
           rate: m1.rate,
@@ -387,7 +387,7 @@ describe("Pool", function () {
     }
 
     if(!m1.depositAmount.isZero()){
-      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP)
+      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalSupply)
     }else{
       m1.rate = ZERO
     }
@@ -396,7 +396,7 @@ describe("Pool", function () {
       pools: [
         {
           pool: pool,
-          totalLP: m1.totalLP,
+          totalSupply: m1.totalSupply,
           totalLiquidity: m1.marketBalance,
           availableBalance: m1.marketBalance.sub(m1.insured),
           rate: m1.rate,
@@ -439,7 +439,7 @@ describe("Pool", function () {
     }
 
     if(!m1.depositAmount.isZero()){
-      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP)
+      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalSupply)
     }else{
       m1.rate = ZERO
     }
@@ -461,7 +461,7 @@ describe("Pool", function () {
       m1.insured = m1.insured.sub(amount)
 
       if(!m1.depositAmount.isZero()){
-        m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP)
+        m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalSupply)
       }else{
         m1.rate = ZERO
       }
@@ -480,7 +480,7 @@ describe("Pool", function () {
       pools: [
         {
           pool: market,
-          totalLP: m1.totalLP,
+          totalSupply: m1.totalSupply,
           totalLiquidity: m1.marketBalance,
           availableBalance: m1.marketBalance.sub(m1.insured),
           rate: m1.rate,
@@ -501,7 +501,7 @@ describe("Pool", function () {
     m1.insured = m1.insured.sub(amount)
 
     if(!m1.depositAmount.isZero()){
-      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalLP)
+      m1.rate = defaultRate.mul(m1.marketBalance).div(m1.totalSupply)
     }else{
       m1.rate = ZERO
     }
@@ -516,7 +516,7 @@ describe("Pool", function () {
       pools: [
         {
           pool: target,
-          totalLP: m1.totalLP,
+          totalSupply: m1.totalSupply,
           totalLiquidity: m1.marketBalance,
           availableBalance: m1.marketBalance.sub(m1.insured),
           rate: m1.rate,
@@ -744,7 +744,7 @@ describe("Pool", function () {
       pools: [
         {
           pool: market,
-          totalLP: m1.totalLP,
+          totalSupply: m1.totalSupply,
           totalLiquidity: m1.marketBalance,
           availableBalance: m1.marketBalance.sub(m1.insured),
           rate: m1.rate,
@@ -762,7 +762,7 @@ describe("Pool", function () {
     g.totalBalance = ZERO
     g.govBalance = ZERO
 
-    m1.totalLP = ZERO
+    m1.totalSupply = ZERO
     m1.depositAmount = ZERO
     m1.marketBalance = ZERO
     m1.insured =   ZERO

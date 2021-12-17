@@ -638,7 +638,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     /**
      * @notice Decision to make a payout
-     * @param _pending length to allow policyholders to redeem their policy
+     * @param _pending length of time to allow policyholders to redeem their policy
      * @param _payoutNumerator Numerator of the payout *See below
      * @param _payoutDenominator Denominator of the payout *See below
      * @param _incidentTimestamp Unixtimestamp of the incident
@@ -665,7 +665,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         pendingEnd = block.timestamp + _pending;
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indicies[indexList[i]].credit > 0) {
-                IIndexTemplate(indexList[i]).lock(_pending);
+                IIndexTemplate(indexList[i]).lock();
             }
         }
         emit CoverApplied(
