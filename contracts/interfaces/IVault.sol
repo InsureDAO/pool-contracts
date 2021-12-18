@@ -46,9 +46,7 @@ interface IVault {
 
     function token() external returns (address);
 
-    function borrowValue(uint256 _amount, address _to)
-        external
-        returns (uint256 _attributions);
+    function borrowValue(uint256 _amount, address _to) external;
 
     /*
     function borrowAndTransfer(uint256 _amount, address _to)
@@ -68,6 +66,8 @@ interface IVault {
 
     //onlyOwner
     function withdrawRedundant(address _token, address _to) external;
+
     function setController(address _controller) external;
+
     function setKeeper(address _keeper) external;
 }

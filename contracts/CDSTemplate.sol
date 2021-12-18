@@ -67,7 +67,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     modifier onlyOwner() {
         require(
             msg.sender == parameters.getOwner(),
-            "Restricted: caller is not allowed to operate"
+            "ERROR: ONLY_OWNER"
         );
         _;
     }
@@ -128,26 +128,22 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @param _amount amount of token to deposit
      */
     function deposit(uint256 _amount) external returns (uint256 _mintAmount) {
-        require(paused == false, "ERROR: DEPOSIT_DISABLED");
+        require(paused == false, "ERROR: PAUSED");
         require(_amount > 0, "ERROR: DEPOSIT_ZERO");
 
         //deposit and pay fees
-        uint256 _liquidity = vault.attributionValue(crowdPool);
+        uint256 _liquidity = vault.attributionValue(crowdPool); //get USDC balance with crowdPool's attribution
         uint256 _supply = totalSupply();
-        address[] memory _beneficiaries = new address[](1);
-        _beneficiaries[0] = address(this);
-        uint256[] memory _shares = new uint256[](1);
-        _shares[0] = MAGIC_SCALE_1E6;
-        crowdPool += vault.addValue(_amount, msg.sender, address(this));
+
+        crowdPool += vault.addValue(_amount, msg.sender, address(this)); //increase attribution
         
         if (_supply > 0 && _liquidity > 0) {
             _mintAmount = (_amount * _supply) / _liquidity;
         } else if (_supply > 0 && _liquidity == 0) {
-            //when vault has no balance.
-            _mintAmount = (_amount * _supply) / _amount;
+            //when vault lose all underwritten asset = 
+            _mintAmount = _amount * _supply; //dilute LP token value af. Start CDS again.
         } else {
-            //_supply == 0 && _liquidity > 0
-            //_supply == 0 && _liquidity == 0
+            //when _supply == 0,
             _mintAmount = _amount;
         }
 
@@ -162,7 +158,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @param _amount amount of token to deposit
      */
     function fund(uint256 _amount) external {
-        require(paused == false, "ERROR: DEPOSIT_DISABLED");
+        require(paused == false, "ERROR: PAUSED");
 
         //deposit and pay fees
         uint256 _attribution = vault.addValue(
@@ -177,7 +173,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     }
 
     function defund(uint256 _amount) external override onlyOwner {
-        require(paused == false, "ERROR: DEPOSIT_DISABLED");
+        require(paused == false, "ERROR: PAUSED");
 
         uint256 _attribution = vault.withdrawValue(_amount, msg.sender);
         surplusPool -= _attribution;
@@ -204,29 +200,34 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @return _retVal the amount underlying token returned
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
-        //Calculate underlying value
-        _retVal = (vault.attributionValue(crowdPool) * _amount) / totalSupply();
-        require(paused == false, "ERROR: WITHDRAWAL_PENDING");
+        Withdrawal memory request = withdrawalReq[msg.sender];
+
+        require(paused == false, "ERROR: PAUSED");
         require(
-            withdrawalReq[msg.sender].timestamp +
+            request.timestamp +
                 parameters.getLockup(msg.sender) <
                 block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            withdrawalReq[msg.sender].timestamp +
+            request.timestamp +
                 parameters.getLockup(msg.sender) +
                 parameters.getWithdrawable(msg.sender) >
                 block.timestamp,
             "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
-            withdrawalReq[msg.sender].amount >= _amount,
+            request.amount >= _amount,
             "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
         );
         require(_amount > 0, "ERROR: WITHDRAWAL_ZERO");
+
+        //Calculate underlying value
+        _retVal = (vault.attributionValue(crowdPool) * _amount) / totalSupply();
+
+
         //reduce requested amount
-        withdrawalReq[msg.sender].amount -= _amount;
+        request.amount -= _amount;
 
         //Burn iToken
         _burn(msg.sender, _amount);
@@ -250,25 +251,29 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         returns (uint256 _compensated)
     {
         require(registry.isListed(msg.sender));
+        
         uint256 _available = vault.underlyingValue(address(this));
         uint256 _crowdAttribution = crowdPool;
         uint256 _surplusAttribution = surplusPool;
-        uint256 _attribution;
+        uint256 _attributionLoss;
+
         if (_available >= _amount) {
             _compensated = _amount;
-            _attribution = vault.transferValue(_amount, msg.sender);
+            _attributionLoss = vault.transferValue(_amount, msg.sender);
             emit Compensated(msg.sender, _amount);
         } else {
+            //when CDS cannot afford, pay as much as possible
             _compensated = _available;
-            _attribution = vault.transferValue(_available, msg.sender);
+            _attributionLoss = vault.transferValue(_available, msg.sender);
             emit Compensated(msg.sender, _available);
         }
-        crowdPool -=
-            (_crowdAttribution * _attribution) /
+
+        uint256 _crowdPoolLoss = 
+            (_crowdAttribution * _attributionLoss) /
             (_crowdAttribution + _surplusAttribution);
-        surplusPool -=
-            (_surplusAttribution * _attribution) /
-            (_crowdAttribution + _surplusAttribution);
+
+        crowdPool -= _crowdPoolLoss;
+        surplusPool -= (_attributionLoss - _crowdPoolLoss);
     }
 
     /**
@@ -308,8 +313,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
             return 0;
         } else {
             return
-                _balance *
-                (vault.underlyingValue(address(this)) / totalSupply());
+                _balance * vault.attributionValue(crowdPool) / totalSupply();
         }
     }
 

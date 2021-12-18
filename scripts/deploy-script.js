@@ -148,7 +148,7 @@ async function main() {
   await tx.wait();
   tx = await parameters.setLockup(ZERO_ADDRESS, "7200");
   await tx.wait();
-  tx = await parameters.setMindate(ZERO_ADDRESS, "604800");
+  tx = await parameters.setMinDate(ZERO_ADDRESS, "604800");
   await tx.wait();
   tx = await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
   await tx.wait();

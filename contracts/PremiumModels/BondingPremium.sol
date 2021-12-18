@@ -8,12 +8,13 @@ pragma solidity 0.8.7;
 
 import "../interfaces/IPremiumModel.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "abdk-libraries-solidity/ABDKMath64x64.sol";
 import "../interfaces/IOwnership.sol";
-import "./ABDKMath64x64.sol";
 
 contract BondingPremium is IPremiumModel {
+    using ABDKMath64x64 for uint256;
+    using ABDKMath64x64 for int128;
 
-    ABDKMath64x64 public calculator;
     IOwnership public ownership;
 
     //variables
@@ -36,10 +37,8 @@ contract BondingPremium is IPremiumModel {
 
 
     constructor(
-      address _calculator,
       address _ownership
     ) {
-      calculator = ABDKMath64x64(_calculator);
       ownership = IOwnership(_ownership);
 
       //setPremium()
@@ -111,21 +110,21 @@ contract BondingPremium is IPremiumModel {
         uint256 a = (sqrt((BASE_x2*BASE_x2*T_1 + 4*k*T_0*BASE_x2)/T_1) - BASE_x2)/2; //a*BASE (in calc)
         
         Temp memory temp;
-        temp.a = calculator.fromUInt(a);
-        temp.BASE_temp = calculator.fromUInt(BASE);
-        temp.a = calculator.div(temp.a, temp.BASE_temp);
+        temp.a = a.fromUInt();
+        temp.BASE_temp = BASE.fromUInt();
+        temp.a = temp.a.div(temp.BASE_temp);
 
         //calc 0=>u1 area
-        temp.u = calculator.fromUInt(u1);
-        int128 ln_u1 = calculator.ln(calculator.add(temp.u, temp.a));
-        uint256 ln_res_u1 = calculator.mulu(ln_u1, k); //k*ln(x+a) //very percise.
+        temp.u = u1.fromUInt();
+        int128 ln_u1 = (temp.u).add(temp.a).ln();
+        uint256 ln_res_u1 = ln_u1.mulu(k); //k*ln(x+a) //very percise.
 
         uint256 _premium_u1 = (365 * T_0 * ln_res_u1 * BASE) + u1 * ((T_1-T_0) * c * BASE + T_0 * b * BASE) - T_1 * 365 * a * u1;
 
         //calc 0=>u2 area
-        temp.u = calculator.fromUInt(u2);
-        int128 ln_u2 = calculator.ln(calculator.add(temp.u, temp.a));
-        uint256 ln_res_u2 = calculator.mulu(ln_u2, k); //k*ln(x+a) //very percise.
+        temp.u = u2.fromUInt();
+        int128 ln_u2 = (temp.u).add(temp.a).ln();
+        uint256 ln_res_u2 = ln_u2.mulu(k); //k*ln(x+a) //very percise.
 
         uint _premium_u2 = (365 * T_0 * ln_res_u2 * BASE) + u2 * ((T_1-T_0) * c * BASE + T_0 * b * BASE) - T_1 * 365 * a * u2;
 

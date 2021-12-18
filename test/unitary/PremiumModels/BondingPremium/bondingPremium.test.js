@@ -8,8 +8,11 @@ const{
   ten_to_the_18,
   ten_to_the_6,
   ten_to_the_5,
+  WEEK,
+  DAY,
   ONE,
-  TWO
+  TWO,
+  ZERO
 } = require('../../constant-utils');
 
 async function snapshot () {
@@ -76,12 +79,9 @@ describe("test BondingPremium", () => {
     [creator, alice] = await ethers.getSigners();
 
     const Ownership = await ethers.getContractFactory("Ownership");
-    const Calc = await ethers.getContractFactory("ABDKMath64x64");
     const BondignPremium = await ethers.getContractFactory("BondingPremium");
-
-    calc = await Calc.deploy();
     ownership = await Ownership.deploy();
-    premium = await BondignPremium.deploy(calc.address, ownership.address);
+    premium = await BondignPremium.deploy(ownership.address);
   });
   
   beforeEach(async () => {
@@ -149,7 +149,7 @@ describe("test BondingPremium", () => {
         amount: amount
       })
 
-      expect(await premium.getPremiumRate(BASE_big.mul(amount), BASE_big.mul(totalLiquidity), BASE_big.mul(lockedAmount))).to.closeTo(premiumRate, premiumRate.div(10))
+      expect(await premium.getPremiumRate(BASE_big.mul(amount), BASE_big.mul(totalLiquidity), BASE_big.mul(lockedAmount))).to.closeTo(premiumRate, premiumRate.div(1000))
     });
 
     it("revert when amount exceed available", async () => {
@@ -180,9 +180,58 @@ describe("test BondingPremium", () => {
     });
   });
 
-  describe.skip("test getPremium", function () {
+  describe("test getPremium", function () {
     it("getPremium correctlly", async () => {
-      
+      let amount = 200000
+      let lockedAmount = 400000
+      let totalLiquidity = 800000
+      let period = WEEK
+
+      let expectedPremiumRate = await calcPremiumRate({
+        k: k,
+        T_0: totalLiquidity,
+        T_1: T_1,
+        c: c,
+        b: b,
+        lockedAmount: lockedAmount,
+        amount: amount
+      })
+
+      let expectedPremium = expectedPremiumRate.mul(amount).mul(WEEK).div(YEAR).div(BASE_big)
+
+      let actualPremium = await premium.getPremium(BASE_big.mul(amount), period, BASE_big.mul(totalLiquidity), BASE_big.mul(lockedAmount));
+
+      expect(actualPremium).to.equal(expectedPremium)
+    });
+
+    it("should return zero when amount is zero", async () => {
+      let amount = 0
+      let lockedAmount = 400000
+      let totalLiquidity = 800000
+      let period = WEEK
+
+      let expectedPremium = ZERO
+
+      let actualPremium = await premium.getPremium(BASE_big.mul(amount), period, BASE_big.mul(totalLiquidity), BASE_big.mul(lockedAmount));
+
+      expect(actualPremium).to.equal(expectedPremium)
     });
   });
+
+  describe("test setPremium", function () {
+    it("setPremium correctlly", async () => {
+      await premium.setPremium(0, 0, 0, 0)
+
+      expect(await premium.k()).to.equal(0)
+      expect(await premium.c()).to.equal(0)
+      expect(await premium.b()).to.equal(0)
+      expect(await premium.T_1()).to.equal(0)
+    });
+
+    it("revert when not owner", async () => {
+      await expect(premium.connect(alice).setPremium(0, 0, 0, 0)).to.revertedWith("Restricted: caller is not allowed to operate")
+    });
+  });
+
+
 });

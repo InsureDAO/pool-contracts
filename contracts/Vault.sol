@@ -25,6 +25,7 @@ contract Vault is IVault {
     address public override token;
     IController public controller;
     IRegistry public registry;
+    IOwnership public ownership;
 
     mapping(address => uint256) public override debts;
     mapping(address => uint256) public attributions;
@@ -32,9 +33,12 @@ contract Vault is IVault {
 
     address public keeper; //keeper can operate utilize(), if address zero, anyone can operate.
     uint256 public balance; //balance of underlying token
+    uint256 public totalDebt; //total debt balance. 1debt:1token
 
-    IOwnership public ownership;
-    
+    uint256 public constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
+
+
+
     event ControllerSet(address controller);
 
     modifier onlyOwner() {
@@ -81,7 +85,7 @@ contract Vault is IVault {
         uint256[2] memory _shares
     ) external override returns (uint256[2] memory _allocations) {
         require(_shares[0] + _shares[1] == 1000000, "ERROR_INCORRECT_SHARE");
-        
+
         uint256 _attributions;
         if (totalAttributions == 0) {
             _attributions = _amount;
@@ -94,7 +98,7 @@ contract Vault is IVault {
         balance += _amount;
         totalAttributions += _attributions;
         for (uint128 i = 0; i < 2; i++) {
-            uint256 _allocation = (_shares[i] * _attributions) / 1e6;
+            uint256 _allocation = (_shares[i] * _attributions) / MAGIC_SCALE_1E6;
             attributions[_beneficiaries[i]] += _allocation;
             _allocations[i] = _allocation;
         }
@@ -113,6 +117,8 @@ contract Vault is IVault {
         address _from,
         address _beneficiary
     ) external override returns (uint256 _attributions) {
+        
+
         if (totalAttributions == 0) {
             _attributions = _amount;
         } else {
@@ -142,7 +148,7 @@ contract Vault is IVault {
             "ERROR_WITHDRAW-VALUE_BADCONDITOONS"
         );
         _attributions = (totalAttributions * _amount) / valueAll();
-        
+
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
 
@@ -184,35 +190,15 @@ contract Vault is IVault {
      * @param _amount borrow amount
      * @param _to borrower's address
      */
-
-    function borrowValue(uint256 _amount, address _to)
-        external
-        override
-        returns (uint256 _attributions)
-    {
+    function borrowValue(uint256 _amount, address _to) external override {
         require(
             IRegistry(registry).isListed(msg.sender),
             "ERROR_BORROW-VALUE_BADCONDITOONS"
         );
-        _attributions = (totalAttributions * _amount) / valueAll();
         debts[msg.sender] += _amount;
-        totalAttributions -= _attributions;
-        balance -= _amount;
+        totalDebt += _amount;
+
         IERC20(token).safeTransfer(_to, _amount);
-    }
-
-    /**
-     * @notice a registerd market can transfer their debt to a market
-     * @param _amount debt amount to transfer
-     */
-
-    function transferDebt(uint256 _amount) external override {
-        require(
-            IRegistry(registry).isListed(msg.sender),
-            "ERROR_TRANSFER-DEBT_BADCONDITOONS"
-        );
-        debts[msg.sender] -= _amount;
-        debts[address(0)] += _amount;
     }
 
     /**
@@ -233,25 +219,44 @@ contract Vault is IVault {
         );
         _attributions = (_amount * totalAttributions) / valueAll();
         attributions[msg.sender] -= _attributions;
+        totalAttributions -= _attributions;
+        balance -= _amount;
         debts[_target] -= _amount;
+        totalDebt -= _amount;
     }
 
     /**
-     * @notice anyone can repay debt by sending tokens to this contract
+     * @notice a registerd market can transfer their debt to system debt
+     * @param _amount debt amount to transfer
+     * @dev will be called when CDS could not afford when resume the market.
+     */
+    function transferDebt(uint256 _amount) external override {
+        require(
+            IRegistry(registry).isListed(msg.sender),
+            "ERROR_TRANSFER-DEBT_BADCONDITOONS"
+        );
+
+        if(_amount != 0){
+            debts[msg.sender] -= _amount;
+            debts[address(0)] += _amount;
+        }
+    }
+
+    /**
+     * @notice anyone can repay the system debt by sending tokens to this contract
      * @param _amount debt amount to repay
      * @param _target borrower's address
      */
-
     function repayDebt(uint256 _amount, address _target) external override {
         uint256 _debt = debts[_target];
         if (_debt >= _amount) {
             debts[_target] -= _amount;
-            balance += _amount;
-            IERC20(token).safeTransferFrom(msg.sender, _target, _amount);
+            totalDebt -= _amount;
+            IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
         } else {
-            balance += _debt;
             debts[_target] = 0;
-            IERC20(token).safeTransferFrom(msg.sender, _target, _debt);
+            totalDebt -= _debt;
+            IERC20(token).safeTransferFrom(msg.sender, address(this), _debt);
         }
     }
 
@@ -306,7 +311,7 @@ contract Vault is IVault {
             _unutilize(_shortage);
         }
 
-        balance = balance - _retVal;
+        balance -= _retVal;
         IERC20(token).safeTransfer(_to, _retVal);
     }
 
@@ -410,12 +415,11 @@ contract Vault is IVault {
      * @return all token value of the vault
      */
     function valueAll() public view returns (uint256) {
-        if(address(controller) != address(0)){
+        if (address(controller) != address(0)) {
             return balance + controller.valueAll();
-        }else{
+        } else {
             return balance;
         }
-        
     }
 
     /**
@@ -434,7 +438,7 @@ contract Vault is IVault {
      * @return available balance to utilize
      */
     function available() public view returns (uint256) {
-        return balance;
+        return balance - totalDebt;
     }
 
     /**
@@ -442,7 +446,7 @@ contract Vault is IVault {
      * @return value of one share of attribution
      */
     function getPricePerFullShare() public view returns (uint256) {
-        return (valueAll() * 1e18) / totalAttributions;
+        return (valueAll() * MAGIC_SCALE_1E6) / totalAttributions;
     }
 
     /**
@@ -454,7 +458,11 @@ contract Vault is IVault {
      * @param _token token address
      * @param _to beneficiary's address
      */
-    function withdrawRedundant(address _token, address _to) external override onlyOwner {
+    function withdrawRedundant(address _token, address _to)
+        external
+        override
+        onlyOwner
+    {
         if (
             _token == address(token) &&
             balance < IERC20(token).balanceOf(address(this))
@@ -477,13 +485,13 @@ contract Vault is IVault {
     function setController(address _controller) public override onlyOwner {
         require(_controller != address(0), "ERROR_ZERO_ADDRESS");
 
-        if(address(controller) != address(0)){
+        if (address(controller) != address(0)) {
             controller.migrate(address(_controller));
             controller = IController(_controller);
-        }else{
+        } else {
             controller = IController(_controller);
         }
-    
+
         emit ControllerSet(_controller);
     }
 

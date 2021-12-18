@@ -171,7 +171,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         if (_supply > 0 && _totalLiquidity > 0) {
             _mintAmount = (_amount * _supply) / _totalLiquidity;
         } else if (_supply > 0 && _totalLiquidity == 0) {
-            _mintAmount = (_amount * _supply) / _amount;
+            _mintAmount = _amount * _supply;
         } else {
             _mintAmount = _amount;
         }
@@ -272,6 +272,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     function withdrawable() public view returns (uint256 _retVal) {
         uint256 _leverage = leverage();
 
+        /***
         if (_leverage > targetLev) {
             _retVal = 0;
         } else {
@@ -290,13 +291,33 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             if (_lowest == 0) {
                 _retVal = _totalLiquidity;
             } else {
-                _retVal =
-                    ((MAGIC_SCALE_1E6 - _lowest) *
-                        _totalLiquidity *
-                        MAGIC_SCALE_1E6) /
-                    MAGIC_SCALE_1E6 /
-                    _leverage;
+                _retVal =(MAGIC_SCALE_1E6 - _lowest) * _totalLiquidity / MAGIC_SCALE_1E6;
             }
+        }
+        */
+
+        //new way of measuring
+        if (_leverage > targetLev + parameters.getUpperSlack(address(this))) {
+            _retVal = 0;
+        } else {
+            uint256 _length = poolList.length;
+            uint256 _totalLiquidity = totalLiquidity();
+            uint256 _sum;
+            for (uint256 i = 0; i < _length; i++) {
+                if (allocPoints[poolList[i]] > 0) {
+                    uint256 liquidity = IPoolTemplate(poolList[i]).totalLiquidity();
+                    uint256 credit = IPoolTemplate(poolList[i]).totalCredit();
+                    uint256 lockedAmount = IPoolTemplate(poolList[i]).lockedAmount();
+
+                    if(liquidity != 0){
+                        _sum += lockedAmount * credit / liquidity;
+                    }else{
+                        _sum += lockedAmount;
+                    }
+                }
+            }
+            
+            _retVal = _totalLiquidity - _sum;
         }
     }
 
@@ -331,10 +352,10 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _length = poolList.length;
         PoolStatus[] memory _poolList = new PoolStatus[](_length);
 
-        //Check each pool and if current credit allocation > target && it is impossble to adjust, then withdraw all availablle credit
+        //Check each pool and if current credit allocation > target && it is impossible to adjust, then withdraw all availablle credit
         for (uint256 i = 0; i < _length; i++) {
             address _pool = poolList[i];
-            if (_pool != address(0)) {
+            if (_pool != address(0)) {//never be false
                 uint256 _allocation = allocPoints[_pool];
                 //Target credit allocation for a pool
                 uint256 _target = (_targetCredit * _allocation) /
@@ -445,21 +466,22 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice Resume market
      */
     function resume() external override {
-        require(pendingEnd <= block.timestamp);
+        uint256 poolLength = poolList.length;
+
+        for(uint256 i=0;i<poolLength;i++){
+            require(IPoolTemplate(poolList[i]).paused() == false, "ERROR: POOL_IS_PAUSED");
+        }
+
         locked = false;
         emit Resumed();
     }
 
     /**
      * @notice lock market withdrawal
-     * @param _pending pending span length in unix timestamp
      */
-    function lock(uint256 _pending) external override {
+    function lock() external override {
         require(allocPoints[msg.sender] > 0);
-        uint256 _tempEnd = block.timestamp + _pending;
-        if (pendingEnd < _tempEnd) {
-            pendingEnd = block.timestamp + _pending;
-        }
+
         locked = true;
         emit Locked();
     }
