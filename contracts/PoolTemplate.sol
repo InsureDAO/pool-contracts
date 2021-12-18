@@ -797,7 +797,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         if (_supply > 0 && _originalLiquidity > 0) {
             _amount = (_value * _supply) / _originalLiquidity;
         } else if (_supply > 0 && _originalLiquidity == 0) {
-            _amount = (_amount * _supply) / _amount;
+            _amount = _value * _supply;
         } else {
             _amount = _value;
         }

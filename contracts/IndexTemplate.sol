@@ -17,8 +17,6 @@ import "./interfaces/IParameters.sol";
 import "./interfaces/IPoolTemplate.sol";
 import "./interfaces/ICDSTemplate.sol";
 
-import "hardhat/console.sol";
-
 /**
  * An index pool can index a certain number of pools with leverage.
  *
@@ -173,7 +171,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         if (_supply > 0 && _totalLiquidity > 0) {
             _mintAmount = (_amount * _supply) / _totalLiquidity;
         } else if (_supply > 0 && _totalLiquidity == 0) {
-            _mintAmount = (_amount * _supply) / _amount;
+            _mintAmount = _amount * _supply;
         } else {
             _mintAmount = _amount;
         }
@@ -299,14 +297,13 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         */
 
         //new way of measuring
-        if (_leverage > targetLev) {
+        if (_leverage > targetLev + parameters.getUpperSlack(address(this))) {
             _retVal = 0;
         } else {
             uint256 _length = poolList.length;
             uint256 _totalLiquidity = totalLiquidity();
             uint256 _sum;
             for (uint256 i = 0; i < _length; i++) {
-                console.log(i);
                 if (allocPoints[poolList[i]] > 0) {
                     uint256 liquidity = IPoolTemplate(poolList[i]).totalLiquidity();
                     uint256 credit = IPoolTemplate(poolList[i]).totalCredit();
@@ -317,14 +314,10 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     }else{
                         _sum += lockedAmount;
                     }
-                    console.log(_sum);
                 }
             }
-            if (_sum == 0) {
-                _retVal = _totalLiquidity;
-            } else {
-                _retVal = _totalLiquidity - (_sum / MAGIC_SCALE_1E6);
-            }
+            
+            _retVal = _totalLiquidity - _sum;
         }
     }
 
@@ -359,10 +352,10 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _length = poolList.length;
         PoolStatus[] memory _poolList = new PoolStatus[](_length);
 
-        //Check each pool and if current credit allocation > target && it is impossble to adjust, then withdraw all availablle credit
+        //Check each pool and if current credit allocation > target && it is impossible to adjust, then withdraw all availablle credit
         for (uint256 i = 0; i < _length; i++) {
             address _pool = poolList[i];
-            if (_pool != address(0)) {
+            if (_pool != address(0)) {//never be false
                 uint256 _allocation = allocPoints[_pool];
                 //Target credit allocation for a pool
                 uint256 _target = (_targetCredit * _allocation) /

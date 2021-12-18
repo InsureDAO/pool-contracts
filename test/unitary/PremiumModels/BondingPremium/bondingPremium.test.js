@@ -76,12 +76,9 @@ describe("test BondingPremium", () => {
     [creator, alice] = await ethers.getSigners();
 
     const Ownership = await ethers.getContractFactory("Ownership");
-    const Calc = await ethers.getContractFactory("ABDKMath64x64");
     const BondignPremium = await ethers.getContractFactory("BondingPremium");
-
-    calc = await Calc.deploy();
     ownership = await Ownership.deploy();
-    premium = await BondignPremium.deploy(calc.address, ownership.address);
+    premium = await BondignPremium.deploy(ownership.address);
   });
   
   beforeEach(async () => {

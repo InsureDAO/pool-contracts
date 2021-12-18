@@ -135,11 +135,9 @@ describe("Index", function () {
     const Registry = await ethers.getContractFactory("Registry")
     const PremiumModel = await ethers.getContractFactory("TestPremiumModel")
     const Parameters = await ethers.getContractFactory("Parameters")
-    const Calculator = await ethers.getContractFactory("ABDKMath64x64")
 
     //deploy
     ownership = await Ownership.deploy()
-    calc = await Calculator.deploy()
     usdc = await USDC.deploy()
     registry = await Registry.deploy(ownership.address)
     factory = await Factory.deploy(registry.address, ownership.address)
@@ -285,6 +283,10 @@ describe("Index", function () {
     await index.set("1", market2.address, defaultLeverage) //set market2 to the Index
 
     await index.setLeverage(targetLeverage)
+
+    await parameters.setUpperSlack(index.address, "500000"); //leverage+50% (+0.5)
+    await parameters.setLowerSlack(index.address, "500000"); //leverage-50% (-0.5)
+
   })
 
   beforeEach(async () => {
@@ -1964,6 +1966,103 @@ describe("Index", function () {
     })
   })
 
+  describe("withdrawable", function(){
+
+    it("should retrun index's not locked amount", async function () {
+      await market1.connect(alice).deposit(depositAmount)
+      //await market2.connect(alice).deposit(depositAmount)
+      await index.connect(alice).deposit(depositAmount)
+
+      let insureAmount = depositAmount.div(2) //5000
+
+
+      //income: 450. market1 earns 225 and index earns 225, because they have 50% share in market1
+      await market1.connect(bob).insure(
+        insureAmount, //insured amount
+        depositAmount, //max-cost
+        YEAR, //span
+        target //targetID
+      )
+
+      //income: 450. index earns 450. index has 100% share in market2
+      await market2.connect(bob).insure(
+        insureAmount,
+        depositAmount,
+        YEAR,
+        target
+      )
+
+      await index.adjustAlloc() //index's earned premium get in effect on the markets.
+
+      //market1
+      let liquidity = await market1.totalLiquidity()
+      let credit = await market1.totalCredit()
+      let lockedAmount = await market1.lockedAmount()
+
+      let indexLockedAmount = lockedAmount.mul(credit).div(liquidity)
+      let sum = indexLockedAmount
+
+      //market2
+      liquidity = await market2.totalLiquidity()
+      credit = await market2.totalCredit()
+      lockedAmount = await market2.lockedAmount()
+
+      indexLockedAmount = lockedAmount.mul(credit).div(liquidity)
+      sum = sum.add(indexLockedAmount)
+
+
+      let expectedWithdrawable = (await index.totalLiquidity()).sub(sum)
+      let withdrawable = await index.withdrawable()
+
+      expect(withdrawable).to.equal(expectedWithdrawable)
+    })
+
+    it("should return zero when _leverage > targetLev + upperSlack", async function () {
+      //setup
+      await market1.connect(alice).deposit(depositAmount)
+      await index.connect(alice).deposit(depositAmount)
+
+
+      //test
+      let insureAmount = depositAmount.div(2) //5000
+
+      await market1.connect(bob).insure(
+        insureAmount, //insured amount
+        depositAmount, //max-cost
+        YEAR, //span
+        target //targetID
+      )
+      await market2.connect(bob).insure(
+        insureAmount,
+        depositAmount,
+        YEAR,
+        target
+      )
+
+      expect(await index.withdrawable()).is.not.equal(ZERO)
+
+      await index.adjustAlloc()
+
+      expect(await index.withdrawable()).is.not.equal(ZERO)
+
+      //test
+      await index.connect(alice).requestWithdraw(depositAmount.div(10)) //10% of the depositeAmount
+      await moveForwardPeriods(7)
+
+      await index.connect(alice).withdraw(depositAmount.div(10)) //10% of the depositeAmount. leverage is higher than targetLev
+
+
+      expect(await index.withdrawable()).is.not.equal(ZERO)
+
+
+
+      //Main test
+      await parameters.setUpperSlack(index.address, ZERO);
+
+      expect(await index.withdrawable()).is.equal(ZERO)
+    })
+  })
+
   describe("withdraw", function(){
     beforeEach(async () => {
 
@@ -2545,7 +2644,7 @@ describe("Index", function () {
       await expect(index.connect(alice).withdraw(ZERO)).to.revertedWith("ERROR: WITHDRAWAL_ZERO")
     })
 
-    it.skip("reverts exceed withdrawable", async function () {
+    it("reverts exceed withdrawable", async function () {
       //-----after withdrawable-----
 
       await moveForwardPeriods(7)
@@ -2571,7 +2670,7 @@ describe("Index", function () {
         targetLev: targetLeverage,
         leverage: defaultLeverage.mul(depositAmount.mul(targetLeverage).div(defaultLeverage)).div(depositAmount.add(income)),  //actual leverage
         withdrawable: depositAmount.add(income).sub(insureAmount),
-        rate: defaultRate.mul(income).div(depositAmount.add(income))
+        rate: defaultRate.mul(depositAmount.add(income)).div(depositAmount)
       })
       
       await expect(index.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY")
@@ -2579,422 +2678,6 @@ describe("Index", function () {
 
     it("should incur adjust alloc when withdrawal amount is large enough", async function () {
       //after adjust alloc
-    })
-  })
-
-  describe("withdrawable", function(){
-    beforeEach(async () => {
-      //this is important to check all the variables every time to make sure we forget nothing
-      {//sanity check
-        
-        await verifyPoolsStatus({
-          pools: [
-            {
-              pool: market1,
-              totalSupply: ZERO,
-              totalLiquidity: ZERO,
-              availableBalance: ZERO,
-              rate: ZERO,
-              utilizationRate: ZERO,
-              allInsuranceCount: ZERO
-            },
-            {
-              pool: market2,
-              totalSupply: ZERO,
-              totalLiquidity: ZERO,
-              availableBalance: ZERO,
-              rate: ZERO,
-              utilizationRate: ZERO,
-              allInsuranceCount: ZERO
-            }
-          ]
-        })
-
-        await verifyIndexStatus({
-          index: index,
-          totalSupply: ZERO, 
-          totalLiquidity: ZERO, 
-          totalAllocatedCredit: ZERO, 
-          totalAllocPoint: targetLeverage,
-          targetLev: targetLeverage,
-          leverage: ZERO, 
-          withdrawable: ZERO,
-          rate: ZERO
-        })
-
-        {//verifyIndexStatusOf
-          await verifyIndexStatusOf({
-            index: index,
-            targetAddress: alice.address,
-            valueOfUnderlying: ZERO,
-            withdrawTimestamp: ZERO,
-            withdrawAmount: ZERO
-          })
-
-          await verifyIndexStatusOf({
-            index: index,
-            targetAddress: bob.address,
-            valueOfUnderlying: ZERO,
-            withdrawTimestamp: ZERO,
-            withdrawAmount: ZERO
-          })
-
-          await verifyIndexStatusOf({
-            index: index,
-            targetAddress: chad.address,
-            valueOfUnderlying: ZERO,
-            withdrawTimestamp: ZERO,
-            withdrawAmount: ZERO
-          })
-
-          await verifyIndexStatusOfPool({
-            index: index,
-            poolAddress: market1.address,
-            allocPoints: targetLeverage.div(2) //alloc evenly
-          })
-
-          await verifyIndexStatusOfPool({
-            index: index,
-            poolAddress: market2.address,
-            allocPoints: targetLeverage.div(2) //alloc evenly
-          })
-        }
-
-        await verifyPoolsStatusForIndex({
-          pools: [
-            {
-              pool: market1,
-              indexAddress: index.address,
-              allocatedCredit: ZERO,
-              pendingPremium: ZERO,
-            },
-            {
-              pool: market2,
-              indexAddress: index.address,
-              allocatedCredit: ZERO,
-              pendingPremium: ZERO,
-            }
-          ]
-        })
-
-        await verifyCDSStatus({
-          cds: cds, 
-          surplusPool: ZERO,
-          crowdPool: ZERO, 
-          totalSupply: ZERO,
-          totalLiquidity: ZERO, 
-          rate: ZERO
-        })
-
-        await verifyVaultStatus({
-          vault: vault,
-          balance: ZERO,
-          valueAll: ZERO,
-          totalAttributions: ZERO,
-          totalDebt: ZERO
-        })
-
-        { //Vault Status Of 
-          await verifyVaultStatusOf({
-            vault: vault,
-            target: market1.address,
-            attributions: ZERO,
-            underlyingValue: ZERO,
-            debt: ZERO
-          })
-  
-          await verifyVaultStatusOf({
-            vault: vault,
-            target: market2.address,
-            attributions: ZERO,
-            underlyingValue: ZERO,
-            debt: ZERO
-          })
-  
-          await verifyVaultStatusOf({
-            vault: vault,
-            target: index.address,
-            attributions: ZERO,
-            underlyingValue: ZERO,
-            debt: ZERO
-          })
-    
-          await verifyVaultStatusOf({
-            vault: vault,
-            target: cds.address,
-            attributions: ZERO,
-            underlyingValue: ZERO,
-            debt: ZERO
-          })
-        }
-
-        { //token, lp token
-          await verifyBalances({
-            token: usdc,
-            userBalances: {
-              //EOA
-              [gov.address]: ZERO,
-              [alice.address]: initialMint,
-              [bob.address]: initialMint,
-              [chad.address]: initialMint,
-              //contracts
-              [market1.address]: ZERO,
-              [market2.address]: ZERO,
-              [index.address]: ZERO,
-              [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
-
-          await verifyBalances({
-            token: market1,
-            userBalances: {
-              [alice.address]: ZERO,
-              [bob.address]: ZERO,
-              [chad.address]: ZERO,
-            }
-          })
-
-          await verifyBalances({
-            token: market2,
-            userBalances: {
-              [alice.address]: ZERO,
-              [bob.address]: ZERO,
-              [chad.address]: ZERO,
-            }
-          })
-
-          await verifyBalances({
-            token: index,
-            userBalances: {
-              [alice.address]: ZERO,
-              [bob.address]: ZERO,
-              [chad.address]: ZERO,
-            }
-          })
-  
-          await verifyBalances({
-            token: cds,
-            userBalances: {
-              [alice.address]: ZERO,
-              [bob.address]: ZERO,
-              [chad.address]: ZERO,
-            }
-          })
-
-        }
-      }
-    })
-
-    it("", async function () {
-    })
-  })
-
-  describe("adjustAlloc", function(){
-    beforeEach(async () => {
-      //this is important to check all the variables every time to make sure we forget nothing
-      {//sanity check
-        
-        await verifyPoolsStatus({
-          pools: [
-            {
-              pool: market1,
-              totalSupply: ZERO,
-              totalLiquidity: ZERO,
-              availableBalance: ZERO,
-              rate: ZERO,
-              utilizationRate: ZERO,
-              allInsuranceCount: ZERO
-            },
-            {
-              pool: market2,
-              totalSupply: ZERO,
-              totalLiquidity: ZERO,
-              availableBalance: ZERO,
-              rate: ZERO,
-              utilizationRate: ZERO,
-              allInsuranceCount: ZERO
-            }
-          ]
-        })
-
-        await verifyIndexStatus({
-          index: index,
-          totalSupply: ZERO, 
-          totalLiquidity: ZERO, 
-          totalAllocatedCredit: ZERO, 
-          totalAllocPoint: targetLeverage,
-          targetLev: targetLeverage,
-          leverage: ZERO, 
-          withdrawable: ZERO,
-          rate: ZERO
-        })
-
-        {//verifyIndexStatusOf
-          await verifyIndexStatusOf({
-            index: index,
-            targetAddress: alice.address,
-            valueOfUnderlying: ZERO,
-            withdrawTimestamp: ZERO,
-            withdrawAmount: ZERO
-          })
-
-          await verifyIndexStatusOf({
-            index: index,
-            targetAddress: bob.address,
-            valueOfUnderlying: ZERO,
-            withdrawTimestamp: ZERO,
-            withdrawAmount: ZERO
-          })
-
-          await verifyIndexStatusOf({
-            index: index,
-            targetAddress: chad.address,
-            valueOfUnderlying: ZERO,
-            withdrawTimestamp: ZERO,
-            withdrawAmount: ZERO
-          })
-
-          await verifyIndexStatusOfPool({
-            index: index,
-            poolAddress: market1.address,
-            allocPoints: targetLeverage.div(2) //alloc evenly
-          })
-
-          await verifyIndexStatusOfPool({
-            index: index,
-            poolAddress: market2.address,
-            allocPoints: targetLeverage.div(2) //alloc evenly
-          })
-        }
-
-        await verifyPoolsStatusForIndex({
-          pools: [
-            {
-              pool: market1,
-              indexAddress: index.address,
-              allocatedCredit: ZERO,
-              pendingPremium: ZERO,
-            },
-            {
-              pool: market2,
-              indexAddress: index.address,
-              allocatedCredit: ZERO,
-              pendingPremium: ZERO,
-            }
-          ]
-        })
-
-        await verifyCDSStatus({
-          cds: cds, 
-          surplusPool: ZERO,
-          crowdPool: ZERO, 
-          totalSupply: ZERO,
-          totalLiquidity: ZERO, 
-          rate: ZERO
-        })
-
-        await verifyVaultStatus({
-          vault: vault,
-          balance: ZERO,
-          valueAll: ZERO,
-          totalAttributions: ZERO,
-          totalDebt: ZERO
-        })
-
-        { //Vault Status Of 
-          await verifyVaultStatusOf({
-            vault: vault,
-            target: market1.address,
-            attributions: ZERO,
-            underlyingValue: ZERO,
-            debt: ZERO
-          })
-  
-          await verifyVaultStatusOf({
-            vault: vault,
-            target: market2.address,
-            attributions: ZERO,
-            underlyingValue: ZERO,
-            debt: ZERO
-          })
-  
-          await verifyVaultStatusOf({
-            vault: vault,
-            target: index.address,
-            attributions: ZERO,
-            underlyingValue: ZERO,
-            debt: ZERO
-          })
-    
-          await verifyVaultStatusOf({
-            vault: vault,
-            target: cds.address,
-            attributions: ZERO,
-            underlyingValue: ZERO,
-            debt: ZERO
-          })
-        }
-
-        { //token, lp token
-          await verifyBalances({
-            token: usdc,
-            userBalances: {
-              //EOA
-              [gov.address]: ZERO,
-              [alice.address]: initialMint,
-              [bob.address]: initialMint,
-              [chad.address]: initialMint,
-              //contracts
-              [market1.address]: ZERO,
-              [market2.address]: ZERO,
-              [index.address]: ZERO,
-              [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
-
-          await verifyBalances({
-            token: market1,
-            userBalances: {
-              [alice.address]: ZERO,
-              [bob.address]: ZERO,
-              [chad.address]: ZERO,
-            }
-          })
-
-          await verifyBalances({
-            token: market2,
-            userBalances: {
-              [alice.address]: ZERO,
-              [bob.address]: ZERO,
-              [chad.address]: ZERO,
-            }
-          })
-
-          await verifyBalances({
-            token: index,
-            userBalances: {
-              [alice.address]: ZERO,
-              [bob.address]: ZERO,
-              [chad.address]: ZERO,
-            }
-          })
-  
-          await verifyBalances({
-            token: cds,
-            userBalances: {
-              [alice.address]: ZERO,
-              [bob.address]: ZERO,
-              [chad.address]: ZERO,
-            }
-          })
-
-        }
-      }
-    })
-
-    it("", async function () {
     })
   })
 
