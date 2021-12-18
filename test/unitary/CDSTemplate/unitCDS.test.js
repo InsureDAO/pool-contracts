@@ -243,11 +243,6 @@ describe("CDS", function () {
     await restore(snapshotId)
   })
 
-  describe("Condition", function () {
-    it("Should contracts be deployed", async () => {
-    });
-  });
-
   describe('CDSTemplate', function(){
     describe('initialize', function() {
       it('should set configs after initialization', async () => {
@@ -306,7 +301,6 @@ describe("CDS", function () {
 
       }); 
 
-
       it('reverts when address is zero and/or metadata is empty 3', async () => {
 
         await factory.approveReference(
@@ -335,7 +329,6 @@ describe("CDS", function () {
     });
 
     describe('deposit', function() {
-
       it('should increase the crowd pool size and attribution', async () => {
         let tx = await cds.connect(alice).deposit(depositAmount)
 
@@ -578,12 +571,9 @@ describe("CDS", function () {
 
         }
       });
-
-
     });
 
     describe('fund', function() {
-
       it('should increase the surplus pool size', async () => {
         await cds.connect(alice).fund(depositAmount);
 
@@ -969,6 +959,7 @@ describe("CDS", function () {
 
         }
       })
+
       it("should decrease the request amount", async () => {
           await cds.connect(alice).transfer(bob.address, depositAmount.div(2)) //transfer half of LP token
 
@@ -1413,9 +1404,6 @@ describe("CDS", function () {
         }
 
       });
-
-      it("revert if it's called by non-registererd contract", async () => {
-      });
     });
 
     describe("changeMetadata", function () {
@@ -1431,40 +1419,6 @@ describe("CDS", function () {
 
         await expect(cds.connect(alice).changeMetadata("New metadata")).to.revertedWith("ERROR: ONLY_OWNER")
       });
+    });
   });
-
-    describe("rate", function() {
-        it("totalsupply should not zero", async () => {
-            // 248
-        });
-    });
-
-    describe("valueOfUnderlying", function() {
-        it("", async () => {
-            // 259
-
-        });
-        it("", async () => {
-            // 262
-        });
-    });
-
-    describe("setPaused", function () {
-        it("", async () => {
-            // 285
-        });
-    });
-
-    
-
-    //style
-    describe("", function() {
-      beforeEach(async () => {
-      });
-
-      it("", async () => {
-      });
-    });
-});
-
 });

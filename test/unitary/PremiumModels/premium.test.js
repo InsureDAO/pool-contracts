@@ -11,7 +11,7 @@ const{
   TWO
 } = require('../constant-utils');
 
-describe.skip("test BondingPremium", () => {
+describe.skip("test PremiumModel", () => {
 
   beforeEach(async () => {
     [creator, alice] = await ethers.getSigners();

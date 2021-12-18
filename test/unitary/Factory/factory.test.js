@@ -260,11 +260,13 @@ describe("Factory", function () {
         await factory.reflist(poolTemplate.address, 0, dai.address)
       ).to.equal(true);
     });
+
     it("Reverts when the template is not registered", async () => {
       await expect(
         factory.approveReference(poolTemplate.address, 0, dai.address, true)
       ).to.revertedWith("ERROR: UNAUTHORIZED_TEMPLATE");
     });
+
     it("Reverts transaction not from the admin", async () => {
       await expect(
         factory
@@ -272,6 +274,7 @@ describe("Factory", function () {
           .approveReference(poolTemplate.address, 0, dai.address, true)
       ).to.revertedWith("Restricted: caller is not allowed to operate");
     });
+
     it("Should allow creating market based on the registered reference if it is defined", async () => {
       await factory.approveTemplate(poolTemplate.address, true, true, true);
       await factory.approveReference(
@@ -318,6 +321,7 @@ describe("Factory", function () {
       );
       expect(market).to.exist;
     });
+
     it("Reverts when creating market with an arbitrary reference if it is defined", async () => {
       await factory.approveTemplate(poolTemplate.address, true, true, true);
       await factory.approveReference(
@@ -353,6 +357,7 @@ describe("Factory", function () {
         )
       ).to.revertedWith("ERROR: UNAUTHORIZED_REFERENCE");
     });
+    
     it("Should allow creating market based on the any arbitrary reference if address zero is set", async () => {
       await factory.approveTemplate(poolTemplate.address, true, true, true);
       await factory.approveReference(
