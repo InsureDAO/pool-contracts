@@ -126,7 +126,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external override{
+    ) external override {
         require(
             initialized == false &&
                 bytes(_metaData).length > 0 &&
@@ -229,9 +229,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         );
         require(_amount > 0, "ERROR: WITHDRAWAL_ZERO");
 
-        //Calculate underlying value
-        _retVal = totalLiquidity() * _amount / totalSupply();
-        
         require(
             _retVal <= withdrawable(),
             "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
@@ -266,39 +263,16 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
     /**
      * @notice Get how much can a user withdraw from this index
-     * Withdrawable amount = the smallest available rate of underlying pools * the liquidity of the index
-     * The above operation aims to keep the allocation setting of credit
+     * Withdrawable amount = the sum of available amount of each pool divided by the actual leverage rate.
      * @return _retVal withdrawable amount
      */
     function withdrawable() public view returns (uint256 _retVal) {
         uint256 _leverage = leverage();
 
-        /***
-        if (_leverage > targetLev) {
-            _retVal = 0;
-        } else {
-            uint256 _length = poolList.length;
-            uint256 _totalLiquidity = totalLiquidity();
-            uint256 _lowest;
-            for (uint256 i = 0; i < _length; i++) {
-                if (allocPoints[poolList[i]] > 0) {
-                    uint256 _utilization = IPoolTemplate(poolList[i])
-                        .utilizationRate();
-                    if (i == 0 || _utilization > _lowest) {
-                        _lowest = _utilization;
-                    }
-                }
-            }
-            if (_lowest == 0) {
-                _retVal = _totalLiquidity;
-            } else {
-                _retVal =(MAGIC_SCALE_1E6 - _lowest) * _totalLiquidity / MAGIC_SCALE_1E6;
-            }
-        }
-        */
-
         //new way of measuring
         if (_leverage > targetLev + parameters.getUpperSlack(address(this))) {
+            _retVal = 0;
+        } else if (_leverage == 0) {
             _retVal = 0;
         } else {
             uint256 _length = poolList.length;
@@ -306,18 +280,23 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             uint256 _sum;
             for (uint256 i = 0; i < _length; i++) {
                 if (allocPoints[poolList[i]] > 0) {
-                    uint256 liquidity = IPoolTemplate(poolList[i]).totalLiquidity();
-                    uint256 credit = IPoolTemplate(poolList[i]).allocatedCredit(address(this));
-                    uint256 lockedAmount = IPoolTemplate(poolList[i]).lockedAmount();
+                    uint256 liquidity = IPoolTemplate(poolList[i])
+                        .totalLiquidity();
+                    uint256 credit = IPoolTemplate(poolList[i]).allocatedCredit(
+                        address(this)
+                    );
+                    uint256 lockedAmount = IPoolTemplate(poolList[i])
+                        .lockedAmount();
 
-                    if(liquidity != 0){
-                        _sum += lockedAmount * credit / liquidity;
-                    }else{
+                    if (liquidity != 0) {
+                        _sum += (lockedAmount * credit) / liquidity;
+                    } else {
                         _sum += lockedAmount;
                     }
                 }
             }
-            
+            _sum = (_sum * MAGIC_SCALE_1E6) / _leverage;
+
             _retVal = _totalLiquidity - _sum;
         }
     }
@@ -356,7 +335,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         //Check each pool and if current credit allocation > target && it is impossible to adjust, then withdraw all availablle credit
         for (uint256 i = 0; i < _length; i++) {
             address _pool = poolList[i];
-            if (_pool != address(0)) {//never be false
+            if (_pool != address(0)) {
+                //never be false
                 uint256 _allocation = allocPoints[_pool];
                 //Target credit allocation for a pool
                 uint256 _target = (_targetCredit * _allocation) /
@@ -448,9 +428,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             if (totalLiquidity() < _amount) {
                 //Insolvency case
                 _shortage = _amount - _value;
-                uint256 _cds = ICDSTemplate(registry.getCDS(address(this))).compensate(
-                    _shortage
-                );
+                uint256 _cds = ICDSTemplate(registry.getCDS(address(this)))
+                    .compensate(_shortage);
                 _compensated = _value + _cds;
             }
             vault.offsetDebt(_compensated, msg.sender);
@@ -469,8 +448,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     function resume() external override {
         uint256 poolLength = poolList.length;
 
-        for(uint256 i=0;i<poolLength;i++){
-            require(IPoolTemplate(poolList[i]).paused() == false, "ERROR: POOL_IS_PAUSED");
+        for (uint256 i = 0; i < poolLength; i++) {
+            require(
+                IPoolTemplate(poolList[i]).paused() == false,
+                "ERROR: POOL_IS_PAUSED"
+            );
         }
 
         locked = false;
