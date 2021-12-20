@@ -29,12 +29,10 @@ contract BondingPremium is IPremiumModel {
     uint256 public constant BASE_x2 = uint256(1e12); //BASE^2
     uint256 public constant ADJUSTER = uint256(10); //adjuster of 1e6 to 1e5 (100.0000% to 100.000%)
 
-
     modifier onlyOwner() {
         require(ownership.owner() == msg.sender, 'Restricted: caller is not allowed to operate');
         _;
     }
-
 
     constructor(
       address _ownership
@@ -48,7 +46,18 @@ contract BondingPremium is IPremiumModel {
       T_1 = 1000000 * DECIMAL;
     }
 
+    /***
+    * References
+    * - Gitbook: https://app.gitbook.com/s/-Mb5ZmIrwF8VtxMhMijC/advanced/premium-pricing
+    * - Desmos: https://www.desmos.com/calculator/7pmqdvaj5o
+    */
 
+
+    /***
+    * @notice Get the current premium rate. 100% = 1e6
+    * @param _totalLiquidity total liquidity token amount in the insurance pool.
+    * @param _lockedAmount utilized token amount of the insurance pool.
+    */
     function getCurrentPremiumRate(
         uint256 _totalLiquidity,
         uint256 _lockedAmount
@@ -76,12 +85,12 @@ contract BondingPremium is IPremiumModel {
         return _premiumRate;
     }
 
+
     /***
     * @notice Get premium rate.
     * @param _amount  token amount of insurance be bought
     * @param _totalLiquidity total liquidity token amount in the insurance pool.
     * @param _lockedAmount utilized token amount of the insurance pool.
-    * @dev This returns value without divides by BASE_DEGITS to keep precision. have to devide by BASE_DEGITS at last of getPremium().
     */
     struct Temp{
       int128 u;
@@ -168,9 +177,9 @@ contract BondingPremium is IPremiumModel {
      * @param _multiplierPerYear The curve rate of premium per year.
      * @param _initialBaseRatePerYear The Initial Base rate addition to the bonding curve.
      * @param _finalBaseRatePerYear The Final Base rate addition to the bonding curve.
-     * @param _goalTVL As TVL grows twords goalTVL, parameters gradually shift from initial to final value.
+     * @param _goalTVL As TVL grows towards goalTVL, parameters gradually shift from initial to final value.
      */
-    function setPremium(uint256 _multiplierPerYear, uint256 _initialBaseRatePerYear, uint256 _finalBaseRatePerYear, uint256 _goalTVL)
+    function setPremiumParameters(uint256 _multiplierPerYear, uint256 _initialBaseRatePerYear, uint256 _finalBaseRatePerYear, uint256 _goalTVL)
         external
         override
         onlyOwner

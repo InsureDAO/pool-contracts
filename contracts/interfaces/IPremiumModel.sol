@@ -21,7 +21,7 @@ interface IPremiumModel {
     ) external view returns (uint256);
 
     //onlyOwner
-    function setPremium(
+    function setPremiumParameters(
         uint256,
         uint256,
         uint256,
