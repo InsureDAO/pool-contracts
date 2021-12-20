@@ -161,6 +161,7 @@ contract Factory is IFactory {
         uint256[] memory _conditions,
         address[] memory _references
     ) public override returns (address) {
+        //check eligibility
         require(
             templates[address(_template)].approval == true,
             "ERROR: UNAUTHORIZED_TEMPLATE"
@@ -189,22 +190,6 @@ contract Factory is IFactory {
             }
         }
 
-        IUniversalMarket market = IUniversalMarket(
-            _createClone(address(_template))
-        );
-
-        market.initialize(_metaData, _conditions, _references);
-
-        emit MarketCreated(
-            address(market),
-            address(_template),
-            _metaData,
-            _conditions,
-            _references
-        );
-        markets.push(address(market));
-        IRegistry(registry).supportMarket(address(market));
-
         if (
             IRegistry(registry).confirmExistence(
                 address(_template),
@@ -220,6 +205,27 @@ contract Factory is IFactory {
                 revert("ERROR: DUPLICATE_MARKET");
             }
         }
+
+        //create market
+        IUniversalMarket market = IUniversalMarket(
+            _createClone(address(_template))
+        );
+
+        IRegistry(registry).supportMarket(address(market));
+        
+        markets.push(address(market));
+
+
+        //initialize
+        market.initialize(_metaData, _conditions, _references);
+
+        emit MarketCreated(
+            address(market),
+            address(_template),
+            _metaData,
+            _conditions,
+            _references
+        );
 
         return address(market);
     }

@@ -621,7 +621,7 @@ describe("Pool", function () {
     );
 
     let receipt = await tx.wait()
-    let createdMarketAddress = receipt.events[4].args['market']
+    let createdMarketAddress = receipt.events[5].args['market']
 
 
     //update vault
