@@ -56,18 +56,13 @@ describe("test BondingPremium", () => {
     let a = await sqrt(ten_to_the_6.mul(ten_to_the_6).add(K.mul("4")))
     a = (a.toNumber() - BASE)/2
 
-    let _util = lockedAmount * BASE / T_0;
-    console.log(_util)
+    let _util = lockedAmount / T_0 * BASE;
     
     let u0 = (BASE - _util) + a
 
     let premiumRate = 365*( (k*T_0/T_1)/u0-a ) + (c-b)*(1-T_0/T_1) + b
-    console.log(a)
-    console.log(u0)
-    console.log("dinamic", 365*( (k*T_0/T_1)/u0-a ))
 
-    console.log(premiumRate)
-    return BigNumber.from(Math.round(premiumRate * BASE).toString())
+    return BigNumber.from(Math.round(premiumRate).toString())
   }
 
   const calcPremiumRate = async ({k, T_0, T_1, c, b, lockedAmount, amount}) => {
@@ -124,14 +119,20 @@ describe("test BondingPremium", () => {
 
   describe("test getCurrentPremiumRate", function () {
     it("getCurrentPremiumRate correctlly", async () => {
-      await calcCurrentPremiumRate({
+
+      let expectedRate = await calcCurrentPremiumRate({
         k: k, 
-        T_0: 400000, 
+        T_0: 800000, 
         T_1: T_1, 
         c: c, 
         b: b, 
-        lockedAmount: 800000
+        lockedAmount: 400000
       })
+
+      let actualRate = await premium.getCurrentPremiumRate(BASE_big.mul(800000), BASE_big.mul(400000))
+      console.log(actualRate.toString())
+
+      expect(actualRate).to.closeTo(expectedRate, expectedRate.div(1000))
     });
 
     it("Graph change until goal TVL", async () => {
@@ -159,6 +160,13 @@ describe("test BondingPremium", () => {
 
       //equal
       expect(await premium.getCurrentPremiumRate(BASE_big.mul(totalLiquidity_1), BASE_big.mul(lockedAmount_1))).to.equal(await premium.getCurrentPremiumRate(BASE_big.mul(totalLiquidity_2), BASE_big.mul(lockedAmount_2)))
+    });
+
+    it("revert when lockedAmount exceed totalLiquidity", async () => {
+      let lockedAmount_1 = 1000001
+      let totalLiquidity_1 = 1000000
+
+      await expect(premium.getCurrentPremiumRate(BASE_big.mul(totalLiquidity_1), BASE_big.mul(lockedAmount_1))).to.revertedWith("ERROR: _lockedAmount > _totalLiquidity")
     });
   });
 
@@ -250,7 +258,7 @@ describe("test BondingPremium", () => {
 
   describe("test setPremium", function () {
     it("setPremium correctlly", async () => {
-      await premium.setPremium(0, 0, 0, 0)
+      await premium.setPremiumParameters(0, 0, 0, 0)
 
       expect(await premium.k()).to.equal(0)
       expect(await premium.c()).to.equal(0)
@@ -259,7 +267,7 @@ describe("test BondingPremium", () => {
     });
 
     it("revert when not owner", async () => {
-      await expect(premium.connect(alice).setPremium(0, 0, 0, 0)).to.revertedWith("Restricted: caller is not allowed to operate")
+      await expect(premium.connect(alice).setPremiumParameters(0, 0, 0, 0)).to.revertedWith("Restricted: caller is not allowed to operate")
     });
   });
 

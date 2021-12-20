@@ -62,6 +62,7 @@ contract BondingPremium is IPremiumModel {
         uint256 _totalLiquidity,
         uint256 _lockedAmount
     ) public view override returns (uint256){
+        require(_totalLiquidity >= _lockedAmount, "ERROR: _lockedAmount > _totalLiquidity");
         // utilization rate (0~1000000)
         uint256 _util = _lockedAmount * BASE / _totalLiquidity;
 
