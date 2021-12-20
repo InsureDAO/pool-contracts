@@ -157,7 +157,7 @@ contract BondingPremium is IPremiumModel {
         
         uint256 premiumRate = getPremiumRate(_amount, _totalLiquidity, _lockedAmount);
 
-        uint256 premium = _amount * premiumRate * _term / 365 days / BASE_x2;
+        uint256 premium = _amount * premiumRate * _term / 365 days / BASE;
         
         return premium;
     }
