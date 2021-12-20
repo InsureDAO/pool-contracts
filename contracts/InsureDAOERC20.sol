@@ -161,9 +161,8 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
             currentAllowance >= amount,
             "ERC20: transfer amount exceeds allowance"
         );
-        unchecked {
-            _approve(sender, _msgSender(), currentAllowance - amount);
-        }
+
+        _approve(sender, _msgSender(), currentAllowance - amount);
 
         return true;
     }
@@ -217,9 +216,8 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
             currentAllowance >= subtractedValue,
             "ERC20: decreased allowance below zero"
         );
-        unchecked {
-            _approve(_msgSender(), spender, currentAllowance - subtractedValue);
-        }
+
+        _approve(_msgSender(), spender, currentAllowance - subtractedValue);
 
         return true;
     }
@@ -253,9 +251,9 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
             senderBalance >= amount,
             "ERC20: transfer amount exceeds balance"
         );
-        unchecked {
-            _balances[sender] = senderBalance - amount;
-        }
+
+        _balances[sender] = senderBalance - amount;
+
         _balances[recipient] += amount;
 
         emit Transfer(sender, recipient, amount);
@@ -302,9 +300,8 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
 
         uint256 accountBalance = _balances[account];
         require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
-        unchecked {
-            _balances[account] = accountBalance - amount;
-        }
+        _balances[account] = accountBalance - amount;
+
         _totalSupply -= amount;
 
         emit Transfer(account, address(0), amount);
