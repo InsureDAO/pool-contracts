@@ -49,6 +49,14 @@ contract Vault is IVault {
         _;
     }
 
+    modifier onlyMarket() {
+        require(
+            IRegistry(registry).isListed(msg.sender),
+            "ERROR_ONLY_MARKET"
+        );
+        _;
+    }
+
     constructor(
         address _token,
         address _registry,
@@ -83,7 +91,8 @@ contract Vault is IVault {
         address _from,
         address[2] memory _beneficiaries,
         uint256[2] memory _shares
-    ) external override returns (uint256[2] memory _allocations) {
+    ) external override onlyMarket returns (uint256[2] memory _allocations) {
+        
         require(_shares[0] + _shares[1] == 1000000, "ERROR_INCORRECT_SHARE");
 
         uint256 _attributions;
@@ -116,8 +125,7 @@ contract Vault is IVault {
         uint256 _amount,
         address _from,
         address _beneficiary
-    ) external override returns (uint256 _attributions) {
-        
+    ) external override onlyMarket returns (uint256 _attributions) {
 
         if (totalAttributions == 0) {
             _attributions = _amount;
@@ -190,11 +198,7 @@ contract Vault is IVault {
      * @param _amount borrow amount
      * @param _to borrower's address
      */
-    function borrowValue(uint256 _amount, address _to) external override {
-        require(
-            IRegistry(registry).isListed(msg.sender),
-            "ERROR_BORROW-VALUE_BADCONDITOONS"
-        );
+    function borrowValue(uint256 _amount, address _to) external onlyMarket override {
         debts[msg.sender] += _amount;
         totalDebt += _amount;
 
@@ -230,11 +234,7 @@ contract Vault is IVault {
      * @param _amount debt amount to transfer
      * @dev will be called when CDS could not afford when resume the market.
      */
-    function transferDebt(uint256 _amount) external override {
-        require(
-            IRegistry(registry).isListed(msg.sender),
-            "ERROR_TRANSFER-DEBT_BADCONDITOONS"
-        );
+    function transferDebt(uint256 _amount) external onlyMarket override {
 
         if(_amount != 0){
             debts[msg.sender] -= _amount;

@@ -67,6 +67,7 @@ describe("Vault", function () {
 
 
     await registry.supportMarket(alice.address); //now alice can do the same as markets
+    await registry.supportMarket(creator.address);
   });
 
   beforeEach(async () => {
@@ -107,6 +108,7 @@ describe("Vault", function () {
 
 
       //EXECUTE
+      
       await vault.addValue(depositAmount, alice.address, alice.address);
 
 
@@ -172,6 +174,11 @@ describe("Vault", function () {
           [vault.address]: depositAmount.mul(2)
         }
       })
+    });
+
+    it("revert when market is not registered", async () => {
+      //setup
+      await expect(vault.connect(chad).addValue(depositAmount, alice.address, alice.address)).to.revertedWith("ERROR_ONLY_MARKET")
     });
 
   });
@@ -296,10 +303,16 @@ describe("Vault", function () {
       })
     });
 
+    it("revert when market is not registered", async () => {
+      //setup
+      await expect(vault.connect(chad).addValueBatch(depositAmount, alice.address, [alice.address, alice.address], [1000000, 0])).to.revertedWith("ERROR_ONLY_MARKET")
+    });
+
   });
 
   describe("withdrawValue", function () {
     beforeEach(async () => {
+      
       await vault.addValue(depositAmount, alice.address, alice.address);
 
       //status
@@ -359,6 +372,7 @@ describe("Vault", function () {
 
   describe("transferValue", function () {
     beforeEach(async () => {
+      
       await vault.addValue(depositAmount, alice.address, alice.address);
 
       //status
@@ -419,6 +433,7 @@ describe("Vault", function () {
 
   describe("borrowValue", function () {
     beforeEach(async () => {
+      
       await vault.addValue(depositAmount, alice.address, alice.address);
 
       //status
@@ -536,7 +551,7 @@ describe("Vault", function () {
 
     it("revert when address is not registered", async () => {
       //transfer alice's debt to the system's debt.
-      await expect(vault.connect(chad).transferDebt(depositAmount)).to.revertedWith("ERROR_TRANSFER-DEBT_BADCONDITOONS")
+      await expect(vault.connect(chad).transferDebt(depositAmount)).to.revertedWith("ERROR_ONLY_MARKET")
     });
 
   });
@@ -608,7 +623,7 @@ describe("Vault", function () {
 
     it("revert when address is not registered", async () => {
       //transfer alice's debt to the system's debt.
-      await expect(vault.connect(chad).transferDebt(depositAmount)).to.revertedWith("ERROR_TRANSFER-DEBT_BADCONDITOONS")
+      await expect(vault.connect(chad).transferDebt(depositAmount)).to.revertedWith("ERROR_ONLY_MARKET")
     });
 
   });
@@ -1057,6 +1072,7 @@ describe("Vault", function () {
 
   describe("withdrawAllAttribution", function () {
     beforeEach(async () => {
+      
       await vault.addValue(depositAmount, alice.address, alice.address);
 
       //status
@@ -1110,6 +1126,7 @@ describe("Vault", function () {
 
   describe("withdrawAttribution", function () {
     beforeEach(async () => {
+      
       await vault.addValue(depositAmount, alice.address, alice.address);
 
       //status
@@ -1167,6 +1184,7 @@ describe("Vault", function () {
 
   describe("transferAttribution", function () {
     beforeEach(async () => {
+      
       await vault.addValue(depositAmount, alice.address, alice.address);
 
       //status

@@ -46,6 +46,25 @@ describe("test BondingPremium", () => {
     return y;
   }
 
+  const calcCurrentPremiumRate = async ({k, T_0, T_1, c, b, lockedAmount}) => {
+    let k_big = BigNumber.from(k.toString())
+    let T_0_big = BigNumber.from(T_0.toString())
+    let T_1_big = BigNumber.from(T_1.toString())
+
+    let K = k_big.mul(T_0_big).div(T_1_big)
+
+    let a = await sqrt(ten_to_the_6.mul(ten_to_the_6).add(K.mul("4")))
+    a = (a.toNumber() - BASE)/2
+
+    let _util = lockedAmount / T_0 * BASE;
+    
+    let u0 = (BASE - _util) + a
+
+    let premiumRate = 365*( (k*T_0/T_1)/u0-a ) + (c-b)*(1-T_0/T_1) + b
+
+    return BigNumber.from(Math.round(premiumRate).toString())
+  }
+
   const calcPremiumRate = async ({k, T_0, T_1, c, b, lockedAmount, amount}) => {
     let k_big = BigNumber.from(k.toString())
     let T_0_big = BigNumber.from(T_0.toString())
@@ -100,7 +119,20 @@ describe("test BondingPremium", () => {
 
   describe("test getCurrentPremiumRate", function () {
     it("getCurrentPremiumRate correctlly", async () => {
-      
+
+      let expectedRate = await calcCurrentPremiumRate({
+        k: k, 
+        T_0: 800000, 
+        T_1: T_1, 
+        c: c, 
+        b: b, 
+        lockedAmount: 400000
+      })
+
+      let actualRate = await premium.getCurrentPremiumRate(BASE_big.mul(800000), BASE_big.mul(400000))
+      console.log(actualRate.toString())
+
+      expect(actualRate).to.closeTo(expectedRate, expectedRate.div(1000))
     });
 
     it("Graph change until goal TVL", async () => {
@@ -128,7 +160,13 @@ describe("test BondingPremium", () => {
 
       //equal
       expect(await premium.getCurrentPremiumRate(BASE_big.mul(totalLiquidity_1), BASE_big.mul(lockedAmount_1))).to.equal(await premium.getCurrentPremiumRate(BASE_big.mul(totalLiquidity_2), BASE_big.mul(lockedAmount_2)))
-      
+    });
+
+    it("revert when lockedAmount exceed totalLiquidity", async () => {
+      let lockedAmount_1 = 1000001
+      let totalLiquidity_1 = 1000000
+
+      await expect(premium.getCurrentPremiumRate(BASE_big.mul(totalLiquidity_1), BASE_big.mul(lockedAmount_1))).to.revertedWith("ERROR: _lockedAmount > _totalLiquidity")
     });
   });
 
@@ -149,7 +187,7 @@ describe("test BondingPremium", () => {
         amount: amount
       })
 
-      expect(await premium.getPremiumRate(BASE_big.mul(amount), BASE_big.mul(totalLiquidity), BASE_big.mul(lockedAmount))).to.closeTo(premiumRate, premiumRate.div(1000))
+      expect(await premium.getPremiumRate(BASE_big.mul(amount), BASE_big.mul(totalLiquidity), BASE_big.mul(lockedAmount))).to.closeTo(premiumRate, premiumRate.div(100))
     });
 
     it("revert when amount exceed available", async () => {
@@ -197,11 +235,11 @@ describe("test BondingPremium", () => {
         amount: amount
       })
 
-      let expectedPremium = expectedPremiumRate.mul(amount).mul(WEEK).div(YEAR).div(BASE_big)
+      let expectedPremium = expectedPremiumRate.mul(amount).mul(BASE).mul(WEEK).div(YEAR).div(BASE)
 
       let actualPremium = await premium.getPremium(BASE_big.mul(amount), period, BASE_big.mul(totalLiquidity), BASE_big.mul(lockedAmount));
 
-      expect(actualPremium).to.equal(expectedPremium)
+      expect(actualPremium).to.closeTo(expectedPremium, expectedPremium.div(1000))
     });
 
     it("should return zero when amount is zero", async () => {
@@ -220,7 +258,7 @@ describe("test BondingPremium", () => {
 
   describe("test setPremium", function () {
     it("setPremium correctlly", async () => {
-      await premium.setPremium(0, 0, 0, 0)
+      await premium.setPremiumParameters(0, 0, 0, 0)
 
       expect(await premium.k()).to.equal(0)
       expect(await premium.c()).to.equal(0)
@@ -229,7 +267,7 @@ describe("test BondingPremium", () => {
     });
 
     it("revert when not owner", async () => {
-      await expect(premium.connect(alice).setPremium(0, 0, 0, 0)).to.revertedWith("Restricted: caller is not allowed to operate")
+      await expect(premium.connect(alice).setPremiumParameters(0, 0, 0, 0)).to.revertedWith("Restricted: caller is not allowed to operate")
     });
   });
 

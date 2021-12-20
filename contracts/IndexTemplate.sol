@@ -171,6 +171,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         if (_supply > 0 && _totalLiquidity > 0) {
             _mintAmount = (_amount * _supply) / _totalLiquidity;
         } else if (_supply > 0 && _totalLiquidity == 0) {
+            //when
             _mintAmount = _amount * _supply;
         } else {
             _mintAmount = _amount;
@@ -306,7 +307,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             for (uint256 i = 0; i < _length; i++) {
                 if (allocPoints[poolList[i]] > 0) {
                     uint256 liquidity = IPoolTemplate(poolList[i]).totalLiquidity();
-                    uint256 credit = IPoolTemplate(poolList[i]).totalCredit();
+                    uint256 credit = IPoolTemplate(poolList[i]).allocatedCredit(address(this));
                     uint256 lockedAmount = IPoolTemplate(poolList[i]).lockedAmount();
 
                     if(liquidity != 0){
