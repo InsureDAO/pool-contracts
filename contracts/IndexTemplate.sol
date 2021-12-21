@@ -280,18 +280,17 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             uint256 _sum;
             for (uint256 i = 0; i < _length; i++) {
                 if (allocPoints[poolList[i]] > 0) {
-                    uint256 liquidity = IPoolTemplate(poolList[i])
+                    uint256 _liquidity = IPoolTemplate(poolList[i])
                         .totalLiquidity();
-                    uint256 credit = IPoolTemplate(poolList[i]).allocatedCredit(
-                        address(this)
-                    );
-                    uint256 lockedAmount = IPoolTemplate(poolList[i])
+                    uint256 _credit = IPoolTemplate(poolList[i])
+                        .allocatedCredit(address(this));
+                    uint256 _lockedAmount = IPoolTemplate(poolList[i])
                         .lockedAmount();
 
-                    if (liquidity != 0) {
-                        _sum += (lockedAmount * credit) / liquidity;
+                    if (_liquidity != 0) {
+                        _sum += (_lockedAmount * _credit) / _liquidity;
                     } else {
-                        _sum += lockedAmount;
+                        _sum += _lockedAmount;
                     }
                 }
             }
@@ -446,9 +445,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice Resume market
      */
     function resume() external override {
-        uint256 poolLength = poolList.length;
+        uint256 _poolLength = poolList.length;
 
-        for (uint256 i = 0; i < poolLength; i++) {
+        for (uint256 i = 0; i < _poolLength; i++) {
             require(
                 IPoolTemplate(poolList[i]).paused() == false,
                 "ERROR: POOL_IS_PAUSED"
