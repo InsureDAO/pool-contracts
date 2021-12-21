@@ -82,7 +82,7 @@ describe("Factory", function () {
     await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
-      [0],
+      [0,0],
       [dai.address, dai.address, registry.address, parameters.address]
     );
     const marketAddress = await factory.markets(0);
@@ -155,7 +155,7 @@ describe("Factory", function () {
       let market = await factory.createMarket(
         poolTemplate.address,
         "Here is metadata.",
-        [0],
+        [0, 0],
         [
           dai.address,
           dai.address,
@@ -219,7 +219,7 @@ describe("Factory", function () {
         .createMarket(
           poolTemplate.address,
           "Here is metadata.",
-          [0],
+          [0, 0],
           [
             dai.address,
             dai.address,
@@ -234,7 +234,7 @@ describe("Factory", function () {
           .createMarket(
             poolTemplate.address,
             "Here is metadata.",
-            [0],
+            [0, 0],
             [
               dai.address,
               dai.address,
@@ -310,7 +310,7 @@ describe("Factory", function () {
       let market = await factory.createMarket(
         poolTemplate.address,
         "Here is metadata.",
-        [0],
+        [0, 0],
         [
           dai.address,
           dai.address,
@@ -352,12 +352,12 @@ describe("Factory", function () {
         factory.createMarket(
           poolTemplate.address,
           "Here is metadata.",
-          [0],
+          [0, 0],
           [dai.address, dai.address, dai.address, dai.address]
         )
       ).to.revertedWith("ERROR: UNAUTHORIZED_REFERENCE");
     });
-    
+
     it("Should allow creating market based on the any arbitrary reference if address zero is set", async () => {
       await factory.approveTemplate(poolTemplate.address, true, true, true);
       await factory.approveReference(
@@ -393,7 +393,7 @@ describe("Factory", function () {
       let market = await factory.createMarket(
         poolTemplate.address,
         "Here is metadata.",
-        [0],
+        [0, 0],
         [
           dai.address,
           dai.address,
@@ -462,7 +462,7 @@ describe("Factory", function () {
         .createMarket(
           poolTemplate.address,
           "Here is metadata.",
-          [0],
+          [0, 0],
           [
             dai.address,
             dai.address,

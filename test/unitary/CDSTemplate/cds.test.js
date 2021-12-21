@@ -16,35 +16,34 @@ const {
   verifyCDSStatus_legacy,
   verifyVaultStatus_legacy,
   verifyVaultStatusOf_legacy,
-} = require('../test-utils')
+} = require("../test-utils");
 
-
-const{ 
+const {
   ZERO_ADDRESS,
   long,
   short,
   YEAR,
   WEEK,
   DAY,
-  ZERO
-} = require('../constant-utils');
+  ZERO,
+} = require("../constant-utils");
 
-async function snapshot () {
-  return network.provider.send('evm_snapshot', [])
+async function snapshot() {
+  return network.provider.send("evm_snapshot", []);
 }
 
-async function restore (snapshotId) {
-  return network.provider.send('evm_revert', [snapshotId])
+async function restore(snapshotId) {
+  return network.provider.send("evm_revert", [snapshotId]);
 }
 
-async function moveForwardPeriods (days) {
+async function moveForwardPeriods(days) {
   await ethers.provider.send("evm_increaseTime", [DAY.mul(days).toNumber()]);
   await ethers.provider.send("evm_mine");
 
-  return true
+  return true;
 }
 
-async function now () {
+async function now() {
   return BigNumber.from((await ethers.provider.getBlock("latest")).timestamp);
 }
 
@@ -61,30 +60,40 @@ describe.skip("CDS", function () {
   const RATE_DIVIDER = BigNumber.from("100000"); //1e5
   const UTILIZATION_RATE_LENGTH_1E8 = BigNumber.from("100000000"); //1e8
 
-  const approveDeposit = async ({token, target, depositer, amount}) => {
+  const approveDeposit = async ({ token, target, depositer, amount }) => {
     await token.connect(depositer).approve(vault.address, amount);
     await target.connect(depositer).deposit(amount);
-  }
+  };
 
-  const approveDepositAndWithdrawRequest = async ({token, target, depositer, amount}) => {
+  const approveDepositAndWithdrawRequest = async ({
+    token,
+    target,
+    depositer,
+    amount,
+  }) => {
     await token.connect(depositer).approve(vault.address, amount);
     await target.connect(depositer).deposit(amount);
     await target.connect(depositer).requestWithdraw(amount);
-  }
+  };
 
-  const insure = async ({pool, insurer, amount, maxCost, span, target}) => {
-    await dai.connect(insurer).approve(vault.address, maxCost)
+  const insure = async ({ pool, insurer, amount, maxCost, span, target }) => {
+    await dai.connect(insurer).approve(vault.address, maxCost);
     let tx = await pool.connect(insurer).insure(amount, maxCost, span, target);
 
-    let receipt = await tx.wait()
-    let premium = receipt.events[2].args['premium']
+    let receipt = await tx.wait();
+    let premium = receipt.events[2].args["premium"];
 
     //return value
-    return premium
-  }
+    return premium;
+  };
 
-  const applyCover = async ({pool, pending, payoutNumerator, payoutDenominator, incidentTimestamp}) => {
-
+  const applyCover = async ({
+    pool,
+    pending,
+    payoutNumerator,
+    payoutDenominator,
+    incidentTimestamp,
+  }) => {
     const tree = await new MerkleTree(short, keccak256, {
       hashLeaves: true,
       sortPairs: true,
@@ -104,8 +113,8 @@ describe.skip("CDS", function () {
       "metadata"
     );
 
-    return proof
-  }
+    return proof;
+  };
 
   before(async () => {
     //import
@@ -142,7 +151,6 @@ describe.skip("CDS", function () {
     indexTemplate = await IndexTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
     minter = await Minter.deploy();
-
 
     //set up
     await dai.mint(chad.address, (100000).toString());
@@ -228,13 +236,13 @@ describe.skip("CDS", function () {
     await factory.createMarket(
       cdsTemplate.address,
       "Here is metadata.",
-      [0],
+      [0, 0],
       [dai.address, registry.address, parameters.address]
     );
     await factory.createMarket(
       indexTemplate.address,
       "Here is metadata.",
-      [0],
+      [0, 0],
       [dai.address, registry.address, parameters.address]
     );
     const marketAddress3 = await factory.markets(2);
@@ -244,18 +252,17 @@ describe.skip("CDS", function () {
 
     await registry.setCDS(ZERO_ADDRESS, cds.address);
 
-
     await index.set("0", market1.address, "1000");
     await index.setLeverage("20000");
   });
 
   beforeEach(async () => {
-    snapshotId = await snapshot()
+    snapshotId = await snapshot();
   });
 
   afterEach(async () => {
-    await restore(snapshotId)
-  })
+    await restore(snapshotId);
+  });
 
   describe("Condition", function () {
     it("Should contracts be deployed", async () => {
@@ -278,8 +285,8 @@ describe.skip("CDS", function () {
         token: dai,
         target: cds,
         depositer: alice,
-        amount: depositAmount
-      })
+        amount: depositAmount,
+      });
 
       await cds.connect(alice).requestWithdraw(depositAmount);
 
@@ -290,16 +297,16 @@ describe.skip("CDS", function () {
         vault: vault,
         valueAll: depositAmount,
         totalAttributions: depositAmount,
-      })
+      });
 
       await verifyVaultStatusOf_legacy({
         vault: vault,
         target: cds.address,
         attributions: depositAmount,
-        underlyingValue: depositAmount
-      })
+        underlyingValue: depositAmount,
+      });
 
-      await moveForwardPeriods(8)
+      await moveForwardPeriods(8);
 
       const withdrawAmount = BigNumber.from("9900");
 
@@ -308,15 +315,15 @@ describe.skip("CDS", function () {
       await verifyVaultStatus_legacy({
         vault: vault,
         valueAll: depositAmount.sub(withdrawAmount),
-        totalAttributions: depositAmount.sub(withdrawAmount)
-      })
+        totalAttributions: depositAmount.sub(withdrawAmount),
+      });
 
       await verifyVaultStatusOf_legacy({
         vault: vault,
         target: cds.address,
         attributions: depositAmount.sub(withdrawAmount),
-        underlyingValue: depositAmount.sub(withdrawAmount)
-      })
+        underlyingValue: depositAmount.sub(withdrawAmount),
+      });
     });
 
     it("DISABLES withdraw more than balance", async function () {
@@ -324,15 +331,15 @@ describe.skip("CDS", function () {
         token: dai,
         target: cds,
         depositer: alice,
-        amount: depositAmount
-      })
+        amount: depositAmount,
+      });
       await cds.connect(alice).requestWithdraw(depositAmount);
 
-      await moveForwardPeriods(8)
+      await moveForwardPeriods(8);
 
-      await expect(cds.connect(alice).withdraw(depositAmount.add(1))).to.revertedWith(
-        "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
-      );
+      await expect(
+        cds.connect(alice).withdraw(depositAmount.add(1))
+      ).to.revertedWith("ERROR: WITHDRAWAL_EXCEEDED_REQUEST");
     });
 
     it("DISABLES withdraw zero balance", async function () {
@@ -340,11 +347,11 @@ describe.skip("CDS", function () {
         token: dai,
         target: cds,
         depositer: alice,
-        amount: depositAmount
-      })
+        amount: depositAmount,
+      });
       await cds.connect(alice).requestWithdraw(depositAmount);
 
-      await moveForwardPeriods(8)
+      await moveForwardPeriods(8);
       await expect(cds.connect(alice).withdraw(ZERO)).to.revertedWith(
         "ERROR: WITHDRAWAL_ZERO"
       );
@@ -355,8 +362,8 @@ describe.skip("CDS", function () {
         token: dai,
         target: cds,
         depositer: alice,
-        amount: depositAmount
-      })
+        amount: depositAmount,
+      });
       await cds.connect(alice).requestWithdraw(depositAmount);
 
       await expect(cds.connect(alice).withdraw(depositAmount)).to.revertedWith(
@@ -369,46 +376,46 @@ describe.skip("CDS", function () {
         token: dai,
         target: cds,
         depositer: alice,
-        amount: depositAmount
-      })
+        amount: depositAmount,
+      });
       await cds.connect(alice).requestWithdraw(depositAmount);
 
       await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: depositAmount,
         totalLiquidity: depositAmount,
-        rate: defaultRate
-      })
+        rate: defaultRate,
+      });
 
       await approveDeposit({
         token: dai,
         target: index,
         depositer: bob,
-        amount: depositAmount
-      })
+        amount: depositAmount,
+      });
 
       await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: depositAmount,
         totalLiquidity: depositAmount,
-        rate: defaultRate
-      })
+        rate: defaultRate,
+      });
 
       await verifyVaultStatus_legacy({
         vault: vault,
         valueAll: depositAmount.mul(2),
         totalAttributions: depositAmount.mul(2),
-      })
+      });
 
       await verifyVaultStatusOf_legacy({
         vault: vault,
         target: creator.address,
         attributions: ZERO,
-        underlyingValue: ZERO
-      })
+        underlyingValue: ZERO,
+      });
 
       //withdrawal also harvest accrued premium
-      await moveForwardPeriods(10)
+      await moveForwardPeriods(10);
 
       await cds.connect(alice).withdraw(depositAmount);
 
@@ -416,18 +423,17 @@ describe.skip("CDS", function () {
       await verifyBalance({
         token: dai,
         address: alice.address,
-        expectedBalance: initialMint
-      })
+        expectedBalance: initialMint,
+      });
     });
 
     it("DISABLE deposit when locked(withdrawal is possible)", async function () {
-
       await approveDeposit({
         token: dai,
         target: cds,
         depositer: alice,
-        amount: depositAmount
-      })
+        amount: depositAmount,
+      });
 
       await cds.connect(alice).requestWithdraw(depositAmount);
 
@@ -435,11 +441,10 @@ describe.skip("CDS", function () {
         cds: cds,
         totalSupply: depositAmount,
         totalLiquidity: depositAmount,
-        rate: defaultRate
-      })
+        rate: defaultRate,
+      });
 
       await cds.setPaused(true);
-
 
       await dai.connect(alice).approve(vault.address, depositAmount);
       await expect(cds.connect(alice).deposit(depositAmount)).to.revertedWith(
@@ -452,16 +457,16 @@ describe.skip("CDS", function () {
         token: dai,
         target: cds,
         depositer: alice,
-        amount: depositAmount
-      })
+        amount: depositAmount,
+      });
       await cds.connect(alice).requestWithdraw(depositAmount);
 
       await approveDeposit({
         token: dai,
         target: index,
         depositer: alice,
-        amount: depositAmount
-      })
+        amount: depositAmount,
+      });
 
       await verifyIndexStatus({
         index: index,
@@ -470,22 +475,22 @@ describe.skip("CDS", function () {
         totalAllocatedCredit: depositAmount.mul(leverage).div(defaultLeverage),
         leverage: leverage,
         withdrawable: depositAmount,
-        rate: defaultRate
-      })
+        rate: defaultRate,
+      });
 
       await verifyPoolsStatus({
         pools: [
           {
             pool: market1,
             totalSupply: ZERO,
-            totalLiquidity: depositAmount.mul(leverage).div(defaultLeverage), //all deposited amount 
+            totalLiquidity: depositAmount.mul(leverage).div(defaultLeverage), //all deposited amount
             availableBalance: depositAmount.mul(leverage).div(defaultLeverage), //all amount - locked amount = available amount
             rate: ZERO,
             utilizationRate: ZERO,
-            allInsuranceCount: ZERO
-          }
-        ]
-      })
+            allInsuranceCount: ZERO,
+          },
+        ],
+      });
 
       await verifyPoolsStatusForIndex_legacy({
         pools: [
@@ -493,37 +498,37 @@ describe.skip("CDS", function () {
             pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: depositAmount.mul(leverage).div(defaultLeverage),
-          }
-        ]
-      })
+          },
+        ],
+      });
 
       await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: depositAmount,
         totalLiquidity: depositAmount,
-        rate: defaultRate
-      })
+        rate: defaultRate,
+      });
 
       await verifyVaultStatusOf_legacy({
         vault: vault,
         target: market1.address,
         attributions: ZERO,
-        underlyingValue: ZERO
-      })
+        underlyingValue: ZERO,
+      });
 
       await verifyVaultStatusOf_legacy({
         vault: vault,
         target: index.address,
         attributions: depositAmount,
-        underlyingValue: depositAmount
-      })
+        underlyingValue: depositAmount,
+      });
 
       await verifyVaultStatusOf_legacy({
         vault: vault,
         target: cds.address,
         attributions: depositAmount,
-        underlyingValue: depositAmount
-      })
+        underlyingValue: depositAmount,
+      });
 
       let premium = await insure({
         pool: market1,
@@ -531,20 +536,20 @@ describe.skip("CDS", function () {
         amount: insureAmount,
         maxCost: insureAmount,
         span: WEEK,
-        target: short[0]
-      })
+        target: short[0],
+      });
 
-      let govFee = premium.mul(governanceFeeRate).div(RATE_DIVIDER)
-      let fee = premium.sub(govFee)
+      let govFee = premium.mul(governanceFeeRate).div(RATE_DIVIDER);
+      let fee = premium.sub(govFee);
 
       await verifyBalance({
         token: dai,
         address: bob.address,
-        expectedBalance: initialMint.sub(premium)
-      })
+        expectedBalance: initialMint.sub(premium),
+      });
 
       let payoutNumerator = 5000;
-      let payoutDenominator = 10000
+      let payoutDenominator = 10000;
       let incident = await now();
 
       let proof = await applyCover({
@@ -552,11 +557,13 @@ describe.skip("CDS", function () {
         pending: 604800,
         payoutNumerator: payoutNumerator,
         payoutDenominator: payoutDenominator,
-        incidentTimestamp: incident
-      })
+        incidentTimestamp: incident,
+      });
 
       await market1.connect(bob).redeem("0", proof);
-      let redeemed_amount = insureAmount.mul(payoutNumerator).div(payoutDenominator)
+      let redeemed_amount = insureAmount
+        .mul(payoutNumerator)
+        .div(payoutDenominator);
 
       await expect(market1.connect(alice).unlock("0")).to.revertedWith(
         "ERROR: UNLOCK_BAD_COINDITIONS"
@@ -565,8 +572,8 @@ describe.skip("CDS", function () {
       await verifyBalance({
         token: dai,
         address: bob.address,
-        expectedBalance: initialMint.sub(premium).add(redeemed_amount)
-      })
+        expectedBalance: initialMint.sub(premium).add(redeemed_amount),
+      });
 
       await verifyIndexStatus({
         index: index,
@@ -575,18 +582,18 @@ describe.skip("CDS", function () {
         totalAllocatedCredit: depositAmount.mul(leverage).div(defaultLeverage),
         leverage: depositAmount.mul(leverage).div(depositAmount.add(fee)),
         withdrawable: depositAmount.add(fee),
-        rate: defaultRate.mul(depositAmount.add(fee)).div(depositAmount)
-      })
+        rate: defaultRate.mul(depositAmount.add(fee)).div(depositAmount),
+      });
 
       await verifyPoolsStatus_legacy({
         pools: [
           {
             pool: market1,
             totalLiquidity: depositAmount.mul(leverage).div(defaultLeverage),
-            availableBalance: depositAmount.mul(leverage).div(defaultLeverage)
-          }
-        ]
-      })
+            availableBalance: depositAmount.mul(leverage).div(defaultLeverage),
+          },
+        ],
+      });
 
       await verifyPoolsStatusForIndex_legacy({
         pools: [
@@ -594,28 +601,28 @@ describe.skip("CDS", function () {
             pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: depositAmount.mul(leverage).div(defaultLeverage),
-          }
-        ]
-      })
+          },
+        ],
+      });
 
       await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: depositAmount,
         totalLiquidity: depositAmount,
-        rate: defaultRate
-      })
+        rate: defaultRate,
+      });
 
       await verifyVaultStatusOf_legacy({
         vault: vault,
         target: index.address,
         attributions: depositAmount,
-        underlyingValue: depositAmount
-      })
+        underlyingValue: depositAmount,
+      });
 
-      await moveForwardPeriods(11)
+      await moveForwardPeriods(11);
       await market1.resume();
 
-      let amount = depositAmount.sub(redeemed_amount).add(fee)
+      let amount = depositAmount.sub(redeemed_amount).add(fee);
       //leverage = amount.mul(leverage).div(amount.add(fee))
 
       await verifyIndexStatus({
@@ -625,18 +632,18 @@ describe.skip("CDS", function () {
         totalAllocatedCredit: amount.mul(leverage).div(defaultLeverage),
         leverage: amount.mul(leverage).div(amount),
         withdrawable: amount,
-        rate: defaultRate.mul(amount).div(depositAmount)
-      })
+        rate: defaultRate.mul(amount).div(depositAmount),
+      });
 
       await verifyPoolsStatus_legacy({
         pools: [
           {
             pool: market1,
             totalLiquidity: amount.mul(leverage).div(defaultLeverage),
-            availableBalance: amount.mul(leverage).div(defaultLeverage)
-          }
-        ]
-      })
+            availableBalance: amount.mul(leverage).div(defaultLeverage),
+          },
+        ],
+      });
 
       await verifyPoolsStatusForIndex_legacy({
         pools: [
@@ -644,32 +651,32 @@ describe.skip("CDS", function () {
             pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: amount.mul(leverage).div(defaultLeverage),
-          }
-        ]
-      })
+          },
+        ],
+      });
 
       await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: depositAmount,
         totalLiquidity: depositAmount,
-        rate: defaultRate
-      })
+        rate: defaultRate,
+      });
 
       await verifyVaultStatusOf_legacy({
         vault: vault,
         target: index.address,
         attributions: amount,
-        underlyingValue: amount
-      })
+        underlyingValue: amount,
+      });
 
       await cds.connect(alice).withdraw(depositAmount);
 
       await verifyBalances({
         token: dai,
         userBalances: {
-          [bob.address]: 104474
-        }
-      })
+          [bob.address]: 104474,
+        },
+      });
     });
 
     it("CDS compensate insolvent amount within Index", async function () {
@@ -677,30 +684,30 @@ describe.skip("CDS", function () {
         token: dai,
         target: cds,
         depositer: alice,
-        amount: 1000
-      })
+        amount: 1000,
+      });
       await cds.connect(alice).requestWithdraw("990");
 
       await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: 990,
         totalLiquidity: 990,
-        rate: "1000000000000000000"
-      })
+        rate: "1000000000000000000",
+      });
 
       await approveDeposit({
         token: dai,
         target: index,
         depositer: alice,
-        amount: 1000
-      })
+        amount: 1000,
+      });
 
       await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: 990,
         totalLiquidity: 1010,
-        rate: "1020202020202020202"
-      })
+        rate: "1020202020202020202",
+      });
 
       await verifyIndexStatus({
         index: index,
@@ -709,18 +716,18 @@ describe.skip("CDS", function () {
         totalAllocatedCredit: 19400,
         leverage: 20000,
         withdrawable: 970,
-        rate: "1000000000000000000"
-      })
+        rate: "1000000000000000000",
+      });
 
       await verifyPoolsStatus_legacy({
         pools: [
           {
             pool: market1,
             totalLiquidity: 19400,
-            availableBalance: 19400
-          }
-        ]
-      })
+            availableBalance: 19400,
+          },
+        ],
+      });
 
       await verifyPoolsStatusForIndex_legacy({
         pools: [
@@ -728,40 +735,39 @@ describe.skip("CDS", function () {
             pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: 19400,
-          }
-        ]
-      })
+          },
+        ],
+      });
 
       await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: 990,
         totalLiquidity: 1010,
-        rate: "1020202020202020202"
-      })
+        rate: "1020202020202020202",
+      });
 
       await verifyVaultStatusOf_legacy({
         vault: vault,
         target: market1.address,
         attributions: 0,
-        underlyingValue: 0
-      })
+        underlyingValue: 0,
+      });
 
       await verifyVaultStatusOf_legacy({
         vault: vault,
         target: index.address,
         attributions: 970,
-        underlyingValue: 970
-      })
+        underlyingValue: 970,
+      });
 
       await verifyVaultStatusOf_legacy({
         vault: vault,
         target: cds.address,
         attributions: 1010,
-        underlyingValue: 1010
-      })
+        underlyingValue: 1010,
+      });
 
       await dai.connect(bob).approve(vault.address, 10000);
-
 
       await market1
         .connect(bob)
@@ -794,7 +800,6 @@ describe.skip("CDS", function () {
         "metadata"
       );
 
-
       await market1.connect(bob).redeem("0", proof);
       await expect(market1.connect(alice).unlock("0")).to.revertedWith(
         "ERROR: UNLOCK_BAD_COINDITIONS"
@@ -803,8 +808,8 @@ describe.skip("CDS", function () {
       await verifyBalance({
         token: dai,
         address: bob.address,
-        expectedBalance: 108974
-      })
+        expectedBalance: 108974,
+      });
 
       await verifyIndexStatus({
         index: index,
@@ -813,18 +818,18 @@ describe.skip("CDS", function () {
         totalAllocatedCredit: 0,
         leverage: 0,
         withdrawable: 0,
-        rate: 0
-      })
+        rate: 0,
+      });
 
       await verifyPoolsStatus_legacy({
         pools: [
           {
             pool: market1,
             totalLiquidity: 0,
-            availableBalance: 0
-          }
-        ]
-      })
+            availableBalance: 0,
+          },
+        ],
+      });
 
       await verifyPoolsStatusForIndex_legacy({
         pools: [
@@ -832,34 +837,33 @@ describe.skip("CDS", function () {
             pool: market1,
             allocatedCreditOf: index.address,
             allocatedCredit: 0,
-          }
-        ]
-      })
+          },
+        ],
+      });
 
       await verifyCDSStatus_legacy({
         cds: cds,
         totalSupply: 990,
         totalLiquidity: 0,
-        rate: "0"
-      })
+        rate: "0",
+      });
 
       await verifyVaultStatusOf_legacy({
         vault: vault,
         target: index.address,
         attributions: 0,
-        underlyingValue: 0
-      })
+        underlyingValue: 0,
+      });
 
-      await moveForwardPeriods(11)
+      await moveForwardPeriods(11);
       await market1.resume();
-      
+
       await verifyBalances({
         token: dai,
         userBalances: {
           [alice.address]: 98000,
-        }
-      })
+        },
+      });
     });
   });
-
 });
