@@ -169,7 +169,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * references[2] = registry
      * references[3] = parameter
      * references[4] = initialDepositor
-     * conditions[0] = minimim deposit amount
+     * conditions[0] = minimim deposit amount defined by the factory
+     * conditions[1] = initial deposit amount defined by the creator
      * @param _metaData arbitrary string to store market information
      * @param _conditions array of conditions
      * @param _references array of references
@@ -186,7 +187,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 _references[1] != address(0) &&
                 _references[2] != address(0) &&
                 _references[3] != address(0) &&
-                _references[4] != address(0),
+                _references[4] != address(0) &&
+                _conditions[0] <= _conditions[1],
             "ERROR: INITIALIZATION_BAD_CONDITIONS"
         );
         initialized = true;
@@ -213,11 +215,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         marketStatus = MarketStatus.Trading;
 
-        uint256 depositAmount = _conditions[0];
-        address initialDepositor = _references[4];
-
-        if (depositAmount > 0) {
-            depositFrom(depositAmount, initialDepositor);
+        if (_conditions[1] > 0) {
+            _depositFrom(_conditions[1], _references[4]);
         }
     }
 
@@ -247,8 +246,14 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         _mint(msg.sender, _mintAmount);
     }
 
-    function depositFrom(uint256 _amount, address _from)
-        public
+    /**
+     * @notice Internal deposit function that allows third party to deposit
+     * @param _amount amount of tokens to deposit
+     * @param _from deposit beneficiary's address
+     * @return _mintAmount the amount of iTokens minted from the transaction
+     */
+    function _depositFrom(uint256 _amount, address _from)
+        internal
         returns (uint256 _mintAmount)
     {
         require(
