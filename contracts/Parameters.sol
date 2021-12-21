@@ -21,7 +21,6 @@ contract Parameters is IParameters {
     event LockupSet(address indexed target, uint256 span);
     event GraceSet(address indexed target, uint256 span);
     event MinDateSet(address indexed target, uint256 span);
-    event MinDapositSet(address indexed target, uint256 amount);
     event WithdrawableSet(address indexed target, uint256 span);
     event ConditionSet(bytes32 indexed ref, bytes32 condition);
     event MaxListSet(address target, uint256 max);
