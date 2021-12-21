@@ -257,6 +257,7 @@ describe("CDS", function () {
       it("reverts when already initialized", async () => {
         // 91
         // "INITIALIZATION_BAD_CONDITIONS"
+
         await expect(
           cds.initialize(
             "Here is metadata.",
@@ -282,7 +283,7 @@ describe("CDS", function () {
             [ZERO_ADDRESS, registry.address, parameters.address]
           )
         ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
-      });
+});
 
       it("reverts when address is zero and/or metadata is empty 2", async () => {
         await factory.approveReference(
