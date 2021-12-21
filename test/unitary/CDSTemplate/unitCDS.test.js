@@ -17,39 +17,38 @@ const {
   verifyCDSStatusOf,
   verifyVaultStatus,
   verifyVaultStatusOf,
-} = require('../test-utils')
+} = require("../test-utils");
 
-
-const{ 
+const {
   ZERO_ADDRESS,
   long,
   short,
   YEAR,
   WEEK,
   DAY,
-  ZERO
-} = require('../constant-utils');
+  ZERO,
+} = require("../constant-utils");
 
-async function snapshot () {
-  return network.provider.send('evm_snapshot', [])
+async function snapshot() {
+  return network.provider.send("evm_snapshot", []);
 }
 
-async function restore (snapshotId) {
-  return network.provider.send('evm_revert', [snapshotId])
+async function restore(snapshotId) {
+  return network.provider.send("evm_revert", [snapshotId]);
 }
 
-async function moveForwardPeriods (days) {
+async function moveForwardPeriods(days) {
   await ethers.provider.send("evm_increaseTime", [DAY.mul(days).toNumber()]);
   await ethers.provider.send("evm_mine");
 
-  return true
+  return true;
 }
 
-async function now () {
+async function now() {
   return BigNumber.from((await ethers.provider.getBlock("latest")).timestamp);
 }
 
-async function setNextBlock (time) {
+async function setNextBlock(time) {
   await ethers.provider.send("evm_setNextBlockTimestamp", [time.toNumber()]);
 }
 
@@ -57,7 +56,7 @@ describe("CDS", function () {
   const initialMint = BigNumber.from("100000"); //initial token amount for users
   const depositAmount = BigNumber.from("10000"); //default deposit amount for test
   const defaultRate = BigNumber.from("1000000"); //initial rate between USDC and LP token
-  
+
   const governanceFeeRate = BigNumber.from("100000"); //10% of the Premium
 
   before(async () => {
@@ -92,15 +91,14 @@ describe("CDS", function () {
     cdsTemplate = await CDSTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
 
-    
     //set up
     await usdc.mint(alice.address, initialMint);
     await usdc.mint(bob.address, initialMint);
     await usdc.mint(chad.address, initialMint);
 
-    await usdc.connect(alice).approve(vault.address, initialMint)
-    await usdc.connect(bob).approve(vault.address, initialMint)
-    await usdc.connect(chad).approve(vault.address, initialMint)
+    await usdc.connect(alice).approve(vault.address, initialMint);
+    await usdc.connect(bob).approve(vault.address, initialMint);
+    await usdc.connect(chad).approve(vault.address, initialMint);
 
     await registry.setFactory(factory.address);
 
@@ -121,12 +119,7 @@ describe("CDS", function () {
       parameters.address,
       true
     );
-    await factory.approveReference(
-      poolTemplate.address,
-      4,
-      ZERO_ADDRESS,
-      true
-    );
+    await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true);
 
     await factory.approveReference(
       cdsTemplate.address,
@@ -144,27 +137,31 @@ describe("CDS", function () {
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
-    
+
     await parameters.setGrace(ZERO_ADDRESS, DAY.mul("3"));
-    
+
     await parameters.setLockup(ZERO_ADDRESS, WEEK);
     await parameters.setWithdrawable(ZERO_ADDRESS, WEEK.mul(2));
-    
+
     await parameters.setMinDate(ZERO_ADDRESS, WEEK);
-    
+
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
-     
+
     await parameters.setVault(usdc.address, vault.address);
     await parameters.setMaxList(ZERO_ADDRESS, "10");
-
-    
 
     //market1
     await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
-      [0],
-      [usdc.address, usdc.address, registry.address, parameters.address, gov.address]
+      [0, 0],
+      [
+        usdc.address,
+        usdc.address,
+        registry.address,
+        parameters.address,
+        gov.address,
+      ]
     );
     const marketAddress1 = await factory.markets(0);
     market1 = await PoolTemplate.attach(marketAddress1);
@@ -172,7 +169,7 @@ describe("CDS", function () {
     await factory.createMarket(
       cdsTemplate.address,
       "Here is metadata.",
-      [0],
+      [0, 0],
       [usdc.address, registry.address, parameters.address]
     );
     const marketAddress2 = await factory.markets(1);
@@ -182,91 +179,92 @@ describe("CDS", function () {
   });
 
   beforeEach(async () => {
-    snapshotId = await snapshot()
+    snapshotId = await snapshot();
 
-    {//sanity check
+    {
+      //sanity check
       await verifyCDSStatus({
-        cds: cds, 
-        surplusPool: ZERO, 
-        crowdPool: ZERO, 
-        totalSupply: ZERO, 
-        totalLiquidity: ZERO, 
-        rate: ZERO
-      })
+        cds: cds,
+        surplusPool: ZERO,
+        crowdPool: ZERO,
+        totalSupply: ZERO,
+        totalLiquidity: ZERO,
+        rate: ZERO,
+      });
 
       await verifyCDSStatusOf({
-        cds: cds, 
-        targetAddress: alice.address, 
-        valueOfUnderlying: ZERO, 
-        withdrawTimestamp: ZERO, 
-        withdrawAmount: ZERO
-      })
+        cds: cds,
+        targetAddress: alice.address,
+        valueOfUnderlying: ZERO,
+        withdrawTimestamp: ZERO,
+        withdrawAmount: ZERO,
+      });
 
       await verifyVaultStatus({
         vault: vault,
         balance: ZERO,
         valueAll: ZERO,
         totalAttributions: ZERO,
-        totalDebt: ZERO
-      })
+        totalDebt: ZERO,
+      });
 
       await verifyVaultStatusOf({
         vault: vault,
         target: cds.address,
         attributions: ZERO,
         underlyingValue: ZERO,
-        debt: ZERO
-      })
+        debt: ZERO,
+      });
 
       await verifyBalances({
         token: usdc,
         userBalances: {
           [alice.address]: initialMint,
           [cds.address]: ZERO,
-          [vault.address]: ZERO
-        }
-      })
+          [vault.address]: ZERO,
+        },
+      });
 
       await verifyBalances({
         token: cds,
         userBalances: {
           [alice.address]: ZERO,
           [cds.address]: ZERO,
-          [vault.address]: ZERO
-        }
-      })
+          [vault.address]: ZERO,
+        },
+      });
     }
-  
   });
 
   afterEach(async () => {
-    await restore(snapshotId)
-  })
+    await restore(snapshotId);
+  });
 
-  describe('CDSTemplate', function(){
-    describe('initialize', function() {
-      it('should set configs after initialization', async () => {
-        expect(await cds.initialized()).to.equal(true)
-        expect(await cds.registry()).to.equal(registry.address)
-        expect(await cds.parameters()).to.equal(parameters.address)
-        expect(await cds.vault()).to.equal(vault.address)
-        expect(await cds.name()).to.equal("InsureDAO-CDS")
-        expect(await cds.symbol()).to.equal("iCDS")
-        expect(await cds.decimals()).to.equal(18) //MockERC20 decimals
-      });   
+  describe("CDSTemplate", function () {
+    describe("initialize", function () {
+      it("should set configs after initialization", async () => {
+        expect(await cds.initialized()).to.equal(true);
+        expect(await cds.registry()).to.equal(registry.address);
+        expect(await cds.parameters()).to.equal(parameters.address);
+        expect(await cds.vault()).to.equal(vault.address);
+        expect(await cds.name()).to.equal("InsureDAO-CDS");
+        expect(await cds.symbol()).to.equal("iCDS");
+        expect(await cds.decimals()).to.equal(18); //MockERC20 decimals
+      });
 
-      it('reverts when already initialized', async () => {
-          // 91
-          // "ERROR: INITIALIZATION_BAD_CONDITIONS"
-          await expect(cds.initialize(
+      it("reverts when already initialized", async () => {
+        // 91
+        // "ERROR: INITIALIZATION_BAD_CONDITIONS"
+        await expect(
+          cds.initialize(
             "Here is metadata.",
-            [0],
+            [0, 0],
             [usdc.address, registry.address, parameters.address]
-          )).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS")
-      });    
+          )
+        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+      });
 
-      it('reverts when address is zero and/or metadata is empty 1', async () => {
-
+      it("reverts when address is zero and/or metadata is empty 1", async () => {
         await factory.approveReference(
           cdsTemplate.address,
           0,
@@ -274,17 +272,17 @@ describe("CDS", function () {
           true
         );
 
-        await expect(factory.createMarket(
-          cdsTemplate.address,
-          "Here is metadata.",
-          [0],
-          [ZERO_ADDRESS, registry.address, parameters.address]
-        )).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS")
-        
+        await expect(
+          factory.createMarket(
+            cdsTemplate.address,
+            "Here is metadata.",
+            [0, 0],
+            [ZERO_ADDRESS, registry.address, parameters.address]
+          )
+        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
       });
 
-      it('reverts when address is zero and/or metadata is empty 2', async () => {
-
+      it("reverts when address is zero and/or metadata is empty 2", async () => {
         await factory.approveReference(
           cdsTemplate.address,
           1,
@@ -292,17 +290,17 @@ describe("CDS", function () {
           true
         );
 
-        await expect(factory.createMarket(
-          cdsTemplate.address,
-          "Here is metadata.",
-          [0],
-          [usdc.address, ZERO_ADDRESS, parameters.address]
-        )).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS")
+        await expect(
+          factory.createMarket(
+            cdsTemplate.address,
+            "Here is metadata.",
+            [0, 0],
+            [usdc.address, ZERO_ADDRESS, parameters.address]
+          )
+        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+      });
 
-      }); 
-
-      it('reverts when address is zero and/or metadata is empty 3', async () => {
-
+      it("reverts when address is zero and/or metadata is empty 3", async () => {
         await factory.approveReference(
           cdsTemplate.address,
           2,
@@ -310,142 +308,148 @@ describe("CDS", function () {
           true
         );
 
-        await expect(factory.createMarket(
-          cdsTemplate.address,
-          "Here is metadata.",
-          [0],
-          [usdc.address, registry.address, ZERO_ADDRESS]
-        )).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS")
-      }); 
+        await expect(
+          factory.createMarket(
+            cdsTemplate.address,
+            "Here is metadata.",
+            [0, 0],
+            [usdc.address, registry.address, ZERO_ADDRESS]
+          )
+        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+      });
 
-      it('reverts when address is zero and/or metadata is empty 4', async () => {
-        await expect(factory.createMarket(
-          cdsTemplate.address,
-          "",
-          [0],
-          [usdc.address, registry.address, parameters.address]
-        )).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS")
-      }); 
+      it("reverts when address is zero and/or metadata is empty 4", async () => {
+        await expect(
+          factory.createMarket(
+            cdsTemplate.address,
+            "",
+            [0, 0],
+            [usdc.address, registry.address, parameters.address]
+          )
+        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+      });
     });
 
-    describe('deposit', function() {
-      it('should increase the crowd pool size and attribution', async () => {
-        let tx = await cds.connect(alice).deposit(depositAmount)
+    describe("deposit", function () {
+      it("should increase the crowd pool size and attribution", async () => {
+        let tx = await cds.connect(alice).deposit(depositAmount);
 
-        {//sanity check
-          let mintAmount = (await tx.wait()).events[3].args['value'] //new minted LP
-          await expect(mintAmount).to.equal(depositAmount)
+        {
+          //sanity check
+          let mintAmount = (await tx.wait()).events[3].args["value"]; //new minted LP
+          await expect(mintAmount).to.equal(depositAmount);
 
           await verifyCDSStatus({
-            cds: cds, 
-            surplusPool: ZERO, 
+            cds: cds,
+            surplusPool: ZERO,
             crowdPool: depositAmount, //deposit goes into crowdPool
-            totalSupply: mintAmount, 
-            totalLiquidity: depositAmount, 
-            rate: defaultRate
-          })
+            totalSupply: mintAmount,
+            totalLiquidity: depositAmount,
+            rate: defaultRate,
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: alice.address, 
-            valueOfUnderlying: depositAmount, 
-            withdrawTimestamp: ZERO, 
-            withdrawAmount: ZERO
-          })
+            cds: cds,
+            targetAddress: alice.address,
+            valueOfUnderlying: depositAmount,
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO,
+          });
 
           await verifyVaultStatus({
             vault: vault,
             balance: depositAmount,
             valueAll: depositAmount,
             totalAttributions: depositAmount,
-            totalDebt: ZERO
-          })
-    
+            totalDebt: ZERO,
+          });
+
           await verifyVaultStatusOf({
             vault: vault,
             target: cds.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyBalances({
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
               [cds.address]: ZERO,
-              [vault.address]: depositAmount
-            }
-          })
+              [vault.address]: depositAmount,
+            },
+          });
 
           await verifyBalances({
             token: cds,
             userBalances: {
               [alice.address]: mintAmount,
               [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
-
+              [vault.address]: ZERO,
+            },
+          });
         }
       });
 
-      it('should return larger amount of iToken when the rate is low(when compensated)', async ()=>{
+      it("should return larger amount of iToken when the rate is low(when compensated)", async () => {
         //setup
-        await cds.connect(bob).deposit(depositAmount) //LP:USDC = 1:1
+        await cds.connect(bob).deposit(depositAmount); //LP:USDC = 1:1
 
-        await registry.supportMarket(chad.address) //now bob can act like a market
+        await registry.supportMarket(chad.address); //now bob can act like a market
 
-        let compensate = depositAmount.div(2)
-        await cds.connect(chad).compensate(compensate) //LP:USDC = 1:0.5
+        let compensate = depositAmount.div(2);
+        await cds.connect(chad).compensate(compensate); //LP:USDC = 1:0.5
 
+        let tx = await cds.connect(alice).deposit(depositAmount); //LP mintAmount should be depositAmount*2
 
-        let tx = await cds.connect(alice).deposit(depositAmount) //LP mintAmount should be depositAmount*2
-
-        {//sanity check
-          let mintAmount = (await tx.wait()).events[3].args['value'] //new minted LP
-          await expect(mintAmount).to.equal(depositAmount.mul(2))
+        {
+          //sanity check
+          let mintAmount = (await tx.wait()).events[3].args["value"]; //new minted LP
+          await expect(mintAmount).to.equal(depositAmount.mul(2));
 
           await verifyCDSStatus({
-            cds: cds, 
-            surplusPool: ZERO, 
+            cds: cds,
+            surplusPool: ZERO,
             crowdPool: depositAmount.sub(compensate).add(depositAmount),
-            totalSupply: depositAmount.add(mintAmount), 
-            totalLiquidity: depositAmount.sub(compensate).add(depositAmount), 
-            rate: defaultRate.mul(depositAmount.sub(compensate).add(depositAmount)).div(depositAmount.add(mintAmount))
-          })
+            totalSupply: depositAmount.add(mintAmount),
+            totalLiquidity: depositAmount.sub(compensate).add(depositAmount),
+            rate: defaultRate
+              .mul(depositAmount.sub(compensate).add(depositAmount))
+              .div(depositAmount.add(mintAmount)),
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: bob.address, 
-            valueOfUnderlying: depositAmount.sub(compensate), 
-            withdrawTimestamp: ZERO, 
-            withdrawAmount: ZERO
-          })
+            cds: cds,
+            targetAddress: bob.address,
+            valueOfUnderlying: depositAmount.sub(compensate),
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO,
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: alice.address, 
-            valueOfUnderlying: depositAmount, 
-            withdrawTimestamp: ZERO, 
-            withdrawAmount: ZERO
-          })
+            cds: cds,
+            targetAddress: alice.address,
+            valueOfUnderlying: depositAmount,
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO,
+          });
 
           await verifyVaultStatus({
             vault: vault,
             balance: depositAmount.mul(2),
             valueAll: depositAmount.mul(2),
             totalAttributions: depositAmount.mul(2),
-            totalDebt: ZERO
-          })
+            totalDebt: ZERO,
+          });
 
           await verifyVaultStatusOf({
             vault: vault,
             target: cds.address,
             attributions: depositAmount.sub(compensate).add(depositAmount), //unless Controller contract earn interest from investment, ..
-            underlyingValue: depositAmount.sub(compensate).add(depositAmount),  //.. these two are always the same
-            debt: ZERO
-          })
+            underlyingValue: depositAmount.sub(compensate).add(depositAmount), //.. these two are always the same
+            debt: ZERO,
+          });
 
           await verifyBalances({
             token: usdc,
@@ -454,9 +458,9 @@ describe("CDS", function () {
               [bob.address]: initialMint.sub(depositAmount),
               [chad.address]: initialMint,
               [cds.address]: ZERO,
-              [vault.address]: depositAmount.mul(2)
-            }
-          })
+              [vault.address]: depositAmount.mul(2),
+            },
+          });
 
           await verifyBalances({
             token: cds,
@@ -465,87 +469,87 @@ describe("CDS", function () {
               [bob.address]: depositAmount,
               [chad.address]: ZERO,
               [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
-
+              [vault.address]: ZERO,
+            },
+          });
         }
-        
       });
 
-      it('revert when the deposit amount is zero', async ()=>{
-          await expect(cds.deposit(0)).to.revertedWith("ERROR: DEPOSIT_ZERO")
+      it("revert when the deposit amount is zero", async () => {
+        await expect(cds.deposit(0)).to.revertedWith("ERROR: DEPOSIT_ZERO");
       });
 
-      it('revert when paused', async ()=>{
-        await cds.setPaused(true)
-        await expect(cds.deposit(0)).to.revertedWith("ERROR: PAUSED")
+      it("revert when paused", async () => {
+        await cds.setPaused(true);
+        await expect(cds.deposit(0)).to.revertedWith("ERROR: PAUSED");
       });
 
-      it('revert when paused', async ()=>{
-        await cds.setPaused(true)
-        await expect(cds.deposit(0)).to.revertedWith("ERROR: PAUSED")
+      it("revert when paused", async () => {
+        await cds.setPaused(true);
+        await expect(cds.deposit(0)).to.revertedWith("ERROR: PAUSED");
       });
 
-      it('dilute LP value when CDS system is failed', async ()=>{
+      it("dilute LP value when CDS system is failed", async () => {
         await cds.connect(alice).deposit(depositAmount);
 
-        await registry.supportMarket(chad.address) //now chad can act like a market
+        await registry.supportMarket(chad.address); //now chad can act like a market
 
-        let compensate =  depositAmount.add(1) //more than deposited
-        await cds.connect(chad).compensate(compensate)
+        let compensate = depositAmount.add(1); //more than deposited
+        await cds.connect(chad).compensate(compensate);
 
-        let totalSupply = await cds.totalSupply()
+        let totalSupply = await cds.totalSupply();
 
-        let tx = await cds.connect(bob).deposit(depositAmount)
+        let tx = await cds.connect(bob).deposit(depositAmount);
 
-        let mintedAmount = (await tx.wait()).events[2].args['mint']
+        let mintedAmount = (await tx.wait()).events[2].args["mint"];
 
+        expect(mintedAmount).to.equal(totalSupply.mul(depositAmount));
 
-        expect(mintedAmount).to.equal(totalSupply.mul(depositAmount))
-
-        {//sanity check
+        {
+          //sanity check
 
           await verifyCDSStatus({
-            cds: cds, 
-            surplusPool: ZERO, 
+            cds: cds,
+            surplusPool: ZERO,
             crowdPool: depositAmount, //deposit goes into crowdPool
-            totalSupply: depositAmount.add(mintedAmount), 
-            totalLiquidity: depositAmount, 
-            rate: defaultRate.mul(depositAmount).div(depositAmount.add(mintedAmount))
-          })
+            totalSupply: depositAmount.add(mintedAmount),
+            totalLiquidity: depositAmount,
+            rate: defaultRate
+              .mul(depositAmount)
+              .div(depositAmount.add(mintedAmount)),
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: alice.address, 
-            valueOfUnderlying: ZERO, 
-            withdrawTimestamp: ZERO, 
-            withdrawAmount: ZERO
-          })
+            cds: cds,
+            targetAddress: alice.address,
+            valueOfUnderlying: ZERO,
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO,
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: bob.address, 
-            valueOfUnderlying: depositAmount.sub(1),  //
-            withdrawTimestamp: ZERO, 
-            withdrawAmount: ZERO
-          })
+            cds: cds,
+            targetAddress: bob.address,
+            valueOfUnderlying: depositAmount.sub(1), //
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO,
+          });
 
           await verifyVaultStatus({
             vault: vault,
             balance: depositAmount.mul(2),
             valueAll: depositAmount.mul(2),
             totalAttributions: depositAmount.mul(2),
-            totalDebt: ZERO
-          })
-    
+            totalDebt: ZERO,
+          });
+
           await verifyVaultStatusOf({
             vault: vault,
             target: cds.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyBalances({
             token: usdc,
@@ -554,630 +558,649 @@ describe("CDS", function () {
               [bob.address]: initialMint.sub(depositAmount),
               [chad.address]: initialMint,
               [cds.address]: ZERO,
-              [vault.address]: depositAmount.mul(2)
-            }
-          })
+              [vault.address]: depositAmount.mul(2),
+            },
+          });
 
           await verifyBalances({
             token: cds,
             userBalances: {
               [alice.address]: depositAmount,
-              [bob.address]: mintedAmount, 
+              [bob.address]: mintedAmount,
               [chad.address]: ZERO,
               [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
-
+              [vault.address]: ZERO,
+            },
+          });
         }
       });
     });
 
-    describe('fund', function() {
-      it('should increase the surplus pool size', async () => {
+    describe("fund", function () {
+      it("should increase the surplus pool size", async () => {
         await cds.connect(alice).fund(depositAmount);
 
-        {//sanity check
+        {
+          //sanity check
           await verifyCDSStatus({
-            cds: cds, 
+            cds: cds,
             surplusPool: depositAmount, //fund() goes to surplusPool
-            crowdPool: ZERO, 
+            crowdPool: ZERO,
             totalSupply: ZERO, //LP isn't minted
-            totalLiquidity: depositAmount, 
-            rate: ZERO
-          })
+            totalLiquidity: depositAmount,
+            rate: ZERO,
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: alice.address, 
+            cds: cds,
+            targetAddress: alice.address,
             valueOfUnderlying: ZERO, //doesn't count
-            withdrawTimestamp: ZERO, 
-            withdrawAmount: ZERO
-          })
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO,
+          });
 
           await verifyVaultStatus({
             vault: vault,
             balance: depositAmount,
             valueAll: depositAmount,
             totalAttributions: depositAmount, //attribution of CDS exists
-            totalDebt: ZERO
-          })
-    
+            totalDebt: ZERO,
+          });
+
           await verifyVaultStatusOf({
             vault: vault,
             target: cds.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyBalances({
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
               [cds.address]: ZERO,
-              [vault.address]: depositAmount
-            }
-          })
+              [vault.address]: depositAmount,
+            },
+          });
 
           await verifyBalances({
             token: cds,
             userBalances: {
               [alice.address]: ZERO,
               [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
+              [vault.address]: ZERO,
+            },
+          });
         }
       });
 
-      it('revert when paused', async () => {
-        await cds.setPaused(true)
+      it("revert when paused", async () => {
+        await cds.setPaused(true);
 
         //EXECUTE
-        await expect(cds.connect(alice).fund(depositAmount)).to.revertedWith("ERROR: PAUSED")
+        await expect(cds.connect(alice).fund(depositAmount)).to.revertedWith(
+          "ERROR: PAUSED"
+        );
       });
     });
 
-    describe('defund', function() {
+    describe("defund", function () {
       beforeEach(async () => {
         await cds.connect(alice).fund(depositAmount);
 
-        {//sanity check
+        {
+          //sanity check
           await verifyCDSStatus({
-            cds: cds, 
+            cds: cds,
             surplusPool: depositAmount, //fund() goes to surplusPool
-            crowdPool: ZERO, 
+            crowdPool: ZERO,
             totalSupply: ZERO, //LP isn't minted
-            totalLiquidity: depositAmount, 
-            rate: ZERO
-          })
+            totalLiquidity: depositAmount,
+            rate: ZERO,
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: alice.address, 
+            cds: cds,
+            targetAddress: alice.address,
             valueOfUnderlying: ZERO, //doesn't count
-            withdrawTimestamp: ZERO, 
-            withdrawAmount: ZERO
-          })
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO,
+          });
 
           await verifyVaultStatus({
             vault: vault,
             balance: depositAmount,
             valueAll: depositAmount,
             totalAttributions: depositAmount, //attribution of CDS exists
-            totalDebt: ZERO
-          })
-    
+            totalDebt: ZERO,
+          });
+
           await verifyVaultStatusOf({
             vault: vault,
             target: cds.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyBalances({
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
               [cds.address]: ZERO,
-              [vault.address]: depositAmount
-            }
-          })
+              [vault.address]: depositAmount,
+            },
+          });
 
           await verifyBalances({
             token: cds,
             userBalances: {
               [alice.address]: ZERO,
               [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
+              [vault.address]: ZERO,
+            },
+          });
         }
       });
 
-      it('success', async () => {
+      it("success", async () => {
         await cds.defund(depositAmount);
 
-        {//sanity check
+        {
+          //sanity check
           await verifyCDSStatus({
-            cds: cds, 
+            cds: cds,
             surplusPool: ZERO, //decrease
-            crowdPool: ZERO, 
+            crowdPool: ZERO,
             totalSupply: ZERO,
             totalLiquidity: ZERO, //decrease
-            rate: ZERO
-          })
+            rate: ZERO,
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: alice.address, 
+            cds: cds,
+            targetAddress: alice.address,
             valueOfUnderlying: ZERO,
-            withdrawTimestamp: ZERO, 
-            withdrawAmount: ZERO
-          })
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO,
+          });
 
           await verifyVaultStatus({
             vault: vault,
             balance: ZERO, //decrease
             valueAll: ZERO, //decrease
             totalAttributions: ZERO, //decrease
-            totalDebt: ZERO
-          })
-    
+            totalDebt: ZERO,
+          });
+
           await verifyVaultStatusOf({
             vault: vault,
             target: cds.address,
             attributions: ZERO, //decrease
             underlyingValue: ZERO, //decrease
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyBalances({
             token: usdc,
             userBalances: {
               [gov.address]: depositAmount, //increase. defund() goes to msg.sender (with onlyOwner modifier)
-              [alice.address]: initialMint.sub(depositAmount), 
+              [alice.address]: initialMint.sub(depositAmount),
               [cds.address]: ZERO,
-              [vault.address]: ZERO //decrease
-            }
-          })
+              [vault.address]: ZERO, //decrease
+            },
+          });
 
           await verifyBalances({
             token: cds,
             userBalances: {
               [alice.address]: ZERO,
               [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
+              [vault.address]: ZERO,
+            },
+          });
         }
       });
 
-      it('revert onlyOwner', async () => {
-        await expect(cds.connect(alice).defund(depositAmount)).to.revertedWith("ERROR: ONLY_OWNER")
+      it("revert onlyOwner", async () => {
+        await expect(cds.connect(alice).defund(depositAmount)).to.revertedWith(
+          "ERROR: ONLY_OWNER"
+        );
       });
     });
 
-    describe("requestWithdraw", function() {
+    describe("requestWithdraw", function () {
       beforeEach(async () => {
         let tx = await cds.connect(alice).deposit(depositAmount);
 
-        {//sanity check
-          let mintAmount = (await tx.wait()).events[3].args['value'] //new minted LP
-          await expect(mintAmount).to.equal(depositAmount)
+        {
+          //sanity check
+          let mintAmount = (await tx.wait()).events[3].args["value"]; //new minted LP
+          await expect(mintAmount).to.equal(depositAmount);
 
           await verifyCDSStatus({
-            cds: cds, 
-            surplusPool: ZERO, 
+            cds: cds,
+            surplusPool: ZERO,
             crowdPool: depositAmount, //deposit goes into crowdPool
-            totalSupply: mintAmount, 
-            totalLiquidity: depositAmount, 
-            rate: defaultRate
-          })
+            totalSupply: mintAmount,
+            totalLiquidity: depositAmount,
+            rate: defaultRate,
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: alice.address, 
-            valueOfUnderlying: depositAmount, 
-            withdrawTimestamp: ZERO, 
-            withdrawAmount: ZERO
-          })
+            cds: cds,
+            targetAddress: alice.address,
+            valueOfUnderlying: depositAmount,
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO,
+          });
 
           await verifyVaultStatus({
             vault: vault,
             balance: depositAmount,
             valueAll: depositAmount,
             totalAttributions: depositAmount,
-            totalDebt: ZERO
-          })
-    
+            totalDebt: ZERO,
+          });
+
           await verifyVaultStatusOf({
             vault: vault,
             target: cds.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyBalances({
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
               [cds.address]: ZERO,
-              [vault.address]: depositAmount
-            }
-          })
+              [vault.address]: depositAmount,
+            },
+          });
 
           await verifyBalances({
             token: cds,
             userBalances: {
               [alice.address]: mintAmount,
               [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
-
+              [vault.address]: ZERO,
+            },
+          });
         }
       });
 
       it("should update timestamp and amount", async () => {
         //setup
-        let next = (await now()).add(10)
-        await setNextBlock(next)
+        let next = (await now()).add(10);
+        await setNextBlock(next);
 
         //EXECUTE
-        await expect(cds.connect(alice).requestWithdraw(depositAmount))
+        await expect(cds.connect(alice).requestWithdraw(depositAmount));
 
-        {//sanity check
+        {
+          //sanity check
           await verifyCDSStatus({
-            cds: cds, 
-            surplusPool: ZERO, 
+            cds: cds,
+            surplusPool: ZERO,
             crowdPool: depositAmount,
-            totalSupply: depositAmount, 
-            totalLiquidity: depositAmount, 
-            rate: defaultRate
-          })
+            totalSupply: depositAmount,
+            totalLiquidity: depositAmount,
+            rate: defaultRate,
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: alice.address, 
-            valueOfUnderlying: depositAmount, 
+            cds: cds,
+            targetAddress: alice.address,
+            valueOfUnderlying: depositAmount,
             withdrawTimestamp: next, //set
-            withdrawAmount: depositAmount //set
-          })
+            withdrawAmount: depositAmount, //set
+          });
 
           await verifyVaultStatus({
             vault: vault,
             balance: depositAmount,
             valueAll: depositAmount,
             totalAttributions: depositAmount,
-            totalDebt: ZERO
-          })
-    
+            totalDebt: ZERO,
+          });
+
           await verifyVaultStatusOf({
             vault: vault,
             target: cds.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyBalances({
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
               [cds.address]: ZERO,
-              [vault.address]: depositAmount
-            }
-          })
+              [vault.address]: depositAmount,
+            },
+          });
 
           await verifyBalances({
             token: cds,
             userBalances: {
               [alice.address]: depositAmount,
               [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
-
+              [vault.address]: ZERO,
+            },
+          });
         }
       });
 
       it("revert when _amount exceed balance", async () => {
-        await expect(cds.connect(alice).requestWithdraw(depositAmount.add(1)))
-        .to.revertedWith("ERROR: REQUEST_EXCEED_BALANCE")
+        await expect(
+          cds.connect(alice).requestWithdraw(depositAmount.add(1))
+        ).to.revertedWith("ERROR: REQUEST_EXCEED_BALANCE");
       });
 
       it("amount should not be zero", async () => {
-        await expect(cds.connect(alice).requestWithdraw(ZERO))
-        .to.revertedWith("ERROR: REQUEST_ZERO")
+        await expect(cds.connect(alice).requestWithdraw(ZERO)).to.revertedWith(
+          "ERROR: REQUEST_ZERO"
+        );
       });
     });
 
-    describe("_beforeTokenTransfer", function(){
-      beforeEach(async()=> {
+    describe("_beforeTokenTransfer", function () {
+      beforeEach(async () => {
         await cds.connect(alice).deposit(depositAmount);
 
-        next = (await now()).add(10)
-        await setNextBlock(next)
+        next = (await now()).add(10);
+        await setNextBlock(next);
 
-        await expect(cds.connect(alice).requestWithdraw(depositAmount))
+        await expect(cds.connect(alice).requestWithdraw(depositAmount));
 
-        {//sanity check
+        {
+          //sanity check
           await verifyCDSStatus({
-            cds: cds, 
-            surplusPool: ZERO, 
+            cds: cds,
+            surplusPool: ZERO,
             crowdPool: depositAmount,
-            totalSupply: depositAmount, 
-            totalLiquidity: depositAmount, 
-            rate: defaultRate
-          })
+            totalSupply: depositAmount,
+            totalLiquidity: depositAmount,
+            rate: defaultRate,
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: alice.address, 
-            valueOfUnderlying: depositAmount, 
+            cds: cds,
+            targetAddress: alice.address,
+            valueOfUnderlying: depositAmount,
             withdrawTimestamp: next, //set
-            withdrawAmount: depositAmount //set
-          })
+            withdrawAmount: depositAmount, //set
+          });
 
           await verifyVaultStatus({
             vault: vault,
             balance: depositAmount,
             valueAll: depositAmount,
             totalAttributions: depositAmount,
-            totalDebt: ZERO
-          })
-    
+            totalDebt: ZERO,
+          });
+
           await verifyVaultStatusOf({
             vault: vault,
             target: cds.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyBalances({
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
               [cds.address]: ZERO,
-              [vault.address]: depositAmount
-            }
-          })
+              [vault.address]: depositAmount,
+            },
+          });
 
           await verifyBalances({
             token: cds,
             userBalances: {
               [alice.address]: depositAmount,
               [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
-
+              [vault.address]: ZERO,
+            },
+          });
         }
-      })
+      });
 
       it("should decrease the request amount", async () => {
-          await cds.connect(alice).transfer(bob.address, depositAmount.div(2)) //transfer half of LP token
+        await cds.connect(alice).transfer(bob.address, depositAmount.div(2)); //transfer half of LP token
 
-          {//sanity check
-            await verifyCDSStatus({
-              cds: cds, 
-              surplusPool: ZERO, 
-              crowdPool: depositAmount,
-              totalSupply: depositAmount, 
-              totalLiquidity: depositAmount, 
-              rate: defaultRate
-            })
-  
-            await verifyCDSStatusOf({
-              cds: cds, 
-              targetAddress: alice.address, 
-              valueOfUnderlying: depositAmount.div(2), //changed
-              withdrawTimestamp: next, //set
-              withdrawAmount: depositAmount.div(2) //changed
-            })
-  
-            await verifyVaultStatus({
-              vault: vault,
-              balance: depositAmount,
-              valueAll: depositAmount,
-              totalAttributions: depositAmount,
-              totalDebt: ZERO
-            })
-      
-            await verifyVaultStatusOf({
-              vault: vault,
-              target: cds.address,
-              attributions: depositAmount,
-              underlyingValue: depositAmount,
-              debt: ZERO
-            })
-  
-            await verifyBalances({
-              token: usdc,
-              userBalances: {
-                [alice.address]: initialMint.sub(depositAmount),
-                [cds.address]: ZERO,
-                [vault.address]: depositAmount
-              }
-            })
-  
-            await verifyBalances({
-              token: cds,
-              userBalances: {
-                [alice.address]: depositAmount.div(2), //decrease
-                [bob.address]: depositAmount.div(2), //new holder
-                [cds.address]: ZERO,
-                [vault.address]: ZERO
-              }
-            })
-  
-          }
-      });
-    }); 
-
-    describe("withdraw", function(){
-      //deposit and request withdraw
-      beforeEach(async()=> {
-        await cds.connect(alice).deposit(depositAmount);
-
-        next = (await now()).add(10)
-        await setNextBlock(next)
-
-        await expect(cds.connect(alice).requestWithdraw(depositAmount))
-
-        {//sanity check
+        {
+          //sanity check
           await verifyCDSStatus({
-            cds: cds, 
-            surplusPool: ZERO, 
+            cds: cds,
+            surplusPool: ZERO,
             crowdPool: depositAmount,
-            totalSupply: depositAmount, 
-            totalLiquidity: depositAmount, 
-            rate: defaultRate
-          })
+            totalSupply: depositAmount,
+            totalLiquidity: depositAmount,
+            rate: defaultRate,
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: alice.address, 
-            valueOfUnderlying: depositAmount, 
+            cds: cds,
+            targetAddress: alice.address,
+            valueOfUnderlying: depositAmount.div(2), //changed
             withdrawTimestamp: next, //set
-            withdrawAmount: depositAmount //set
-          })
+            withdrawAmount: depositAmount.div(2), //changed
+          });
 
           await verifyVaultStatus({
             vault: vault,
             balance: depositAmount,
             valueAll: depositAmount,
             totalAttributions: depositAmount,
-            totalDebt: ZERO
-          })
-    
+            totalDebt: ZERO,
+          });
+
           await verifyVaultStatusOf({
             vault: vault,
             target: cds.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyBalances({
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
               [cds.address]: ZERO,
-              [vault.address]: depositAmount
-            }
-          })
+              [vault.address]: depositAmount,
+            },
+          });
+
+          await verifyBalances({
+            token: cds,
+            userBalances: {
+              [alice.address]: depositAmount.div(2), //decrease
+              [bob.address]: depositAmount.div(2), //new holder
+              [cds.address]: ZERO,
+              [vault.address]: ZERO,
+            },
+          });
+        }
+      });
+    });
+
+    describe("withdraw", function () {
+      //deposit and request withdraw
+      beforeEach(async () => {
+        await cds.connect(alice).deposit(depositAmount);
+
+        next = (await now()).add(10);
+        await setNextBlock(next);
+
+        await expect(cds.connect(alice).requestWithdraw(depositAmount));
+
+        {
+          //sanity check
+          await verifyCDSStatus({
+            cds: cds,
+            surplusPool: ZERO,
+            crowdPool: depositAmount,
+            totalSupply: depositAmount,
+            totalLiquidity: depositAmount,
+            rate: defaultRate,
+          });
+
+          await verifyCDSStatusOf({
+            cds: cds,
+            targetAddress: alice.address,
+            valueOfUnderlying: depositAmount,
+            withdrawTimestamp: next, //set
+            withdrawAmount: depositAmount, //set
+          });
+
+          await verifyVaultStatus({
+            vault: vault,
+            balance: depositAmount,
+            valueAll: depositAmount,
+            totalAttributions: depositAmount,
+            totalDebt: ZERO,
+          });
+
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: cds.address,
+            attributions: depositAmount,
+            underlyingValue: depositAmount,
+            debt: ZERO,
+          });
+
+          await verifyBalances({
+            token: usdc,
+            userBalances: {
+              [alice.address]: initialMint.sub(depositAmount),
+              [cds.address]: ZERO,
+              [vault.address]: depositAmount,
+            },
+          });
 
           await verifyBalances({
             token: cds,
             userBalances: {
               [alice.address]: depositAmount,
               [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
-
+              [vault.address]: ZERO,
+            },
+          });
         }
-      })
+      });
 
       it("should decrease the crowd pool size and attributions", async () => {
-        await moveForwardPeriods(7)
+        await moveForwardPeriods(7);
 
-        let tx = await cds.connect(alice).withdraw(depositAmount)
-        returnValue = (await tx.wait()).events[2].args['retVal']
+        let tx = await cds.connect(alice).withdraw(depositAmount);
+        returnValue = (await tx.wait()).events[2].args["retVal"];
 
-        await expect(returnValue).to.equal(depositAmount)
+        await expect(returnValue).to.equal(depositAmount);
 
-        {//sanity check
+        {
+          //sanity check
           await verifyCDSStatus({
-            cds: cds, 
-            surplusPool: ZERO, 
+            cds: cds,
+            surplusPool: ZERO,
             crowdPool: ZERO, //decrease
-            totalSupply: ZERO, 
-            totalLiquidity: ZERO, 
-            rate: ZERO
-          })
+            totalSupply: ZERO,
+            totalLiquidity: ZERO,
+            rate: ZERO,
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: alice.address, 
-            valueOfUnderlying: ZERO, 
+            cds: cds,
+            targetAddress: alice.address,
+            valueOfUnderlying: ZERO,
             withdrawTimestamp: next, //no change. user can withdraw half now, and half later.
-            withdrawAmount: ZERO //should reduce request amount
-          })
+            withdrawAmount: ZERO, //should reduce request amount
+          });
 
           await verifyVaultStatus({
             vault: vault,
             balance: ZERO,
             valueAll: ZERO,
             totalAttributions: ZERO,
-            totalDebt: ZERO
-          })
-    
+            totalDebt: ZERO,
+          });
+
           await verifyVaultStatusOf({
             vault: vault,
             target: cds.address,
             attributions: ZERO,
             underlyingValue: ZERO,
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyBalances({
             token: usdc,
             userBalances: {
               [alice.address]: initialMint, //withdrawed to here
               [cds.address]: ZERO,
-              [vault.address]: ZERO //withdrawed from here
-            }
-          })
+              [vault.address]: ZERO, //withdrawed from here
+            },
+          });
 
           await verifyBalances({
             token: cds,
             userBalances: {
               [alice.address]: ZERO, //should burn iToken
               [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
+              [vault.address]: ZERO,
+            },
+          });
         }
       });
 
       it("reverts when the market is paused", async () => {
-          await cds.setPaused(true)
+        await cds.setPaused(true);
 
-          await moveForwardPeriods(7)
+        await moveForwardPeriods(7);
 
-          await expect(cds.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: PAUSED")
+        await expect(
+          cds.connect(alice).withdraw(depositAmount)
+        ).to.revertedWith("ERROR: PAUSED");
       });
 
       it("reverts when lockup is not ends", async () => {
-        await moveForwardPeriods(6)
+        await moveForwardPeriods(6);
 
-        await expect(cds.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: WITHDRAWAL_QUEUE")
+        await expect(
+          cds.connect(alice).withdraw(depositAmount)
+        ).to.revertedWith("ERROR: WITHDRAWAL_QUEUE");
       });
 
       it("reverts when withdrawable priod ends", async () => {
-        await moveForwardPeriods(7)
-        await moveForwardPeriods(14)
+        await moveForwardPeriods(7);
+        await moveForwardPeriods(14);
 
-        await expect(cds.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST")
+        await expect(
+          cds.connect(alice).withdraw(depositAmount)
+        ).to.revertedWith("ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST");
       });
 
       it("reverts when the withdraw amount exceeded the request", async () => {
-        await moveForwardPeriods(7)
+        await moveForwardPeriods(7);
 
-        await expect(cds.connect(alice).withdraw(depositAmount.add(1))).to.revertedWith("ERROR: WITHDRAWAL_EXCEEDED_REQUEST")
+        await expect(
+          cds.connect(alice).withdraw(depositAmount.add(1))
+        ).to.revertedWith("ERROR: WITHDRAWAL_EXCEEDED_REQUEST");
       });
 
       it("reverts when withdraw zero amount", async () => {
-        await moveForwardPeriods(7)
+        await moveForwardPeriods(7);
 
-        await expect(cds.connect(alice).withdraw(ZERO)).to.revertedWith("ERROR: WITHDRAWAL_ZERO")
+        await expect(cds.connect(alice).withdraw(ZERO)).to.revertedWith(
+          "ERROR: WITHDRAWAL_ZERO"
+        );
       });
     });
 
@@ -1185,112 +1208,113 @@ describe("CDS", function () {
       beforeEach(async () => {
         await cds.connect(alice).deposit(depositAmount);
 
-        {//sanity check
+        {
+          //sanity check
           await verifyCDSStatus({
-            cds: cds, 
-            surplusPool: ZERO, 
+            cds: cds,
+            surplusPool: ZERO,
             crowdPool: depositAmount, //deposit goes into crowdPool
-            totalSupply: depositAmount, 
-            totalLiquidity: depositAmount, 
-            rate: defaultRate
-          })
+            totalSupply: depositAmount,
+            totalLiquidity: depositAmount,
+            rate: defaultRate,
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: alice.address, 
-            valueOfUnderlying: depositAmount, 
-            withdrawTimestamp: ZERO, 
-            withdrawAmount: ZERO
-          })
+            cds: cds,
+            targetAddress: alice.address,
+            valueOfUnderlying: depositAmount,
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO,
+          });
 
           await verifyVaultStatus({
             vault: vault,
             balance: depositAmount,
             valueAll: depositAmount,
             totalAttributions: depositAmount,
-            totalDebt: ZERO
-          })
-    
+            totalDebt: ZERO,
+          });
+
           await verifyVaultStatusOf({
             vault: vault,
             target: cds.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyBalances({
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
               [cds.address]: ZERO,
-              [vault.address]: depositAmount
-            }
-          })
+              [vault.address]: depositAmount,
+            },
+          });
 
           await verifyBalances({
             token: cds,
             userBalances: {
               [alice.address]: depositAmount,
               [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
+              [vault.address]: ZERO,
+            },
+          });
         }
-
       });
 
       it("should decrease the surplus pool and crowd pool", async () => {
-        await registry.supportMarket(chad.address) //now bob can act like a market
+        await registry.supportMarket(chad.address); //now bob can act like a market
 
-        await cds.connect(bob).fund(depositAmount)
+        await cds.connect(bob).fund(depositAmount);
 
-        let compensate = BigNumber.from("1000") //since surplusPool and crowdPool have equal value, compensate evenly.
-        await cds.connect(chad).compensate(compensate)
+        let compensate = BigNumber.from("1000"); //since surplusPool and crowdPool have equal value, compensate evenly.
+        await cds.connect(chad).compensate(compensate);
 
-
-
-        {//sanity check
+        {
+          //sanity check
           await verifyCDSStatus({
-            cds: cds, 
+            cds: cds,
             surplusPool: depositAmount.sub(compensate.div(2)), //compensate evenly
             crowdPool: depositAmount.sub(compensate.div(2)), //compensate evenly
-            totalSupply: depositAmount, 
-            totalLiquidity: depositAmount.mul(2).sub(compensate), 
-            rate: defaultRate.mul(depositAmount.sub(compensate.div(2))).div(depositAmount) //defaultRate * deposited balance / totalSupply
-          })
+            totalSupply: depositAmount,
+            totalLiquidity: depositAmount.mul(2).sub(compensate),
+            rate: defaultRate
+              .mul(depositAmount.sub(compensate.div(2)))
+              .div(depositAmount), //defaultRate * deposited balance / totalSupply
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: alice.address, 
-            valueOfUnderlying: depositAmount.sub(compensate.div(2)), 
-            withdrawTimestamp: ZERO, 
-            withdrawAmount: ZERO
-          })
+            cds: cds,
+            targetAddress: alice.address,
+            valueOfUnderlying: depositAmount.sub(compensate.div(2)),
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO,
+          });
 
           await verifyVaultStatus({
             vault: vault,
             balance: depositAmount.mul(2), //no changes
             valueAll: depositAmount.mul(2),
             totalAttributions: depositAmount.mul(2),
-            totalDebt: ZERO
-          })
-    
+            totalDebt: ZERO,
+          });
+
           await verifyVaultStatusOf({
             vault: vault,
             target: cds.address,
             attributions: depositAmount.mul(2).sub(compensate),
             underlyingValue: depositAmount.mul(2).sub(compensate),
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyVaultStatusOf({
             vault: vault,
             target: chad.address,
             attributions: compensate,
             underlyingValue: compensate,
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyBalances({
             token: usdc,
@@ -1299,9 +1323,9 @@ describe("CDS", function () {
               [bob.address]: initialMint.sub(depositAmount),
               [chad.address]: initialMint,
               [cds.address]: ZERO,
-              [vault.address]: depositAmount.mul(2)
-            }
-          })
+              [vault.address]: depositAmount.mul(2),
+            },
+          });
 
           await verifyBalances({
             token: cds,
@@ -1310,75 +1334,74 @@ describe("CDS", function () {
               [bob.address]: ZERO,
               [chad.address]: ZERO,
               [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
+              [vault.address]: ZERO,
+            },
+          });
         }
-
       });
 
       it("should decrease as much as deposited when CDS has insufficient amount", async () => {
-        await registry.supportMarket(chad.address) //now chad can act like a market
+        await registry.supportMarket(chad.address); //now chad can act like a market
 
-        let compensate =  depositAmount.add(1) //more than deposited
-        let tx = await cds.connect(chad).compensate(compensate)
+        let compensate = depositAmount.add(1); //more than deposited
+        let tx = await cds.connect(chad).compensate(compensate);
 
         //should conpensete "depositedAmount", and shortage should be 1.
-        let compensated = (await tx.wait()).events[0].args['amount']
-        await expect(compensated).to.equal(depositAmount)
+        let compensated = (await tx.wait()).events[0].args["amount"];
+        await expect(compensated).to.equal(depositAmount);
 
-        let shortage = compensate - compensated
+        let shortage = compensate - compensated;
 
-
-        {//sanity check
+        {
+          //sanity check
           await verifyCDSStatus({
             cds: cds,
             surplusPool: ZERO, //totally used
             crowdPool: ZERO, //totally used
             totalSupply: depositAmount,
             totalLiquidity: ZERO,
-            rate: ZERO //defaultRate * deposited balance / totalSupply
-          })
+            rate: ZERO, //defaultRate * deposited balance / totalSupply
+          });
 
           await verifyCDSStatusOf({
-            cds: cds, 
-            targetAddress: alice.address, 
-            valueOfUnderlying: ZERO, 
-            withdrawTimestamp: ZERO, 
-            withdrawAmount: ZERO
-          })
+            cds: cds,
+            targetAddress: alice.address,
+            valueOfUnderlying: ZERO,
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO,
+          });
 
           await verifyVaultStatus({
             vault: vault,
             balance: depositAmount, //no changes
             valueAll: depositAmount,
             totalAttributions: depositAmount,
-            totalDebt: ZERO
-          })
-    
+            totalDebt: ZERO,
+          });
+
           await verifyVaultStatusOf({
             vault: vault,
             target: cds.address,
             attributions: depositAmount.sub(depositAmount), //transfer from here
             underlyingValue: ZERO,
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyVaultStatusOf({
             vault: vault,
             target: chad.address,
             attributions: depositAmount, //transfer to here
             underlyingValue: depositAmount,
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyVaultStatusOf({
             vault: vault,
             target: chad.address,
             attributions: compensated,
             underlyingValue: compensated,
-            debt: ZERO
-          })
+            debt: ZERO,
+          });
 
           await verifyBalances({
             token: usdc,
@@ -1387,9 +1410,9 @@ describe("CDS", function () {
               [bob.address]: initialMint,
               [chad.address]: initialMint,
               [cds.address]: ZERO,
-              [vault.address]: depositAmount
-            }
-          })
+              [vault.address]: depositAmount,
+            },
+          });
 
           await verifyBalances({
             token: cds,
@@ -1398,26 +1421,26 @@ describe("CDS", function () {
               [bob.address]: ZERO,
               [chad.address]: ZERO,
               [cds.address]: ZERO,
-              [vault.address]: ZERO
-            }
-          })
+              [vault.address]: ZERO,
+            },
+          });
         }
-
       });
     });
 
     describe("changeMetadata", function () {
       it("should change Metadata", async () => {
-        expect(await cds.metadata()).to.equal("Here is metadata.")
+        expect(await cds.metadata()).to.equal("Here is metadata.");
 
-        await cds.changeMetadata("New metadata")
+        await cds.changeMetadata("New metadata");
 
-        expect(await cds.metadata()).to.equal("New metadata")
+        expect(await cds.metadata()).to.equal("New metadata");
       });
 
       it("revert when not admin", async () => {
-
-        await expect(cds.connect(alice).changeMetadata("New metadata")).to.revertedWith("ERROR: ONLY_OWNER")
+        await expect(
+          cds.connect(alice).changeMetadata("New metadata")
+        ).to.revertedWith("ERROR: ONLY_OWNER");
       });
     });
   });

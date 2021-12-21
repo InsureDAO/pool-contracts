@@ -235,7 +235,7 @@ describe("Index", function () {
     await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
-      [0],
+      [0, 0],
       [
         usdc.address,
         usdc.address,
@@ -247,7 +247,7 @@ describe("Index", function () {
     await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
-      [0],
+      [0, 0],
       [
         usdc.address,
         usdc.address,
@@ -528,7 +528,7 @@ describe("Index", function () {
       await expect(
         index.initialize(
           "Here is metadata.",
-          [0],
+          [0, 0],
           [usdc.address, registry.address, parameters.address]
         )
       ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
