@@ -653,7 +653,7 @@ describe("Pool", function () {
     let tx = await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
-      [depositAmount], //initialDeposit
+      [depositAmount, depositAmount], //initialDeposit
       references
     );
 
@@ -745,7 +745,7 @@ describe("Pool", function () {
     await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
-      [0], //deposit 0 USDC
+      [0, 0], //deposit 0 USDC
       [
         usdc.address,
         usdc.address,
@@ -844,7 +844,7 @@ describe("Pool", function () {
         await expect(
           pool.initialize(
             "Here is metadata.",
-            [0], //deposit 0 USDC
+            [0, 0], //deposit 0 USDC
             [usdc.address, usdc.address, registry.address, parameters.address]
           )
         ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
@@ -887,7 +887,7 @@ describe("Pool", function () {
           factory.createMarket(
             poolTemplate.address,
             "Here is metadata.",
-            [0], //deposit 0 USDC
+            [0, 0], //deposit 0 USDC
             [
               ZERO_ADDRESS,
               usdc.address,
@@ -913,7 +913,7 @@ describe("Pool", function () {
           factory.createMarket(
             poolTemplate.address,
             "Here is metadata.",
-            [0], //deposit 0 USDC
+            [0, 0], //deposit 0 USDC
             [
               usdc.address,
               ZERO_ADDRESS,
@@ -939,7 +939,7 @@ describe("Pool", function () {
           factory.createMarket(
             poolTemplate.address,
             "Here is metadata.",
-            [0], //deposit 0 USDC
+            [0, 0], //deposit 0 USDC
             [
               usdc.address,
               usdc.address,
@@ -965,7 +965,7 @@ describe("Pool", function () {
           factory.createMarket(
             poolTemplate.address,
             "Here is metadata.",
-            [0], //deposit 0 USDC
+            [0, 0], //deposit 0 USDC
             [
               usdc.address,
               usdc.address,
@@ -991,7 +991,7 @@ describe("Pool", function () {
           factory.createMarket(
             poolTemplate.address,
             "Here is metadata.",
-            [0], //deposit 0 USDC
+            [0, 0], //deposit 0 USDC
             [
               usdc.address,
               usdc.address,
@@ -1008,7 +1008,7 @@ describe("Pool", function () {
           factory.createMarket(
             poolTemplate.address,
             "",
-            [0], //deposit 0 USDC
+            [0, 0], //deposit 0 USDC
             [
               usdc.address,
               usdc.address,
