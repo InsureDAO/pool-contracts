@@ -2,6 +2,7 @@ require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-web3");
 require("solidity-coverage");
 require("hardhat-contract-sizer");
+require("@nomiclabs/hardhat-etherscan");
 
 /**
  * @type import('hardhat/config').HardhatUserConfig
@@ -9,6 +10,7 @@ require("hardhat-contract-sizer");
 const fs = require("fs");
 const key = fs.readFileSync(".key").toString().trim();
 const infuraKey = fs.readFileSync(".infuraKey").toString().trim();
+const etherscanKey = fs.readFileSync(".etherscanKey").toString().trim();
 
 module.exports = {
   solidity: "0.8.7",
@@ -18,6 +20,9 @@ module.exports = {
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${infuraKey}`,
       accounts: [`0x${key}`],
+      gas: 6e6,
+      gasPrice: 1e9,
+      timeout: 2000000000
     },
   },
   solidity: {
@@ -31,7 +36,7 @@ module.exports = {
   },
   paths: {
     sources: "./contracts",
-    tests: "./test/unitary/PoolTemplate/Test",
+    tests: "./test/unitary",
     cache: "./cache",
     artifacts: "./artifacts",
   },
@@ -39,6 +44,11 @@ module.exports = {
     alphaSort: true,
     runOnCompile: true,
     disambiguatePaths: false,
+  },
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://etherscan.io/
+    apiKey: `${etherscanKey}`,
   },
   mocha: {
     timeout: 20000000,

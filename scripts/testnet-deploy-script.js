@@ -210,7 +210,7 @@ async function main() {
   tx = await factory.createMarket(
     poolTemplate.address,
     "Here is metadata.",
-    [0],
+    [0, 0],
     [usdc.address, usdc.address, registry.address, parameters.address, creator.address]
   );
   await tx.wait();
@@ -218,7 +218,7 @@ async function main() {
   tx = await factory.createMarket(
     poolTemplate.address,
     "Here is metadata.",
-    [0],
+    [0, 0],
     [usdc.address, usdc.address, registry.address, parameters.address, creator.address]
   );
   await tx.wait();
@@ -226,7 +226,7 @@ async function main() {
   tx = await factory.createMarket(
     poolTemplate.address,
     "Here is metadata.",
-    [0],
+    [0, 0],
     [usdc.address, usdc.address, registry.address, parameters.address, creator.address]
   );
   await tx.wait();

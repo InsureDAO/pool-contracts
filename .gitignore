@@ -4,6 +4,7 @@ migrations/2_deploy_contracts.js
 .infuraKey
 .mnemonic
 .key
+.etherscanKey
 .soliumignore
 .soliumrc.json
 .DS_Store
