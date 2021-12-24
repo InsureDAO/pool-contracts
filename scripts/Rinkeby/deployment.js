@@ -10,6 +10,12 @@ const PoolTemplateAddress = "0x43F0Ba06026EF8e573B7e27cBBc3addF439E0622";
 const CDSTemplateAddress = "0x37fA8Bef894799DdB2C25be94541a2dc19F2c693";
 const IndexTemplateAddress = "0x55e5Faefa43CA3386Dc8FAE26385E57756e02713";
 
+const Market1 = "0x6A5Fe3d20e89F8d1C4C23C532dF35975dA444A55";
+const Market2 = "0x3e5734497F097368B033eEE91Fe92C8d2ea56539";
+const Market3 = "0xaFE0DC7C5b9c51977BC07899daAFa3551a40e58E";
+const CDSAddress = "0x2F398c37429D4b3F2cB4b11F49DC6877162f82A7";
+const IndexAddress = "0x9516335DD0c069e3560a88e0eBE0a14a9937f136";
+
 
 Object.assign(exports, {
   USDCAddress,
@@ -22,4 +28,9 @@ Object.assign(exports, {
   PoolTemplateAddress,
   CDSTemplateAddress,
   IndexTemplateAddress,
+  Market1,
+  Market2,
+  Market3,
+  CDSAddress,
+  IndexAddress,
 })
