@@ -290,7 +290,7 @@ describe("Index", function () {
     await index.set("0", market1.address, defaultLeverage); //set market1 to the Index
     await index.set("1", market2.address, defaultLeverage); //set market2 to the Index
 
-    await index.setLeverage(targetLeverage);
+    await index.setLeverage(targetLeverage); //2x
 
     await parameters.setUpperSlack(index.address, "500000"); //leverage+50% (+0.5)
     await parameters.setLowerSlack(index.address, "500000"); //leverage-50% (-0.5)
@@ -2083,61 +2083,26 @@ describe("Index", function () {
       let liquidity = await market1.totalLiquidity();
       let credit = await market1.totalCredit();
       let lockedAmount = await market1.lockedAmount();
-
-      let indexLockedAmount = lockedAmount.mul(credit).div(liquidity);
-      let sum = indexLockedAmount;
+      let utilRate = await market1.utilizationRate();
 
       //market2
       liquidity = await market2.totalLiquidity();
       credit = await market2.totalCredit();
       lockedAmount = await market2.lockedAmount();
+      let available = await market2.availableBalance();
+      let utilization = available.mul(1e6).div(credit);
 
+      //index
       let leverage = await index.leverage();
-      indexLockedAmount = lockedAmount.mul(credit).div(liquidity);
-      sum = sum.add(indexLockedAmount).mul(1e6).div(leverage);
-
-      let expectedWithdrawable = (await index.totalLiquidity()).sub(sum);
+      let indexLiquidity = await index.totalLiquidity();
+      let expectedWithdrawable = indexLiquidity.sub(lockedAmount);
       let withdrawable = await index.withdrawable();
 
       expect(withdrawable).to.equal(expectedWithdrawable);
     });
 
-    it("should return zero when _leverage > targetLev + upperSlack", async function () {
-      //setup
-      await market1.connect(alice).deposit(depositAmount);
-      await index.connect(alice).deposit(depositAmount);
-
-      //test
-      let insureAmount = depositAmount.div(2); //5000
-
-      await market1.connect(bob).insure(
-        insureAmount, //insured amount
-        depositAmount, //max-cost
-        YEAR, //span
-        target //targetID
-      );
-      await market2
-        .connect(bob)
-        .insure(insureAmount, depositAmount, YEAR, target);
-
-      expect(await index.withdrawable()).is.not.equal(ZERO);
-
-      await index.adjustAlloc();
-
-      expect(await index.withdrawable()).is.not.equal(ZERO);
-
-      //test
-      await index.connect(alice).requestWithdraw(depositAmount.div(10)); //10% of the depositeAmount
-      await moveForwardPeriods(7);
-
-      await index.connect(alice).withdraw(depositAmount.div(10)); //10% of the depositeAmount. leverage is higher than targetLev
-
-      expect(await index.withdrawable()).is.not.equal(ZERO);
-
-      //Main test
-      await parameters.setUpperSlack(index.address, ZERO);
-
-      expect(await index.withdrawable()).is.equal(ZERO);
+    it("should return the amount that won't break the leverage rate settings", async function () {
+      //do something
     });
   });
 
@@ -2779,7 +2744,6 @@ describe("Index", function () {
       let leverage = defaultLeverage
         .mul(depositAmount.mul(targetLeverage).div(defaultLeverage))
         .div(depositAmount.add(income));
-      let deduction = insureAmount.mul(1e6).div(leverage);
 
       await verifyIndexStatus({
         index: index,
@@ -2793,7 +2757,7 @@ describe("Index", function () {
         leverage: defaultLeverage
           .mul(depositAmount.mul(targetLeverage).div(defaultLeverage))
           .div(depositAmount.add(income)), //actual leverage
-        withdrawable: depositAmount.add(income).sub(deduction),
+        withdrawable: depositAmount.add(income).sub(insureAmount),
         rate: defaultRate.mul(depositAmount.add(income)).div(depositAmount),
       });
 
