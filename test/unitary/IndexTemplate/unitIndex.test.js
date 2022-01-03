@@ -292,7 +292,7 @@ describe("Index", function () {
     await index.set("0", market1.address, defaultLeverage); //set market1 to the Index
     await index.set("1", market2.address, defaultLeverage); //set market2 to the Index
 
-    await index.setLeverage(targetLeverage);
+    await index.setLeverage(targetLeverage); //2x
 
     await parameters.setUpperSlack(index.address, "500000"); //leverage+50% (+0.5)
     await parameters.setLowerSlack(index.address, "500000"); //leverage-50% (-0.5)
@@ -2097,8 +2097,6 @@ describe("Index", function () {
       //index
       let leverage = await index.leverage();
       let indexLiquidity = await index.totalLiquidity();
-
-
       let expectedWithdrawable = indexLiquidity.sub(lockedAmount);
       let withdrawable = await index.withdrawable();
 
