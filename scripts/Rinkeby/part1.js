@@ -1,5 +1,6 @@
 const hre = require("hardhat");
 const ethers = hre.ethers;
+const fs = require("fs");
 
 /***
  * deploy USDC for test
@@ -19,6 +20,15 @@ async function main() {
   const usdc = await USDC.deploy(creator.address);
   await usdc.deployed();
   console.log("usdc deployed to:", usdc.address);
+
+  let text = usdc.address
+
+  try {
+    fs.writeFileSync("./out.txt", text);
+    console.log('write end');
+  }catch(e){
+    console.log(e);
+  }
 
 }
 
