@@ -127,7 +127,7 @@ async function main() {
   //write deployments.js
   let text = 
     `
-    const USDC = "${usdc.address}" 
+    const USDCAddress = "${usdc.address}" 
     const OwnershipAddress = "${ownership.address}"  
     const RegistryAddress = "${registry.address}"  
     const FactoryAddress = "${factory.address}"  
