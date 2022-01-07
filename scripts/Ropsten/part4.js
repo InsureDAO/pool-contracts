@@ -1,6 +1,5 @@
 const hre = require("hardhat");
 const ethers = hre.ethers;
-const fs = require("fs");
 
 /***
  * deploy markets
@@ -75,101 +74,31 @@ async function main() {
 
 
   //----- CREATE MARKETS -----//
-  
-  const marketAddress1 = await factory.markets(0);
-  const marketAddress2 = await factory.markets(1);
-  const marketAddress3 = await factory.markets(2);
-  market1 = await PoolTemplate.attach(marketAddress1);
-  market2 = await PoolTemplate.attach(marketAddress2);
-  market3 = await PoolTemplate.attach(marketAddress3);
-  console.log("pool1 deployed to", market1.address);
-  console.log("pool2 deployed to", market2.address);
-  console.log("pool3 deployed to", market3.address);
-
-  //cds&index
+  //pools
   tx = await factory.createMarket(
-    cdsTemplate.address,
+    poolTemplate.address,
     "Here is metadata.",
-    [0],
-    [usdc.address, registry.address, parameters.address]
+    [0, 0],
+    [usdc.address, usdc.address, registry.address, parameters.address, creator.address]
   );
   await tx.wait();
 
   tx = await factory.createMarket(
-    indexTemplate.address,
+    poolTemplate.address,
     "Here is metadata.",
-    [0],
-    [usdc.address, registry.address, parameters.address]
+    [0, 0],
+    [usdc.address, usdc.address, registry.address, parameters.address, creator.address]
   );
   await tx.wait();
 
-  const marketAddress4 = await factory.markets(3);
-  const marketAddress5 = await factory.markets(4);
-  cds = await CDSTemplate.attach(marketAddress4);
-  index = await IndexTemplate.attach(marketAddress5);
-  console.log("cds deployed to", marketAddress4);
-  console.log("index deployed to", marketAddress5);
-
-  //set parameters
-  tx = await registry.setCDS(ZERO_ADDRESS, cds.address);
+  tx = await factory.createMarket(
+    poolTemplate.address,
+    "Here is metadata.",
+    [0, 0],
+    [usdc.address, usdc.address, registry.address, parameters.address, creator.address]
+  );
   await tx.wait();
 
-  tx = await index.set(0, market1.address, "1000");
-  await tx.wait();
-  tx = await index.set(1, market2.address, "1000");
-  await tx.wait();
-  tx = await index.set(2, market3.address, "1000");
-  await tx.wait();
-
-  tx = await index.setLeverage("2000");
-  console.log("all done");
-
-  //write deployments.js
-  let text = 
-    `
-    const USDC = "${usdc.address}" 
-    const OwnershipAddress = "${ownership.address}"  
-    const RegistryAddress = "${registry.address}"  
-    const FactoryAddress = "${factory.address}"  
-    const PremiumModelAddress = "${premium.address}"  
-    const ParametersAddress = "${parameters.address}"  
-    const VaultAddress = "${vault.address}"
-
-    const PoolTemplateAddress = "${poolTemplate.address}" 
-    const IndexTemplateAddress = "${indexTemplate.address}"  
-    const CDSTemplateAddress = "${cdsTemplate.address}"
-
-    const Market1 = "${market1.address}"
-    const Market2 = "${market2.address}" 
-    const Market3 = "${market3.address}" 
-    const Index = "${index.address}" 
-    const CDS = "${cds.address}" 
-
-
-    Object.assign(exports, {
-      USDCAddress,
-      OwnershipAddress,
-      RegistryAddress,
-      FactoryAddress,
-      PremiumModelAddress,
-      ParametersAddress,
-      VaultAddress,
-      PoolTemplateAddress,
-      IndexTemplateAddress,
-      CDSTemplateAddress,
-      Market1,
-      Market2,
-      Market3,
-      IndexAddress,
-      CDSAddress,
-    })
-    `
-  try {
-    fs.writeFileSync("./scripts/Rinkeby/deployments.js", text);
-    console.log('write end');
-  }catch(e){
-    console.log(e);
-  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere

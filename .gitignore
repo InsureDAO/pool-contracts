@@ -1,10 +1,6 @@
 node_modules/
 bin/
 migrations/2_deploy_contracts.js
-.infuraKey
-.mnemonic
-.key
-.etherscanKey
 .soliumignore
 .soliumrc.json
 .DS_Store
@@ -21,3 +17,7 @@ hooks
 description
 ./Flatten
 coverage/
+.env
+yarn.lock
+yarn-error.log
+package-lock.json

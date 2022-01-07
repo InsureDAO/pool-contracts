@@ -33,7 +33,7 @@ async function main() {
     })
     `
   try {
-    fs.writeFileSync("./scripts/Rinkeby/deployments.js", text);
+    fs.writeFileSync("./scripts/Ropsten/deployments.js", text);
     console.log('write end');
   }catch(e){
     console.log(e);

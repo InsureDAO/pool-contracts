@@ -3,14 +3,13 @@ require("@nomiclabs/hardhat-web3");
 require("solidity-coverage");
 require("hardhat-contract-sizer");
 require("@nomiclabs/hardhat-etherscan");
+require('dotenv').config()
 
-/**
- * @type import('hardhat/config').HardhatUserConfig
- */
-const fs = require("fs");
-const key = fs.readFileSync(".key").toString().trim();
-const infuraKey = fs.readFileSync(".infuraKey").toString().trim();
-const etherscanKey = fs.readFileSync(".etherscanKey").toString().trim();
+const { 
+  ETHERSCAN_API,
+  KEY,
+  INFURA_KEY
+ } = process.env
 
 module.exports = {
   solidity: "0.8.7",
@@ -18,11 +17,15 @@ module.exports = {
   networks: {
     hardhat: {},
     rinkeby: {
-      url: `https://rinkeby.infura.io/v3/${infuraKey}`,
-      accounts: [`0x${key}`],
+      url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
+      accounts: [`0x${KEY}`],
       gas: 6e6,
       gasPrice: 1e9,
       timeout: 2000000000
+    },
+    ropsten: {
+      url: `https://ropsten.infura.io/v3/${INFURA_KEY}`,
+      accounts: [`0x${KEY}`]
     },
   },
   solidity: {
@@ -48,7 +51,7 @@ module.exports = {
   etherscan: {
     // Your API key for Etherscan
     // Obtain one at https://etherscan.io/
-    apiKey: `${etherscanKey}`,
+    apiKey: `${ETHERSCAN_API}`,
   },
   mocha: {
     timeout: 20000000,
