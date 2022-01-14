@@ -263,41 +263,52 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
     /**
      * @notice Get how much can a user withdraw from this index
-     * Withdrawable amount = the sum of available amount of each pool divided by the actual leverage rate.
+     * Withdrawable amount = Index liquidity - necessary amount to support credit liquidity
+     * Necessary amoount Locked * totalAllocPoint / allocpoint of the lowest available liquidity market
+     * Otherwise, the allocation to a specific pool may take up the overall allocation, and may break the risk sharing.
      * @return _retVal withdrawable amount
      */
     function withdrawable() public view returns (uint256 _retVal) {
-        uint256 _leverage = leverage();
-
-        //new way of measuring
-        if (_leverage > targetLev + parameters.getUpperSlack(address(this))) {
-            _retVal = 0;
-        } else if (_leverage == 0) {
-            _retVal = 0;
-        } else {
+        uint256 _totalLiquidity = totalLiquidity();
+        if(_totalLiquidity > 0){
             uint256 _length = poolList.length;
-            uint256 _totalLiquidity = totalLiquidity();
-            uint256 _sum;
+            uint256 _lowestAvailableRate = MAGIC_SCALE_1E6;
+            uint256 _targetAllocPoint;
+            uint256 _targetLockedCreditScore;
+            //Check which pool has the lowest available rate and keep stats
             for (uint256 i = 0; i < _length; i++) {
-                if (allocPoints[poolList[i]] > 0) {
-                    uint256 liquidity = IPoolTemplate(poolList[i])
-                        .totalLiquidity();
-                    uint256 credit = IPoolTemplate(poolList[i]).allocatedCredit(
-                        address(this)
-                    );
-                    uint256 lockedAmount = IPoolTemplate(poolList[i])
-                        .lockedAmount();
-
-                    if (liquidity != 0) {
-                        _sum += (lockedAmount * credit) / liquidity;
-                    } else {
-                        _sum += lockedAmount;
+                address _poolAddress = poolList[i];
+                uint256 _allocPoint = allocPoints[_poolAddress];
+                if (_allocPoint > 0) {
+                    uint256 _allocated = IPoolTemplate(_poolAddress)
+                    .allocatedCredit(address(this));
+                    uint256 _availableBalance = IPoolTemplate(_poolAddress)
+                    .availableBalance();
+                    //check if some portion of credit is locked
+                    if (_allocated > _availableBalance) {
+                        uint256 _availableRate = (_availableBalance *
+                        MAGIC_SCALE_1E6) / _allocated;
+                        uint256 _lockedCredit = _allocated - _availableBalance;
+                        if (i == 0 || _availableRate < _lowestAvailableRate) {
+                            _lowestAvailableRate = _availableRate;
+                            _targetLockedCreditScore = _lockedCredit;
+                            _targetAllocPoint = _allocPoint;
+                        }
                     }
                 }
             }
-            _sum = (_sum * MAGIC_SCALE_1E6) / _leverage;
-
-            _retVal = _totalLiquidity - _sum;
+            //Calculate the return value
+            if (_lowestAvailableRate == MAGIC_SCALE_1E6) {
+                _retVal = _totalLiquidity;
+            } else {
+                uint256 _necessaryAmount = _targetLockedCreditScore * totalAllocPoint /  _targetAllocPoint;
+                _necessaryAmount = _necessaryAmount *  MAGIC_SCALE_1E6 / targetLev;
+                if(_necessaryAmount < _totalLiquidity){
+                    _retVal = _totalLiquidity - _necessaryAmount;
+                }else{
+                    _retVal = 0;
+                }
+            }
         }
     }
 
@@ -446,9 +457,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice Resume market
      */
     function resume() external override {
-        uint256 poolLength = poolList.length;
+        uint256 _poolLength = poolList.length;
 
-        for (uint256 i = 0; i < poolLength; i++) {
+        for (uint256 i = 0; i < _poolLength; i++) {
             require(
                 IPoolTemplate(poolList[i]).paused() == false,
                 "ERROR: POOL_IS_PAUSED"
