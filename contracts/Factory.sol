@@ -11,7 +11,6 @@ import "./interfaces/IOwnership.sol";
 import "./interfaces/IUniversalMarket.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IFactory.sol";
-import "hardhat/console.sol";
 
 contract Factory is IFactory {
     event MarketCreated(
