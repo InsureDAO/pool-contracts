@@ -159,7 +159,7 @@ contract Factory is IFactory {
         string memory _metaData,
         uint256[] memory _conditions,
         address[] memory _references
-    ) public override returns (address) {
+    ) external override returns (address) {
         //check eligibility
         require(
             templates[address(_template)].approval == true,
@@ -189,13 +189,14 @@ contract Factory is IFactory {
             }
         }
 
+        IRegistry iRegistry = IRegistry(registry);
         if (
-            IRegistry(registry).confirmExistence(
+            iRegistry.confirmExistence(
                 address(_template),
                 _references[0]
             ) == false
         ) {
-            IRegistry(registry).setExistence(
+            iRegistry.setExistence(
                 address(_template),
                 _references[0]
             );
@@ -210,7 +211,7 @@ contract Factory is IFactory {
             _createClone(address(_template))
         );
 
-        IRegistry(registry).supportMarket(address(market));
+        iRegistry.supportMarket(address(market));
         
         markets.push(address(market));
 

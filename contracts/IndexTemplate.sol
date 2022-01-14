@@ -58,7 +58,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     bool public initialized;
     bool public paused;
     bool public locked;
-    uint256 public pendingEnd;
     string public metadata;
 
     /// @notice External contract call addresses
@@ -160,7 +159,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @param _amount amount of token to deposit
      * @return _mintAmount the amount of iToken minted from the transaction
      */
-    function deposit(uint256 _amount) public returns (uint256 _mintAmount) {
+    function deposit(uint256 _amount) external returns (uint256 _mintAmount) {
         require(locked == false && paused == false, "ERROR: DEPOSIT_DISABLED");
         require(_amount > 0, "ERROR: DEPOSIT_ZERO");
 
@@ -270,9 +269,10 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      */
     function withdrawable() public view returns (uint256 _retVal) {
         uint256 _totalLiquidity = totalLiquidity();
+        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
         if(_totalLiquidity > 0){
             uint256 _length = poolList.length;
-            uint256 _lowestAvailableRate = MAGIC_SCALE_1E6;
+            uint256 _lowestAvailableRate = _MAGIC_SCALE_1E6;
             uint256 _targetAllocPoint;
             uint256 _targetLockedCreditScore;
             //Check which pool has the lowest available rate and keep stats
@@ -287,7 +287,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     //check if some portion of credit is locked
                     if (_allocated > _availableBalance) {
                         uint256 _availableRate = (_availableBalance *
-                        MAGIC_SCALE_1E6) / _allocated;
+                        _MAGIC_SCALE_1E6) / _allocated;
                         uint256 _lockedCredit = _allocated - _availableBalance;
                         if (i == 0 || _availableRate < _lowestAvailableRate) {
                             _lowestAvailableRate = _availableRate;
@@ -298,11 +298,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 }
             }
             //Calculate the return value
-            if (_lowestAvailableRate == MAGIC_SCALE_1E6) {
+            if (_lowestAvailableRate == _MAGIC_SCALE_1E6) {
                 _retVal = _totalLiquidity;
             } else {
                 uint256 _necessaryAmount = _targetLockedCreditScore * totalAllocPoint /  _targetAllocPoint;
-                _necessaryAmount = _necessaryAmount *  MAGIC_SCALE_1E6 / targetLev;
+                _necessaryAmount = _necessaryAmount *  _MAGIC_SCALE_1E6 / targetLev;
                 if(_necessaryAmount < _totalLiquidity){
                     _retVal = _totalLiquidity - _necessaryAmount;
                 }else{
@@ -488,7 +488,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice get the current leverage rate 1e6x
      * @return _rate leverage rate
      */
-    function leverage() public view returns (uint256 _rate) {
+    function leverage() external view returns (uint256 _rate) {
         //check current leverage rate
         if (totalLiquidity() > 0) {
             return (totalAllocatedCredit * MAGIC_SCALE_1E6) / totalLiquidity();
@@ -522,7 +522,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @param _owner the target address to look up value
      * @return The balance of underlying token for the specified address
      */
-    function valueOfUnderlying(address _owner) public view returns (uint256) {
+    function valueOfUnderlying(address _owner) external view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
         if (_balance == 0) {
             return 0;
@@ -587,7 +587,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _index,
         address _pool,
         uint256 _allocPoint
-    ) public override onlyOwner {
+    ) external override onlyOwner {
         require(registry.isListed(_pool), "ERROR:UNREGISTERED_POOL");
         require(
             _index <= parameters.getMaxList(address(this)),
@@ -609,9 +609,10 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             }
             poolList[_index] = _pool;
         }
-        if (totalAllocPoint > 0) {
+        uint256 _totalAllocPoint = totalAllocPoint;
+        if (_totalAllocPoint > 0) {
             totalAllocPoint =
-                totalAllocPoint -
+                _totalAllocPoint -
                 allocPoints[_pool] +
                 _allocPoint;
         } else {

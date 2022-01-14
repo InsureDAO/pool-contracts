@@ -216,7 +216,7 @@ contract Parameters is IParameters {
      * @notice Get the address of the owner
      * @return owner's address
      */
-    function getOwner() public view override returns (address) {
+    function getOwner() external view override returns (address) {
         return IOwnership(ownership).owner();
     }
 

@@ -249,14 +249,15 @@ contract Vault is IVault {
      */
     function repayDebt(uint256 _amount, address _target) external override {
         uint256 _debt = debts[_target];
+        IERC20 iToken = IERC20(token);
         if (_debt >= _amount) {
             debts[_target] -= _amount;
             totalDebt -= _amount;
-            IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
+            iToken.safeTransferFrom(msg.sender, address(this), _amount);
         } else {
             debts[_target] = 0;
             totalDebt -= _debt;
-            IERC20(token).safeTransferFrom(msg.sender, address(this), _debt);
+            iToken.safeTransferFrom(msg.sender, address(this), _debt);
         }
     }
 
@@ -340,14 +341,15 @@ contract Vault is IVault {
      * @return _amount amount of tokens utilized
      */
     function utilize() external override returns (uint256 _amount) {
+        address _token = token;
         if (keeper != address(0)) {
             require(msg.sender == keeper, "ERROR_NOT_KEEPER");
         }
         _amount = available(); //balance
         if (_amount > 0) {
-            IERC20(token).safeTransfer(address(controller), _amount);
+            IERC20(_token).safeTransfer(address(controller), _amount);
             balance -= _amount;
-            controller.earn(address(token), _amount);
+            controller.earn(address(_token), _amount);
         }
     }
 
@@ -385,8 +387,9 @@ contract Vault is IVault {
         override
         returns (uint256)
     {
-        if (totalAttributions > 0 && _attribution > 0) {
-            return (_attribution * valueAll()) / totalAttributions;
+        uint256 _totalAttributions = totalAttributions;
+        if (_totalAttributions > 0 && _attribution > 0) {
+            return (_attribution * valueAll()) / _totalAttributions;
         } else {
             return 0;
         }
@@ -445,7 +448,7 @@ contract Vault is IVault {
      * @notice return how much price for each attribution
      * @return value of one share of attribution
      */
-    function getPricePerFullShare() public view returns (uint256) {
+    function getPricePerFullShare() external view returns (uint256) {
         return (valueAll() * MAGIC_SCALE_1E6) / totalAttributions;
     }
 
@@ -463,13 +466,15 @@ contract Vault is IVault {
         override
         onlyOwner
     {
+        address __token = token;
+        uint256 _balance = balance;
         if (
-            _token == address(token) &&
-            balance < IERC20(token).balanceOf(address(this))
+            _token == address(__token) &&
+            _balance < IERC20(__token).balanceOf(address(this))
         ) {
-            uint256 _redundant = IERC20(token).balanceOf(address(this)) -
-                balance;
-            IERC20(token).safeTransfer(_to, _redundant);
+            uint256 _redundant = IERC20(__token).balanceOf(address(this)) -
+            _balance;
+            IERC20(__token).safeTransfer(_to, _redundant);
         } else if (IERC20(_token).balanceOf(address(this)) > 0) {
             IERC20(_token).safeTransfer(
                 _to,
@@ -482,7 +487,7 @@ contract Vault is IVault {
      * @notice admin function to set controller address
      * @param _controller address of the controller
      */
-    function setController(address _controller) public override onlyOwner {
+    function setController(address _controller) external override onlyOwner {
         require(_controller != address(0), "ERROR_ZERO_ADDRESS");
 
         if (address(controller) != address(0)) {

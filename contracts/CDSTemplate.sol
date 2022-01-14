@@ -201,19 +201,15 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
         Withdrawal memory request = withdrawalReq[msg.sender];
+        uint256 _lockup = parameters.getLockup(msg.sender);
 
         require(paused == false, "ERROR: PAUSED");
         require(
-            request.timestamp +
-                parameters.getLockup(msg.sender) <
-                block.timestamp,
+            request.timestamp + _lockup < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            request.timestamp +
-                parameters.getLockup(msg.sender) +
-                parameters.getWithdrawable(msg.sender) >
-                block.timestamp,
+            request.timestamp + _lockup + parameters.getWithdrawable(msg.sender) > block.timestamp,
             "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
@@ -284,7 +280,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @notice total Liquidity of the pool (how much can the pool sell cover)
      * @return _balance available liquidity of this pool
      */
-    function totalLiquidity() public view returns (uint256 _balance) {
+    function totalLiquidity() external view returns (uint256 _balance) {
         return vault.underlyingValue(address(this));
     }
 
@@ -307,7 +303,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @param _owner the target address to look up value
      * @return The balance of underlying token for the specified address
      */
-    function valueOfUnderlying(address _owner) public view returns (uint256) {
+    function valueOfUnderlying(address _owner) external view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
         if (_balance == 0) {
             return 0;
