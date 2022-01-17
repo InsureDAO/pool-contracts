@@ -568,9 +568,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         );
         require(_insurance.insured == msg.sender, "ERROR: NOT_YOUR_INSURANCE");
         require(
-            marketStatus == MarketStatus.Payingout &&
-                _insurance.startTime <= _incidentTimestamp &&
-                _insurance.endTime >= _incidentTimestamp,
+            _insurance.startTime <= _incidentTimestamp && _insurance.endTime >= _incidentTimestamp,
             "ERROR: INSURANCE_NOT_APPLICABLE"
         );
         require(
