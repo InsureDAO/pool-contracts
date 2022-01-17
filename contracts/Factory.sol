@@ -171,7 +171,7 @@ contract Factory is IFactory {
                 "ERROR: UNAUTHORIZED_SENDER"
             );
         }
-        if (_references.length > 0) {
+        if (_references.length != 0) {
             for (uint256 i = 0; i < _references.length;) {
                 require(
                     reflist[address(_template)][i][_references[i]] == true ||
@@ -184,9 +184,9 @@ contract Factory is IFactory {
             }
         }
 
-        if (_conditions.length > 0) {
+        if (_conditions.length != 0) {
             for (uint256 i = 0; i < _conditions.length;) {
-                if (conditionlist[address(_template)][i] > 0) {
+                if (conditionlist[address(_template)][i] != 0) {
                     _conditions[i] = conditionlist[address(_template)][i];
                 }
                 unchecked {
