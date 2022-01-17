@@ -106,10 +106,13 @@ contract Vault is IVault {
 
         balance += _amount;
         totalAttributions += _attributions;
-        for (uint128 i = 0; i < 2; i++) {
+        for (uint128 i = 0; i < 2;) {
             uint256 _allocation = (_shares[i] * _attributions) / MAGIC_SCALE_1E6;
             attributions[_beneficiaries[i]] += _allocation;
             _allocations[i] = _allocation;
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -162,7 +165,10 @@ contract Vault is IVault {
 
         if (available() < _amount) {
             //when USDC in this contract isn't enough
-            uint256 _shortage = _amount - available();
+            uint256 _shortage;
+            unchecked {
+                _shortage = _amount - available();
+            }
             _unutilize(_shortage);
 
             require(available() >= _amount, "Available is not enough for withdraw");
@@ -304,11 +310,16 @@ contract Vault is IVault {
         );
         _retVal = (_attribution * valueAll()) / totalAttributions;
 
-        attributions[msg.sender] -= _attribution;
+        unchecked {
+            attributions[msg.sender] -= _attribution;
+        }
         totalAttributions -= _attribution;
 
         if (available() < _retVal) {
-            uint256 _shortage = _retVal - available();
+            uint256 _shortage;
+            unchecked {
+                _shortage = _retVal - available();
+            }
             _unutilize(_shortage);
         }
 
@@ -332,7 +343,9 @@ contract Vault is IVault {
             "ERROR_TRANSFER-ATTRIBUTION_BADCONDITOONS"
         );
 
-        attributions[msg.sender] -= _amount;
+        unchecked {
+            attributions[msg.sender] -= _amount;
+        }
         attributions[_destination] += _amount;
     }
 

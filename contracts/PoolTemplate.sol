@@ -320,7 +320,9 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
         );
         //reduce requested amount
-        withdrawalReq[msg.sender].amount -= _amount;
+        unchecked {
+            withdrawalReq[msg.sender].amount -= _amount;
+        }
 
         //Burn iToken
         _burn(msg.sender, _amount);
@@ -336,8 +338,11 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @param _ids array of ids to unlock
      */
     function unlockBatch(uint256[] calldata _ids) external {
-        for (uint256 i = 0; i < _ids.length; i++) {
+        for (uint256 i = 0; i < _ids.length;) {
             unlock(_ids[i]);
+            unchecked {
+                ++i;
+            }
         }
     }
 
@@ -434,7 +439,9 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         //Withdraw liquidity
         if (_credit > 0) {
             totalCredit -= _credit;
-            _index.credit -= _credit;
+            unchecked {
+                _index.credit -= _credit;
+            }
             emit CreditDecrease(msg.sender, _credit);
         }
 
@@ -514,7 +521,9 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             true
         );
         insurances[_id] = _insurance;
-        allInsuranceCount += 1;
+        unchecked {
+            allInsuranceCount += 1;
+        }
 
         //Calculate liquidity for index
         if (_totalCredit > 0) {
@@ -667,9 +676,12 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         incident.merkleRoot = _merkleRoot;
         marketStatus = MarketStatus.Payingout;
         pendingEnd = block.timestamp + _pending;
-        for (uint256 i = 0; i < indexList.length; i++) {
+        for (uint256 i = 0; i < indexList.length;) {
             if (indicies[indexList[i]].credit > 0) {
                 IIndexTemplate(indexList[i]).lock();
+            }
+            unchecked {
+                ++i;
             }
         }
         emit CoverApplied(
@@ -700,7 +712,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 _deductionFromIndex = (_debt * _totalCredit * _MAGIC_SCALE_1E6) /
             totalLiquidity();
         uint256 _actualDeduction;
-        for (uint256 i = 0; i < indexList.length; i++) {
+        for (uint256 i = 0; i < indexList.length;) {
             address _index = indexList[i];
             uint256 _credit = indicies[_index].credit;
             if (_credit > 0) {
@@ -713,6 +725,9 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 _actualDeduction += IIndexTemplate(_index).compensate(
                     _redeemAmount
                 );
+            }
+            unchecked {
+                ++i;
             }
         }
 
@@ -940,7 +955,9 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         if (a < b) {
             return 0;
         } else {
-            return a - b;
+            unchecked {
+                return a - b;
+            }
         }
     }
 }

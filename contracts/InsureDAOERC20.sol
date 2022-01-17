@@ -252,7 +252,9 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
             "ERC20: transfer amount exceeds balance"
         );
 
-        _balances[sender] = senderBalance - amount;
+        unchecked {
+            _balances[sender] = senderBalance - amount;
+        }
 
         _balances[recipient] += amount;
 
@@ -300,7 +302,9 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
 
         uint256 accountBalance = _balances[account];
         require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
-        _balances[account] = accountBalance - amount;
+        unchecked {
+            _balances[account] = accountBalance - amount;
+        }
 
         _totalSupply -= amount;
 

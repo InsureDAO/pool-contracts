@@ -172,19 +172,25 @@ contract Factory is IFactory {
             );
         }
         if (_references.length > 0) {
-            for (uint256 i = 0; i < _references.length; i++) {
+            for (uint256 i = 0; i < _references.length;) {
                 require(
                     reflist[address(_template)][i][_references[i]] == true ||
                         reflist[address(_template)][i][address(0)] == true,
                     "ERROR: UNAUTHORIZED_REFERENCE"
                 );
+                unchecked {
+                    ++i;
+                }
             }
         }
 
         if (_conditions.length > 0) {
-            for (uint256 i = 0; i < _conditions.length; i++) {
+            for (uint256 i = 0; i < _conditions.length;) {
                 if (conditionlist[address(_template)][i] > 0) {
                     _conditions[i] = conditionlist[address(_template)][i];
+                }
+                unchecked {
+                    ++i;
                 }
             }
         }

@@ -276,7 +276,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             uint256 _targetAllocPoint;
             uint256 _targetLockedCreditScore;
             //Check which pool has the lowest available rate and keep stats
-            for (uint256 i = 0; i < _length; i++) {
+            for (uint256 i = 0; i < _length;) {
                 address _poolAddress = poolList[i];
                 uint256 _allocPoint = allocPoints[_poolAddress];
                 if (_allocPoint > 0) {
@@ -288,13 +288,19 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     if (_allocated > _availableBalance) {
                         uint256 _availableRate = (_availableBalance *
                         _MAGIC_SCALE_1E6) / _allocated;
-                        uint256 _lockedCredit = _allocated - _availableBalance;
+                        uint256 _lockedCredit;
+                        unchecked {
+                            _lockedCredit = _allocated - _availableBalance;
+                        }
                         if (i == 0 || _availableRate < _lowestAvailableRate) {
                             _lowestAvailableRate = _availableRate;
                             _targetLockedCreditScore = _lockedCredit;
                             _targetAllocPoint = _allocPoint;
                         }
                     }
+                }
+                unchecked {
+                    ++i;
                 }
             }
             //Calculate the return value
@@ -303,9 +309,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             } else {
                 uint256 _necessaryAmount = _targetLockedCreditScore * totalAllocPoint /  _targetAllocPoint;
                 _necessaryAmount = _necessaryAmount *  _MAGIC_SCALE_1E6 / targetLev;
-                if(_necessaryAmount < _totalLiquidity){
-                    _retVal = _totalLiquidity - _necessaryAmount;
-                }else{
+                if (_necessaryAmount < _totalLiquidity) {
+                    unchecked {
+                        _retVal = _totalLiquidity - _necessaryAmount;
+                    }
+                } else {
                     _retVal = 0;
                 }
             }
@@ -344,7 +352,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         PoolStatus[] memory _poolList = new PoolStatus[](_length);
 
         //Check each pool and if current credit allocation > target && it is impossible to adjust, then withdraw all availablle credit
-        for (uint256 i = 0; i < _length; i++) {
+        for (uint256 i = 0; i < _length;) {
             address _pool = poolList[i];
             if (_pool != address(0)) {
                 //never be false
@@ -376,9 +384,12 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     _poolList[i].allocation = _allocation;
                 }
             }
+            unchecked {
+                ++i;
+            }
         }
         //Check pools that was not falling under the previous criteria, then adjust to meet the target credit allocation.
-        for (uint256 i = 0; i < _length; i++) {
+        for (uint256 i = 0; i < _length;) {
             if (_poolList[i].addr != address(0)) {
                 //Target credit allocation for a pool
                 uint256 _target = (_allocatable * _poolList[i].allocation) /
@@ -390,19 +401,28 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 //Withdraw or Deposit credit
                 if (_current > _target && _available != 0) {
                     //if allocated credit is higher than the target, try to decrease
-                    uint256 _decrease = _current - _target;
+                    uint256 _decrease;
+                    unchecked {
+                        _decrease = _current - _target;
+                    }
                     IPoolTemplate(_poolList[i].addr).withdrawCredit(_decrease);
                     totalAllocatedCredit -= _decrease;
                 }
                 if (_current < _target) {
                     //Sometimes we need to allocate more
-                    uint256 _allocate = _target - _current;
+                    uint256 _allocate;
+                    unchecked {
+                        _allocate = _target - _current;
+                    }
                     IPoolTemplate(_poolList[i].addr).allocateCredit(_allocate);
                     totalAllocatedCredit += _allocate;
                 }
                 if (_current == _target) {
                     IPoolTemplate(_poolList[i].addr).allocateCredit(0);
                 }
+            }
+            unchecked {
+                ++i;
             }
         }
     }
@@ -438,7 +458,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             uint256 _shortage;
             if (totalLiquidity() < _amount) {
                 //Insolvency case
-                _shortage = _amount - _value;
+                unchecked {
+                    _shortage = _amount - _value;
+                }
                 uint256 _cds = ICDSTemplate(registry.getCDS(address(this)))
                     .compensate(_shortage);
                 _compensated = _value + _cds;
@@ -459,11 +481,14 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     function resume() external override {
         uint256 _poolLength = poolList.length;
 
-        for (uint256 i = 0; i < _poolLength; i++) {
+        for (uint256 i = 0; i < _poolLength;) {
             require(
                 IPoolTemplate(poolList[i]).paused() == false,
                 "ERROR: POOL_IS_PAUSED"
             );
+            unchecked {
+                ++i;
+            }
         }
 
         locked = false;
@@ -653,11 +678,14 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @return _totalValue accrued but yet claimed premium within underlying pools
      */
     function _accruedPremiums() internal view returns (uint256 _totalValue) {
-        for (uint256 i = 0; i < poolList.length; i++) {
+        for (uint256 i = 0; i < poolList.length;) {
             if (allocPoints[poolList[i]] > 0) {
                 _totalValue =
                     _totalValue +
                     IPoolTemplate(poolList[i]).pendingPremium(address(this));
+            }
+            unchecked {
+                ++i;
             }
         }
     }

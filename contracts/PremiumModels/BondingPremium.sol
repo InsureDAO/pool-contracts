@@ -43,7 +43,9 @@ contract BondingPremium is IPremiumModel {
         k = 200100000;
         c = 10000;
         b = 1000;
-        T_1 = 1000000 * DECIMAL;
+        unchecked {
+            T_1 = 1000000 * DECIMAL;
+        }
     }
 
     /***
@@ -133,10 +135,13 @@ contract BondingPremium is IPremiumModel {
         }
 
         uint256 _BASE = BASE;
-
-        uint256 u1 = _BASE - ((_lockedAmount * _BASE) / _totalLiquidity); //util rate before. 1000000 = 100.000%
-        uint256 u2 = _BASE -
-            (((_lockedAmount + _amount) * _BASE) / _totalLiquidity); //util rate after. 1000000 = 100.000%
+        uint256 u1;
+        uint256 u2;
+        unchecked {
+            u1 = _BASE - ((_lockedAmount * _BASE) / _totalLiquidity); //util rate before. 1000000 = 100.000%
+            u2 = _BASE -
+                (((_lockedAmount + _amount) * _BASE) / _totalLiquidity); //util rate after. 1000000 = 100.000%
+        }
 
         uint256 T_0 = _totalLiquidity;
         uint256 _T_1 = T_1;
@@ -185,7 +190,9 @@ contract BondingPremium is IPremiumModel {
 
         //(u1 area) - (u2 area) = premium rate between u1 and u2
         uint256 premiumRate = _premium_u1 - _premium_u2;
-        premiumRate = premiumRate / _T_1 / (u1 - u2) / _BASE;
+        unchecked {
+            premiumRate = premiumRate / _T_1 / (u1 - u2) / _BASE;
+        }
 
         return premiumRate;
     }
@@ -249,10 +256,12 @@ contract BondingPremium is IPremiumModel {
 
     function sqrt(uint256 x) internal pure returns (uint256 y) {
         uint256 z = (x + 1) / 2;
-        y = x;
-        while (z < y) {
-            y = z;
-            z = (x / z + z) / 2;
+        unchecked {
+            y = x;
+            while (z < y) {
+                y = z;
+                z = (x / z + z) / 2;
+            }
         }
     }
 }
