@@ -35,7 +35,7 @@ contract Vault is IVault {
     uint256 public balance; //balance of underlying token
     uint256 public totalDebt; //total debt balance. 1debt:1token
 
-    uint256 public constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
+    uint256 private constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
 
 
 

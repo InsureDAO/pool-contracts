@@ -24,9 +24,9 @@ contract BondingPremium is IPremiumModel {
     uint256 public T_1; //goal TVL (USDC)
 
     //constants
-    uint256 public constant DECIMAL = uint256(1e6); //Decimals of USDC
-    uint256 public constant BASE = uint256(1e6); //bonding curve graph takes 1e6 as 100.0000%
-    uint256 public constant BASE_x2 = uint256(1e12); //BASE^2
+    uint256 private constant DECIMAL = uint256(1e6); //Decimals of USDC
+    uint256 private constant BASE = uint256(1e6); //bonding curve graph takes 1e6 as 100.0000%
+    uint256 private constant BASE_x2 = uint256(1e12); //BASE^2
 
     modifier onlyOwner() {
         require(
