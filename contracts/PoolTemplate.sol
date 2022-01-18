@@ -301,13 +301,13 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             marketStatus == MarketStatus.Trading,
             "ERROR: WITHDRAWAL_PENDING"
         );
-        uint256 _lockup = parameters.getLockup(msg.sender);
+        uint256 _endTime = parameters.getLockup(msg.sender) + withdrawalReq[msg.sender].timestamp;
         require(
-            withdrawalReq[msg.sender].timestamp + _lockup < block.timestamp,
+            _endTime < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            withdrawalReq[msg.sender].timestamp + _lockup + parameters.getWithdrawable(msg.sender) > block.timestamp,
+            _endTime + parameters.getWithdrawable(msg.sender) > block.timestamp,
             "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
