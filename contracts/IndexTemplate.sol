@@ -678,7 +678,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @return _totalValue accrued but yet claimed premium within underlying pools
      */
     function _accruedPremiums() internal view returns (uint256 _totalValue) {
-        for (uint256 i; i < poolList.length;) {
+        uint256 poolLength = poolList.length;
+        for (uint256 i; i < poolLength;) {
             if (allocPoints[poolList[i]] != 0) {
                 _totalValue =
                     _totalValue +
