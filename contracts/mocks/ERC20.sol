@@ -109,11 +109,11 @@ contract ERC20 is IERC20 {
         uint256 amount
     ) public override returns (bool) {
         _transfer(sender, recipient, amount);
-        _approve(
-            sender,
-            msg.sender,
-            _allowances[sender][msg.sender].sub(amount)
-        );
+        uint256 allowance = _allowances[sender][msg.sender];
+        require(allowance >= amount, "ERC20: transfer amount exceeds allowance");
+        unchecked {
+            _approve(sender, msg.sender, allowance - amount);
+        }
         return true;
     }
 
@@ -136,7 +136,7 @@ contract ERC20 is IERC20 {
         _approve(
             msg.sender,
             spender,
-            _allowances[msg.sender][spender].add(addedValue)
+            _allowances[msg.sender][spender] + addedValue
         );
         return true;
     }
@@ -159,11 +159,11 @@ contract ERC20 is IERC20 {
         public
         returns (bool)
     {
-        _approve(
-            msg.sender,
-            spender,
-            _allowances[msg.sender][spender].sub(subtractedValue)
-        );
+        uint256 allowance = _allowances[msg.sender][spender];
+        require(allowance >= subtractedValue, "ERC20: decreased allowance below zero");
+        unchecked {
+            _approve(msg.sender, spender, allowance - subtractedValue);
+        }
         return true;
     }
 
@@ -189,8 +189,12 @@ contract ERC20 is IERC20 {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
 
-        _balances[sender] = _balances[sender].sub(amount);
-        _balances[recipient] = _balances[recipient].add(amount);
+        uint256 senderBalance = _balances[sender];
+        require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
+        unchecked {
+            _balances[sender] = senderBalance - amount;
+        }
+        _balances[recipient] += amount;
         emit Transfer(sender, recipient, amount);
     }
 
@@ -206,8 +210,8 @@ contract ERC20 is IERC20 {
     function _mint(address account, uint256 amount) internal {
         require(account != address(0), "ERC20: mint to the zero address");
 
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
+        _totalSupply += amount;
+        _balances[account] += amount;
         emit Transfer(address(0), account, amount);
     }
 
@@ -225,8 +229,12 @@ contract ERC20 is IERC20 {
     function _burn(address account, uint256 value) internal {
         require(account != address(0), "ERC20: burn from the zero address");
 
-        _totalSupply = _totalSupply.sub(value);
-        _balances[account] = _balances[account].sub(value);
+        uint256 accountBalance = _balances[account];
+        require(accountBalance >= value, "ERC20: burn amount exceeds balance");
+        unchecked {
+            _balances[account] = accountBalance - value;
+        }
+        _totalSupply -= value;
         emit Transfer(account, address(0), value);
     }
 
@@ -263,10 +271,10 @@ contract ERC20 is IERC20 {
      */
     function _burnFrom(address account, uint256 amount) internal {
         _burn(account, amount);
-        _approve(
-            account,
-            msg.sender,
-            _allowances[account][msg.sender].sub(amount)
-        );
+        uint256 allowance = _allowances[account][msg.sender];
+        require(allowance >= amount, "ERC20: burn amount exceeds allowance");
+        unchecked {
+            _approve(account, msg.sender, allowance - amount);
+        }
     }
 }

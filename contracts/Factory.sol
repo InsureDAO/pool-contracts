@@ -38,8 +38,6 @@ contract Factory is IFactory {
         uint256 target
     );
 
-    address[] public markets;
-
     struct Template {
         bool isOpen; //true if the market allows anyone to create a market
         bool approval; //true if the template exists
@@ -218,8 +216,6 @@ contract Factory is IFactory {
         );
 
         iRegistry.supportMarket(address(market));
-        
-        markets.push(address(market));
 
 
         //initialize
