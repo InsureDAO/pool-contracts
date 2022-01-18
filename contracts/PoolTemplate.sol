@@ -694,7 +694,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             _rawdata,
             _memo
         );
-        emit MarketStatusChanged(marketStatus);
+        emit MarketStatusChanged(MarketStatus.Payingout);
     }
 
     /**
