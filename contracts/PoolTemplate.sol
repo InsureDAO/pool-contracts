@@ -632,7 +632,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     function getPremium(uint256 _amount, uint256 _span)
         public
         view
-        returns (uint256 premium)
+        returns (uint256)
     {
         return
             parameters.getPremium(
@@ -846,7 +846,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         public
         view
         override
-        returns (uint256 _balance)
+        returns (uint256)
     {
         if (totalLiquidity() != 0) {
             return totalLiquidity() - lockedAmount;
@@ -859,7 +859,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @notice Returns the utilization rate for this pool. Scaled by 1e6 (100% = 1e6)
      * @return _rate utilization rate
      */
-    function utilizationRate() external view override returns (uint256 _rate) {
+    function utilizationRate() external view override returns (uint256) {
         uint256 _lockedAmount = lockedAmount;
         if (_lockedAmount != 0) {
             return (_lockedAmount * MAGIC_SCALE_1E6) / totalLiquidity();
@@ -872,7 +872,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @notice Pool's Liquidity + Liquidity from Index (how much can the pool sell cover)
      * @return _balance total liquidity of this pool
      */
-    function totalLiquidity() public view override returns (uint256 _balance) {
+    function totalLiquidity() public view override returns (uint256) {
         return originalLiquidity() + totalCredit;
     }
 
@@ -880,7 +880,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @notice Pool's Liquidity
      * @return _balance total liquidity of this pool
      */
-    function originalLiquidity() public view returns (uint256 _balance) {
+    function originalLiquidity() public view returns (uint256) {
         return
             vault.underlyingValue(address(this)) -
             vault.attributionValue(attributionDebt);

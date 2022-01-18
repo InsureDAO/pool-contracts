@@ -512,7 +512,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice get the current leverage rate 1e6x
      * @return _rate leverage rate
      */
-    function leverage() external view returns (uint256 _rate) {
+    function leverage() external view returns (uint256) {
         //check current leverage rate
         if (totalLiquidity() != 0) {
             return (totalAllocatedCredit * MAGIC_SCALE_1E6) / totalLiquidity();
@@ -525,7 +525,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice total Liquidity of the pool (how much can the pool sell cover)
      * @return _balance total liquidity of the pool
      */
-    function totalLiquidity() public view returns (uint256 _balance) {
+    function totalLiquidity() public view returns (uint256) {
         return vault.underlyingValue(address(this)) + _accruedPremiums();
     }
 
