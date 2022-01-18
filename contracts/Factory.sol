@@ -5,7 +5,7 @@
  * SPDX-License-Identifier: GPL-3.0
  */
 
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IUniversalMarket.sol";
