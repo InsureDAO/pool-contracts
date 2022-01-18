@@ -17,7 +17,7 @@ contract Registry is IRegistry {
     mapping(address => mapping(address => bool)) existence; //true if the certain id is already registered in market
     address[] allMarkets;
 
-    IOwnership public ownership;
+    IOwnership public immutable ownership;
 
     modifier onlyOwner() {
         require(

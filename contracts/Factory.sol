@@ -64,8 +64,8 @@ contract Factory is IFactory {
     // Example condition list for pool template v1
     // conditions[0] = minimim deposit amount
 
-    address public registry;
-    IOwnership public ownership;
+    address public immutable registry;
+    IOwnership public immutable ownership;
 
     modifier onlyOwner() {
         require(

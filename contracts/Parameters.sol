@@ -26,7 +26,7 @@ contract Parameters is IParameters {
     event ConditionSet(bytes32 indexed ref, bytes32 condition);
     event MaxListSet(address target, uint256 max);
 
-    address public ownership;
+    address public immutable ownership;
 
     mapping(address => address) private _vaults; //address of the vault contract for each token
     mapping(address => uint256) private _fee; //fee rate in 1e6 (100% = 1e6)

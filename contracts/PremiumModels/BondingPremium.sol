@@ -14,7 +14,7 @@ contract BondingPremium is IPremiumModel {
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
 
-    IOwnership public ownership;
+    IOwnership public immutable ownership;
 
     //variables
     uint256 public k; //final curve rate of the dynamic pricing
