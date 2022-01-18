@@ -419,8 +419,9 @@ contract Vault is IVault {
         override
         returns (uint256)
     {
-        if (attributions[_target] != 0) {
-            return (valueAll() * attributions[_target]) / totalAttributions;
+        uint256 _attribution = attributions[_target];
+        if (_attribution != 0) {
+            return (valueAll() * _attribution) / totalAttributions;
         } else {
             return 0;
         }
