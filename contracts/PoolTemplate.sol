@@ -514,7 +514,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         //Lock covered amount
         uint256 _id = allInsuranceCount;
         lockedAmount += _amount;
-        Insurance memory _insurance = Insurance(
+        insurances[_id] = Insurance(
             _id,
             block.timestamp,
             _endTime,
@@ -523,7 +523,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             msg.sender,
             true
         );
-        insurances[_id] = _insurance;
         unchecked {
             allInsuranceCount += 1;
         }
