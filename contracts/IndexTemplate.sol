@@ -347,6 +347,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _targetCredit = (targetLev * _liquidity) / MAGIC_SCALE_1E6;
         uint256 _allocatable = _targetCredit;
         uint256 _allocatablePoints = totalAllocPoint;
+        uint256 _totalAllocatedCredit = totalAllocatedCredit;
         uint256 _length = poolList.length;
         PoolStatus[] memory _poolList = new PoolStatus[](_length);
 
@@ -372,7 +373,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     IPoolTemplate(_pool).paused() == true
                 ) {
                     IPoolTemplate(_pool).withdrawCredit(_available);
-                    totalAllocatedCredit -= _available;
+                    _totalAllocatedCredit -= _available;
                     _poolList[i].addr = address(0);
                     _allocatable -= _current - _available;
                     _allocatablePoints -= _allocation;
@@ -405,7 +406,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                         _decrease = _current - _target;
                     }
                     IPoolTemplate(_poolList[i].addr).withdrawCredit(_decrease);
-                    totalAllocatedCredit -= _decrease;
+                    _totalAllocatedCredit -= _decrease;
                 }
                 if (_current < _target) {
                     //Sometimes we need to allocate more
@@ -414,7 +415,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                         _allocate = _target - _current;
                     }
                     IPoolTemplate(_poolList[i].addr).allocateCredit(_allocate);
-                    totalAllocatedCredit += _allocate;
+                    _totalAllocatedCredit += _allocate;
                 }
                 if (_current == _target) {
                     IPoolTemplate(_poolList[i].addr).allocateCredit(0);
@@ -424,6 +425,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 ++i;
             }
         }
+
+        totalAllocatedCredit = _totalAllocatedCredit;
     }
 
     /**
