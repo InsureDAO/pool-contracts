@@ -267,7 +267,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     function withdrawable() public view returns (uint256 _retVal) {
         uint256 _totalLiquidity = totalLiquidity();
         uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
-        if(_totalLiquidity != 0){
+        if (_totalLiquidity != 0) {
             uint256 _length = poolList.length;
             uint256 _lowestAvailableRate = _MAGIC_SCALE_1E6;
             uint256 _targetAllocPoint;
@@ -289,7 +289,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                         unchecked {
                             _lockedCredit = _allocated - _availableBalance;
                         }
-                        if (i == 0 || _availableRate < _lowestAvailableRate) {
+                        if (_availableRate < _lowestAvailableRate || i == 0) {
                             _lowestAvailableRate = _availableRate;
                             _targetLockedCreditScore = _lockedCredit;
                             _targetAllocPoint = _allocPoint;
