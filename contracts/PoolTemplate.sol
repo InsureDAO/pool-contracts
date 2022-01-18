@@ -6,8 +6,6 @@ pragma solidity 0.8.10;
  * SPDX-License-Identifier: GPL-3.0
  */
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "./InsureDAOERC20.sol";
 import "./interfaces/IPoolTemplate.sol";
