@@ -1,7 +1,6 @@
 pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
  * @dev Implementation of the `IERC20` interface.
@@ -27,8 +26,6 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
  * allowances. See `IERC20.approve`.
  */
 contract ERC20 is IERC20 {
-    using SafeMath for uint256;
-
     mapping(address => uint256) private _balances;
 
     mapping(address => mapping(address => uint256)) private _allowances;
