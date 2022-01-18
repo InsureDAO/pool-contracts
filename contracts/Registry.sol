@@ -99,10 +99,11 @@ contract Registry is IRegistry {
      * @return true if the id within the market already exists
      */
     function getCDS(address _address) external view override returns (address) {
-        if (cds[_address] == address(0)) {
+        address _addr = cds[_address];
+        if (_addr == address(0)) {
             return cds[address(0)];
         } else {
-            return cds[_address];
+            return _addr;
         }
     }
 
