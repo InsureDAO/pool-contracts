@@ -89,8 +89,8 @@ contract Vault is IVault {
     function addValueBatch(
         uint256 _amount,
         address _from,
-        address[2] memory _beneficiaries,
-        uint256[2] memory _shares
+        address[2] calldata _beneficiaries,
+        uint256[2] calldata _shares
     ) external override onlyMarket returns (uint256[2] memory _allocations) {
         
         require(_shares[0] + _shares[1] == 1000000, "ERROR_INCORRECT_SHARE");
