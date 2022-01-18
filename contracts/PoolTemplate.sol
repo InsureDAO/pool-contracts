@@ -279,9 +279,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @param _amount amount of iTokens to burn
      */
     function requestWithdraw(uint256 _amount) external {
-        uint256 _balance = balanceOf(msg.sender);
-        require(_balance >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
         require(_amount != 0, "ERROR: REQUEST_ZERO");
+        require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
         withdrawalReq[msg.sender].timestamp = block.timestamp;
         withdrawalReq[msg.sender].amount = _amount;
         emit WithdrawRequested(msg.sender, _amount, block.timestamp);
