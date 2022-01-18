@@ -397,16 +397,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 //get how much liquidty is available to withdraw
                 uint256 _available = _poolList[i].available;
                 //Withdraw or Deposit credit
-                if (_current > _target && _available != 0) {
-                    //if allocated credit is higher than the target, try to decrease
-                    uint256 _decrease;
-                    unchecked {
-                        _decrease = _current - _target;
-                    }
-                    IPoolTemplate(_poolList[i].addr).withdrawCredit(_decrease);
-                    _totalAllocatedCredit -= _decrease;
-                }
-                if (_current < _target) {
+                if (_current == _target) {
+                    IPoolTemplate(_poolList[i].addr).allocateCredit(0);
+                } else if (_current < _target) {
                     //Sometimes we need to allocate more
                     uint256 _allocate;
                     unchecked {
@@ -414,9 +407,14 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     }
                     IPoolTemplate(_poolList[i].addr).allocateCredit(_allocate);
                     _totalAllocatedCredit += _allocate;
-                }
-                if (_current == _target) {
-                    IPoolTemplate(_poolList[i].addr).allocateCredit(0);
+                } else if (_current > _target && _available != 0) {
+                    //if allocated credit is higher than the target, try to decrease
+                    uint256 _decrease;
+                    unchecked {
+                        _decrease = _current - _target;
+                    }
+                    IPoolTemplate(_poolList[i].addr).withdrawCredit(_decrease);
+                    _totalAllocatedCredit -= _decrease;
                 }
             }
             unchecked {
