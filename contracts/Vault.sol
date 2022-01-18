@@ -106,7 +106,7 @@ contract Vault is IVault {
 
         balance += _amount;
         totalAttributions += _attributions;
-        for (uint128 i = 0; i < 2;) {
+        for (uint128 i; i < 2;) {
             uint256 _allocation = (_shares[i] * _attributions) / MAGIC_SCALE_1E6;
             attributions[_beneficiaries[i]] += _allocation;
             _allocations[i] = _allocation;

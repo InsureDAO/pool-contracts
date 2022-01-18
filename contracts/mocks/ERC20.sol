@@ -109,10 +109,10 @@ contract ERC20 is IERC20 {
         uint256 amount
     ) public override returns (bool) {
         _transfer(sender, recipient, amount);
-        uint256 allowance = _allowances[sender][msg.sender];
-        require(allowance >= amount, "ERC20: transfer amount exceeds allowance");
+        uint256 currentAllowance = _allowances[sender][msg.sender];
+        require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
         unchecked {
-            _approve(sender, msg.sender, allowance - amount);
+            _approve(sender, msg.sender, currentAllowance - amount);
         }
         return true;
     }
@@ -159,10 +159,10 @@ contract ERC20 is IERC20 {
         public
         returns (bool)
     {
-        uint256 allowance = _allowances[msg.sender][spender];
-        require(allowance >= subtractedValue, "ERC20: decreased allowance below zero");
+        uint256 currentAllowance = _allowances[msg.sender][spender];
+        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
         unchecked {
-            _approve(msg.sender, spender, allowance - subtractedValue);
+            _approve(msg.sender, spender, currentAllowance - subtractedValue);
         }
         return true;
     }
@@ -271,10 +271,10 @@ contract ERC20 is IERC20 {
      */
     function _burnFrom(address account, uint256 amount) internal {
         _burn(account, amount);
-        uint256 allowance = _allowances[account][msg.sender];
-        require(allowance >= amount, "ERC20: burn amount exceeds allowance");
+        uint256 currentAllowance = _allowances[account][msg.sender];
+        require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
         unchecked {
-            _approve(account, msg.sender, allowance - amount);
+            _approve(account, msg.sender, currentAllowance - amount);
         }
     }
 }

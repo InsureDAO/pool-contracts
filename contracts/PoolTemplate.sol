@@ -338,7 +338,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @param _ids array of ids to unlock
      */
     function unlockBatch(uint256[] calldata _ids) external {
-        for (uint256 i = 0; i < _ids.length;) {
+        for (uint256 i; i < _ids.length;) {
             unlock(_ids[i]);
             unchecked {
                 ++i;
@@ -674,7 +674,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         incident.merkleRoot = _merkleRoot;
         marketStatus = MarketStatus.Payingout;
         pendingEnd = block.timestamp + _pending;
-        for (uint256 i = 0; i < indexList.length;) {
+        for (uint256 i; i < indexList.length;) {
             if (indicies[indexList[i]].credit != 0) {
                 IIndexTemplate(indexList[i]).lock();
             }
@@ -710,7 +710,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 _deductionFromIndex = (_debt * _totalCredit * _MAGIC_SCALE_1E6) /
             totalLiquidity();
         uint256 _actualDeduction;
-        for (uint256 i = 0; i < indexList.length;) {
+        for (uint256 i; i < indexList.length;) {
             address _index = indexList[i];
             uint256 _credit = indicies[_index].credit;
             if (_credit != 0) {

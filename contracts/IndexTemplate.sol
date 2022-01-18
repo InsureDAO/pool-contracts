@@ -276,7 +276,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             uint256 _targetAllocPoint;
             uint256 _targetLockedCreditScore;
             //Check which pool has the lowest available rate and keep stats
-            for (uint256 i = 0; i < _length;) {
+            for (uint256 i; i < _length;) {
                 address _poolAddress = poolList[i];
                 uint256 _allocPoint = allocPoints[_poolAddress];
                 if (_allocPoint != 0) {
@@ -352,7 +352,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         PoolStatus[] memory _poolList = new PoolStatus[](_length);
 
         //Check each pool and if current credit allocation > target && it is impossible to adjust, then withdraw all availablle credit
-        for (uint256 i = 0; i < _length;) {
+        for (uint256 i; i < _length;) {
             address _pool = poolList[i];
             if (_pool != address(0)) {
                 //never be false
@@ -389,7 +389,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             }
         }
         //Check pools that was not falling under the previous criteria, then adjust to meet the target credit allocation.
-        for (uint256 i = 0; i < _length;) {
+        for (uint256 i; i < _length;) {
             if (_poolList[i].addr != address(0)) {
                 //Target credit allocation for a pool
                 uint256 _target = (_allocatable * _poolList[i].allocation) /
@@ -481,7 +481,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     function resume() external override {
         uint256 _poolLength = poolList.length;
 
-        for (uint256 i = 0; i < _poolLength;) {
+        for (uint256 i; i < _poolLength;) {
             require(
                 IPoolTemplate(poolList[i]).paused() == false,
                 "ERROR: POOL_IS_PAUSED"
@@ -678,7 +678,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @return _totalValue accrued but yet claimed premium within underlying pools
      */
     function _accruedPremiums() internal view returns (uint256 _totalValue) {
-        for (uint256 i = 0; i < poolList.length;) {
+        for (uint256 i; i < poolList.length;) {
             if (allocPoints[poolList[i]] != 0) {
                 _totalValue =
                     _totalValue +

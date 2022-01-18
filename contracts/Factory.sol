@@ -170,7 +170,7 @@ contract Factory is IFactory {
             );
         }
         if (_references.length != 0) {
-            for (uint256 i = 0; i < _references.length;) {
+            for (uint256 i; i < _references.length;) {
                 require(
                     reflist[address(_template)][i][_references[i]] == true ||
                         reflist[address(_template)][i][address(0)] == true,
@@ -183,7 +183,7 @@ contract Factory is IFactory {
         }
 
         if (_conditions.length != 0) {
-            for (uint256 i = 0; i < _conditions.length;) {
+            for (uint256 i; i < _conditions.length;) {
                 if (conditionlist[address(_template)][i] != 0) {
                     _conditions[i] = conditionlist[address(_template)][i];
                 }
