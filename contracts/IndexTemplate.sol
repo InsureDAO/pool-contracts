@@ -304,8 +304,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             if (_lowestAvailableRate == _MAGIC_SCALE_1E6) {
                 _retVal = _totalLiquidity;
             } else {
-                uint256 _necessaryAmount = _targetLockedCreditScore * totalAllocPoint /  _targetAllocPoint;
-                _necessaryAmount = _necessaryAmount *  _MAGIC_SCALE_1E6 / targetLev;
+                uint256 _necessaryAmount = _targetLockedCreditScore * totalAllocPoint * MAGIC_SCALE_1E6
+                    / (_targetAllocPoint * targetLev);
                 if (_necessaryAmount < _totalLiquidity) {
                     unchecked {
                         _retVal = _totalLiquidity - _necessaryAmount;
