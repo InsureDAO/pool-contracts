@@ -111,7 +111,7 @@ contract Vault is IVault {
         attributions[_beneficiaries[0]] += _allocation;
         _allocations[0] = _allocation;
 
-        uint256 _allocation = (_shares[1] * _attributions) / MAGIC_SCALE_1E6;
+        _allocation = (_shares[1] * _attributions) / MAGIC_SCALE_1E6;
         attributions[_beneficiaries[1]] += _allocation;
         _allocations[1] = _allocation;
     }
