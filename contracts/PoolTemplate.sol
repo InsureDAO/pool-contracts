@@ -560,7 +560,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             marketStatus == MarketStatus.Payingout,
             "ERROR: NO_APPLICABLE_INCIDENT"
         );
-        Insurance storage _insurance = insurances[_id];
+        Insurance memory _insurance = insurances[_id];
         require(_insurance.status, "ERROR: INSURANCE_NOT_ACTIVE");
         require(_insurance.insured == msg.sender, "ERROR: NOT_YOUR_INSURANCE");
         uint256 _incidentTimestamp = incident.incidentTimestamp;
@@ -585,7 +585,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 ),
             "ERROR: INSURANCE_EXEMPTED"
         );
-        _insurance.status = false;
+        insurances[_id].status = false;
         lockedAmount -= _insurance.amount;
 
         uint256 _payoutNumerator = incident.payoutNumerator;
