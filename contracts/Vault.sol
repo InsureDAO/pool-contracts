@@ -205,10 +205,12 @@ contract Vault is IVault {
      * @param _to borrower's address
      */
     function borrowValue(uint256 _amount, address _to) external onlyMarket override {
-        debts[msg.sender] += _amount;
-        totalDebt += _amount;
+        if (_amount != 0) {
+            debts[msg.sender] += _amount;
+            totalDebt += _amount;
 
-        IERC20(token).safeTransfer(_to, _amount);
+            IERC20(token).safeTransfer(_to, _amount);
+        }
     }
 
     /**
