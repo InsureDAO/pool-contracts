@@ -273,8 +273,6 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
             return
                 (vault.attributionValue(crowdPool) * MAGIC_SCALE_1E6) /
                 totalSupply();
-        } else {
-            return 0;
         }
     }
 
@@ -285,11 +283,8 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      */
     function valueOfUnderlying(address _owner) external view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
-        if (_balance == 0) {
-            return 0;
-        } else {
-            return
-                _balance * vault.attributionValue(crowdPool) / totalSupply();
+        if (_balance != 0) {
+            return _balance * vault.attributionValue(crowdPool) / totalSupply();
         }
     }
 
