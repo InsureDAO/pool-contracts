@@ -154,8 +154,6 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
         address recipient,
         uint256 amount
     ) external virtual override returns (bool) {
-        _transfer(sender, recipient, amount);
-
         uint256 currentAllowance = _allowances[sender][msg.sender];
         if (currentAllowance != type(uint256).max) {
             require(
@@ -165,6 +163,8 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
 
             _approve(sender, msg.sender, currentAllowance - amount);
         }
+
+        _transfer(sender, recipient, amount);
 
         return true;
     }
