@@ -133,18 +133,14 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         uint256 _supply = totalSupply();
 
         crowdPool += vault.addValue(_amount, msg.sender, address(this)); //increase attribution
-        
-        if (_supply != 0 && _liquidity != 0) {
-            _mintAmount = (_amount * _supply) / _liquidity;
-        } else if (_supply != 0 && _liquidity == 0) {
-            //when vault lose all underwritten asset = 
-            _mintAmount = _amount * _supply; //dilute LP token value af. Start CDS again.
+
+        if (_supply != 0) {
+            _mintAmount = _liquidity == 0 ? _amount * _supply : (_amount * _supply) / _liquidity;
         } else {
-            //when _supply == 0,
             _mintAmount = _amount;
         }
 
-        emit Deposit(msg.sender, _amount, _mintAmount);
+    emit Deposit(msg.sender, _amount, _mintAmount);
 
         //mint iToken
         _mint(msg.sender, _mintAmount);
