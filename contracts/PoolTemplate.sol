@@ -292,12 +292,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return _retVal the amount underlying tokens returned
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
-        uint256 _supply = totalSupply();
-        require(_supply != 0, "ERROR: NO_AVAILABLE_LIQUIDITY");
-
-        uint256 _liquidity = originalLiquidity();
-        _retVal = (_amount * _liquidity) / _supply;
-
         require(
             marketStatus == MarketStatus.Trading,
             "ERROR: WITHDRAWAL_PENDING"
@@ -320,6 +314,13 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             _retVal <= availableBalance(),
             "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
         );
+
+        uint256 _supply = totalSupply();
+        require(_supply != 0, "ERROR: NO_AVAILABLE_LIQUIDITY");
+
+        uint256 _liquidity = originalLiquidity();
+        _retVal = (_amount * _liquidity) / _supply;
+
         //reduce requested amount
         unchecked {
             withdrawalReq[msg.sender].amount -= _amount;
@@ -423,14 +424,15 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         returns (uint256 _pending)
     {
         IndexInfo storage _index = indicies[msg.sender];
-        uint256 _rewardPerCredit = rewardPerCredit;
-        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
         require(
             IRegistry(registry).isListed(msg.sender) &&
-                _index.credit >= _credit &&
-                _credit <= availableBalance(),
+            _index.credit >= _credit &&
+            _credit <= availableBalance(),
             "ERROR: WITHDRAW_CREDIT_BAD_CONDITIONS"
         );
+
+        uint256 _rewardPerCredit = rewardPerCredit;
+        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
 
         //calculate acrrued premium
         _pending = _sub(
@@ -475,28 +477,27 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 _span,
         bytes32 _target
     ) external returns (uint256) {
-        //Distribute premium and fee
-        uint256 _endTime = _span + block.timestamp;
-        uint256 _premium = getPremium(_amount, _span);
-        uint256 _fee = parameters.getFeeRate(msg.sender);
-        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
-
         require(
             _amount <= availableBalance(),
             "ERROR: INSURE_EXCEEDED_AVAILABLE_BALANCE"
         );
+        //Distribute premium and fee
+        uint256 _premium = getPremium(_amount, _span);
         require(_premium <= _maxCost, "ERROR: INSURE_EXCEEDED_MAX_COST");
         require(_span <= 365 days, "ERROR: INSURE_EXCEEDED_MAX_SPAN");
         require(
             parameters.getMinDate(msg.sender) <= _span,
             "ERROR: INSURE_SPAN_BELOW_MIN"
         );
-
         require(
             marketStatus == MarketStatus.Trading,
             "ERROR: INSURE_MARKET_PENDING"
         );
         require(paused == false, "ERROR: INSURE_MARKET_PAUSED");
+
+        uint256 _endTime = _span + block.timestamp;
+        uint256 _fee = parameters.getFeeRate(msg.sender);
+        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
 
         //current liquidity
         uint256 _liquidity = totalLiquidity();
@@ -555,23 +556,20 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * Ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/MerkleProof.sol
      */
     function redeem(uint256 _id, bytes32[] calldata _merkleProof) external {
-        Insurance storage _insurance = insurances[_id];
-        require(_insurance.status == true, "ERROR: INSURANCE_NOT_ACTIVE");
-
-        uint256 _payoutNumerator = incident.payoutNumerator;
-        uint256 _payoutDenominator = incident.payoutDenominator;
-        uint256 _incidentTimestamp = incident.incidentTimestamp;
-        bytes32 _targets = incident.merkleRoot;
-
         require(
             marketStatus == MarketStatus.Payingout,
             "ERROR: NO_APPLICABLE_INCIDENT"
         );
+        Insurance storage _insurance = insurances[_id];
+        require(_insurance.status == true, "ERROR: INSURANCE_NOT_ACTIVE");
         require(_insurance.insured == msg.sender, "ERROR: NOT_YOUR_INSURANCE");
+        uint256 _incidentTimestamp = incident.incidentTimestamp;
         require(
             _insurance.startTime <= _incidentTimestamp && _insurance.endTime >= _incidentTimestamp,
             "ERROR: INSURANCE_NOT_APPLICABLE"
         );
+
+        bytes32 _targets = incident.merkleRoot;
         require(
             MerkleProof.verify(
                 _merkleProof,
@@ -590,6 +588,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         _insurance.status = false;
         lockedAmount -= _insurance.amount;
 
+        uint256 _payoutNumerator = incident.payoutNumerator;
+        uint256 _payoutDenominator = incident.payoutDenominator;
         uint256 _payoutAmount = (_insurance.amount * _payoutNumerator) /
             _payoutDenominator;
 
