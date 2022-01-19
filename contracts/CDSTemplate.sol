@@ -103,11 +103,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
 
         initialized = true;
 
-        string memory _name = "InsureDAO-CDS";
-        string memory _symbol = "iCDS";
-        uint8 _decimals = IERC20Metadata(_references[0]).decimals();
-
-        initializeToken(_name, _symbol, _decimals);
+        initializeToken("InsureDAO-CDS", "iCDS", IERC20Metadata(_references[0]).decimals());
 
         parameters = IParameters(_references[2]);
         vault = IVault(parameters.getVault(_references[0]));
@@ -242,7 +238,6 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         
         uint256 _available = vault.underlyingValue(address(this));
         uint256 _crowdAttribution = crowdPool;
-        uint256 _surplusAttribution = surplusPool;
         uint256 _attributionLoss;
 
         _compensated = _available >= _amount ? _amount : _available;
@@ -251,7 +246,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
 
         uint256 _crowdPoolLoss = 
             (_crowdAttribution * _attributionLoss) /
-            (_crowdAttribution + _surplusAttribution);
+            (_crowdAttribution + surplusPool);
 
         crowdPool -= _crowdPoolLoss;
         surplusPool -= (_attributionLoss - _crowdPoolLoss);
