@@ -74,7 +74,7 @@ contract BondingPremium is IPremiumModel {
         uint256 _premiumRate;
 
         uint256 _T_1 = T_1;
-        uint256 T_0 = _totalLiquidity > _T_1 ? _totalLiquidity : _T_1;
+        uint256 T_0 = _totalLiquidity > _T_1 ? _T_1 : _totalLiquidity;
 
         uint256 _k = k;
         uint256 _b = b;
@@ -140,7 +140,7 @@ contract BondingPremium is IPremiumModel {
         }
 
         uint256 _T_1 = T_1;
-        uint256 T_0 = _totalLiquidity > _T_1 ? _totalLiquidity : _T_1;
+        uint256 T_0 = _totalLiquidity > _T_1 ? _T_1 : _totalLiquidity;
 
         uint256 _k = k;
         uint256 _BASE_x2 = BASE_x2;

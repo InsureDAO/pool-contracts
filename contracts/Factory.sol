@@ -154,9 +154,9 @@ contract Factory is IFactory {
      */
     function createMarket(
         IUniversalMarket _template,
-        string memory _metaData,
+        string calldata _metaData,
         uint256[] memory _conditions,
-        address[] memory _references
+        address[] calldata _references
     ) external override returns (address) {
         //check eligibility
         require(

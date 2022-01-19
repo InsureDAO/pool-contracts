@@ -742,7 +742,7 @@ describe("Pool", function () {
     await parameters.setWithdrawable(ZERO_ADDRESS, "2592000");
     await parameters.setVault(usdc.address, vault.address);
 
-    await factory.createMarket(
+    let tx = await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
       [0, 0], //deposit 0 USDC
@@ -754,8 +754,8 @@ describe("Pool", function () {
         gov.address,
       ]
     );
-
-    const marketAddress = await factory.markets(0);
+    let receipt = await tx.wait();
+    const marketAddress = receipt.events[2].args[0];
     market = await PoolTemplate.attach(marketAddress);
   });
 
