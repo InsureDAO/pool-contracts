@@ -310,16 +310,16 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
         );
         require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
-        require(
-            _retVal <= availableBalance(),
-            "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
-        );
 
         uint256 _supply = totalSupply();
         require(_supply != 0, "ERROR: NO_AVAILABLE_LIQUIDITY");
 
         uint256 _liquidity = originalLiquidity();
         _retVal = (_amount * _liquidity) / _supply;
+        require(
+            _retVal <= availableBalance(),
+            "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
+        );
 
         //reduce requested amount
         unchecked {
