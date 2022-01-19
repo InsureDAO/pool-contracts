@@ -125,7 +125,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         address[] calldata _references
     ) external override {
         require(
-            initialized == false &&
+            !initialized &&
                 bytes(_metaData).length != 0 &&
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
@@ -158,7 +158,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @return _mintAmount the amount of iToken minted from the transaction
      */
     function deposit(uint256 _amount) external returns (uint256 _mintAmount) {
-        require(locked == false && paused == false, "ERROR: DEPOSIT_DISABLED");
+        require(!locked && !paused, "ERROR: DEPOSIT_DISABLED");
         require(_amount != 0, "ERROR: DEPOSIT_ZERO");
 
         uint256 _supply = totalSupply();
@@ -210,14 +210,13 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _lockup = parameters.getLockup(msg.sender);
         uint256 _requestTime = withdrawalReq[msg.sender].timestamp;
         _retVal = (_liquidty * _amount) / totalSupply();
-        require(locked == false, "ERROR: WITHDRAWAL_PENDING");
+        require(!locked, "ERROR: WITHDRAWAL_PENDING");
         require(
             _requestTime + _lockup < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            _requestTime + _lockup + parameters.getWithdrawable(msg.sender) >
-                block.timestamp,
+            _requestTime + _lockup + parameters.getWithdrawable(msg.sender) > block.timestamp,
             "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
@@ -369,7 +368,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 //Otherwise, skip.
                 if (
                     (_current > _target && _current - _target > _available) ||
-                    IPoolTemplate(_pool).paused() == true
+                    IPoolTemplate(_pool).paused()
                 ) {
                     IPoolTemplate(_pool).withdrawCredit(_available);
                     _totalAllocatedCredit -= _available;
@@ -482,7 +481,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         for (uint256 i; i < _poolLength;) {
             require(
-                IPoolTemplate(poolList[i]).paused() == false,
+                !(IPoolTemplate(poolList[i]).paused()),
                 "ERROR: POOL_IS_PAUSED"
             );
             unchecked {

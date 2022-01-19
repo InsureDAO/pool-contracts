@@ -179,7 +179,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         address[] calldata _references
     ) external override {
         require(
-            initialized == false &&
+            !initialized &&
                 bytes(_metaData).length != 0 &&
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
@@ -229,7 +229,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      */
     function deposit(uint256 _amount) external returns (uint256 _mintAmount) {
         require(
-            marketStatus == MarketStatus.Trading && paused == false,
+            marketStatus == MarketStatus.Trading && !paused,
             "ERROR: DEPOSIT_DISABLED"
         );
         require(_amount != 0, "ERROR: DEPOSIT_ZERO");
@@ -259,7 +259,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             "ERROR: DEPOSIT_DISABLED(1)"
         );
         require(
-            paused == false,
+            !paused,
             "ERROR: DEPOSIT_DISABLED(2)"
         );
         require(_amount != 0, "ERROR: DEPOSIT_ZERO");
@@ -355,13 +355,13 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      */
     function unlock(uint256 _id) public {
         require(
-            insurances[_id].status == true &&
+            insurances[_id].status &&
                 marketStatus == MarketStatus.Trading &&
                 insurances[_id].endTime + parameters.getGrace(msg.sender) <
                 block.timestamp,
             "ERROR: UNLOCK_BAD_COINDITIONS"
         );
-        insurances[_id].status == false;
+        insurances[_id].status = false;
 
         lockedAmount = lockedAmount - insurances[_id].amount;
 
@@ -390,7 +390,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         IndexInfo storage _index = indicies[msg.sender];
         uint256 _rewardPerCredit = rewardPerCredit;
         uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
-        if (_index.exist == false) {
+        if (!_index.exist) {
             _index.exist = true;
             indexList.push(msg.sender);
         } else if (_index.credit != 0) {
@@ -493,7 +493,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             marketStatus == MarketStatus.Trading,
             "ERROR: INSURE_MARKET_PENDING"
         );
-        require(paused == false, "ERROR: INSURE_MARKET_PAUSED");
+        require(!paused, "ERROR: INSURE_MARKET_PAUSED");
 
         uint256 _endTime = _span + block.timestamp;
         uint256 _fee = parameters.getFeeRate(msg.sender);
@@ -561,7 +561,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             "ERROR: NO_APPLICABLE_INCIDENT"
         );
         Insurance storage _insurance = insurances[_id];
-        require(_insurance.status == true, "ERROR: INSURANCE_NOT_ACTIVE");
+        require(_insurance.status, "ERROR: INSURANCE_NOT_ACTIVE");
         require(_insurance.insured == msg.sender, "ERROR: NOT_YOUR_INSURANCE");
         uint256 _incidentTimestamp = incident.incidentTimestamp;
         require(
@@ -616,7 +616,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             _to != address(0) &&
                 insurance.insured == msg.sender &&
                 insurance.endTime >= block.timestamp &&
-                insurance.status == true,
+                insurance.status,
             "ERROR: INSURANCE_TRANSFER_BAD_CONDITIONS"
         );
 
@@ -668,7 +668,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         string calldata _rawdata,
         string calldata _memo
     ) external override onlyOwner {
-        require(paused == false, "ERROR: UNABLE_TO_APPLY");
+        require(!paused, "ERROR: UNABLE_TO_APPLY");
         incident.payoutNumerator = _payoutNumerator;
         incident.payoutDenominator = _payoutDenominator;
         incident.incidentTimestamp = _incidentTimestamp;

@@ -93,7 +93,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         address[] calldata _references
     ) external override{
         require(
-            initialized == false &&
+            !initialized &&
                 bytes(_metaData).length != 0 &&
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
@@ -125,7 +125,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @param _amount amount of token to deposit
      */
     function deposit(uint256 _amount) external returns (uint256 _mintAmount) {
-        require(paused == false, "ERROR: PAUSED");
+        require(!paused, "ERROR: PAUSED");
         require(_amount != 0, "ERROR: DEPOSIT_ZERO");
 
         //deposit and pay fees
@@ -155,7 +155,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @param _amount amount of token to deposit
      */
     function fund(uint256 _amount) external {
-        require(paused == false, "ERROR: PAUSED");
+        require(!paused, "ERROR: PAUSED");
 
         //deposit and pay fees
         uint256 _attribution = vault.addValue(
@@ -170,7 +170,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     }
 
     function defund(uint256 _amount) external override onlyOwner {
-        require(paused == false, "ERROR: PAUSED");
+        require(!paused, "ERROR: PAUSED");
 
         uint256 _attribution = vault.withdrawValue(_amount, msg.sender);
         surplusPool -= _attribution;
@@ -199,7 +199,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         Withdrawal memory request = withdrawalReq[msg.sender];
         uint256 _lockup = parameters.getLockup(msg.sender);
 
-        require(paused == false, "ERROR: PAUSED");
+        require(!paused, "ERROR: PAUSED");
         require(
             request.timestamp + _lockup < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"

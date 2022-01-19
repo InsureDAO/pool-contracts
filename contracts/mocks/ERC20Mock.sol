@@ -14,7 +14,7 @@ contract ERC20Mock is ERC20 {
     mapping(address => bool) public minted;
 
     function mint() public {
-        require(minted[msg.sender] == false);
+        require(!minted[msg.sender]);
         minted[msg.sender] = true;
         _mint(msg.sender, 1e10);
     }

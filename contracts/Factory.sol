@@ -116,7 +116,7 @@ contract Factory is IFactory {
         bool _approval
     ) external override onlyOwner {
         require(
-            templates[address(_template)].approval == true,
+            templates[address(_template)].approval,
             "ERROR: UNAUTHORIZED_TEMPLATE"
         );
         reflist[address(_template)][_slot][_target] = _approval;
@@ -136,7 +136,7 @@ contract Factory is IFactory {
         uint256 _target
     ) external override onlyOwner {
         require(
-            templates[address(_template)].approval == true,
+            templates[address(_template)].approval,
             "ERROR: UNAUTHORIZED_TEMPLATE"
         );
         conditionlist[address(_template)][_slot] = _target;
@@ -160,10 +160,10 @@ contract Factory is IFactory {
     ) external override returns (address) {
         //check eligibility
         require(
-            templates[address(_template)].approval == true,
+            templates[address(_template)].approval,
             "ERROR: UNAUTHORIZED_TEMPLATE"
         );
-        if (templates[address(_template)].isOpen == false) {
+        if (!templates[address(_template)].isOpen) {
             require(
                 ownership.owner() == msg.sender,
                 "ERROR: UNAUTHORIZED_SENDER"
@@ -173,8 +173,7 @@ contract Factory is IFactory {
         uint256 refLength = _references.length;
         for (uint256 i; i < refLength;) {
             require(
-                reflist[address(_template)][i][_references[i]] == true ||
-                    reflist[address(_template)][i][address(0)] == true,
+                reflist[address(_template)][i][_references[i]] || reflist[address(_template)][i][address(0)],
                 "ERROR: UNAUTHORIZED_REFERENCE"
             );
             unchecked {
@@ -204,7 +203,7 @@ contract Factory is IFactory {
                 _references[0]
             );
         } else {
-            if (templates[address(_template)].allowDuplicate == false) {
+            if (!templates[address(_template)].allowDuplicate) {
                 revert("ERROR: DUPLICATE_MARKET");
             }
         }
