@@ -844,8 +844,9 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return _rate utilization rate
      */
     function utilizationRate() public view override returns (uint256 _rate) {
-        if (lockedAmount > 0) {
-            return (lockedAmount * MAGIC_SCALE_1E6) / totalLiquidity();
+        uint256 _lockedAmount = lockedAmount;
+        if (_lockedAmount > 0) {
+            return (_lockedAmount * MAGIC_SCALE_1E6) / totalLiquidity();
         } else {
             return 0;
         }
