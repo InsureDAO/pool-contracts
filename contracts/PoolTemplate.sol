@@ -549,8 +549,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         Insurance storage _insurance = insurances[_id];
         require(_insurance.status == true, "ERROR: INSURANCE_NOT_ACTIVE");
 
-        uint256 _payoutNumerator = incident.payoutNumerator;
-        uint256 _payoutDenominator = incident.payoutDenominator;
         uint256 _incidentTimestamp = incident.incidentTimestamp;
         bytes32 _targets = incident.merkleRoot;
 
@@ -583,8 +581,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         _insurance.status = false;
         lockedAmount -= _insurance.amount;
 
-        uint256 _payoutAmount = (_insurance.amount * _payoutNumerator) /
-            _payoutDenominator;
+        uint256 _payoutAmount = (_insurance.amount * incident.payoutNumerator) /
+            incident.payoutDenominator;
 
         vault.borrowValue(_payoutAmount, msg.sender);
 
