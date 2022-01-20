@@ -340,9 +340,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @param _ids array of ids to unlock
      */
     function unlockBatch(uint256[] calldata _ids) external {
+        require(marketStatus == MarketStatus.Trading, "ERROR: UNLOCK_BAD_COINDITIONS");
         uint256 idsLength = _ids.length;
         for (uint256 i; i < idsLength;) {
-            unlock(_ids[i]);
+            _unlock(_ids[i]);
             unchecked {
                 ++i;
             }
@@ -350,15 +351,21 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     }
 
     /**
-     * @notice Unlock funds locked in the expired insurance
      * @param _id id of the insurance policy to unlock liquidity
      */
     function unlock(uint256 _id) public {
+        require(marketStatus == MarketStatus.Trading, "ERROR: UNLOCK_BAD_COINDITIONS");
+        _unlock(_id);
+    }
+
+    /**
+     * @notice Unlock funds locked in the expired insurance
+     * @param _id id of the insurance policy to unlock liquidity
+     */
+    function _unlock(uint256 _id) public {
         require(
             insurances[_id].status &&
-                marketStatus == MarketStatus.Trading &&
-                insurances[_id].endTime + parameters.getGrace(msg.sender) <
-                block.timestamp,
+            insurances[_id].endTime + parameters.getGrace(msg.sender) < block.timestamp,
             "ERROR: UNLOCK_BAD_COINDITIONS"
         );
         insurances[_id].status = false;
