@@ -192,6 +192,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         uint256 _lockup = parameters.getLockup(msg.sender);
 
         require(!paused, "ERROR: PAUSED");
+        require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
         require(
             request.timestamp + _lockup < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
@@ -204,7 +205,6 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
             request.amount >= _amount,
             "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
         );
-        require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
 
         //Calculate underlying value
         _retVal = (vault.attributionValue(crowdPool) * _amount) / totalSupply();

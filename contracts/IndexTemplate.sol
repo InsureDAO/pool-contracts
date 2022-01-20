@@ -204,13 +204,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @return _retVal the amount underlying token returned
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
-        //Calculate underlying value
+        require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
+        require(!locked, "ERROR: WITHDRAWAL_PENDING");
 
-        uint256 _liquidty = totalLiquidity();
         uint256 _lockup = parameters.getLockup(msg.sender);
         uint256 _requestTime = withdrawalReq[msg.sender].timestamp;
-        _retVal = (_liquidty * _amount) / totalSupply();
-        require(!locked, "ERROR: WITHDRAWAL_PENDING");
         require(
             _requestTime + _lockup < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
@@ -223,8 +221,10 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             withdrawalReq[msg.sender].amount >= _amount,
             "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
         );
-        require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
 
+        //Calculate underlying value
+        uint256 _liquidty = totalLiquidity();
+        _retVal = (_liquidty * _amount) / totalSupply();
         require(
             _retVal <= withdrawable(),
             "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
