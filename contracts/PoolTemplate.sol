@@ -531,7 +531,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             true
         );
         unchecked {
-            allInsuranceCount += 1;
+            ++allInsuranceCount;
         }
 
         //Calculate liquidity for index
@@ -947,7 +947,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     function _divCeil(uint256 a, uint256 b) internal pure returns (uint256) {
         require(b != 0);
         uint256 c = a / b;
-        if (a % b != 0) c = c + 1;
+        if (a % b != 0) ++c;
         return c;
     }
 
