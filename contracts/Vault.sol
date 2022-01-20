@@ -163,11 +163,12 @@ contract Vault is IVault {
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
 
-        if (available() < _amount) {
+        uint256 _availableAmount = available();
+        if (_availableAmount < _amount) {
             //when USDC in this contract isn't enough
             uint256 _shortage;
             unchecked {
-                _shortage = _amount - available();
+                _shortage = _amount - _availableAmount;
             }
             _unutilize(_shortage);
 
@@ -317,10 +318,11 @@ contract Vault is IVault {
         }
         totalAttributions -= _attribution;
 
-        if (available() < _retVal) {
+        uint256 _availableAmount = available();
+        if (_availableAmount < _retVal) {
             uint256 _shortage;
             unchecked {
-                _shortage = _retVal - available();
+                _shortage = _retVal - _availableAmount;
             }
             _unutilize(_shortage);
         }
