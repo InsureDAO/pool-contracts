@@ -742,8 +742,9 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return The value against the underlying tokens balance.
      */
     function rate() external view returns (uint256) {
-        if (totalSupply() > 0) {
-            return (originalLiquidity() * MAGIC_SCALE_1E6) / totalSupply();
+        uint256 _supply = totalSupply();
+        if (_supply > 0) {
+            return (originalLiquidity() * MAGIC_SCALE_1E6) / _supply;
         } else {
             return 0;
         }
