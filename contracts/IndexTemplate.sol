@@ -75,8 +75,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
     ///@notice user status management
     struct Withdrawal {
-        uint256 timestamp;
-        uint256 amount;
+        uint64 timestamp;
+        uint192 amount;
     }
     mapping(address => Withdrawal) public withdrawalReq;
 
@@ -193,8 +193,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     function requestWithdraw(uint256 _amount) external {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
         require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
-        withdrawalReq[msg.sender].timestamp = block.timestamp;
-        withdrawalReq[msg.sender].amount = _amount;
+        withdrawalReq[msg.sender].timestamp = (uint64)(block.timestamp);
+        withdrawalReq[msg.sender].amount = (uint192)(_amount);
         emit WithdrawRequested(msg.sender, _amount, block.timestamp);
     }
 
@@ -231,7 +231,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         );
 
         //reduce requested amount
-        withdrawalReq[msg.sender].amount -= _amount;
+        withdrawalReq[msg.sender].amount -= (uint192)(_amount);
         //Burn iToken
         _burn(msg.sender, _amount);
 
@@ -661,7 +661,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         if (from != address(0)) {
             uint256 _after = balanceOf(from) - amount;
             if (_after < withdrawalReq[from].amount) {
-                withdrawalReq[from].amount = _after;
+                withdrawalReq[from].amount = (uint192)(_after);
             }
         }
     }
