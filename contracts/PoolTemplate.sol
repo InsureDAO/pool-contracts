@@ -122,8 +122,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     ///@notice insurance status management
     struct Insurance {
         uint256 id; //each insuance has their own id
-        uint256 startTime; //timestamp of starttime
-        uint256 endTime; //timestamp of endtime
+        uint48 startTime; //timestamp of starttime
+        uint48 endTime; //timestamp of endtime
         uint256 amount; //insured amount
         bytes32 target; //target id in bytes32
         address insured; //the address holds the right to get insured
@@ -523,8 +523,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         lockedAmount += _amount;
         insurances[_id] = Insurance(
             _id,
-            block.timestamp,
-            _endTime,
+            (uint48)(block.timestamp),
+            (uint48)(_endTime),
             _amount,
             _target,
             msg.sender,
@@ -570,7 +570,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         Insurance memory _insurance = insurances[_id];
         require(_insurance.status, "ERROR: INSURANCE_NOT_ACTIVE");
         require(_insurance.insured == msg.sender, "ERROR: NOT_YOUR_INSURANCE");
-        uint256 _incidentTimestamp = incident.incidentTimestamp;
+        uint48 _incidentTimestamp = (uint48)(incident.incidentTimestamp);
         require(
             _insurance.startTime <= _incidentTimestamp && _insurance.endTime >= _incidentTimestamp,
             "ERROR: INSURANCE_NOT_APPLICABLE"
