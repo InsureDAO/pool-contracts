@@ -152,17 +152,19 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
         address recipient,
         uint256 amount
     ) external virtual override returns (bool) {
-        uint256 currentAllowance = _allowances[sender][msg.sender];
-        if (currentAllowance != type(uint256).max) {
-            require(
-                currentAllowance >= amount,
-                "ERC20: transfer amount exceeds allowance"
-            );
+        if (amount != 0) {
+            uint256 currentAllowance = _allowances[sender][msg.sender];
+            if (currentAllowance != type(uint256).max) {
+                require(
+                    currentAllowance >= amount,
+                    "ERC20: transfer amount exceeds allowance"
+                );
 
-            _approve(sender, msg.sender, currentAllowance - amount);
+                _approve(sender, msg.sender, currentAllowance - amount);
+            }
+
+            _transfer(sender, recipient, amount);
         }
-
-        _transfer(sender, recipient, amount);
 
         return true;
     }
@@ -184,11 +186,13 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
         virtual
         returns (bool)
     {
-        _approve(
-            msg.sender,
-            spender,
-            _allowances[_msgSender()][spender] + addedValue
-        );
+        if (addedValue != 0) {
+            _approve(
+                msg.sender,
+                spender,
+                _allowances[_msgSender()][spender] + addedValue
+            );
+        }
         return true;
     }
 
@@ -211,13 +215,15 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
         virtual
         returns (bool)
     {
-        uint256 currentAllowance = _allowances[_msgSender()][spender];
-        require(
-            currentAllowance >= subtractedValue,
-            "ERC20: decreased allowance below zero"
-        );
+        if (subtractedValue != 0) {
+            uint256 currentAllowance = _allowances[_msgSender()][spender];
+            require(
+                currentAllowance >= subtractedValue,
+                "ERC20: decreased allowance below zero"
+            );
 
-        _approve(msg.sender, spender, currentAllowance - subtractedValue);
+            _approve(msg.sender, spender, currentAllowance - subtractedValue);
+        }
 
         return true;
     }
@@ -241,26 +247,28 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
         address recipient,
         uint256 amount
     ) internal virtual {
-        require(sender != address(0), "ERC20: transfer from the zero address");
-        require(recipient != address(0), "ERC20: transfer to the zero address");
+        if (amount != 0) {
+            require(sender != address(0), "ERC20: transfer from the zero address");
+            require(recipient != address(0), "ERC20: transfer to the zero address");
 
-        _beforeTokenTransfer(sender, recipient, amount);
+            _beforeTokenTransfer(sender, recipient, amount);
 
-        uint256 senderBalance = _balances[sender];
-        require(
-            senderBalance >= amount,
-            "ERC20: transfer amount exceeds balance"
-        );
+            uint256 senderBalance = _balances[sender];
+            require(
+                senderBalance >= amount,
+                "ERC20: transfer amount exceeds balance"
+            );
 
-        unchecked {
-            _balances[sender] = senderBalance - amount;
+            unchecked {
+                _balances[sender] = senderBalance - amount;
+            }
+
+            _balances[recipient] += amount;
+
+            emit Transfer(sender, recipient, amount);
+
+            _afterTokenTransfer(sender, recipient, amount);
         }
-
-        _balances[recipient] += amount;
-
-        emit Transfer(sender, recipient, amount);
-
-        _afterTokenTransfer(sender, recipient, amount);
     }
 
     /** @dev Creates `amount` tokens and assigns them to `account`, increasing
@@ -273,15 +281,17 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * - `account` cannot be the zero address.
      */
     function _mint(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: mint to the zero address");
+        if (amount != 0) {
+            require(account != address(0), "ERC20: mint to the zero address");
 
-        _beforeTokenTransfer(address(0), account, amount);
+            _beforeTokenTransfer(address(0), account, amount);
 
-        _totalSupply += amount;
-        _balances[account] += amount;
-        emit Transfer(address(0), account, amount);
+            _totalSupply += amount;
+            _balances[account] += amount;
+            emit Transfer(address(0), account, amount);
 
-        _afterTokenTransfer(address(0), account, amount);
+            _afterTokenTransfer(address(0), account, amount);
+        }
     }
 
     /**
@@ -296,21 +306,23 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * - `account` must have at least `amount` tokens.
      */
     function _burn(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: burn from the zero address");
+        if (amount != 0) {
+            require(account != address(0), "ERC20: burn from the zero address");
 
-        _beforeTokenTransfer(account, address(0), amount);
+            _beforeTokenTransfer(account, address(0), amount);
 
-        uint256 accountBalance = _balances[account];
-        require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
-        unchecked {
-            _balances[account] = accountBalance - amount;
+            uint256 accountBalance = _balances[account];
+            require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
+            unchecked {
+                _balances[account] = accountBalance - amount;
+            }
+
+            _totalSupply -= amount;
+
+            emit Transfer(account, address(0), amount);
+
+            _afterTokenTransfer(account, address(0), amount);
         }
-
-        _totalSupply -= amount;
-
-        emit Transfer(account, address(0), amount);
-
-        _afterTokenTransfer(account, address(0), amount);
     }
 
     /**
@@ -331,11 +343,13 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
         address spender,
         uint256 amount
     ) internal virtual {
-        require(owner != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
+        if (amount != 0) {
+            require(owner != address(0), "ERC20: approve from the zero address");
+            require(spender != address(0), "ERC20: approve to the zero address");
 
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
+            _allowances[owner][spender] = amount;
+            emit Approval(owner, spender, amount);
+        }
     }
 
     /**
