@@ -743,8 +743,9 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      */
     function rate() external view returns (uint256) {
         uint256 _supply = totalSupply();
-        if (_supply > 0) {
-            return (originalLiquidity() * MAGIC_SCALE_1E6) / _supply;
+        uint256 originalLiquidity = originalLiquidity();
+        if (originalLiquidity != 0 && _supply > 0) {
+            return (originalLiquidity * MAGIC_SCALE_1E6) / _supply;
         } else {
             return 0;
         }
@@ -845,8 +846,9 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return _rate utilization rate
      */
     function utilizationRate() public view override returns (uint256 _rate) {
-        if (lockedAmount > 0) {
-            return (lockedAmount * MAGIC_SCALE_1E6) / totalLiquidity();
+        uint256 _lockedAmount = lockedAmount;
+        if (_lockedAmount > 0) {
+            return (_lockedAmount * MAGIC_SCALE_1E6) / totalLiquidity();
         } else {
             return 0;
         }
