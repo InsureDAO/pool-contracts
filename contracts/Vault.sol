@@ -155,17 +155,19 @@ contract Vault is IVault {
                 underlyingValue(msg.sender) >= _amount,
             "ERROR_WITHDRAW-VALUE_BADCONDITOONS"
         );
+        uint256 _available = available();
+
         _attributions = (totalAttributions * _amount) / valueAll();
 
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
 
-        if (available() < _amount) {
+        if (_available < _amount) {
             //when USDC in this contract isn't enough
-            uint256 _shortage = _amount - available();
+            uint256 _shortage = _amount - _available;
             _unutilize(_shortage);
 
-            assert(available() >= _amount);
+            assert(_available >= _amount);
         }
 
         balance -= _amount;
@@ -301,13 +303,14 @@ contract Vault is IVault {
             attributions[msg.sender] >= _attribution,
             "ERROR_WITHDRAW-ATTRIBUTION_BADCONDITOONS"
         );
+        uint256 _available = available();
         _retVal = (_attribution * valueAll()) / totalAttributions;
 
         attributions[msg.sender] -= _attribution;
         totalAttributions -= _attribution;
 
-        if (available() < _retVal) {
-            uint256 _shortage = _retVal - available();
+        if (_available < _retVal) {
+            uint256 _shortage = _retVal - _available;
             _unutilize(_shortage);
         }
 
