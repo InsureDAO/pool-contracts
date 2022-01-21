@@ -801,12 +801,12 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     function worth(uint256 _value) public view returns (uint256 _amount) {
         uint256 _supply = totalSupply();
         uint256 _originalLiquidity = originalLiquidity();
-        if (_supply > 0 && _originalLiquidity > 0) {
-            _amount = (_value * _supply) / _originalLiquidity;
-        } else if (_supply > 0 && _originalLiquidity == 0) {
+        if (_supply == 0) {
+            _amount = _value;
+        } else if (_originalLiquidity == 0) {
             _amount = _value * _supply;
         } else {
-            _amount = _value;
+            _amount = (_value * _supply) / _originalLiquidity;
         }
     }
 
