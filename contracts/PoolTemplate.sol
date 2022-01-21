@@ -741,14 +741,15 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @notice Get the exchange rate of LP tokens against underlying asset(scaled by MAGIC_SCALE_1E6)
      * @return The value against the underlying tokens balance.
      */
-     function rate() external view returns (uint256) {
-         uint256 originalLiquidity = originalLiquidity();
-         if (originalLiquidity != 0 && totalSupply() != 0) {
-             return (originalLiquidity * MAGIC_SCALE_1E6) / totalSupply();
-         } else {
-             return 0;
-         }
-     }
+    function rate() external view returns (uint256) {
+        uint256 _supply = totalSupply();
+        uint256 originalLiquidity = originalLiquidity();
+        if (originalLiquidity != 0 && _supply != 0) {
+            return (originalLiquidity * MAGIC_SCALE_1E6) / _supply;
+        } else {
+            return 0;
+        }
+    }
 
     /**
      * @notice Get the underlying balance of the `owner`
@@ -798,14 +799,16 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return _amount The balance of underlying tokens for the specified amount
      */
     function worth(uint256 _value) public view returns (uint256 _amount) {
+    
         uint256 _supply = totalSupply();
         uint256 _originalLiquidity = originalLiquidity();
-        if (_supply != 0 && _originalLiquidity != 0) {
-            _amount = (_value * _supply) / _originalLiquidity;
-        } else if (_supply != 0 && _originalLiquidity == 0) {
+        
+        if (_supply == 0) {
+            _amount = _value;
+        } else if (_originalLiquidity == 0) {
             _amount = _value * _supply;
         } else {
-            _amount = _value;
+            _amount = (_value * _supply) / _originalLiquidity;
         }
     }
 
@@ -845,8 +848,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return _rate utilization rate
      */
     function utilizationRate() public view override returns (uint256 _rate) {
-        if (lockedAmount != 0) {
-            return (lockedAmount * MAGIC_SCALE_1E6) / totalLiquidity();
+        uint256 _lockedAmount = lockedAmount;
+        
+        if (_lockedAmount != 0) {
+            return (_lockedAmount * MAGIC_SCALE_1E6) / totalLiquidity();
         } else {
             return 0;
         }
