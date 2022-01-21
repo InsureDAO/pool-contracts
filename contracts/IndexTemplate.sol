@@ -499,8 +499,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @return The value against the underlying token balance.
      */
     function rate() external view returns (uint256) {
-        if (totalSupply() != 0) {
-            return (totalLiquidity() * MAGIC_SCALE_1E6) / totalSupply();
+        uint256 _totalSupply = totalSupply();
+        if (_totalSupply != 0) {
+            return (totalLiquidity() * MAGIC_SCALE_1E6) / _totalSupply;
         } else {
             return 0;
         }
