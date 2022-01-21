@@ -151,7 +151,7 @@ contract Vault is IVault {
         returns (uint256 _attributions)
     {
         require(
-            attributions[msg.sender] > 0 &&
+            attributions[msg.sender] != 0 &&
                 underlyingValue(msg.sender) >= _amount,
             "ERROR_WITHDRAW-VALUE_BADCONDITOONS"
         );
@@ -184,7 +184,7 @@ contract Vault is IVault {
         returns (uint256 _attributions)
     {
         require(
-            attributions[msg.sender] > 0 &&
+            attributions[msg.sender] != 0 &&
                 underlyingValue(msg.sender) >= _amount,
             "ERROR_TRANSFER-VALUE_BADCONDITOONS"
         );
@@ -217,7 +217,7 @@ contract Vault is IVault {
         returns (uint256 _attributions)
     {
         require(
-            attributions[msg.sender] > 0 &&
+            attributions[msg.sender] != 0 &&
                 underlyingValue(msg.sender) >= _amount,
             "ERROR_REPAY_DEBT_BADCONDITOONS"
         );
@@ -344,7 +344,7 @@ contract Vault is IVault {
             require(msg.sender == keeper, "ERROR_NOT_KEEPER");
         }
         _amount = available(); //balance
-        if (_amount > 0) {
+        if (_amount != 0) {
             IERC20(token).safeTransfer(address(controller), _amount);
             balance -= _amount;
             controller.earn(address(token), _amount);
@@ -385,7 +385,7 @@ contract Vault is IVault {
         override
         returns (uint256)
     {
-        if (totalAttributions > 0 && _attribution > 0) {
+        if (totalAttributions != 0 && _attribution != 0) {
             return (_attribution * valueAll()) / totalAttributions;
         } else {
             return 0;
@@ -403,7 +403,7 @@ contract Vault is IVault {
         override
         returns (uint256)
     {
-        if (attributions[_target] > 0) {
+        if (attributions[_target] != 0) {
             return (valueAll() * attributions[_target]) / totalAttributions;
         } else {
             return 0;
@@ -470,7 +470,7 @@ contract Vault is IVault {
             uint256 _redundant = IERC20(token).balanceOf(address(this)) -
                 balance;
             IERC20(token).safeTransfer(_to, _redundant);
-        } else if (IERC20(_token).balanceOf(address(this)) > 0) {
+        } else if (IERC20(_token).balanceOf(address(this)) != 0) {
             IERC20(_token).safeTransfer(
                 _to,
                 IERC20(_token).balanceOf(address(this))
