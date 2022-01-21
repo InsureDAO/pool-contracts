@@ -489,7 +489,6 @@ contract Vault is IVault {
 
         if (address(controller) != address(0)) {
             controller.migrate(address(_controller));
-            controller = IController(_controller);
         } else {
             controller = IController(_controller);
         }
