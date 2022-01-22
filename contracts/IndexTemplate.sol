@@ -210,9 +210,12 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         //Calculate underlying value
 
         uint256 _liquidty = totalLiquidity();
+        uint256 _totalSupply = totalSupply();
         uint256 _lockup = parameters.getLockup(msg.sender);
         uint256 _requestTime = withdrawalReq[msg.sender].timestamp;
-        _retVal = (_liquidty * _amount) / totalSupply();
+        if (_totalSupply > 0) {
+            _retVal = (_liquidty * _amount) / _totalSupply;
+        }
         require(locked == false, "ERROR: WITHDRAWAL_PENDING");
         require(
             _requestTime + _lockup < block.timestamp,
@@ -513,10 +516,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      */
     function valueOfUnderlying(address _owner) public view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
-        if (_balance == 0) {
+        uint256 _totalSupply = totalSupply();
+        if (_balance == 0 || _totalSupply == 0) {
             return 0;
         } else {
-            return (_balance * totalLiquidity()) / totalSupply();
+            return (_balance * totalLiquidity()) / _totalSupply;
         }
     }
 
