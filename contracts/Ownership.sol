@@ -59,7 +59,7 @@ contract Ownership is IOwnership {
          *@param newOwner Address to have ownership transferred to
          */
         _futureOwner = newOwner;
-        emit CommitNewOwnership(_futureOwner);
+        emit CommitNewOwnership(newOwner);
     }
 
     function acceptTransferOwnership() external override onlyFutureOwner {
