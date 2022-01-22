@@ -388,8 +388,9 @@ contract Vault is IVault {
         override
         returns (uint256)
     {
-        if (totalAttributions != 0 && _attribution != 0) {
-            return (_attribution * valueAll()) / totalAttributions;
+        uint256 _totalAttributions = totalAttributions;
+        if (_totalAttributions != 0 && _attribution != 0) {
+            return (_attribution * valueAll()) / _totalAttributions;
         } else {
             return 0;
         }
@@ -468,13 +469,13 @@ contract Vault is IVault {
         override
         onlyOwner
     {
+        uint256 _balance = balance;
         if (
             _token == address(token) &&
-            balance < IERC20(token).balanceOf(address(this))
+            _balance < IERC20(token).balanceOf(address(this))
         ) {
-            uint256 _redundant = IERC20(token).balanceOf(address(this)) -
-                balance;
-            IERC20(token).safeTransfer(_to, _redundant);
+            uint256 _redundant = IERC20(_token).balanceOf(address(this)) - _balance;
+            IERC20(_token).safeTransfer(_to, _redundant);
         } else if (IERC20(_token).balanceOf(address(this)) != 0) {
             IERC20(_token).safeTransfer(
                 _to,
