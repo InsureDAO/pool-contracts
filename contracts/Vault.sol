@@ -150,12 +150,13 @@ contract Vault is IVault {
         override
         returns (uint256 _attributions)
     {
+        uint256 _valueAll = valueAll();
         require(
             attributions[msg.sender] != 0 &&
-                underlyingValue(msg.sender) >= _amount,
+                underlyingValue(msg.sender, _valueAll) >= _amount,
             "ERROR_WITHDRAW-VALUE_BADCONDITOONS"
         );
-        _attributions = (totalAttributions * _amount) / valueAll();
+        _attributions = (totalAttributions * _amount) / _valueAll;
 
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
@@ -183,12 +184,13 @@ contract Vault is IVault {
         override
         returns (uint256 _attributions)
     {
+        uint256 _valueAll = valueAll();
         require(
             attributions[msg.sender] != 0 &&
-                underlyingValue(msg.sender) >= _amount,
+                underlyingValue(msg.sender, _valueAll) >= _amount,
             "ERROR_TRANSFER-VALUE_BADCONDITOONS"
         );
-        _attributions = (_amount * totalAttributions) / valueAll();
+        _attributions = (_amount * totalAttributions) / _valueAll;
         attributions[msg.sender] -= _attributions;
         attributions[_destination] += _attributions;
     }
@@ -216,12 +218,13 @@ contract Vault is IVault {
         override
         returns (uint256 _attributions)
     {
+        uint256 _valueAll = valueAll();
         require(
             attributions[msg.sender] != 0 &&
-                underlyingValue(msg.sender) >= _amount,
+                underlyingValue(msg.sender, _valueAll) >= _amount,
             "ERROR_REPAY_DEBT_BADCONDITOONS"
         );
-        _attributions = (_amount * totalAttributions) / valueAll();
+        _attributions = (_amount * totalAttributions) / _valueAll;
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
         balance -= _amount;
@@ -397,13 +400,13 @@ contract Vault is IVault {
      * @param _target target address
      * @return token value of target address
      */
-    function underlyingValue(address _target)
+    function underlyingValue(address _target, uint256 _valueAll)
         public
         view
         override
         returns (uint256)
     {
-        uint256 valueAll = valueAll();
+        uint256 valueAll = _valueAll;
         uint256 attribution = attributions[_target];
         if (valueAll != 0 && attribution != 0) {
             return (valueAll * attribution) / totalAttributions;
