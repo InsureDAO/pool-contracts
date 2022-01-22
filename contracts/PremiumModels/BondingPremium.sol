@@ -72,10 +72,7 @@ contract BondingPremium is IPremiumModel {
         // yearly premium rate
         uint256 _premiumRate;
 
-        uint256 T_0 = _totalLiquidity;
-        if (T_0 > T_1) {
-            T_0 = T_1;
-        }
+        uint256 T_0 = _totalLiquidity > T_1 ? T_1 : _totalLiquidity;
 
         uint256 a = (sqrt(
             (BASE_x2 * BASE_x2 * T_1 + 4 * k * T_0 * BASE_x2) / T_1
@@ -131,10 +128,7 @@ contract BondingPremium is IPremiumModel {
         uint256 u2 = BASE -
             (((_lockedAmount + _amount) * BASE) / _totalLiquidity); //util rate after. 1000000 = 100.000%
 
-        uint256 T_0 = _totalLiquidity;
-        if (T_0 > T_1) {
-            T_0 = T_1;
-        }
+        uint256 T_0 = _totalLiquidity > T_1 ? T_1 : _totalLiquidity;
 
         uint256 a = (sqrt(
             (BASE_x2 * BASE_x2 * T_1 + 4 * k * T_0 * BASE_x2) / T_1
