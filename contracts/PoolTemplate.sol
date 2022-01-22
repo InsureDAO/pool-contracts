@@ -940,10 +940,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @notice Internal function for overflow free subtraction
      */
     function _sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (a < b) {
-            return 0;
-        } else {
-            return a - b;
+        if (a >= b) {
+            unchecked {return a - b;}
         }
     }
 }
