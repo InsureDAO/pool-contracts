@@ -1267,4 +1267,18 @@ describe("Vault", function () {
 
     it("should allow controller to utilize", async () => {});
   });
+
+  describe("seKeeper", function () {
+    it("revert when the sender is not owner", async () => {
+      await expect(
+        vault
+          .connect(alice)
+          .setKeeper(alice.address)
+        ).to.revertedWith("Restricted: caller is not allowed to operate");
+    }) 
+
+    it("should succeed to set keeper", async () => {
+      
+    })
+  })
 });
