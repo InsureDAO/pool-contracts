@@ -598,9 +598,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             }
             poolList[_index] = _pool;
         }
-        if (totalAllocPoint != 0) {
+        if (_allocatablePoints != 0) {
             totalAllocPoint =
-                totalAllocPoint -
+                _allocatablePoints -
                 allocPoints[_pool] +
                 _allocPoint;
         } else {
