@@ -40,6 +40,7 @@ contract Vault is IVault {
 
 
     event ControllerSet(address controller);
+    event KeeperChanged(address keeper);
 
     modifier onlyOwner() {
         require(
@@ -505,5 +506,7 @@ contract Vault is IVault {
         if (keeper != _keeper) {
             keeper = _keeper;
         }
+
+        emit KeeperChanged(_keeper);
     }
 }
