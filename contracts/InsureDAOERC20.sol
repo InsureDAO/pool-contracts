@@ -18,8 +18,6 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
     string private _symbol = "iLP";
     uint8 private _decimals = 18;
 
-    constructor() {}
-
     function initializeToken(
         string memory name_,
         string memory symbol_,
