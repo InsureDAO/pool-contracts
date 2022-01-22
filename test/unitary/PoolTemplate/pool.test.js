@@ -1953,12 +1953,6 @@ describe("Pool", function () {
         incidentTimestamp: incident,
       });
 
-      await expect(
-        market
-          .connect(bob)
-          .insure(insureAmount, insureAmount, DAY.mul(6), padded1)
-      ).to.revertedWith("ERROR: INSURE_SPAN_BELOW_MIN");
-
       await moveForwardPeriods(11);
 
       await resume({
