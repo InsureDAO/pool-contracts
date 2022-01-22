@@ -345,6 +345,7 @@ contract Vault is IVault {
         }
         _amount = available(); //balance
         if (_amount != 0) {
+            require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
             IERC20(token).safeTransfer(address(controller), _amount);
             balance -= _amount;
             controller.earn(address(token), _amount);
