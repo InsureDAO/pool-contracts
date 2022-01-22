@@ -696,7 +696,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 _debt = vault.debts(address(this));
         uint256 _totalCredit = totalCredit;
         uint256 _totalLiquidity = totalLiquidity();
-        uint256 _deductionFromIndex = 0;
+        uint256 _deductionFromIndex;
         if (_totalLiquidity != 0) {
             _deductionFromIndex = (_debt * _totalCredit * MAGIC_SCALE_1E6) /
                 _totalLiquidity;
