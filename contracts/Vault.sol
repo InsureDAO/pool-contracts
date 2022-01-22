@@ -488,7 +488,9 @@ contract Vault is IVault {
         require(_controller != address(0), "ERROR_ZERO_ADDRESS");
 
         if (address(controller) != address(0)) {
+            uint256 beforeUnderlying = controller.valueAll();
             controller.migrate(address(_controller));
+            require(IController(_controller).valueAll() >= beforeUnderlying, "ERROR_VALUE_ALL_DECREASED");
             controller = IController(_controller);
         } else {
             controller = IController(_controller);
