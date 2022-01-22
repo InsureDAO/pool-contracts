@@ -100,7 +100,7 @@ contract Vault is IVault {
         if (totalAttributions == 0) {
             _attributions = _amount;
         } else {
-            require(_pool != 0, "ERROR_VALUE_ALL_IS_ZERO") //should never triggered
+            require(_pool != 0, "ERROR_VALUE_ALL_IS_ZERO"); //should never triggered
             _attributions = (_amount * totalAttributions) / _pool;
         }
         IERC20(token).safeTransferFrom(_from, address(this), _amount);
