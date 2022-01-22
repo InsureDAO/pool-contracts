@@ -245,7 +245,8 @@ contract Parameters is IParameters {
         uint256 _lockedAmount,
         address _target
     ) external view override returns (uint256) {
-        if (_premium[_target] == address(0)) {
+        address _targetPremium = _premium[_target];
+        if (_targetPremium == address(0)) {
             return
                 IPremiumModel(_premium[address(0)]).getPremium(
                     _amount,
@@ -255,7 +256,7 @@ contract Parameters is IParameters {
                 );
         } else {
             return
-                IPremiumModel(_premium[_target]).getPremium(
+                IPremiumModel(_targetPremium).getPremium(
                     _amount,
                     _term,
                     _totalLiquidity,
@@ -275,10 +276,11 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        if (_fee[_target] == 0) {
+        uint256 _targetFee = _fee[_target];
+        if (_targetFee == 0) {
             return _fee[address(0)];
         } else {
-            return _fee[_target];
+            return _targetFee;
         }
     }
 
@@ -293,10 +295,11 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        if (_upperSlack[_target] == 0) {
+        uint256 _targetUpperSlack = _upperSlack[_target];
+        if (_targetUpperSlack == 0) {
             return _upperSlack[address(0)];
         } else {
-            return _upperSlack[_target];
+            return _targetUpperSlack;
         }
     }
 
@@ -311,10 +314,11 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        if (_lowerSlack[_target] == 0) {
+        uint256 _targetLowerSlack = _lowerSlack[_target];
+        if (_targetLowerSlack == 0) {
             return _lowerSlack[address(0)];
         } else {
-            return _lowerSlack[_target];
+            return _targetLowerSlack;
         }
     }
 
@@ -329,10 +333,11 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        if (_lockup[_target] == 0) {
+        int256 _targetLockup = _lockup[_target];
+        if (_targetLockup == 0) {
             return _lockup[address(0)];
         } else {
-            return _lockup[_target];
+            return _targetLockup;
         }
     }
 
@@ -347,10 +352,11 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        if (_withdawable[_target] == 0) {
+        uint256 _targetWithdrawable = _withdawable[_target];
+        if (_targetWithdrawable == 0) {
             return _withdawable[address(0)];
         } else {
-            return _withdawable[_target];
+            return _targetWithdrawable;
         }
     }
 
@@ -365,10 +371,11 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        if (_grace[_target] == 0) {
+        uint256 _targetGrace = _grace[_target];
+        if (_targetGrace == 0) {
             return _grace[address(0)];
         } else {
-            return _grace[_target];
+            return _targetGrace;
         }
     }
 
@@ -383,10 +390,11 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        if (_min[_target] == 0) {
+        uint256 _targetMin = _min[_target];
+        if (_targetMin == 0) {
             return _min[address(0)];
         } else {
-            return _min[_target];
+            return _targetMin;
         }
     }
 
@@ -401,10 +409,11 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        if (_maxList[_target] == 0) {
+        uint256 _targetMaxList = _maxList[_target];
+        if (_targetMaxList == 0) {
             return _maxList[address(0)];
         } else {
-            return _maxList[_target];
+            return _targetMaxList;
         }
     }
 
