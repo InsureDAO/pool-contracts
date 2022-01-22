@@ -66,6 +66,11 @@ contract BondingPremium is IPremiumModel {
             _totalLiquidity >= _lockedAmount,
             "ERROR: _lockedAmount > _totalLiquidity"
         );
+
+        if (_totalLiquidity == 0) {
+            return 0;
+        }
+
         // utilization rate (0~1000000)
         uint256 _util = (_lockedAmount * BASE) / _totalLiquidity;
 
