@@ -123,6 +123,7 @@ contract Parameters is IParameters {
         override
         onlyOwner
     {
+        require(_target <= 1000, "ERROR: EXCEED_MAX_SLACK_RATE");
         _upperSlack[_address] = _target;
         emit UpperSlack(_address, _target);
     }
@@ -137,6 +138,7 @@ contract Parameters is IParameters {
         override
         onlyOwner
     {
+        require(_traget <= _upperSlack[_address], "ERROR: EXCEED_UPPER_SLACK");
         _lowerSlack[_address] = _target;
         emit LowerSlack(_address, _target);
     }
@@ -180,6 +182,7 @@ contract Parameters is IParameters {
         override
         onlyOwner
     {
+        require(_target <= 1e6(1000000), "ERROR: EXCEED_MAX_FEE_RATE");
         _fee[_address] = _target;
         emit FeeRateSet(_address, _target);
     }
@@ -194,6 +197,7 @@ contract Parameters is IParameters {
         override
         onlyOwner
     {
+        require(_target > 1,"ERROR: MAX_LIST_UNDER_1");
         _maxList[_address] = _target;
         emit MaxListSet(_address, _target);
     }
