@@ -347,7 +347,7 @@ contract Vault is IVault {
         if (_amount != 0) {
             IERC20(token).safeTransfer(address(controller), _amount);
             balance -= _amount;
-            controller.earn(address(token), _amount);
+            controller.earn(token, _amount);
         }
     }
 
@@ -466,7 +466,7 @@ contract Vault is IVault {
         onlyOwner
     {
         if (
-            _token == address(token) &&
+            _token == token &&
             balance < IERC20(token).balanceOf(address(this))
         ) {
             uint256 _redundant = IERC20(token).balanceOf(address(this)) -
