@@ -336,7 +336,7 @@ contract Vault is IVault {
     }
 
     /**
-     * @notice the controller can utilize all available stored funds
+     * @notice the keeper can utilize all available stored funds
      * @return _amount amount of tokens utilized
      */
     function utilize() external override returns (uint256 _amount) {
@@ -498,7 +498,7 @@ contract Vault is IVault {
     }
 
     /**
-     * @notice the controller can utilize all available stored funds
+     * @notice the keeper can utilize all available stored funds
      * @param _keeper keeper address
      */
     function setKeeper(address _keeper) external override onlyOwner {
