@@ -25,7 +25,7 @@ contract Vault is IVault {
     address public override token;
     IController public controller;
     IRegistry public registry;
-    IOwnership public ownership;
+    IOwnership public immutable ownership;
 
     mapping(address => uint256) public override debts;
     mapping(address => uint256) public attributions;
