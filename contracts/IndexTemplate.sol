@@ -331,7 +331,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _allocatablePoints = totalAllocPoint;
         uint256 _length = poolList.length;
         PoolStatus[] memory _poolList = new PoolStatus[](_length);
-
+        int256 _difTotalAllocPoint = 0;
         //Check each pool and if current credit allocation > target && it is impossible to adjust, then withdraw all availablle credit
         for (uint256 i = 0; i < _length; i++) {
             address _pool = poolList[i];
@@ -354,7 +354,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     IPoolTemplate(_pool).paused() == true
                 ) {
                     IPoolTemplate(_pool).withdrawCredit(_available);
-                    totalAllocatedCredit -= _available;
+                    _difTotalAllocPoint -= _available;
                     _poolList[i].addr = address(0);
                     _allocatable -= _current - _available;
                     _allocatablePoints -= _allocation;
@@ -381,19 +381,20 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     //if allocated credit is higher than the target, try to decrease
                     uint256 _decrease = _current - _target;
                     IPoolTemplate(_poolList[i].addr).withdrawCredit(_decrease);
-                    totalAllocatedCredit -= _decrease;
+                    _difTotalAllocPoint -= _decrease;
                 }
                 if (_current < _target) {
                     //Sometimes we need to allocate more
                     uint256 _allocate = _target - _current;
                     IPoolTemplate(_poolList[i].addr).allocateCredit(_allocate);
-                    totalAllocatedCredit += _allocate;
+                    _difTotalAllocPoint += _allocate;
                 }
                 if (_current == _target) {
                     IPoolTemplate(_poolList[i].addr).allocateCredit(0);
                 }
             }
         }
+        totalAllocPoint += _difTotalAllocPoint;
     }
 
     /**
