@@ -347,10 +347,11 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        if (_withdawable[_target] == 0) {
+        uint256 _targetWithdawable = _withdawable[_target];
+        if (_targetWithdawable == 0) {
             return _withdawable[address(0)];
         } else {
-            return _withdawable[_target];
+            return _targetWithdawable;
         }
     }
 
