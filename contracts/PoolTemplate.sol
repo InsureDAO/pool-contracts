@@ -836,8 +836,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     {
         if (totalLiquidity() != 0) {
             return totalLiquidity() - lockedAmount;
-        } else {
-            return 0;
         }
     }
 
