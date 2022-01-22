@@ -664,7 +664,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         incident.payoutDenominator = _payoutDenominator;
         incident.incidentTimestamp = _incidentTimestamp;
         incident.merkleRoot = _merkleRoot;
-        marketStatus = MarketStatus.Payingout;
         pendingEnd = block.timestamp + _pending;
         for (uint256 i = 0; i < indexList.length; i++) {
             if (indicies[indexList[i]].credit != 0) {
@@ -680,7 +679,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             _rawdata,
             _memo
         );
-        emit MarketStatusChanged(marketStatus);
+        emit MarketStatusChanged(MarketStatus.Payingout);
     }
 
     /**
