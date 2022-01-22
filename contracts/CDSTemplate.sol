@@ -223,7 +223,10 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
 
         //Calculate underlying value
-        _retVal = (vault.attributionValue(crowdPool) * _amount) / totalSupply();
+        uint256 _totalSupply = totalSupply();
+        if (_totalSupply != 0) {
+            _retVal = (vault.attributionValue(crowdPool) * _amount) / _totalSupply;
+        }
 
 
         //reduce requested amount
@@ -310,11 +313,12 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      */
     function valueOfUnderlying(address _owner) public view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
-        if (_balance == 0) {
+        uint256 _totalSupply = totalSupply();
+        if (_balance == 0 || _totalSupply == 0) {
             return 0;
         } else {
             return
-                _balance * vault.attributionValue(crowdPool) / totalSupply();
+                _balance * vault.attributionValue(crowdPool) / _totalSupply;
         }
     }
 
