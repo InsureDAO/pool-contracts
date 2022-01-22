@@ -465,17 +465,18 @@ contract Vault is IVault {
         override
         onlyOwner
     {
+        uint256 _tokenBalance = IERC20(token).balanceOf(address(this));
         if (
             _token == address(token) &&
-            balance < IERC20(token).balanceOf(address(this))
+            balance < _tokenBalance
         ) {
-            uint256 _redundant = IERC20(token).balanceOf(address(this)) -
+            uint256 _redundant = _tokenBalance -
                 balance;
             IERC20(token).safeTransfer(_to, _redundant);
-        } else if (IERC20(_token).balanceOf(address(this)) != 0) {
+        } else if (_tokenBalance != 0) {
             IERC20(_token).safeTransfer(
                 _to,
-                IERC20(_token).balanceOf(address(this))
+                _tokenBalance
             );
         }
     }
