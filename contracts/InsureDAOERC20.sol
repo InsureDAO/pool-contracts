@@ -29,7 +29,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
          *@notice initialize token. Only called internally.
          *
          */
-        assert(!tokenInitialized);
+        require(!tokenInitialized, "ERROR: Already token initialized");
         tokenInitialized = true;
         _name = name_;
         _symbol = symbol_;

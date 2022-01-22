@@ -165,7 +165,7 @@ contract Vault is IVault {
             uint256 _shortage = _amount - available();
             _unutilize(_shortage);
 
-            assert(available() >= _amount);
+            require(available() >= _amount, "ERROR: Invalid amount");
         }
 
         balance -= _amount;
