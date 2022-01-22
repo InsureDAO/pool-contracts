@@ -329,10 +329,11 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        if (_lockup[_target] == 0) {
+        uint256 _targetLockup = _lockup[_target];
+        if (_targetLockup == 0) {
             return _lockup[address(0)];
         } else {
-            return _lockup[_target];
+            return _targetLockup;
         }
     }
 
