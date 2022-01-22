@@ -383,10 +383,11 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        if (_min[_target] == 0) {
+        uint256 _targetMin = _min[_target];
+        if (_targetMin == 0) {
             return _min[address(0)];
         } else {
-            return _min[_target];
+            return _targetMin;
         }
     }
 
