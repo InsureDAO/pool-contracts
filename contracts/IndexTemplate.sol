@@ -4,8 +4,6 @@ pragma solidity 0.8.7;
  * @title InsureDAO market template contract
  * SPDX-License-Identifier: GPL-3.0
  */
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "./InsureDAOERC20.sol";
 import "./interfaces/IIndexTemplate.sol";
