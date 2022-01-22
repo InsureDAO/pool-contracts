@@ -518,7 +518,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         allInsuranceCount += 1;
 
         //Calculate liquidity for index
-        if (_totalCredit != 0) {
+        if (_totalCredit != 0 && _liquidity != 0) {
             uint256 _attributionForIndex = (_newAttribution[0] * _totalCredit) /
                 _liquidity;
             attributionDebt += _attributionForIndex;
@@ -695,8 +695,12 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         uint256 _debt = vault.debts(address(this));
         uint256 _totalCredit = totalCredit;
-        uint256 _deductionFromIndex = (_debt * _totalCredit * MAGIC_SCALE_1E6) /
-            totalLiquidity();
+        uint256 _totalLiquidity = totalLiquidity();
+        uint256 _deductionFromIndex;
+        if (_totalLiquidity != 0) {
+            _deductionFromIndex = (_debt * _totalCredit * MAGIC_SCALE_1E6) /
+                _totalLiquidity;
+        }
         uint256 _actualDeduction;
         for (uint256 i = 0; i < indexList.length; i++) {
             address _index = indexList[i];
@@ -847,9 +851,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      */
     function utilizationRate() public view override returns (uint256 _rate) {
         uint256 _lockedAmount = lockedAmount;
+        uint256 _totalLiquidity = totalLiquidity();
         
-        if (_lockedAmount != 0) {
-            return (_lockedAmount * MAGIC_SCALE_1E6) / totalLiquidity();
+        if (_lockedAmount != 0 && _totalLiquidity != 0) {
+            return (_lockedAmount * MAGIC_SCALE_1E6) / _totalLiquidity;
         } else {
             return 0;
         }
