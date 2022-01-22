@@ -561,6 +561,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @param _target new leverage rate
      */
     function setLeverage(uint256 _target) external override onlyOwner {
+        require(_target >= MAGIC_SCALE_1E6, "leverage must be x1 or higher");
         targetLev = _target;
         adjustAlloc();
         emit LeverageSet(_target);
