@@ -96,10 +96,10 @@ contract Vault is IVault {
         require(_shares[0] + _shares[1] == 1000000, "ERROR_INCORRECT_SHARE");
 
         uint256 _attributions;
+        uint256 _pool = valueAll();
         if (totalAttributions == 0) {
             _attributions = _amount;
-        } else {
-            uint256 _pool = valueAll();
+        } else if (_pool != 0) {
             _attributions = (_amount * totalAttributions) / _pool;
         }
         IERC20(token).safeTransferFrom(_from, address(this), _amount);
