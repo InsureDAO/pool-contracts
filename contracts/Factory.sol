@@ -172,21 +172,17 @@ contract Factory is IFactory {
                 "ERROR: UNAUTHORIZED_SENDER"
             );
         }
-        if (_references.length != 0) {
-            for (uint256 i = 0; i < _references.length; i++) {
-                require(
-                    reflist[address(_template)][i][_references[i]] == true ||
-                        reflist[address(_template)][i][address(0)] == true,
-                    "ERROR: UNAUTHORIZED_REFERENCE"
-                );
-            }
+        for (uint256 i = 0; i < _references.length; i++) {
+            require(
+                reflist[address(_template)][i][_references[i]] == true ||
+                    reflist[address(_template)][i][address(0)] == true,
+                "ERROR: UNAUTHORIZED_REFERENCE"
+            );
         }
 
-        if (_conditions.length != 0) {
-            for (uint256 i = 0; i < _conditions.length; i++) {
-                if (conditionlist[address(_template)][i] != 0) {
-                    _conditions[i] = conditionlist[address(_template)][i];
-                }
+        for (uint256 i = 0; i < _conditions.length; i++) {
+            if (conditionlist[address(_template)][i] != 0) {
+                _conditions[i] = conditionlist[address(_template)][i];
             }
         }
 
