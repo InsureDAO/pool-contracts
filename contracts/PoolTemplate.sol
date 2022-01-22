@@ -761,9 +761,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         returns (uint256)
     {
         uint256 _balance = balanceOf(_owner);
-        if (_balance == 0) {
-            return 0;
-        } else {
+        if (_balance != 0) {
             return (_balance * originalLiquidity()) / totalSupply();
         }
     }
