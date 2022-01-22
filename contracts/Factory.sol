@@ -173,7 +173,7 @@ contract Factory is IFactory {
             );
         }
         if (_references.length != 0) {
-            for (uint256 i = 0; i < _references.length; i++) {
+            for (uint256 i; i < _references.length; i++) {
                 require(
                     reflist[address(_template)][i][_references[i]] == true ||
                         reflist[address(_template)][i][address(0)] == true,
