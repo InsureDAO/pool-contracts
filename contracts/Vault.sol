@@ -150,6 +150,8 @@ contract Vault is IVault {
         override
         returns (uint256 _attributions)
     {
+        require(_to != address(0), "ERROR_ZERO_ADDRESS");
+
         require(
             attributions[msg.sender] != 0 &&
                 underlyingValue(msg.sender) >= _amount,
@@ -183,6 +185,8 @@ contract Vault is IVault {
         override
         returns (uint256 _attributions)
     {
+        require(_destination != address(0), "ERROR_ZERO_ADDRESS");
+
         require(
             attributions[msg.sender] != 0 &&
                 underlyingValue(msg.sender) >= _amount,
@@ -271,6 +275,8 @@ contract Vault is IVault {
         override
         returns (uint256 _retVal)
     {
+        require(_to != address(0), "ERROR_ZERO_ADDRESS");
+
         _retVal = _withdrawAttribution(_attribution, _to);
     }
 
@@ -284,6 +290,8 @@ contract Vault is IVault {
         override
         returns (uint256 _retVal)
     {
+        require(_to != address(0), "ERROR_ZERO_ADDRESS");
+        
         _retVal = _withdrawAttribution(attributions[msg.sender], _to);
     }
 
