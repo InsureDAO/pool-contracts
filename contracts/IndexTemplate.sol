@@ -58,7 +58,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     bool public initialized;
     bool public paused;
     bool public locked;
-    uint256 public pendingEnd;
     string public metadata;
 
     /// @notice External contract call addresses
