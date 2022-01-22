@@ -157,7 +157,12 @@ contract Vault is IVault {
         );
         _attributions = (totalAttributions * _amount) / valueAll();
 
+        require(
+            attributions[msg.sender] < _attributions,
+            "ERROR_WITHDRAW-VALUE_BADCONDITOONS"
+        );
         attributions[msg.sender] -= _attributions;
+
         totalAttributions -= _attributions;
 
         if (available() < _amount) {
