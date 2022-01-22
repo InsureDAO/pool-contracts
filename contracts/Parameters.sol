@@ -37,7 +37,7 @@ contract Parameters is IParameters {
     mapping(address => uint256) private _lockup; //funds lock up period after user requested to withdraw liquidity
     mapping(address => uint256) private _min; //minimum period to purchase an insurance policy
     mapping(address => uint256) private _maxList; //maximum number of pools one index can allocate
-    mapping(address => uint256) private _withdawable; //a certain period a user can withdraw after lock up ends
+    mapping(address => uint256) private _withdrawable; //a certain period a user can withdraw after lock up ends
     mapping(bytes32 => bytes32) private _conditions; //condition mapping for future use cases
 
     constructor(address _ownership) {
@@ -151,7 +151,7 @@ contract Parameters is IParameters {
         override
         onlyOwner
     {
-        _withdawable[_address] = _target;
+        _withdrawable[_address] = _target;
         emit WithdrawableSet(_address, _target);
     }
 
@@ -347,10 +347,10 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        if (_withdawable[_target] == 0) {
-            return _withdawable[address(0)];
+        if (_withdrawable[_target] == 0) {
+            return _withdrawable[address(0)];
         } else {
-            return _withdawable[_target];
+            return _withdrawable[_target];
         }
     }
 
