@@ -478,9 +478,10 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @return _rate leverage rate
      */
     function leverage() public view returns (uint256 _rate) {
+        uint256 _totalLiquidity = totalLiquidity();
         //check current leverage rate
-        if (totalLiquidity() != 0) {
-            return (totalAllocatedCredit * MAGIC_SCALE_1E6) / totalLiquidity();
+        if (_totalLiquidity != 0) {
+            return (totalAllocatedCredit * MAGIC_SCALE_1E6) / _totalLiquidity;
         } else {
             return 0;
         }
