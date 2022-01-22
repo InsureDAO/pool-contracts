@@ -468,27 +468,29 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 _span,
         bytes32 _target
     ) external returns (uint256) {
-        //Distribute premium and fee
-        uint256 _endTime = _span + block.timestamp;
-        uint256 _premium = getPremium(_amount, _span);
-        uint256 _fee = parameters.getFeeRate(msg.sender);
+        require(paused == false, "ERROR: INSURE_MARKET_PAUSED");
+        require(
+            marketStatus == MarketStatus.Trading,
+            "ERROR: INSURE_MARKET_PENDING"
+        );
 
         require(
             _amount <= availableBalance(),
             "ERROR: INSURE_EXCEEDED_AVAILABLE_BALANCE"
         );
-        require(_premium <= _maxCost, "ERROR: INSURE_EXCEEDED_MAX_COST");
+
         require(_span <= 365 days, "ERROR: INSURE_EXCEEDED_MAX_SPAN");
         require(
             parameters.getMinDate(msg.sender) <= _span,
             "ERROR: INSURE_SPAN_BELOW_MIN"
         );
 
-        require(
-            marketStatus == MarketStatus.Trading,
-            "ERROR: INSURE_MARKET_PENDING"
-        );
-        require(paused == false, "ERROR: INSURE_MARKET_PAUSED");
+        //Distribute premium and fee
+        uint256 _premium = getPremium(_amount, _span);
+        require(_premium <= _maxCost, "ERROR: INSURE_EXCEEDED_MAX_COST");
+
+        uint256 _endTime = _span + block.timestamp;
+        uint256 _fee = parameters.getFeeRate(msg.sender);
 
         //current liquidity
         uint256 _liquidity = totalLiquidity();
@@ -797,10 +799,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return _amount The balance of underlying tokens for the specified amount
      */
     function worth(uint256 _value) public view returns (uint256 _amount) {
-    
+
         uint256 _supply = totalSupply();
         uint256 _originalLiquidity = originalLiquidity();
-        
+
         if (_supply == 0) {
             _amount = _value;
         } else if (_originalLiquidity == 0) {
@@ -847,7 +849,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      */
     function utilizationRate() public view override returns (uint256 _rate) {
         uint256 _lockedAmount = lockedAmount;
-        
+
         if (_lockedAmount != 0) {
             return (_lockedAmount * MAGIC_SCALE_1E6) / totalLiquidity();
         } else {
