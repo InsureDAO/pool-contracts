@@ -63,7 +63,7 @@ describe("Ownership", function () {
       await ownership.connect(alice).acceptTransferOwnership();
 
       expect(await ownership.owner()).to.equal(alice.address);
-      expect(await ownership.futureOwner()).to.equal(alice.address);
+      expect(await ownership.futureOwner()).to.equal(ethers.constants.AddressZero);
     });
 
     it("accept_transfer_ownership emit event successfully", async () => {
