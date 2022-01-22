@@ -257,16 +257,10 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         uint256 _surplusAttribution = surplusPool;
         uint256 _attributionLoss;
 
-        if (_available >= _amount) {
-            _compensated = _amount;
-            _attributionLoss = vault.transferValue(_amount, msg.sender);
-            emit Compensated(msg.sender, _amount);
-        } else {
-            //when CDS cannot afford, pay as much as possible
-            _compensated = _available;
-            _attributionLoss = vault.transferValue(_available, msg.sender);
-            emit Compensated(msg.sender, _available);
-        }
+        //when CDS cannot afford, pay as much as possible
+        _compensated = _available >= _amount ? _amount : _available;
+        _attributionLoss = vault.transferValue(_compensated, msg.sender);
+        emit Compensated(msg.sender, _compensated);
 
         uint256 _crowdPoolLoss =
             (_crowdAttribution * _attributionLoss) /
