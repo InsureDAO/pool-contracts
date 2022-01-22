@@ -41,6 +41,7 @@ contract Parameters is IParameters {
     mapping(bytes32 => bytes32) private _conditions; //condition mapping for future use cases
 
     constructor(address _ownership) {
+        require(_ownership != address(0));
         ownership = _ownership;
     }
 
