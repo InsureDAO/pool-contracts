@@ -255,5 +255,6 @@ contract Factory is IFactory {
             // create the actual delegate contract reference and return its address
             result := create(0, clone, 0x37)
         }
+        require(result != address(0), "ERROR: ZERO_ADDRESS");
     }
 }
