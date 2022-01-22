@@ -546,7 +546,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * Ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/MerkleProof.sol
      */
     function redeem(uint256 _id, bytes32[] calldata _merkleProof) external {
-        Insurance storage _insurance = insurances[_id];
+        Insurance memory insurance = insurances[_id];
         require(_insurance.status == true, "ERROR: INSURANCE_NOT_ACTIVE");
 
         uint256 _incidentTimestamp = incident.incidentTimestamp;
@@ -578,7 +578,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 ),
             "ERROR: INSURANCE_EXEMPTED"
         );
-        _insurance.status = false;
+        insurances[_id].status = false;
         lockedAmount -= _insurance.amount;
 
         uint256 _payoutAmount = (_insurance.amount * incident.payoutNumerator) /
