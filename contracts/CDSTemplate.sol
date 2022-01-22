@@ -293,10 +293,11 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @return The value against the underlying token balance.
      */
     function rate() external view returns (uint256) {
-        if (totalSupply() != 0) {
+        uint256 _totalSupply = totalSupply();
+        if (_totalSupply != 0) {
             return
                 (vault.attributionValue(crowdPool) * MAGIC_SCALE_1E6) /
-                totalSupply();
+                _totalSupply;
         } else {
             return 0;
         }
