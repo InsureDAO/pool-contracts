@@ -299,7 +299,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         require(
             marketStatus == MarketStatus.Trading,
-            "ERROR: WITHDRAWAL_PENDING"
+            "ERROR: WITHDRAWAL_MARKET_PENDING"
         );
         require(
             withdrawalReq[msg.sender].timestamp +
