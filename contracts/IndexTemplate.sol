@@ -210,16 +210,15 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         //Calculate underlying value
 
         uint256 _liquidty = totalLiquidity();
-        uint256 _lockup = parameters.getLockup(msg.sender);
-        uint256 _requestTime = withdrawalReq[msg.sender].timestamp;
+        uint256 _lockupPlusRequestTime = parameters.getLockup(msg.sender) + withdrawalReq[msg.sender].timestamp;
         _retVal = (_liquidty * _amount) / totalSupply();
         require(locked == false, "ERROR: WITHDRAWAL_PENDING");
         require(
-            _requestTime + _lockup < block.timestamp,
+            _lockupPlusRequestTime < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            _requestTime + _lockup + parameters.getWithdrawable(msg.sender) >
+            _lockupPlusRequestTime + parameters.getWithdrawable(msg.sender) >
                 block.timestamp,
             "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
         );

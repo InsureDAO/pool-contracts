@@ -203,15 +203,14 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         Withdrawal memory request = withdrawalReq[msg.sender];
 
         require(paused == false, "ERROR: PAUSED");
+        uint256 unlocksAt = request.timestamp + parameters.getLockup(msg.sender);
         require(
-            request.timestamp +
-                parameters.getLockup(msg.sender) <
+            unlocksAt <
                 block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            request.timestamp +
-                parameters.getLockup(msg.sender) +
+            unlocksAt +
                 parameters.getWithdrawable(msg.sender) >
                 block.timestamp,
             "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
