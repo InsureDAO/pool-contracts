@@ -79,7 +79,10 @@ contract Factory is IFactory {
     }
 
     constructor(address _registry, address _ownership) {
+        require(_registry != address(0));
         registry = _registry;
+
+        require(_ownership != address(0));
         ownership = IOwnership(_ownership);
     }
 
