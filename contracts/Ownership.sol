@@ -68,5 +68,7 @@ contract Ownership is IOwnership {
          */
         _owner = _futureOwner;
         emit AcceptNewOwnership(_owner);
+
+        _futureOwner = address(0);
     }
 }
