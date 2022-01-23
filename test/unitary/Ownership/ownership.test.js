@@ -2,6 +2,10 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
+const {
+  ZERO_ADDRESS,
+} = require("../constant-utils");
+
 describe("Ownership", function () {
   beforeEach(async () => {
     //import
@@ -63,7 +67,7 @@ describe("Ownership", function () {
       await ownership.connect(alice).acceptTransferOwnership();
 
       expect(await ownership.owner()).to.equal(alice.address);
-      expect(await ownership.futureOwner()).to.equal(ethers.constants.AddressZero);
+      expect(await ownership.futureOwner()).to.equal(ZERO_ADDRESS);
     });
 
     it("accept_transfer_ownership emit event successfully", async () => {
