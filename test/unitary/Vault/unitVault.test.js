@@ -1278,7 +1278,14 @@ describe("Vault", function () {
     }) 
 
     it("should succeed to set keeper", async () => {
-      
+        await vault.connect(creator).setKeeper(alice.address);
+        expect(await vault.keeper()).to.equal(alice.address);
+    })
+
+    it("should emit the event", async () => {
+      await expect(
+        await vault.connect(creator).setKeeper(alice.address)
+      ).to.emit(vault, "KeeperChanged").withArgs(alice.address);
     })
   })
 });
