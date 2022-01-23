@@ -96,10 +96,11 @@ contract Vault is IVault {
         require(_shares[0] + _shares[1] == 1000000, "ERROR_INCORRECT_SHARE");
 
         uint256 _attributions;
+        uint256 _pool = valueAll();
         if (totalAttributions == 0) {
             _attributions = _amount;
         } else {
-            uint256 _pool = valueAll();
+            require(_pool != 0, "ERROR_VALUE_ALL_IS_ZERO"); //should never triggered
             _attributions = (_amount * totalAttributions) / _pool;
         }
         IERC20(token).safeTransferFrom(_from, address(this), _amount);
@@ -251,15 +252,16 @@ contract Vault is IVault {
      */
     function repayDebt(uint256 _amount, address _target) external override {
         uint256 _debt = debts[_target];
-        if (_debt >= _amount) {
-            debts[_target] -= _amount;
-            totalDebt -= _amount;
-            IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
+        if (_debt > _amount) {
+            unchecked {
+                debts[_target] = _debt - _amount;
+            }
         } else {
             debts[_target] = 0;
-            totalDebt -= _debt;
-            IERC20(token).safeTransferFrom(msg.sender, address(this), _debt);
+            _amount = _debt;
         }
+        totalDebt -= _amount;
+        IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
     }
 
     /**
@@ -470,16 +472,20 @@ contract Vault is IVault {
         onlyOwner
     {
         uint256 _balance = balance;
+        uint256 _tokenBalance = IERC20(_token).balanceOf(address(this));
         if (
-            _token == token &&
-            _balance < IERC20(_token).balanceOf(address(this))
+            _token == address(token) &&
+            _balance < _tokenBalance
         ) {
-            uint256 _redundant = IERC20(_token).balanceOf(address(this)) - _balance;
-            IERC20(_token).safeTransfer(_to, _redundant);
-        } else if (IERC20(_token).balanceOf(address(this)) != 0) {
+            uint256 _redundant;
+            unchecked{
+                _redundant = _tokenBalance - _balance;
+            }
+            IERC20(token).safeTransfer(_to, _redundant);
+        } else if (_tokenBalance != 0) {
             IERC20(_token).safeTransfer(
                 _to,
-                IERC20(_token).balanceOf(address(this))
+                _tokenBalance
             );
         }
     }
