@@ -659,7 +659,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         string calldata _rawdata,
         string calldata _memo
     ) external override onlyOwner {
-        require(paused == false, "ERROR: UNABLE_TO_APPLY");
+        require(paused == false && marketStatus == MarketStatus.Trading, "ERROR: UNABLE_TO_APPLY");
         incident.payoutNumerator = _payoutNumerator;
         incident.payoutDenominator = _payoutDenominator;
         incident.incidentTimestamp = _incidentTimestamp;
