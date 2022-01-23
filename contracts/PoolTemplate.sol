@@ -793,8 +793,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     /**
      * @notice Get token number for the specified underlying value
-     * @param _value amount of iToken
-     * @return _amount The balance of underlying tokens for the specified amount
+     * @param _value the amount of the underlying
+     * @return _amount the number of the iTokens that could be achieved corresponding to _value
      */
     function worth(uint256 _value) public view returns (uint256 _amount) {
     
