@@ -157,12 +157,12 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
         _transfer(sender, recipient, amount);
 
         uint256 currentAllowance = _allowances[sender][_msgSender()];
-        require(
-            currentAllowance >= amount,
-            "ERC20: transfer amount exceeds allowance"
-        );
-
-        _approve(sender, _msgSender(), currentAllowance - amount);
+        if (currentAllowance != type(uint256).max) {
+            require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
+            unchecked {
+                _approve(sender, _msgSender(), currentAllowance - amount);
+            }
+        }
 
         return true;
     }
