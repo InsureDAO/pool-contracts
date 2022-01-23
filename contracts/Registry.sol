@@ -28,6 +28,7 @@ contract Registry is IRegistry {
     }
 
     constructor(address _ownership) {
+        require(_ownership != address(0), "ERROR: ZERO_ADDRESS");
         ownership = IOwnership(_ownership);
     }
 
