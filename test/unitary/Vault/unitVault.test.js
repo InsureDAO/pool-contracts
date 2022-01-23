@@ -1284,7 +1284,7 @@ describe("Vault", function () {
 
     it("should emit the event", async () => {
       await expect(
-        await vault.connect(creator).setKeeper(alice.address)
+        vault.connect(creator).setKeeper(alice.address)
       ).to.emit(vault, "KeeperChanged").withArgs(alice.address);
     })
   })
