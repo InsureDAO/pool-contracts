@@ -471,8 +471,8 @@ contract Vault is IVault {
     {
         uint256 _balance = balance;
         if (
-            _token == address(token) &&
-            _balance < IERC20(token).balanceOf(address(this))
+            _token == token &&
+            _balance < IERC20(_token).balanceOf(address(this))
         ) {
             uint256 _redundant = IERC20(_token).balanceOf(address(this)) - _balance;
             IERC20(_token).safeTransfer(_to, _redundant);
