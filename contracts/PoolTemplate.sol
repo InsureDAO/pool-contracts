@@ -301,6 +301,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             marketStatus == MarketStatus.Trading,
             "ERROR: WITHDRAWAL_PENDING"
         );
+
         uint256 _lockup = parameters.getLockup(msg.sender);
         require(
             withdrawalReq[msg.sender].timestamp + _lockup < block.timestamp,
@@ -379,9 +380,11 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             IRegistry(registry).isListed(msg.sender),
             "ERROR: ALLOCATE_CREDIT_BAD_CONDITIONS"
         );
+
         IndexInfo storage _index = indicies[msg.sender];
         uint256 _rewardPerCredit = rewardPerCredit;
         uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
+
         if (_index.exist == false) {
             _index.exist = true;
             indexList.push(msg.sender);
@@ -418,6 +421,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         IndexInfo storage _index = indicies[msg.sender];
         uint256 _rewardPerCredit = rewardPerCredit;
         uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
+        
         require(
             IRegistry(registry).isListed(msg.sender) &&
                 _index.credit >= _credit &&

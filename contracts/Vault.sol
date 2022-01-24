@@ -249,15 +249,15 @@ contract Vault is IVault {
      */
     function repayDebt(uint256 _amount, address _target) external override {
         uint256 _debt = debts[_target];
-        IERC20 iToken = IERC20(token);
+
         if (_debt >= _amount) {
             debts[_target] -= _amount;
             totalDebt -= _amount;
-            iToken.safeTransferFrom(msg.sender, address(this), _amount);
+            IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
         } else {
             debts[_target] = 0;
             totalDebt -= _debt;
-            iToken.safeTransferFrom(msg.sender, address(this), _debt);
+            IERC20(token).safeTransferFrom(msg.sender, address(this), _debt);
         }
     }
 
