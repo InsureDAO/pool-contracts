@@ -97,9 +97,8 @@ contract Factory is IFactory {
         bool _duplicate
     ) external override onlyOwner {
         require(address(_template) != address(0));
-        templates[address(_template)].approval = _approval;
-        templates[address(_template)].isOpen = _isOpen;
-        templates[address(_template)].allowDuplicate = _duplicate;
+        Template memory approvedTemplate = Template(_isOpen, _approval, _duplicate);
+        templates[address(_template)] = approvedTemplate;
         emit TemplateApproval(_template, _approval, _isOpen, _duplicate);
     }
 
@@ -171,7 +170,8 @@ contract Factory is IFactory {
                 "ERROR: UNAUTHORIZED_SENDER"
             );
         }
-        if (_references.length > 0) {
+
+        if (_references.length != 0) {
             for (uint256 i = 0; i < _references.length;) {
                 require(
                     reflist[address(_template)][i][_references[i]] == true ||
@@ -184,9 +184,10 @@ contract Factory is IFactory {
             }
         }
 
-        if (_conditions.length > 0) {
+
+        if (_conditions.length != 0) {
             for (uint256 i = 0; i < _conditions.length;) {
-                if (conditionlist[address(_template)][i] > 0) {
+                if (conditionlist[address(_template)][i] != 0) {
                     _conditions[i] = conditionlist[address(_template)][i];
                 }
                 unchecked {
@@ -195,14 +196,14 @@ contract Factory is IFactory {
             }
         }
 
-        IRegistry iRegistry = IRegistry(registry);
+        address _registry = registry;
         if (
-            iRegistry.confirmExistence(
+            IRegistry(_registry).confirmExistence(
                 address(_template),
                 _references[0]
             ) == false
         ) {
-            iRegistry.setExistence(
+            IRegistry(_registry).setExistence(
                 address(_template),
                 _references[0]
             );
@@ -217,7 +218,7 @@ contract Factory is IFactory {
             _createClone(address(_template))
         );
 
-        iRegistry.supportMarket(address(market));
+        IRegistry(_registry).supportMarket(address(market));
         
         markets.push(address(market));
 

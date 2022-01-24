@@ -7,7 +7,6 @@ pragma solidity 0.8.7;
  */
 
 import "../interfaces/IPremiumModel.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "abdk-libraries-solidity/ABDKMath64x64.sol";
 import "../interfaces/IOwnership.sol";
 

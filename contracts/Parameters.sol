@@ -10,7 +10,6 @@ pragma solidity 0.8.7;
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IParameters.sol";
 import "./interfaces/IPremiumModel.sol";
-import "hardhat/console.sol";
 
 contract Parameters is IParameters {
     event VaultSet(address indexed token, address vault);
