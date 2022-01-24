@@ -96,10 +96,11 @@ contract Vault is IVault {
         require(_shares[0] + _shares[1] == 1000000, "ERROR_INCORRECT_SHARE");
 
         uint256 _attributions;
+        uint256 _pool = valueAll();
         if (totalAttributions == 0) {
             _attributions = _amount;
         } else {
-            uint256 _pool = valueAll();
+            require(_pool != 0, "ERROR_VALUE_ALL_IS_ZERO"); //should never triggered
             _attributions = (_amount * totalAttributions) / _pool;
         }
         IERC20(token).safeTransferFrom(_from, address(this), _amount);
@@ -151,21 +152,23 @@ contract Vault is IVault {
         returns (uint256 _attributions)
     {
         require(
-            attributions[msg.sender] > 0 &&
+            attributions[msg.sender] != 0 &&
                 underlyingValue(msg.sender) >= _amount,
             "ERROR_WITHDRAW-VALUE_BADCONDITOONS"
         );
+        uint256 _available = available();
+
         _attributions = (totalAttributions * _amount) / valueAll();
 
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
 
-        if (available() < _amount) {
+        if (_available < _amount) {
             //when USDC in this contract isn't enough
-            uint256 _shortage = _amount - available();
+            uint256 _shortage = _amount - _available;
             _unutilize(_shortage);
 
-            require(available() >= _amount, "Available is not enough for withdraw");
+            require(_available >= _amount, "Available is not enough for withdraw");
         }
 
         balance -= _amount;
@@ -184,7 +187,7 @@ contract Vault is IVault {
         returns (uint256 _attributions)
     {
         require(
-            attributions[msg.sender] > 0 &&
+            attributions[msg.sender] != 0 &&
                 underlyingValue(msg.sender) >= _amount,
             "ERROR_TRANSFER-VALUE_BADCONDITOONS"
         );
@@ -217,7 +220,7 @@ contract Vault is IVault {
         returns (uint256 _attributions)
     {
         require(
-            attributions[msg.sender] > 0 &&
+            attributions[msg.sender] != 0 &&
                 underlyingValue(msg.sender) >= _amount,
             "ERROR_REPAY_DEBT_BADCONDITOONS"
         );
@@ -249,15 +252,16 @@ contract Vault is IVault {
      */
     function repayDebt(uint256 _amount, address _target) external override {
         uint256 _debt = debts[_target];
-        if (_debt >= _amount) {
-            debts[_target] -= _amount;
-            totalDebt -= _amount;
-            IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
+        if (_debt > _amount) {
+            unchecked {
+                debts[_target] = _debt - _amount;
+            }
         } else {
             debts[_target] = 0;
-            totalDebt -= _debt;
-            IERC20(token).safeTransferFrom(msg.sender, address(this), _debt);
+            _amount = _debt;
         }
+        totalDebt -= _amount;
+        IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
     }
 
     /**
@@ -301,13 +305,14 @@ contract Vault is IVault {
             attributions[msg.sender] >= _attribution,
             "ERROR_WITHDRAW-ATTRIBUTION_BADCONDITOONS"
         );
+        uint256 _available = available();
         _retVal = (_attribution * valueAll()) / totalAttributions;
 
         attributions[msg.sender] -= _attribution;
         totalAttributions -= _attribution;
 
-        if (available() < _retVal) {
-            uint256 _shortage = _retVal - available();
+        if (_available < _retVal) {
+            uint256 _shortage = _retVal - _available;
             _unutilize(_shortage);
         }
 
@@ -344,7 +349,7 @@ contract Vault is IVault {
             require(msg.sender == keeper, "ERROR_NOT_KEEPER");
         }
         _amount = available(); //balance
-        if (_amount > 0) {
+        if (_amount != 0) {
             IERC20(token).safeTransfer(address(controller), _amount);
             balance -= _amount;
             controller.earn(address(token), _amount);
@@ -385,8 +390,9 @@ contract Vault is IVault {
         override
         returns (uint256)
     {
-        if (totalAttributions > 0 && _attribution > 0) {
-            return (_attribution * valueAll()) / totalAttributions;
+        uint256 _totalAttributions = totalAttributions;
+        if (_totalAttributions != 0 && _attribution != 0) {
+            return (_attribution * valueAll()) / _totalAttributions;
         } else {
             return 0;
         }
@@ -403,8 +409,10 @@ contract Vault is IVault {
         override
         returns (uint256)
     {
-        if (attributions[_target] > 0) {
-            return (valueAll() * attributions[_target]) / totalAttributions;
+        uint256 valueAll = valueAll();
+        uint256 attribution = attributions[_target];
+        if (valueAll != 0 && attribution != 0) {
+            return (valueAll * attribution) / totalAttributions;
         } else {
             return 0;
         }
@@ -463,17 +471,21 @@ contract Vault is IVault {
         override
         onlyOwner
     {
+        uint256 _balance = balance;
+        uint256 _tokenBalance = IERC20(_token).balanceOf(address(this));
         if (
             _token == address(token) &&
-            balance < IERC20(token).balanceOf(address(this))
+            _balance < _tokenBalance
         ) {
-            uint256 _redundant = IERC20(token).balanceOf(address(this)) -
-                balance;
+            uint256 _redundant;
+            unchecked{
+                _redundant = _tokenBalance - _balance;
+            }
             IERC20(token).safeTransfer(_to, _redundant);
-        } else if (IERC20(_token).balanceOf(address(this)) > 0) {
+        } else if (_tokenBalance != 0) {
             IERC20(_token).safeTransfer(
                 _to,
-                IERC20(_token).balanceOf(address(this))
+                _tokenBalance
             );
         }
     }
@@ -487,10 +499,8 @@ contract Vault is IVault {
 
         if (address(controller) != address(0)) {
             controller.migrate(address(_controller));
-            controller = IController(_controller);
-        } else {
-            controller = IController(_controller);
         }
+        controller = IController(_controller);
 
         emit ControllerSet(_controller);
     }
