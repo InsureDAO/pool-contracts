@@ -211,6 +211,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _liquidty = totalLiquidity();
         uint256 _lockup = parameters.getLockup(msg.sender);
         uint256 _requestTime = withdrawalReq[msg.sender].timestamp;
+        
         _retVal = (_liquidty * _amount) / totalSupply();
         require(locked == false, "ERROR: WITHDRAWAL_PENDING");
         require(
@@ -609,7 +610,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             }
             poolList[_index] = _pool;
         }
+
         uint256 _totalAllocPoint = totalAllocPoint;
+
         if (_totalAllocPoint > 0) {
             totalAllocPoint =
                 _totalAllocPoint -

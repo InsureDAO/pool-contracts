@@ -189,14 +189,14 @@ contract Factory is IFactory {
             }
         }
 
-        IRegistry iRegistry = IRegistry(registry);
+        address _registry = registry;
         if (
-            iRegistry.confirmExistence(
+            IRegistry(_registry).confirmExistence(
                 address(_template),
                 _references[0]
             ) == false
         ) {
-            iRegistry.setExistence(
+            IRegistry(_registry).setExistence(
                 address(_template),
                 _references[0]
             );
@@ -211,7 +211,7 @@ contract Factory is IFactory {
             _createClone(address(_template))
         );
 
-        iRegistry.supportMarket(address(market));
+        IRegistry(_registry).supportMarket(address(market));
         
         markets.push(address(market));
 
