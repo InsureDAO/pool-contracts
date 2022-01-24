@@ -96,7 +96,7 @@ contract Registry is IRegistry {
     /**
      * @notice Get the cds address for a particular address
      * @param _address address covered by CDS
-     * @return true if the id within the market already exists
+     * @return CDS contract address
      */
     function getCDS(address _address) external view override returns (address) {
         if (cds[_address] == address(0)) {
