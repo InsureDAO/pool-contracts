@@ -10,7 +10,6 @@ pragma solidity 0.8.7;
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IParameters.sol";
 import "./interfaces/IPremiumModel.sol";
-import "hardhat/console.sol";
 
 contract Parameters is IParameters {
     event VaultSet(address indexed token, address vault);
@@ -216,7 +215,7 @@ contract Parameters is IParameters {
      * @notice Get the address of the owner
      * @return owner's address
      */
-    function getOwner() public view override returns (address) {
+    function getOwner() external view override returns (address) {
         return IOwnership(ownership).owner();
     }
 

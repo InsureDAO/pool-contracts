@@ -252,6 +252,7 @@ contract Vault is IVault {
      */
     function repayDebt(uint256 _amount, address _target) external override {
         uint256 _debt = debts[_target];
+
         if (_debt > _amount) {
             unchecked {
                 debts[_target] = _debt - _amount;
@@ -345,14 +346,16 @@ contract Vault is IVault {
      * @return _amount amount of tokens utilized
      */
     function utilize() external override returns (uint256 _amount) {
+        address _token = token;
         if (keeper != address(0)) {
             require(msg.sender == keeper, "ERROR_NOT_KEEPER");
         }
         _amount = available(); //balance
+        
         if (_amount != 0) {
-            IERC20(token).safeTransfer(address(controller), _amount);
+            IERC20(_token).safeTransfer(address(controller), _amount);
             balance -= _amount;
-            controller.earn(address(token), _amount);
+            controller.earn(address(_token), _amount);
         }
     }
 
@@ -391,6 +394,7 @@ contract Vault is IVault {
         returns (uint256)
     {
         uint256 _totalAttributions = totalAttributions;
+
         if (_totalAttributions != 0 && _attribution != 0) {
             return (_attribution * valueAll()) / _totalAttributions;
         } else {
@@ -453,7 +457,7 @@ contract Vault is IVault {
      * @notice return how much price for each attribution
      * @return value of one share of attribution
      */
-    function getPricePerFullShare() public view returns (uint256) {
+    function getPricePerFullShare() external view returns (uint256) {
         return (valueAll() * MAGIC_SCALE_1E6) / totalAttributions;
     }
 
@@ -494,7 +498,7 @@ contract Vault is IVault {
      * @notice admin function to set controller address
      * @param _controller address of the controller
      */
-    function setController(address _controller) public override onlyOwner {
+    function setController(address _controller) external override onlyOwner {
         require(_controller != address(0), "ERROR_ZERO_ADDRESS");
 
         if (address(controller) != address(0)) {
