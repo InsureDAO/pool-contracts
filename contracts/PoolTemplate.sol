@@ -744,8 +744,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 uint256 _shareOfIndex = (_credit * _MAGIC_SCALE_1E6) /
                     _totalCredit;
                 uint256 _redeemAmount = _divCeil(
-                    _deductionFromIndex,
-                    _shareOfIndex
+                    _deductionFromIndex * _shareOfIndex,
+                    MAGIC_SCALE_1E6 * MAGIC_SCALE_1E6
                 );
                 _actualDeduction += IIndexTemplate(_index).compensate(
                     _redeemAmount
