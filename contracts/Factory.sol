@@ -5,13 +5,12 @@
  * SPDX-License-Identifier: GPL-3.0
  */
 
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IUniversalMarket.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IFactory.sol";
-import "hardhat/console.sol";
 
 contract Factory is IFactory {
     event MarketCreated(
@@ -39,11 +38,9 @@ contract Factory is IFactory {
         uint256 target
     );
 
-    address[] public markets;
-
     struct Template {
-        bool isOpen; //true if the market allows anyone to create a market
         bool approval; //true if the template exists
+        bool isOpen; //true if the market allows anyone to create a market
         bool allowDuplicate; //true if the market with same ID is allowed
     }
     mapping(address => Template) public templates;
@@ -67,8 +64,8 @@ contract Factory is IFactory {
     // Example condition list for pool template v1
     // conditions[0] = minimim deposit amount
 
-    address public registry;
-    IOwnership public ownership;
+    address public immutable registry;
+    IOwnership public immutable ownership;
 
     modifier onlyOwner() {
         require(
@@ -79,6 +76,9 @@ contract Factory is IFactory {
     }
 
     constructor(address _registry, address _ownership) {
+        require(_registry != address(0), "ERROR: ZERO_ADDRESS");
+        require(_ownership != address(0), "ERROR: ZERO_ADDRESS");
+        
         registry = _registry;
         ownership = IOwnership(_ownership);
     }
@@ -98,9 +98,8 @@ contract Factory is IFactory {
         bool _duplicate
     ) external override onlyOwner {
         require(address(_template) != address(0));
-        templates[address(_template)].approval = _approval;
-        templates[address(_template)].isOpen = _isOpen;
-        templates[address(_template)].allowDuplicate = _duplicate;
+        Template memory approvedTemplate = Template(_isOpen, _approval, _duplicate);
+        templates[address(_template)] = approvedTemplate;
         emit TemplateApproval(_template, _approval, _isOpen, _duplicate);
     }
 
@@ -119,7 +118,7 @@ contract Factory is IFactory {
         bool _approval
     ) external override onlyOwner {
         require(
-            templates[address(_template)].approval == true,
+            templates[address(_template)].approval,
             "ERROR: UNAUTHORIZED_TEMPLATE"
         );
         reflist[address(_template)][_slot][_target] = _approval;
@@ -139,7 +138,7 @@ contract Factory is IFactory {
         uint256 _target
     ) external override onlyOwner {
         require(
-            templates[address(_template)].approval == true,
+            templates[address(_template)].approval,
             "ERROR: UNAUTHORIZED_TEMPLATE"
         );
         conditionlist[address(_template)][_slot] = _target;
@@ -157,51 +156,56 @@ contract Factory is IFactory {
      */
     function createMarket(
         IUniversalMarket _template,
-        string memory _metaData,
+        string calldata _metaData,
         uint256[] memory _conditions,
-        address[] memory _references
-    ) public override returns (address) {
+        address[] calldata _references
+    ) external override returns (address) {
         //check eligibility
         require(
-            templates[address(_template)].approval == true,
+            templates[address(_template)].approval,
             "ERROR: UNAUTHORIZED_TEMPLATE"
         );
-        if (templates[address(_template)].isOpen == false) {
+        if (!templates[address(_template)].isOpen) {
             require(
                 ownership.owner() == msg.sender,
                 "ERROR: UNAUTHORIZED_SENDER"
             );
         }
-        if (_references.length != 0) {
-            for (uint256 i = 0; i < _references.length; i++) {
-                require(
-                    reflist[address(_template)][i][_references[i]] == true ||
-                        reflist[address(_template)][i][address(0)] == true,
-                    "ERROR: UNAUTHORIZED_REFERENCE"
-                );
+        
+        uint256 refLength = _references.length;
+        for (uint256 i; i < refLength;) {
+            require(
+                reflist[address(_template)][i][_references[i]] || reflist[address(_template)][i][address(0)],
+                "ERROR: UNAUTHORIZED_REFERENCE"
+            );
+            unchecked {
+                ++i;
             }
         }
 
-        if (_conditions.length != 0) {
-            for (uint256 i = 0; i < _conditions.length; i++) {
-                if (conditionlist[address(_template)][i] != 0) {
-                    _conditions[i] = conditionlist[address(_template)][i];
-                }
+        uint256 conLength = _conditions.length;
+        for (uint256 i; i < conLength;) {
+            if (conditionlist[address(_template)][i] != 0) {
+                _conditions[i] = conditionlist[address(_template)][i];
+            }
+            unchecked {
+                ++i;
             }
         }
 
+        address _registry = registry;
         if (
-            IRegistry(registry).confirmExistence(
+            IRegistry(_registry).confirmExistence(
                 address(_template),
                 _references[0]
             ) == false
         ) {
-            IRegistry(registry).setExistence(
+            IRegistry(_registry).setExistence(
                 address(_template),
                 _references[0]
             );
         } else {
-            if (templates[address(_template)].allowDuplicate == false) {
+            if (!templates[address(_template)].allowDuplicate) {
                 revert("ERROR: DUPLICATE_MARKET");
             }
         }
@@ -210,11 +214,8 @@ contract Factory is IFactory {
         IUniversalMarket market = IUniversalMarket(
             _createClone(address(_template))
         );
-
-        IRegistry(registry).supportMarket(address(market));
         
-        markets.push(address(market));
-
+        IRegistry(_registry).supportMarket(address(market));
 
         //initialize
         market.initialize(_metaData, _conditions, _references);
@@ -255,5 +256,6 @@ contract Factory is IFactory {
             // create the actual delegate contract reference and return its address
             result := create(0, clone, 0x37)
         }
+        require(result != address(0), "ERROR: ZERO_ADDRESS");
     }
 }
