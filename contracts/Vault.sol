@@ -504,7 +504,7 @@ contract Vault is IVault {
         uint256 _balance = balance;
         uint256 _tokenBalance = IERC20(_token).balanceOf(address(this));
         if (
-            _token == address(token) &&
+            _token == token &&
             _balance < _tokenBalance
         ) {
             uint256 _redundant;
