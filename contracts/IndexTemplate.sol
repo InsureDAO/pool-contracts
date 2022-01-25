@@ -195,6 +195,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
         withdrawalReq[msg.sender].timestamp = (uint64)(block.timestamp);
         withdrawalReq[msg.sender].amount = (uint192)(_amount);
+
         emit WithdrawRequested(msg.sender, _amount, block.timestamp);
     }
 
@@ -209,6 +210,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         uint256 _lockup = parameters.getLockup(msg.sender);
         uint256 _requestTime = withdrawalReq[msg.sender].timestamp;
+
         require(
             _requestTime + _lockup < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
@@ -267,6 +269,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     function withdrawable() public view returns (uint256 _retVal) {
         uint256 _totalLiquidity = totalLiquidity();
         uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
+
         if (_totalLiquidity != 0) {
             uint256 _length = poolList.length;
             uint256 _lowestAvailableRate = _MAGIC_SCALE_1E6;
@@ -276,6 +279,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             for (uint256 i; i < _length;) {
                 address _poolAddress = poolList[i];
                 uint256 _allocPoint = allocPoints[_poolAddress];
+
                 if (_allocPoint != 0) {
                     uint256 _allocated = IPoolTemplate(_poolAddress)
                     .allocatedCredit(address(this));
@@ -507,11 +511,14 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice get the current leverage rate 1e6x
      * @return _rate leverage rate
      */
+
     function leverage() external view returns (uint256) {
         uint256 _totalLiquidity = totalLiquidity();
         //check current leverage rate
         if (_totalLiquidity != 0) {
             return (totalAllocatedCredit * MAGIC_SCALE_1E6) / _totalLiquidity;
+        }else{
+            return 0;
         }
     }
 
@@ -528,8 +535,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @return The value against the underlying token balance.
      */
     function rate() external view returns (uint256) {
-        if (totalSupply() != 0) {
-            return (totalLiquidity() * MAGIC_SCALE_1E6) / totalSupply();
+        uint256 _totalSupply = totalSupply();
+        if (_totalSupply != 0) {
+            return (totalLiquidity() * MAGIC_SCALE_1E6) / _totalSupply;
         } else {
             return 0;
         }
@@ -542,10 +550,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      */
     function valueOfUnderlying(address _owner) external view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
-        if (_balance == 0) {
+        uint256 _totalSupply = totalSupply();
+        if (_balance == 0 || _totalSupply == 0) {
             return 0;
         } else {
-            return (_balance * totalLiquidity()) / totalSupply();
+            return (_balance * totalLiquidity()) / _totalSupply;
         }
     }
 
@@ -627,7 +636,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             }
             poolList[_index] = _pool;
         }
+
         uint256 _totalAllocPoint = totalAllocPoint;
+
         if (_totalAllocPoint != 0) {
             totalAllocPoint =
                 _totalAllocPoint -
@@ -671,6 +682,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @return _totalValue accrued but yet claimed premium within underlying pools
      */
     function _accruedPremiums() internal view returns (uint256 _totalValue) {
+
         uint256 poolLength = poolList.length;
         for (uint256 i; i < poolLength;) {
             if (allocPoints[poolList[i]] != 0) {

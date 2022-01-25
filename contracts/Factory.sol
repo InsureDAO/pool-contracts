@@ -95,9 +95,8 @@ contract Factory is IFactory {
         bool _duplicate
     ) external override onlyOwner {
         require(address(_template) != address(0));
-        templates[address(_template)].approval = _approval;
-        templates[address(_template)].isOpen = _isOpen;
-        templates[address(_template)].allowDuplicate = _duplicate;
+        Template memory approvedTemplate = Template(_isOpen, _approval, _duplicate);
+        templates[address(_template)] = approvedTemplate;
         emit TemplateApproval(_template, _approval, _isOpen, _duplicate);
     }
 
@@ -169,7 +168,7 @@ contract Factory is IFactory {
                 "ERROR: UNAUTHORIZED_SENDER"
             );
         }
-
+        
         uint256 refLength = _references.length;
         for (uint256 i; i < refLength;) {
             require(
@@ -191,14 +190,14 @@ contract Factory is IFactory {
             }
         }
 
-        IRegistry iRegistry = IRegistry(registry);
+        address _registry = registry;
         if (
-            iRegistry.confirmExistence(
+            IRegistry(_registry).confirmExistence(
                 address(_template),
                 _references[0]
             ) == false
         ) {
-            iRegistry.setExistence(
+            IRegistry(_registry).setExistence(
                 address(_template),
                 _references[0]
             );
@@ -212,9 +211,8 @@ contract Factory is IFactory {
         IUniversalMarket market = IUniversalMarket(
             _createClone(address(_template))
         );
-
-        iRegistry.supportMarket(address(market));
-
+        
+        IRegistry(_registry).supportMarket(address(market));
 
         //initialize
         market.initialize(_metaData, _conditions, _references);

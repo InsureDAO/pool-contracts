@@ -93,7 +93,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         address[] calldata _references
     ) external override{
         require(
-            !initialized &&
+            !initialized &
                 bytes(_metaData).length != 0 &&
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
@@ -177,6 +177,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     function requestWithdraw(uint256 _amount) external {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
         require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
+
         withdrawalReq[msg.sender].timestamp = block.timestamp;
         withdrawalReq[msg.sender].amount = _amount;
         emit WithdrawRequested(msg.sender, _amount, block.timestamp);
@@ -207,7 +208,10 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         );
 
         //Calculate underlying value
-        _retVal = (vault.attributionValue(crowdPool) * _amount) / totalSupply();
+        uint256 _totalSupply = totalSupply();
+        if (_totalSupply != 0) {
+            _retVal = (vault.attributionValue(crowdPool) * _amount) / _totalSupply;
+        }
 
 
         //reduce requested amount
@@ -244,7 +248,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         _attributionLoss = vault.transferValue(_compensated, msg.sender);
         emit Compensated(msg.sender, _compensated);
 
-        uint256 _crowdPoolLoss = 
+        uint256 _crowdPoolLoss =
             (_crowdAttribution * _attributionLoss) /
             (_crowdAttribution + surplusPool);
 
@@ -274,6 +278,8 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
             return
                 (vault.attributionValue(crowdPool) * MAGIC_SCALE_1E6) /
                 _totalSupply;
+        } else {
+            return 0;
         }
     }
 
@@ -284,8 +290,12 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      */
     function valueOfUnderlying(address _owner) external view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
-        if (_balance != 0) {
-            return _balance * vault.attributionValue(crowdPool) / totalSupply();
+        uint256 _totalSupply = totalSupply();
+        
+        if (_balance != 0 || _totalSupply != 0) {
+            return _balance * vault.attributionValue(crowdPool) / _totalSupply;
+        } else {
+            return 0;
         }
     }
 
