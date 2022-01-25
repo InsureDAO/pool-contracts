@@ -1,4 +1,4 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 
 interface ICDSTemplate {
     function compensate(uint256) external returns (uint256 _compensated);
