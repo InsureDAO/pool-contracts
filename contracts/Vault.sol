@@ -370,6 +370,8 @@ contract Vault is IVault {
      * @return _amount amount of tokens utilized
      */
     function utilize() external override returns (uint256 _amount) {
+        require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
+        
         address _token = token;
         if (keeper != address(0)) {
             require(msg.sender == keeper, "ERROR_NOT_KEEPER");
