@@ -1,4 +1,4 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 
 /**
  * @author InsureDAO
@@ -25,7 +25,7 @@ contract Vault is IVault {
     address public override token;
     IController public controller;
     IRegistry public registry;
-    IOwnership public ownership;
+    IOwnership public immutable ownership;
 
     mapping(address => uint256) public override debts;
     mapping(address => uint256) public attributions;
@@ -35,7 +35,7 @@ contract Vault is IVault {
     uint256 public balance; //balance of underlying token
     uint256 public totalDebt; //total debt balance. 1debt:1token
 
-    uint256 public constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
+    uint256 private constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
 
 
 
@@ -89,28 +89,32 @@ contract Vault is IVault {
     function addValueBatch(
         uint256 _amount,
         address _from,
-        address[2] memory _beneficiaries,
-        uint256[2] memory _shares
+        address[2] calldata _beneficiaries,
+        uint256[2] calldata _shares
     ) external override onlyMarket returns (uint256[2] memory _allocations) {
         
         require(_shares[0] + _shares[1] == 1000000, "ERROR_INCORRECT_SHARE");
 
         uint256 _attributions;
+        uint256 _pool = valueAll();
         if (totalAttributions == 0) {
             _attributions = _amount;
         } else {
-            uint256 _pool = valueAll();
+            require(_pool != 0, "ERROR_VALUE_ALL_IS_ZERO"); //should never triggered
             _attributions = (_amount * totalAttributions) / _pool;
         }
         IERC20(token).safeTransferFrom(_from, address(this), _amount);
 
         balance += _amount;
         totalAttributions += _attributions;
-        for (uint128 i = 0; i < 2; i++) {
-            uint256 _allocation = (_shares[i] * _attributions) / MAGIC_SCALE_1E6;
-            attributions[_beneficiaries[i]] += _allocation;
-            _allocations[i] = _allocation;
-        }
+
+        uint256 _allocation = (_shares[0] * _attributions) / MAGIC_SCALE_1E6;
+        attributions[_beneficiaries[0]] += _allocation;
+        _allocations[0] = _allocation;
+
+        _allocation = (_shares[1] * _attributions) / MAGIC_SCALE_1E6;
+        attributions[_beneficiaries[1]] += _allocation;
+        _allocations[1] = _allocation;
     }
 
     /**
@@ -155,17 +159,22 @@ contract Vault is IVault {
                 underlyingValue(msg.sender) >= _amount,
             "ERROR_WITHDRAW-VALUE_BADCONDITOONS"
         );
+        uint256 _available = available();
+
         _attributions = (totalAttributions * _amount) / valueAll();
 
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
 
-        if (available() < _amount) {
+        if (_available < _amount) {
             //when USDC in this contract isn't enough
-            uint256 _shortage = _amount - available();
+            uint256 _shortage;
+            unchecked {
+                _shortage = _amount - _available;
+            }
             _unutilize(_shortage);
 
-            assert(available() >= _amount);
+            require(_available >= _amount, "Available is not enough for withdraw");
         }
 
         balance -= _amount;
@@ -199,10 +208,12 @@ contract Vault is IVault {
      * @param _to borrower's address
      */
     function borrowValue(uint256 _amount, address _to) external onlyMarket override {
-        debts[msg.sender] += _amount;
-        totalDebt += _amount;
+        if (_amount != 0) {
+            debts[msg.sender] += _amount;
+            totalDebt += _amount;
 
-        IERC20(token).safeTransfer(_to, _amount);
+            IERC20(token).safeTransfer(_to, _amount);
+        }
     }
 
     /**
@@ -249,15 +260,17 @@ contract Vault is IVault {
      */
     function repayDebt(uint256 _amount, address _target) external override {
         uint256 _debt = debts[_target];
-        if (_debt >= _amount) {
-            debts[_target] -= _amount;
-            totalDebt -= _amount;
-            IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
+
+        if (_debt > _amount) {
+            unchecked {
+                debts[_target] = _debt - _amount;
+            }
         } else {
             debts[_target] = 0;
-            totalDebt -= _debt;
-            IERC20(token).safeTransferFrom(msg.sender, address(this), _debt);
+            _amount = _debt;
         }
+        totalDebt -= _amount;
+        IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
     }
 
     /**
@@ -301,13 +314,19 @@ contract Vault is IVault {
             attributions[msg.sender] >= _attribution,
             "ERROR_WITHDRAW-ATTRIBUTION_BADCONDITOONS"
         );
+        uint256 _available = available();
         _retVal = (_attribution * valueAll()) / totalAttributions;
 
-        attributions[msg.sender] -= _attribution;
+        unchecked {
+            attributions[msg.sender] -= _attribution;
+        }
         totalAttributions -= _attribution;
 
-        if (available() < _retVal) {
-            uint256 _shortage = _retVal - available();
+        if (_available < _retVal) {
+            uint256 _shortage;
+            unchecked {
+                _shortage = _retVal - _available;
+            }
             _unutilize(_shortage);
         }
 
@@ -331,7 +350,9 @@ contract Vault is IVault {
             "ERROR_TRANSFER-ATTRIBUTION_BADCONDITOONS"
         );
 
-        attributions[msg.sender] -= _amount;
+        unchecked {
+            attributions[msg.sender] -= _amount;
+        }
         attributions[_destination] += _amount;
     }
 
@@ -340,14 +361,15 @@ contract Vault is IVault {
      * @return _amount amount of tokens utilized
      */
     function utilize() external override returns (uint256 _amount) {
+        address _token = token;
         if (keeper != address(0)) {
             require(msg.sender == keeper, "ERROR_NOT_KEEPER");
         }
         _amount = available(); //balance
         if (_amount != 0) {
-            IERC20(token).safeTransfer(address(controller), _amount);
+            IERC20(_token).safeTransfer(address(controller), _amount);
             balance -= _amount;
-            controller.earn(address(token), _amount);
+            controller.earn(_token, _amount);
         }
     }
 
@@ -385,8 +407,10 @@ contract Vault is IVault {
         override
         returns (uint256)
     {
-        if (totalAttributions != 0 && _attribution != 0) {
-            return (_attribution * valueAll()) / totalAttributions;
+        uint256 _totalAttributions = totalAttributions;
+
+        if (_totalAttributions != 0 && _attribution != 0) {
+            return (_attribution * valueAll()) / _totalAttributions;
         } else {
             return 0;
         }
@@ -403,6 +427,7 @@ contract Vault is IVault {
         override
         returns (uint256)
     {
+
         uint256 valueAll = valueAll();
         uint256 attribution = attributions[_target];
         if (valueAll != 0 && attribution != 0) {
@@ -447,7 +472,7 @@ contract Vault is IVault {
      * @notice return how much price for each attribution
      * @return value of one share of attribution
      */
-    function getPricePerFullShare() public view returns (uint256) {
+    function getPricePerFullShare() external view returns (uint256) {
         return (valueAll() * MAGIC_SCALE_1E6) / totalAttributions;
     }
 
@@ -465,17 +490,21 @@ contract Vault is IVault {
         override
         onlyOwner
     {
+        uint256 _balance = balance;
+        uint256 _tokenBalance = IERC20(_token).balanceOf(address(this));
         if (
             _token == address(token) &&
-            balance < IERC20(token).balanceOf(address(this))
+            _balance < _tokenBalance
         ) {
-            uint256 _redundant = IERC20(token).balanceOf(address(this)) -
-                balance;
+            uint256 _redundant;
+            unchecked{
+                _redundant = _tokenBalance - _balance;
+            }
             IERC20(token).safeTransfer(_to, _redundant);
-        } else if (IERC20(_token).balanceOf(address(this)) != 0) {
+        } else if (_tokenBalance != 0) {
             IERC20(_token).safeTransfer(
                 _to,
-                IERC20(_token).balanceOf(address(this))
+                _tokenBalance
             );
         }
     }
@@ -484,15 +513,13 @@ contract Vault is IVault {
      * @notice admin function to set controller address
      * @param _controller address of the controller
      */
-    function setController(address _controller) public override onlyOwner {
+    function setController(address _controller) external override onlyOwner {
         require(_controller != address(0), "ERROR_ZERO_ADDRESS");
 
         if (address(controller) != address(0)) {
             controller.migrate(address(_controller));
-            controller = IController(_controller);
-        } else {
-            controller = IController(_controller);
         }
+        controller = IController(_controller);
 
         emit ControllerSet(_controller);
     }
