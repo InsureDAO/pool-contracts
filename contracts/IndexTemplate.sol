@@ -352,7 +352,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _totalAllocatedCredit = totalAllocatedCredit;
         uint256 _length = poolList.length;
         PoolStatus[] memory _poolList = new PoolStatus[](_length);
-        int256 _difTotalAllocPoint = 0;
         //Check each pool and if current credit allocation > target && it is impossible to adjust, then withdraw all availablle credit
         for (uint256 i; i < _length;) {
             address _pool = poolList[i];
