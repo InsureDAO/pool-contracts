@@ -18,6 +18,12 @@ describe("InsuerDAOERC20", function () {
     //console.log(initialHolder, recipient);
   });
 
+  it("Double initialize", async function () {
+    await expect(
+      token.initialize(name, symbol, 18)
+    ).to.revertedWith("Token is already initialized");
+  })
+
   describe("ERC20", function () {
     beforeEach(async () => {
       await token.mint(alice.address, 10000);
