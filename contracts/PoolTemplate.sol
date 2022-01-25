@@ -367,7 +367,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      */
     function _unlock(uint256 _id) internal {
         require(
-            insurances[_id].status == true &&
+            insurances[_id].status &&
                 insurances[_id].endTime + parameters.getGrace(msg.sender) <
                 block.timestamp,
             "ERROR: UNLOCK_BAD_COINDITIONS"
