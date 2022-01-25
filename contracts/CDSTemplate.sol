@@ -93,7 +93,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         address[] calldata _references
     ) external override{
         require(
-            !initialized &
+            !initialized &&
                 bytes(_metaData).length != 0 &&
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
