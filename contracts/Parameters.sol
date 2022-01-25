@@ -116,13 +116,13 @@ contract Parameters is IParameters {
     /**
      * @notice set slack rate of leverage before adjustAlloc
      * @param _address address to set the parameter
-     * @param _target parameter (slack rate 100% = 1000
+     * @param _target parameter (slack rate 100% = 1e6
      */
     function setUpperSlack(address _address, uint256 _target)
         external
         override
         onlyOwner
-    {
+    {   
         _upperSlack[_address] = _target;
         emit UpperSlack(_address, _target);
     }
@@ -137,6 +137,7 @@ contract Parameters is IParameters {
         override
         onlyOwner
     {
+        require(_target <= _upperSlack[_address], "ERROR: EXCEED_UPPER_SLACK");
         _lowerSlack[_address] = _target;
         emit LowerSlack(_address, _target);
     }
@@ -180,6 +181,7 @@ contract Parameters is IParameters {
         override
         onlyOwner
     {
+        require(_target <= 1000000, "ERROR: EXCEED_MAX_FEE_RATE");
         _fee[_address] = _target;
         emit FeeRateSet(_address, _target);
     }
@@ -194,6 +196,7 @@ contract Parameters is IParameters {
         override
         onlyOwner
     {
+        require(_target > 1,"ERROR: MAX_LIST_UNDER_1");
         _maxList[_address] = _target;
         emit MaxListSet(_address, _target);
     }
