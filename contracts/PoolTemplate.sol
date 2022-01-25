@@ -538,8 +538,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             msg.sender,
             true
         );
-
-        insurances[_id] = _insurance;
+        
         unchecked {
             ++allInsuranceCount;
         }
