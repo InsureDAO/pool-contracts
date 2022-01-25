@@ -253,6 +253,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         internal
         returns (uint256 _mintAmount)
     {
+        require(_amount != 0, "ERROR: DEPOSIT_ZERO");
         require(
             marketStatus == MarketStatus.Trading,
             "ERROR: DEPOSIT_DISABLED(1)"
@@ -261,7 +262,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             !paused,
             "ERROR: DEPOSIT_DISABLED(2)"
         );
-        require(_amount != 0, "ERROR: DEPOSIT_ZERO");
 
         _mintAmount = worth(_amount);
 
