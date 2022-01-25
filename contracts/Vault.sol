@@ -1,4 +1,4 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 
 /**
  * @author InsureDAO
@@ -25,7 +25,7 @@ contract Vault is IVault {
     address public override token;
     IController public controller;
     IRegistry public registry;
-    IOwnership public ownership;
+    IOwnership public immutable ownership;
 
     mapping(address => uint256) public override debts;
     mapping(address => uint256) public attributions;
@@ -35,7 +35,7 @@ contract Vault is IVault {
     uint256 public balance; //balance of underlying token
     uint256 public totalDebt; //total debt balance. 1debt:1token
 
-    uint256 public constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
+    uint256 private constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
 
 
 
@@ -89,8 +89,8 @@ contract Vault is IVault {
     function addValueBatch(
         uint256 _amount,
         address _from,
-        address[2] memory _beneficiaries,
-        uint256[2] memory _shares
+        address[2] calldata _beneficiaries,
+        uint256[2] calldata _shares
     ) external override onlyMarket returns (uint256[2] memory _allocations) {
         
         require(_shares[0] + _shares[1] == 1000000, "ERROR_INCORRECT_SHARE");
@@ -107,14 +107,14 @@ contract Vault is IVault {
 
         balance += _amount;
         totalAttributions += _attributions;
-        for (uint128 i = 0; i < 2;) {
-            uint256 _allocation = (_shares[i] * _attributions) / MAGIC_SCALE_1E6;
-            attributions[_beneficiaries[i]] += _allocation;
-            _allocations[i] = _allocation;
-            unchecked {
-                ++i;
-            }
-        }
+
+        uint256 _allocation = (_shares[0] * _attributions) / MAGIC_SCALE_1E6;
+        attributions[_beneficiaries[0]] += _allocation;
+        _allocations[0] = _allocation;
+
+        _allocation = (_shares[1] * _attributions) / MAGIC_SCALE_1E6;
+        attributions[_beneficiaries[1]] += _allocation;
+        _allocations[1] = _allocation;
     }
 
     /**
@@ -208,10 +208,12 @@ contract Vault is IVault {
      * @param _to borrower's address
      */
     function borrowValue(uint256 _amount, address _to) external onlyMarket override {
-        debts[msg.sender] += _amount;
-        totalDebt += _amount;
+        if (_amount != 0) {
+            debts[msg.sender] += _amount;
+            totalDebt += _amount;
 
-        IERC20(token).safeTransfer(_to, _amount);
+            IERC20(token).safeTransfer(_to, _amount);
+        }
     }
 
     /**
@@ -364,11 +366,10 @@ contract Vault is IVault {
             require(msg.sender == keeper, "ERROR_NOT_KEEPER");
         }
         _amount = available(); //balance
-        
         if (_amount != 0) {
             IERC20(_token).safeTransfer(address(controller), _amount);
             balance -= _amount;
-            controller.earn(address(_token), _amount);
+            controller.earn(_token, _amount);
         }
     }
 
@@ -426,6 +427,7 @@ contract Vault is IVault {
         override
         returns (uint256)
     {
+
         uint256 valueAll = valueAll();
         uint256 attribution = attributions[_target];
         if (valueAll != 0 && attribution != 0) {

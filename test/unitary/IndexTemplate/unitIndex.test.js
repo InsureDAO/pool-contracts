@@ -232,7 +232,7 @@ describe("Index", function () {
     await parameters.setMaxList(ZERO_ADDRESS, "10");
 
     //create Single Pools
-    await factory.createMarket(
+    let tx = await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
       [0, 0],
@@ -244,7 +244,9 @@ describe("Index", function () {
         gov.address,
       ]
     );
-    await factory.createMarket(
+    let receipt = await tx.wait();
+    const marketAddress1 = receipt.events[2].args[0];
+    tx = await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
       [0, 0],
@@ -256,31 +258,31 @@ describe("Index", function () {
         gov.address,
       ]
     );
-
-    const marketAddress1 = await factory.markets(0);
-    const marketAddress2 = await factory.markets(1);
+    receipt = await tx.wait();
+    const marketAddress2 = receipt.events[1].args[0];
 
     market1 = await PoolTemplate.attach(marketAddress1);
     market2 = await PoolTemplate.attach(marketAddress2);
 
     //create CDS
-    await factory.createMarket(
+    tx = await factory.createMarket(
       cdsTemplate.address,
       "Here is metadata.",
       [],
       [usdc.address, registry.address, parameters.address]
     );
+    receipt = await tx.wait();
+    const marketAddress3 = receipt.events[2].args[0];
 
     //create Index
-    await factory.createMarket(
+    tx = await factory.createMarket(
       indexTemplate.address,
       "Here is metadata.",
       [],
       [usdc.address, registry.address, parameters.address]
     );
-
-    const marketAddress3 = await factory.markets(2); //CDS
-    const marketAddress4 = await factory.markets(3); //Index
+    receipt = await tx.wait();
+    const marketAddress4 = receipt.events[2].args[0];
 
     cds = await CDSTemplate.attach(marketAddress3);
     index = await IndexTemplate.attach(marketAddress4);

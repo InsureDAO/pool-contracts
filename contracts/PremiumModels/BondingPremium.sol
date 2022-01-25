@@ -1,4 +1,4 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 /**
  * @title BondingPremium
  * @author @InsureDAO
@@ -14,7 +14,7 @@ contract BondingPremium is IPremiumModel {
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
 
-    IOwnership public ownership;
+    IOwnership public immutable ownership;
 
     //variables
     uint256 public k; //final curve rate of the dynamic pricing
@@ -23,9 +23,9 @@ contract BondingPremium is IPremiumModel {
     uint256 public T_1; //goal TVL (USDC)
 
     //constants
-    uint256 public constant DECIMAL = uint256(1e6); //Decimals of USDC
-    uint256 public constant BASE = uint256(1e6); //bonding curve graph takes 1e6 as 100.0000%
-    uint256 public constant BASE_x2 = uint256(1e12); //BASE^2
+    uint256 private constant DECIMAL = uint256(1e6); //Decimals of USDC
+    uint256 private constant BASE = uint256(1e6); //bonding curve graph takes 1e6 as 100.0000%
+    uint256 private constant BASE_x2 = uint256(1e12); //BASE^2
 
     modifier onlyOwner() {
         require(
@@ -73,11 +73,8 @@ contract BondingPremium is IPremiumModel {
         // yearly premium rate
         uint256 _premiumRate;
 
-        uint256 T_0 = _totalLiquidity;
         uint256 _T_1 = T_1;
-        if (T_0 > _T_1) {
-            T_0 = _T_1;
-        }
+        uint256 T_0 = _totalLiquidity > _T_1 ? _T_1 : _totalLiquidity;
 
         uint256 _k = k;
         uint256 _b = b;
@@ -142,11 +139,8 @@ contract BondingPremium is IPremiumModel {
                 (((_lockedAmount + _amount) * _BASE) / _totalLiquidity); //util rate after. 1000000 = 100.000%
         }
 
-        uint256 T_0 = _totalLiquidity;
         uint256 _T_1 = T_1;
-        if (T_0 > _T_1) {
-            T_0 = _T_1;
-        }
+        uint256 T_0 = _totalLiquidity > _T_1 ? _T_1 : _totalLiquidity;
 
         uint256 _k = k;
         uint256 _BASE_x2 = BASE_x2;
