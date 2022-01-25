@@ -159,7 +159,6 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
                     currentAllowance >= amount,
                     "ERC20: transfer amount exceeds allowance"
                 );
-
                 _approve(sender, msg.sender, currentAllowance - amount);
             }
 
@@ -190,7 +189,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
             _approve(
                 msg.sender,
                 spender,
-                _allowances[_msgSender()][spender] + addedValue
+                _allowances[msg.sender][spender] + addedValue
             );
         }
         return true;
@@ -216,7 +215,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
         returns (bool)
     {
         if (subtractedValue != 0) {
-            uint256 currentAllowance = _allowances[_msgSender()][spender];
+            uint256 currentAllowance = _allowances[msg.sender][spender];
             require(
                 currentAllowance >= subtractedValue,
                 "ERC20: decreased allowance below zero"
