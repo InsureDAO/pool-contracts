@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -343,13 +343,11 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
         address spender,
         uint256 amount
     ) internal virtual {
-        if (amount != 0) {
-            require(owner != address(0), "ERC20: approve from the zero address");
-            require(spender != address(0), "ERC20: approve to the zero address");
+        require(owner != address(0), "ERC20: approve from the zero address");
+        require(spender != address(0), "ERC20: approve to the zero address");
 
-            _allowances[owner][spender] = amount;
-            emit Approval(owner, spender, amount);
-        }
+        _allowances[owner][spender] = amount;
+        emit Approval(owner, spender, amount);
     }
 
     /**
