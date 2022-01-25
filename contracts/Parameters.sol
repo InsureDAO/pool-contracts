@@ -407,11 +407,11 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        uint256 _max = _maxList[_target];
-        if (_max == 0) {
+        uint256 _targetMaxList = _maxList[_target];
+        if (_targetMaxList == 0) {
             return _maxList[address(0)];
         } else {
-            return _max;
+            return _targetMaxList;
         }
     }
 
