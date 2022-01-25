@@ -122,7 +122,9 @@ contract Parameters is IParameters {
         external
         override
         onlyOwner
-    {   
+    {
+        require(_lowerSlack[_address] <= _target, "ERROR: SMALLER_THAN_LOWER_SLACK");
+        
         _upperSlack[_address] = _target;
         emit UpperSlack(_address, _target);
     }
