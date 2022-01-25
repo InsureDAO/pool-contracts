@@ -189,17 +189,22 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @return _retVal the amount underlying token returned
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
-        Withdrawal memory request = withdrawalReq[msg.sender];
-        uint256 _lockup = parameters.getLockup(msg.sender);
-
         require(!paused, "ERROR: PAUSED");
         require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
+        
+        Withdrawal memory request = withdrawalReq[msg.sender];
+        uint256 _lockup = parameters.getLockup(msg.sender);
+        uint256 unlocksAt = request.timestamp + _lockup;
+        
         require(
-            request.timestamp + _lockup < block.timestamp,
+            unlocksAt <
+                block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            request.timestamp + _lockup + parameters.getWithdrawable(msg.sender) > block.timestamp,
+            unlocksAt +
+                parameters.getWithdrawable(msg.sender) >
+                block.timestamp,
             "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(

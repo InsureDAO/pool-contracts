@@ -207,15 +207,15 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
         require(!locked, "ERROR: WITHDRAWAL_MARKET_PAUSED");
 
-        uint256 _lockup = parameters.getLockup(msg.sender);
-        uint256 _requestTime = withdrawalReq[msg.sender].timestamp;
-
+        uint256 _lockupPlusRequestTime = parameters.getLockup(msg.sender) + withdrawalReq[msg.sender].timestamp;
+        
         require(
-            _requestTime + _lockup < block.timestamp,
+            _lockupPlusRequestTime < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            _requestTime + _lockup + parameters.getWithdrawable(msg.sender) > block.timestamp,
+            _lockupPlusRequestTime + parameters.getWithdrawable(msg.sender) >
+                block.timestamp,
             "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
