@@ -39,8 +39,8 @@ contract Factory is IFactory {
     );
 
     struct Template {
-        bool isOpen; //true if the market allows anyone to create a market
         bool approval; //true if the template exists
+        bool isOpen; //true if the market allows anyone to create a market
         bool allowDuplicate; //true if the market with same ID is allowed
     }
     mapping(address => Template) public templates;
