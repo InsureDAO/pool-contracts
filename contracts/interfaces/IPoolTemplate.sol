@@ -1,4 +1,4 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 
 abstract contract IPoolTemplate {
     function allocateCredit(uint256 _credit)
@@ -19,13 +19,13 @@ abstract contract IPoolTemplate {
 
     function availableBalance() public view virtual returns (uint256 _balance);
 
-    function utilizationRate() public view virtual returns (uint256 _rate);
+    function utilizationRate() external view virtual returns (uint256 _rate);
     function totalLiquidity() public view virtual returns (uint256 _balance);
     function totalCredit() external view virtual returns (uint256);
     function lockedAmount() external view virtual returns (uint256);
 
     function valueOfUnderlying(address _owner)
-        public
+        external
         view
         virtual
         returns (uint256);

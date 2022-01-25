@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IRegistry.sol";
@@ -17,7 +17,7 @@ contract Registry is IRegistry {
     mapping(address => mapping(address => bool)) existence; //true if the certain id is already registered in market
     address[] allMarkets;
 
-    IOwnership public ownership;
+    IOwnership public immutable ownership;
 
     modifier onlyOwner() {
         require(
@@ -28,6 +28,7 @@ contract Registry is IRegistry {
     }
 
     constructor(address _ownership) {
+        require(_ownership != address(0), "ERROR: ZERO_ADDRESS");
         ownership = IOwnership(_ownership);
     }
 
@@ -96,13 +97,14 @@ contract Registry is IRegistry {
     /**
      * @notice Get the cds address for a particular address
      * @param _address address covered by CDS
-     * @return true if the id within the market already exists
+     * @return CDS contract address
      */
     function getCDS(address _address) external view override returns (address) {
-        if (cds[_address] == address(0)) {
+        address _addr = cds[_address];
+        if (_addr == address(0)) {
             return cds[address(0)];
         } else {
-            return cds[_address];
+            return _addr;
         }
     }
 
