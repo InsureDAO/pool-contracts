@@ -490,28 +490,30 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 _span,
         bytes32 _target
     ) external returns (uint256) {
+        require(!paused, "ERROR: INSURE_MARKET_PAUSED");
+        require(
+            marketStatus == MarketStatus.Trading,
+            "ERROR: INSURE_MARKET_PENDING"
+        );
         require(
             _amount <= availableBalance(),
             "ERROR: INSURE_EXCEEDED_AVAILABLE_BALANCE"
         );
-        //Distribute premium and fee
-        uint256 _premium = getPremium(_amount, _span);
-        require(_premium <= _maxCost, "ERROR: INSURE_EXCEEDED_MAX_COST");
+
         require(_span <= 365 days, "ERROR: INSURE_EXCEEDED_MAX_SPAN");
         require(
             parameters.getMinDate(msg.sender) <= _span,
             "ERROR: INSURE_SPAN_BELOW_MIN"
         );
-        require(
-            marketStatus == MarketStatus.Trading,
-            "ERROR: INSURE_MARKET_PENDING"
-        );
-        require(!paused, "ERROR: INSURE_MARKET_PAUSED");
 
+        //Distribute premium and fee
+        uint256 _premium = getPremium(_amount, _span);
+        require(_premium <= _maxCost, "ERROR: INSURE_EXCEEDED_MAX_COST");
+        
         uint256 _endTime = _span + block.timestamp;
         uint256 _fee = parameters.getFeeRate(msg.sender);
         uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
-
+        
         //current liquidity
         uint256 _liquidity = totalLiquidity();
         uint256 _totalCredit = totalCredit;
@@ -536,8 +538,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             msg.sender,
             true
         );
-
-        insurances[_id] = _insurance;
+        
         unchecked {
             ++allInsuranceCount;
         }
