@@ -351,7 +351,7 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        uint256 _targetWithdrawable = _withdawable[_target];
+        uint256 _targetWithdrawable = _withdrawable[_target];
         if (_targetWithdrawable == 0) {
             return _withdrawable[address(0)];
         } else {
