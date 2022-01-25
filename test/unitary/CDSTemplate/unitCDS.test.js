@@ -151,7 +151,7 @@ describe("CDS", function () {
     await parameters.setMaxList(ZERO_ADDRESS, "10");
 
     //market1
-    await factory.createMarket(
+    let tx = await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
       [0, 0],
@@ -163,16 +163,18 @@ describe("CDS", function () {
         gov.address,
       ]
     );
-    const marketAddress1 = await factory.markets(0);
+    let receipt = await tx.wait();
+    const marketAddress1 = receipt.events[2].args[0];
     market1 = await PoolTemplate.attach(marketAddress1);
 
-    await factory.createMarket(
+    tx = await factory.createMarket(
       cdsTemplate.address,
       "Here is metadata.",
       [0, 0],
       [usdc.address, registry.address, parameters.address]
     );
-    const marketAddress2 = await factory.markets(1);
+    receipt = await tx.wait();
+    const marketAddress2 = receipt.events[2].args[0];
     cds = await CDSTemplate.attach(marketAddress2);
 
     await registry.setCDS(ZERO_ADDRESS, cds.address);
