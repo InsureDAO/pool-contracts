@@ -1,4 +1,4 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 
 /**
  * @author InsureDAO
@@ -6,8 +6,6 @@ pragma solidity 0.8.7;
  * SPDX-License-Identifier: GPL-3.0
  */
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 import "./InsureDAOERC20.sol";
 import "./interfaces/IPoolTemplate.sol";
@@ -124,8 +122,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     ///@notice insurance status management
     struct Insurance {
         uint256 id; //each insuance has their own id
-        uint256 startTime; //timestamp of starttime
-        uint256 endTime; //timestamp of endtime
+        uint48 startTime; //timestamp of starttime
+        uint48 endTime; //timestamp of endtime
         uint256 amount; //insured amount
         bytes32 target; //target id in bytes32
         address insured; //the address holds the right to get insured
@@ -142,8 +140,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         bytes32 merkleRoot;
     }
     Incident public incident;
-
-    uint256 public constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
+    uint256 private constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
 
     modifier onlyOwner() {
         require(
@@ -181,7 +178,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         address[] calldata _references
     ) external override {
         require(
-            initialized == false &&
+            !initialized &&
                 bytes(_metaData).length != 0 &&
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
@@ -193,19 +190,19 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         );
         initialized = true;
 
-        string memory name = string(
+        string memory _name = string(
             abi.encodePacked(
                 "InsureDAO-",
                 IERC20Metadata(_references[1]).name(),
                 "-PoolInsurance"
             )
         );
-        string memory symbol = string(
+        string memory _symbol = string(
             abi.encodePacked("i-", IERC20Metadata(_references[1]).symbol())
         );
-        uint8 decimals = IERC20Metadata(_references[0]).decimals();
+        uint8 _decimals = IERC20Metadata(_references[0]).decimals();
 
-        initializeToken(name, symbol, decimals);
+        initializeToken(_name, _symbol, _decimals);
 
         registry = IRegistry(_references[2]);
         parameters = IParameters(_references[3]);
@@ -229,9 +226,9 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @param _amount amount of tokens to deposit
      * @return _mintAmount the amount of iTokens minted from the transaction
      */
-    function deposit(uint256 _amount) public returns (uint256 _mintAmount) {
+    function deposit(uint256 _amount) external returns (uint256 _mintAmount) {
         require(
-            marketStatus == MarketStatus.Trading && paused == false,
+            marketStatus == MarketStatus.Trading && !paused,
             "ERROR: DEPOSIT_DISABLED"
         );
         require(_amount != 0, "ERROR: DEPOSIT_ZERO");
@@ -257,8 +254,12 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         returns (uint256 _mintAmount)
     {
         require(
-            marketStatus == MarketStatus.Trading && paused == false,
-            "ERROR: DEPOSIT_DISABLED"
+            marketStatus == MarketStatus.Trading,
+            "ERROR: DEPOSIT_DISABLED(1)"
+        );
+        require(
+            !paused,
+            "ERROR: DEPOSIT_DISABLED(2)"
         );
         require(_amount != 0, "ERROR: DEPOSIT_ZERO");
 
@@ -277,9 +278,9 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @param _amount amount of iTokens to burn
      */
     function requestWithdraw(uint256 _amount) external {
-        uint256 _balance = balanceOf(msg.sender);
-        require(_balance >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
         require(_amount != 0, "ERROR: REQUEST_ZERO");
+        require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
+        
         withdrawalReq[msg.sender].timestamp = block.timestamp;
         withdrawalReq[msg.sender].amount = _amount;
         emit WithdrawRequested(msg.sender, _amount, block.timestamp);
@@ -291,27 +292,19 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return _retVal the amount underlying tokens returned
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
-        uint256 _supply = totalSupply();
-        require(_supply != 0, "ERROR: NO_AVAILABLE_LIQUIDITY");
-
-        uint256 _liquidity = originalLiquidity();
-        _retVal = (_amount * _liquidity) / _supply;
-
         require(
             marketStatus == MarketStatus.Trading,
-            "ERROR: WITHDRAWAL_PENDING"
+            "ERROR: WITHDRAWAL_MARKET_PENDING"
         );
+        
+        uint256 _endTime = parameters.getLockup(msg.sender) + withdrawalReq[msg.sender].timestamp;
+
         require(
-            withdrawalReq[msg.sender].timestamp +
-                parameters.getLockup(msg.sender) <
-                block.timestamp,
+            _endTime < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            withdrawalReq[msg.sender].timestamp +
-                parameters.getLockup(msg.sender) +
-                parameters.getWithdrawable(msg.sender) >
-                block.timestamp,
+            _endTime + parameters.getWithdrawable(msg.sender) > block.timestamp,
             "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
@@ -319,12 +312,22 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
         );
         require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
+
+        uint256 _supply = totalSupply();
+        require(_supply != 0, "ERROR: NO_AVAILABLE_LIQUIDITY");
+
+        uint256 _liquidity = originalLiquidity();
+        _retVal = (_amount * _liquidity) / _supply;
+
         require(
             _retVal <= availableBalance(),
             "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
         );
+
         //reduce requested amount
-        withdrawalReq[msg.sender].amount -= _amount;
+        unchecked {
+            withdrawalReq[msg.sender].amount -= _amount;
+        }
 
         //Burn iToken
         _burn(msg.sender, _amount);
@@ -340,14 +343,17 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @param _ids array of ids to unlock
      */
     function unlockBatch(uint256[] calldata _ids) external {
-        require(marketStatus == MarketStatus.Trading, "ERROR: UNLOCK_BAD_COINDITIONS")
-        for (uint256 i = 0; i < _ids.length; i++) {
+        require(marketStatus == MarketStatus.Trading, "ERROR: UNLOCK_BAD_COINDITIONS");
+        uint256 idsLength = _ids.length;
+        for (uint256 i; i < idsLength;) {
             _unlock(_ids[i]);
+            unchecked {
+                ++i;
+            }
         }
     }
 
     /**
-     * @notice Unlock funds locked in the expired insurance
      * @param _id id of the insurance policy to unlock liquidity
      */
     function unlock(uint256 _id) external {
@@ -366,7 +372,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 block.timestamp,
             "ERROR: UNLOCK_BAD_COINDITIONS"
         );
-        insurances[_id].status == false;
+        insurances[_id].status = false;
 
         lockedAmount = lockedAmount - insurances[_id].amount;
 
@@ -392,14 +398,17 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             IRegistry(registry).isListed(msg.sender),
             "ERROR: ALLOCATE_CREDIT_BAD_CONDITIONS"
         );
+
         IndexInfo storage _index = indicies[msg.sender];
         uint256 _rewardPerCredit = rewardPerCredit;
-        if (_index.exist == false) {
+        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
+
+        if (!_index.exist) {
             _index.exist = true;
             indexList.push(msg.sender);
         } else if (_index.credit != 0) {
             _pending = _sub(
-                (_index.credit * _rewardPerCredit) / MAGIC_SCALE_1E6,
+                (_index.credit * _rewardPerCredit) / _MAGIC_SCALE_1E6,
                 _index.rewardDebt
             );
             if (_pending != 0) {
@@ -414,7 +423,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         }
         _index.rewardDebt =
             (_index.credit * _rewardPerCredit) /
-            MAGIC_SCALE_1E6;
+            _MAGIC_SCALE_1E6;
     }
 
     /**
@@ -428,24 +437,29 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         returns (uint256 _pending)
     {
         IndexInfo storage _index = indicies[msg.sender];
-        uint256 _rewardPerCredit = rewardPerCredit;
+
         require(
             IRegistry(registry).isListed(msg.sender) &&
-                _index.credit >= _credit &&
-                _credit <= availableBalance(),
+            _index.credit >= _credit &&
+            _credit <= availableBalance(),
             "ERROR: WITHDRAW_CREDIT_BAD_CONDITIONS"
         );
 
+        uint256 _rewardPerCredit = rewardPerCredit;
+        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
+
         //calculate acrrued premium
         _pending = _sub(
-            (_index.credit * _rewardPerCredit) / MAGIC_SCALE_1E6,
+            (_index.credit * _rewardPerCredit) / _MAGIC_SCALE_1E6,
             _index.rewardDebt
         );
 
         //Withdraw liquidity
         if (_credit != 0) {
             totalCredit -= _credit;
-            _index.credit -= _credit;
+            unchecked {
+                _index.credit -= _credit;
+            }
             emit CreditDecrease(msg.sender, _credit);
         }
 
@@ -455,7 +469,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             attributionDebt -= _pending;
             _index.rewardDebt =
                 (_index.credit * _rewardPerCredit) /
-                MAGIC_SCALE_1E6;
+                _MAGIC_SCALE_1E6;
         }
     }
 
@@ -477,28 +491,30 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 _span,
         bytes32 _target
     ) external returns (uint256) {
-        //Distribute premium and fee
-        uint256 _endTime = _span + block.timestamp;
-        uint256 _premium = getPremium(_amount, _span);
-        uint256 _fee = parameters.getFeeRate(msg.sender);
-
+        require(!paused, "ERROR: INSURE_MARKET_PAUSED");
+        require(
+            marketStatus == MarketStatus.Trading,
+            "ERROR: INSURE_MARKET_PENDING"
+        );
         require(
             _amount <= availableBalance(),
             "ERROR: INSURE_EXCEEDED_AVAILABLE_BALANCE"
         );
-        require(_premium <= _maxCost, "ERROR: INSURE_EXCEEDED_MAX_COST");
+
         require(_span <= 365 days, "ERROR: INSURE_EXCEEDED_MAX_SPAN");
         require(
             parameters.getMinDate(msg.sender) <= _span,
             "ERROR: INSURE_SPAN_BELOW_MIN"
         );
 
-        require(
-            marketStatus == MarketStatus.Trading,
-            "ERROR: INSURE_MARKET_PENDING"
-        );
-        require(paused == false, "ERROR: INSURE_MARKET_PAUSED");
-
+        //Distribute premium and fee
+        uint256 _premium = getPremium(_amount, _span);
+        require(_premium <= _maxCost, "ERROR: INSURE_EXCEEDED_MAX_COST");
+        
+        uint256 _endTime = _span + block.timestamp;
+        uint256 _fee = parameters.getFeeRate(msg.sender);
+        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
+        
         //current liquidity
         uint256 _liquidity = totalLiquidity();
         uint256 _totalCredit = totalCredit;
@@ -508,30 +524,32 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             _premium,
             msg.sender,
             [address(this), parameters.getOwner()],
-            [MAGIC_SCALE_1E6 - _fee, _fee]
+            [_MAGIC_SCALE_1E6 - _fee, _fee]
         );
 
         //Lock covered amount
         uint256 _id = allInsuranceCount;
         lockedAmount += _amount;
-        Insurance memory _insurance = Insurance(
+        insurances[_id] = Insurance(
             _id,
-            block.timestamp,
-            _endTime,
+            (uint48)(block.timestamp),
+            (uint48)(_endTime),
             _amount,
             _target,
             msg.sender,
             true
         );
-        insurances[_id] = _insurance;
-        allInsuranceCount += 1;
+        
+        unchecked {
+            ++allInsuranceCount;
+        }
 
         //Calculate liquidity for index
-        if (_totalCredit != 0) {
+        if (_totalCredit != 0 && _liquidity != 0) {
             uint256 _attributionForIndex = (_newAttribution[0] * _totalCredit) /
                 _liquidity;
             attributionDebt += _attributionForIndex;
-            rewardPerCredit += ((_attributionForIndex * MAGIC_SCALE_1E6) /
+            rewardPerCredit += ((_attributionForIndex * _MAGIC_SCALE_1E6) /
                 _totalCredit);
         }
 
@@ -555,23 +573,21 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * Ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/MerkleProof.sol
      */
     function redeem(uint256 _id, bytes32[] calldata _merkleProof) external {
-        Insurance storage _insurance = insurances[_id];
-        require(_insurance.status == true, "ERROR: INSURANCE_NOT_ACTIVE");
-
-        uint256 _incidentTimestamp = incident.incidentTimestamp;
-        bytes32 _targets = incident.merkleRoot;
-
         require(
             marketStatus == MarketStatus.Payingout,
             "ERROR: NO_APPLICABLE_INCIDENT"
         );
+        
+        Insurance memory _insurance = insurances[_id];
+        require(_insurance.status, "ERROR: INSURANCE_NOT_ACTIVE");
         require(_insurance.insured == msg.sender, "ERROR: NOT_YOUR_INSURANCE");
+        uint48 _incidentTimestamp = (uint48)(incident.incidentTimestamp);
         require(
-            marketStatus == MarketStatus.Payingout &&
-                _insurance.startTime <= _incidentTimestamp &&
-                _insurance.endTime >= _incidentTimestamp,
+            _insurance.startTime <= _incidentTimestamp && _insurance.endTime >= _incidentTimestamp,
             "ERROR: INSURANCE_NOT_APPLICABLE"
         );
+
+        bytes32 _targets = incident.merkleRoot;
         require(
             MerkleProof.verify(
                 _merkleProof,
@@ -587,8 +603,9 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 ),
             "ERROR: INSURANCE_EXEMPTED"
         );
-        _insurance.status = false;
+        insurances[_id].status = false;
         lockedAmount -= _insurance.amount;
+
 
         uint256 _payoutAmount = (_insurance.amount * incident.payoutNumerator) /
             incident.payoutDenominator;
@@ -616,7 +633,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             _to != address(0) &&
                 insurance.insured == msg.sender &&
                 insurance.endTime >= block.timestamp &&
-                insurance.status == true,
+                insurance.status,
             "ERROR: INSURANCE_TRANSFER_BAD_CONDITIONS"
         );
 
@@ -632,7 +649,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     function getPremium(uint256 _amount, uint256 _span)
         public
         view
-        returns (uint256 premium)
+        returns (uint256)
     {
         return
             parameters.getPremium(
@@ -668,16 +685,21 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         string calldata _rawdata,
         string calldata _memo
     ) external override onlyOwner {
-        require(paused == false, "ERROR: UNABLE_TO_APPLY");
+        require(!paused, "ERROR: UNABLE_TO_APPLY");
         incident.payoutNumerator = _payoutNumerator;
         incident.payoutDenominator = _payoutDenominator;
         incident.incidentTimestamp = _incidentTimestamp;
         incident.merkleRoot = _merkleRoot;
         marketStatus = MarketStatus.Payingout;
         pendingEnd = block.timestamp + _pending;
-        for (uint256 i = 0; i < indexList.length; i++) {
+
+        uint256 indexLength = indexList.length;
+        for (uint256 i; i < indexLength;) {
             if (indicies[indexList[i]].credit != 0) {
                 IIndexTemplate(indexList[i]).lock();
+            }
+            unchecked {
+                ++i;
             }
         }
         emit CoverApplied(
@@ -689,7 +711,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             _rawdata,
             _memo
         );
-        emit MarketStatusChanged(marketStatus);
+        emit MarketStatusChanged(MarketStatus.Payingout);
     }
 
     /**
@@ -704,30 +726,42 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         uint256 _debt = vault.debts(address(this));
         uint256 _totalCredit = totalCredit;
-        uint256 _deductionFromIndex = (_debt * _totalCredit * MAGIC_SCALE_1E6) /
-            totalLiquidity();
+        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
+        uint256 _totalLiquidity = totalLiquidity();
+        uint256 _deductionFromIndex;
+        
+        if (_totalLiquidity != 0) {
+            _deductionFromIndex = (_debt * _totalCredit * _MAGIC_SCALE_1E6) /
+                _totalLiquidity;
+        }
+        
         uint256 _actualDeduction;
-        for (uint256 i = 0; i < indexList.length; i++) {
+        uint256 indexLength = indexList.length;
+        for (uint256 i; i < indexLength;) {
             address _index = indexList[i];
             uint256 _credit = indicies[_index].credit;
+
             if (_credit != 0) {
-                uint256 _shareOfIndex = (_credit * MAGIC_SCALE_1E6) /
+                uint256 _shareOfIndex = (_credit * _MAGIC_SCALE_1E6) /
                     _totalCredit;
                 uint256 _redeemAmount = _divCeil(
-                    _deductionFromIndex,
-                    _shareOfIndex
+                    _deductionFromIndex * _shareOfIndex,
+                    MAGIC_SCALE_1E6 * MAGIC_SCALE_1E6
                 );
                 _actualDeduction += IIndexTemplate(_index).compensate(
                     _redeemAmount
                 );
             }
+            unchecked {
+                ++i;
+            }
         }
 
         uint256 _deductionFromPool = _debt -
             _deductionFromIndex /
-            MAGIC_SCALE_1E6;
+            _MAGIC_SCALE_1E6;
         uint256 _shortage = _deductionFromIndex /
-            MAGIC_SCALE_1E6 -
+            _MAGIC_SCALE_1E6 -
             _actualDeduction;
 
         if (_deductionFromPool != 0) {
@@ -751,6 +785,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     function rate() external view returns (uint256) {
         uint256 _supply = totalSupply();
         uint256 originalLiquidity = originalLiquidity();
+        
         if (originalLiquidity != 0 && _supply != 0) {
             return (originalLiquidity * MAGIC_SCALE_1E6) / _supply;
         } else {
@@ -764,16 +799,18 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return The balance of underlying tokens for the specified address
      */
     function valueOfUnderlying(address _owner)
-        public
+        external
         view
         override
         returns (uint256)
     {
         uint256 _balance = balanceOf(_owner);
-        if (_balance == 0) {
-            return 0;
+        uint256 _totalSupply = totalSupply();
+        
+        if (_balance != 0 || _totalSupply != 0) {
+            return (_balance * originalLiquidity()) / _totalSupply;
         } else {
-            return (_balance * originalLiquidity()) / totalSupply();
+            return 0;
         }
     }
 
@@ -789,9 +826,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         returns (uint256)
     {
         uint256 _credit = indicies[_index].credit;
-        if (_credit == 0) {
-            return 0;
-        } else {
+        if (_credit != 0) {
             return
                 _sub(
                     (_credit * rewardPerCredit) / MAGIC_SCALE_1E6,
@@ -809,13 +844,12 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     
         uint256 _supply = totalSupply();
         uint256 _originalLiquidity = originalLiquidity();
-        
-        if (_supply == 0) {
-            _amount = _value;
-        } else if (_originalLiquidity == 0) {
+        if (_supply != 0 && _originalLiquidity != 0) {
+            _amount = (_value * _supply) / _originalLiquidity;
+        } else if (_supply != 0 && _originalLiquidity == 0) {
             _amount = _value * _supply;
         } else {
-            _amount = (_value * _supply) / _originalLiquidity;
+            _amount = _value;
         }
     }
 
@@ -825,7 +859,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return The balance of credit allocated by the specified index
      */
     function allocatedCredit(address _index)
-        public
+        external
         view
         override
         returns (uint256)
@@ -841,10 +875,12 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         public
         view
         override
-        returns (uint256 _balance)
+        returns (uint256)
     {
-        if (totalLiquidity() != 0) {
-            return totalLiquidity() - lockedAmount;
+        uint256 _totalLiquidity = totalLiquidity();
+
+        if (_totalLiquidity != 0) {
+            return _totalLiquidity - lockedAmount;
         } else {
             return 0;
         }
@@ -854,11 +890,12 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @notice Returns the utilization rate for this pool. Scaled by 1e6 (100% = 1e6)
      * @return _rate utilization rate
      */
-    function utilizationRate() public view override returns (uint256 _rate) {
+    function utilizationRate() external view override returns (uint256) {
         uint256 _lockedAmount = lockedAmount;
+        uint256 _totalLiquidity = totalLiquidity();
         
-        if (_lockedAmount != 0) {
-            return (_lockedAmount * MAGIC_SCALE_1E6) / totalLiquidity();
+        if (_lockedAmount != 0 && _totalLiquidity != 0) {
+            return (_lockedAmount * MAGIC_SCALE_1E6) / _totalLiquidity;
         } else {
             return 0;
         }
@@ -868,7 +905,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @notice Pool's Liquidity + Liquidity from Index (how much can the pool sell cover)
      * @return _balance total liquidity of this pool
      */
-    function totalLiquidity() public view override returns (uint256 _balance) {
+    function totalLiquidity() public view override returns (uint256) {
         return originalLiquidity() + totalCredit;
     }
 
@@ -876,7 +913,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @notice Pool's Liquidity
      * @return _balance total liquidity of this pool
      */
-    function originalLiquidity() public view returns (uint256 _balance) {
+    function originalLiquidity() public view returns (uint256) {
         return
             vault.underlyingValue(address(this)) -
             vault.attributionValue(attributionDebt);
@@ -941,7 +978,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     function _divCeil(uint256 a, uint256 b) internal pure returns (uint256) {
         require(b != 0);
         uint256 c = a / b;
-        if (a % b != 0) c = c + 1;
+        if (a % b != 0) ++c;
         return c;
     }
 
@@ -952,7 +989,9 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         if (a < b) {
             return 0;
         } else {
-            return a - b;
+            unchecked {
+                return a - b;
+            }
         }
     }
 }
