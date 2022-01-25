@@ -140,7 +140,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         bytes32 merkleRoot;
     }
     Incident public incident;
-
     uint256 private constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
 
     modifier onlyOwner() {
