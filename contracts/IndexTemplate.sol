@@ -205,7 +205,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
         require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
-        require(!locked, "ERROR: WITHDRAWAL_PENDING");
+        require(!locked, "ERROR: WITHDRAWAL_MARKET_PAUSED");
 
         uint256 _lockup = parameters.getLockup(msg.sender);
         uint256 _requestTime = withdrawalReq[msg.sender].timestamp;

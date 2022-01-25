@@ -295,7 +295,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
         require(
             marketStatus == MarketStatus.Trading,
-            "ERROR: WITHDRAWAL_PENDING"
+            "ERROR: WITHDRAWAL_MARKET_PENDING"
         );
         
         uint256 _endTime = parameters.getLockup(msg.sender) + withdrawalReq[msg.sender].timestamp;

@@ -1112,7 +1112,7 @@ describe("Pool", function () {
 
         await expect(
           market.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("ERROR: WITHDRAWAL_PENDING");
+        ).to.revertedWith("ERROR: WITHDRAWAL_MARKET_PENDING");
       });
 
       it("revert withdraw when earlier than withdrawable timestamp", async () => {
