@@ -1,10 +1,8 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 contract TestPremiumModel {
-    using SafeMath for uint256;
     using Address for address;
 
     constructor() {
