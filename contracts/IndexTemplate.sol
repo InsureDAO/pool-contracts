@@ -446,7 +446,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice Resume market
      */
     function resume() external override {
-        require(locked, "ERROR: MARKET_IS_NO_PAUSED");
+        require(locked, "ERROR: MARKET_IS_NOT_LOCKED");
         uint256 poolLength = poolList.length;
 
         for (uint256 i = 0; i < poolLength; i++) {
