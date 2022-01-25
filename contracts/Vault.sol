@@ -464,8 +464,11 @@ contract Vault is IVault {
     function _unutilize(uint256 _amount) internal {
         require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
 
+        uint256 beforeBalance = IERC20(token).balanceOf(address(this));
         controller.withdraw(address(this), _amount);
-        balance += _amount;
+        uint256 received = IERC20(token).balanceOf(address(this)) - beforeBalance;
+        require(received >= _amount, "ERROR_INSUFFICIENT_RETURN_VALUE");
+        balance += received;
     }
 
     /**
