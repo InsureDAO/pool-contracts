@@ -116,14 +116,13 @@ contract Parameters is IParameters {
     /**
      * @notice set slack rate of leverage before adjustAlloc
      * @param _address address to set the parameter
-     * @param _target parameter (slack rate 100% = 1000
+     * @param _target parameter (slack rate 100% = 1e6
      */
     function setUpperSlack(address _address, uint256 _target)
         external
         override
         onlyOwner
-    {
-        require(_target <= 1000, "ERROR: EXCEED_MAX_SLACK_RATE");
+    {   
         _upperSlack[_address] = _target;
         emit UpperSlack(_address, _target);
     }
