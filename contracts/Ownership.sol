@@ -67,8 +67,8 @@ contract Ownership is IOwnership {
          *@notice Accept a transfer of ownership
          */
         _owner = _futureOwner;
-        emit AcceptNewOwnership(_owner);
-
         _futureOwner = address(0);
+        
+        emit AcceptNewOwnership(_owner);
     }
 }
