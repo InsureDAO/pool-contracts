@@ -262,7 +262,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             !paused,
             "ERROR: DEPOSIT_DISABLED(2)"
         );
-        require(paused == false, "ERROR: DEPOSIT_DISABLED");
+        require(!paused, "ERROR: DEPOSIT_DISABLED");
 
         _mintAmount = worth(_amount);
 
