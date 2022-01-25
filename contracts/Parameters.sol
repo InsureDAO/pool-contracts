@@ -248,7 +248,8 @@ contract Parameters is IParameters {
         uint256 _lockedAmount,
         address _target
     ) external view override returns (uint256) {
-        if (_premium[_target] == address(0)) {
+        address _targetPremium = _premium[_target];
+        if (_targetPremium == address(0)) {
             return
                 IPremiumModel(_premium[address(0)]).getPremium(
                     _amount,
@@ -258,7 +259,7 @@ contract Parameters is IParameters {
                 );
         } else {
             return
-                IPremiumModel(_premium[_target]).getPremium(
+                IPremiumModel(_targetPremium).getPremium(
                     _amount,
                     _term,
                     _totalLiquidity,
