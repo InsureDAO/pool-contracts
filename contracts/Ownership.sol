@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 
 import "./interfaces/IOwnership.sol";
 
@@ -59,7 +59,7 @@ contract Ownership is IOwnership {
          *@param newOwner Address to have ownership transferred to
          */
         _futureOwner = newOwner;
-        emit CommitNewOwnership(_futureOwner);
+        emit CommitNewOwnership(newOwner);
     }
 
     function acceptTransferOwnership() external override onlyFutureOwner {
@@ -67,6 +67,8 @@ contract Ownership is IOwnership {
          *@notice Accept a transfer of ownership
          */
         _owner = _futureOwner;
+        _futureOwner = address(0);
+        
         emit AcceptNewOwnership(_owner);
     }
 }
