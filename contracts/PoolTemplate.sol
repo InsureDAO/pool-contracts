@@ -356,19 +356,20 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     /**
      * @param _id id of the insurance policy to unlock liquidity
      */
-    function unlock(uint256 _id) public {
+    function unlock(uint256 _id) external {
         require(marketStatus == MarketStatus.Trading, "ERROR: UNLOCK_BAD_COINDITIONS");
         _unlock(_id);
     }
 
     /**
-     * @notice Unlock funds locked in the expired insurance
+     * @notice Unlock funds locked in the expired insurance (for internal usage)
      * @param _id id of the insurance policy to unlock liquidity
      */
-    function _unlock(uint256 _id) public {
+    function _unlock(uint256 _id) internal {
         require(
             insurances[_id].status &&
-            insurances[_id].endTime + parameters.getGrace(msg.sender) < block.timestamp,
+                insurances[_id].endTime + parameters.getGrace(msg.sender) <
+                block.timestamp,
             "ERROR: UNLOCK_BAD_COINDITIONS"
         );
         insurances[_id].status = false;
