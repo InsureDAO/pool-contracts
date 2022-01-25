@@ -517,8 +517,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         //check current leverage rate
         if (_totalLiquidity != 0) {
             return (totalAllocatedCredit * MAGIC_SCALE_1E6) / _totalLiquidity;
-        }else{
-            return 0;
         }
     }
 

@@ -171,7 +171,7 @@ contract Factory is IFactory {
                 "ERROR: UNAUTHORIZED_SENDER"
             );
         }
-        
+
         uint256 refLength = _references.length;
         for (uint256 i; i < refLength;) {
             require(
