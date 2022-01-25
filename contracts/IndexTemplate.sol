@@ -192,9 +192,10 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     function requestWithdraw(uint256 _amount) external {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
         require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
+        
         withdrawalReq[msg.sender].timestamp = (uint64)(block.timestamp);
         withdrawalReq[msg.sender].amount = (uint192)(_amount);
-
+        
         emit WithdrawRequested(msg.sender, _amount, block.timestamp);
     }
 
