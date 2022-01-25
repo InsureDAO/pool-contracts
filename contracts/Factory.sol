@@ -80,9 +80,9 @@ contract Factory is IFactory {
 
     constructor(address _registry, address _ownership) {
         require(_registry != address(0), "ERROR: ZERO_ADDRESS");
-        registry = _registry;
-
         require(_ownership != address(0), "ERROR: ZERO_ADDRESS");
+        
+        registry = _registry;
         ownership = IOwnership(_ownership);
     }
 
