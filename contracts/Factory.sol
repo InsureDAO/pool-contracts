@@ -98,7 +98,7 @@ contract Factory is IFactory {
         bool _duplicate
     ) external override onlyOwner {
         require(address(_template) != address(0));
-        Template memory approvedTemplate = Template(_isOpen, _approval, _duplicate);
+        Template memory approvedTemplate = Template(_approval, _isOpen, _duplicate);
         templates[address(_template)] = approvedTemplate;
         emit TemplateApproval(_template, _approval, _isOpen, _duplicate);
     }
