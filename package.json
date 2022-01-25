@@ -15,7 +15,6 @@
     "dotenv": "^10.0.0",
     "ethereum-waffle": "^3.2.0",
     "ethers": "^5.3.1",
-    "hardhat": "^2.3.0",
     "solidity-coverage": "^0.7.16"
   },
   "author": "@kohshiba",
@@ -26,6 +25,7 @@
     "chai": "^4.2.0",
     "fs": "^0.0.1-security",
     "ganache-cli": "^6.10.1",
+    "hardhat": "^2.8.3",
     "hardhat-contract-sizer": "^2.0.3",
     "keccak256": "^1.0.3",
     "merkletreejs": "^0.2.24",
