@@ -960,11 +960,14 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         super._beforeTokenTransfer(from, to, amount);
 
         if (from != address(0)) {
-            uint256 _after = balanceOf(from) - amount;
-            if (_after < withdrawalReq[from].amount) {
-                withdrawalReq[from].amount = _after;
-            }
-        }
+            uint256 reqAmount = withdrawalReq[from].amount;
+            if (reqAmount != 0){
+                uint256 _after = balanceOf(from) - amount;
+                if (_after < reqAmount) {
+                    withdrawalReq[from].amount = _after;
+                }
+            } 
+        }  
     }
 
     /**
