@@ -159,7 +159,7 @@ contract Vault is IVault {
 
         require(
             attributions[msg.sender] < _attributions,
-            "ERROR_WITHDRAW-VALUE_BADCONDITOONS"
+            "WITHDRAW-VALUE_BADCONDITIONS"
         );
         attributions[msg.sender] -= _attributions;
 
