@@ -431,8 +431,6 @@ contract Vault is IVault {
 
         if (_totalAttributions != 0 && _attribution != 0) {
             return (_attribution * valueAll()) / _totalAttributions;
-        } else {
-            return 0;
         }
     }
 
@@ -452,8 +450,6 @@ contract Vault is IVault {
 
         if (_valueAll != 0 && attribution != 0) {
             return (_valueAll * attribution) / totalAttributions;
-        } else {
-            return 0;
         }
     }
     
@@ -465,8 +461,6 @@ contract Vault is IVault {
         uint256 attribution = attributions[_target];
         if (_valueAll != 0 && attribution != 0) {
             return (_valueAll * attribution) / totalAttributions;
-        } else {
-            return 0;
         }
     }
 
