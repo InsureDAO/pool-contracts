@@ -400,10 +400,25 @@ contract Vault is IVault {
      * @param _target target address
      * @return token value of target address
      */
-    function underlyingValue(address _target, uint256 _valueAll)
+    function underlyingValue(address _target)
         public
         view
         override
+        returns (uint256)
+    {
+        uint256 _valueAll = valueAll();
+        uint256 attribution = attributions[_target];
+
+        if (_valueAll != 0 && attribution != 0) {
+            return (_valueAll * attribution) / totalAttributions;
+        } else {
+            return 0;
+        }
+    }
+    
+    function underlyingValue(address _target, uint256 _valueAll)
+        public
+        view
         returns (uint256)
     {
         uint256 valueAll = _valueAll;
