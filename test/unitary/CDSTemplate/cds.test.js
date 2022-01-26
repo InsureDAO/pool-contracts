@@ -339,7 +339,7 @@ describe.skip("CDS", function () {
 
       await expect(
         cds.connect(alice).withdraw(depositAmount.add(1))
-      ).to.revertedWith("ERROR: WITHDRAWAL_EXCEEDED_REQUEST");
+      ).to.revertedWith("WITHDRAWAL_EXCEEDED_REQUEST");
     });
 
     it("DISABLES withdraw zero balance", async function () {

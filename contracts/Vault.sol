@@ -44,7 +44,7 @@ contract Vault is IVault {
     modifier onlyOwner() {
         require(
             ownership.owner() == msg.sender,
-            "Restricted: caller is not allowed to operate"
+            "Caller is not allowed to operate"
         );
         _;
     }
@@ -156,7 +156,7 @@ contract Vault is IVault {
         require(
             attributions[msg.sender] != 0 &&
                 underlyingValue(msg.sender) >= _amount,
-            "ERROR_WITHDRAW-VALUE_BADCONDITOONS"
+            "WITHDRAW-VALUE_BADCONDITIONS"
         );
         _attributions = (totalAttributions * _amount) / valueAll();
 
@@ -172,7 +172,7 @@ contract Vault is IVault {
             }
             _unutilize(_shortage);
 
-            require(available() >= _amount, "Available is not enough for withdraw");
+            require(available() >= _amount, "Withdraw amount > Available");
         }
 
         balance -= _amount;
@@ -193,7 +193,7 @@ contract Vault is IVault {
         require(
             attributions[msg.sender] != 0 &&
                 underlyingValue(msg.sender) >= _amount,
-            "ERROR_TRANSFER-VALUE_BADCONDITOONS"
+            "TRANSFER-VALUE_BADCONDITIONS"
         );
         _attributions = (_amount * totalAttributions) / valueAll();
         attributions[msg.sender] -= _attributions;
@@ -228,7 +228,7 @@ contract Vault is IVault {
         require(
             attributions[msg.sender] != 0 &&
                 underlyingValue(msg.sender) >= _amount,
-            "ERROR_REPAY_DEBT_BADCONDITOONS"
+            "ERROR_REPAY_DEBT_BADCONDITIONS"
         );
         _attributions = (_amount * totalAttributions) / valueAll();
         attributions[msg.sender] -= _attributions;
@@ -309,7 +309,7 @@ contract Vault is IVault {
     {
         require(
             attributions[msg.sender] >= _attribution,
-            "ERROR_WITHDRAW-ATTRIBUTION_BADCONDITOONS"
+            "WITHDRAW-ATTRIBUTION_BADCONS"
         );
         _retVal = (_attribution * valueAll()) / totalAttributions;
 
@@ -344,7 +344,7 @@ contract Vault is IVault {
 
         require(
             _amount != 0 && attributions[msg.sender] >= _amount,
-            "ERROR_TRANSFER-ATTRIBUTION_BADCONDITOONS"
+            "TRANSFER-ATTRIBUTION_BADCONS"
         );
 
         unchecked {

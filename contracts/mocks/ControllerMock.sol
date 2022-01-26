@@ -10,7 +10,7 @@ contract ControllerMock {
     IOwnership public ownership;
 
     modifier onlyOwner() {
-        require(ownership.owner() == msg.sender, 'Restricted: caller is not allowed to operate');
+        require(ownership.owner() == msg.sender, 'Caller is not allowed to operate');
         _;
     }
 

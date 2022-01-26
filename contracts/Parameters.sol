@@ -50,7 +50,7 @@ contract Parameters is IParameters {
     modifier onlyOwner() {
         require(
             IOwnership(ownership).owner() == msg.sender,
-            "Restricted: caller is not allowed to operate"
+            "Caller is not allowed to operate"
         );
         _;
     }

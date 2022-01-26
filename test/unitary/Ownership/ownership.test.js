@@ -48,13 +48,13 @@ describe("Ownership", function () {
     it("commit_transfer_ownership revert: onlyOwner", async () => {
       await expect(
         ownership.connect(alice).commitTransferOwnership(alice.address)
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
+      ).to.revertedWith("Caller is not allowed to operate");
     });
 
     it("commit_transfer_ownership revert: zero address", async () => {
       await expect(
         ownership.connect(alice).commitTransferOwnership(alice.address)
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
+      ).to.revertedWith("Caller is not allowed to operate");
     });
 
     it("accept_transfer_ownership successfully", async () => {
@@ -80,7 +80,7 @@ describe("Ownership", function () {
       //await ethers.provider.send("evm_increaseTime", [86400 * 4]);
       await expect(
         ownership.connect(bob).commitTransferOwnership(alice.address)
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
+      ).to.revertedWith("Caller is not allowed to operate");
     });
   });
 });

@@ -98,7 +98,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
                 _references[2] != address(0),
-            "ERROR: INITIALIZATION_BAD_CONDITIONS"
+            "INITIALIZATION_BAD_CONDITIONS"
         );
 
         initialized = true;
@@ -199,11 +199,11 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         );
         require(
             request.timestamp + _lockup + parameters.getWithdrawable(msg.sender) > block.timestamp,
-            "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
+            "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
             request.amount >= _amount,
-            "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
+            "WITHDRAWAL_EXCEEDED_REQUEST"
         );
 
         //Calculate underlying value
