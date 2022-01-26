@@ -64,9 +64,9 @@ contract Vault is IVault {
         address _controller,
         address _ownership
     ) {
-        require(_token != address(0));
-        require(_registry != address(0));
-        require(_ownership != address(0));
+        require(_token != address(0), "ERROR_ZERO_ADDRESS");
+        require(_registry != address(0), "ERROR_ZERO_ADDRESS");
+        require(_ownership != address(0), "ERROR_ZERO_ADDRESS");
         //controller can be zero
 
         token = _token;

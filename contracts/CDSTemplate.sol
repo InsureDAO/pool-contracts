@@ -243,7 +243,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         override
         returns (uint256 _compensated)
     {
-        require(registry.isListed(msg.sender));
+        require(registry.isListed(msg.sender), "ERROR:UNREGISTERED");
         
         uint256 _available = vault.underlyingValue(address(this));
         uint256 _crowdAttribution = crowdPool;
