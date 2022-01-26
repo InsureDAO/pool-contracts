@@ -156,15 +156,16 @@ contract Vault is IVault {
         returns (uint256 _attributions)
     {
         require(_to != address(0), "ERROR_ZERO_ADDRESS");
-
+        
+        uint256 _valueAll = valueAll();
         require(
             attributions[msg.sender] != 0 &&
-                underlyingValue(msg.sender) >= _amount,
+                underlyingValue(msg.sender, _valueAll) >= _amount,
             "ERROR_WITHDRAW-VALUE_BADCONDITOONS"
         );
-        uint256 _available = available();
 
-        _attributions = (totalAttributions * _amount) / valueAll();
+        _attributions = (totalAttributions * _amount) / _valueAll;
+        uint256 _available = available();
 
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
@@ -196,13 +197,15 @@ contract Vault is IVault {
         returns (uint256 _attributions)
     {
         require(_destination != address(0), "ERROR_ZERO_ADDRESS");
-
+        
+        uint256 _valueAll = valueAll();
+        
         require(
             attributions[msg.sender] != 0 &&
-                underlyingValue(msg.sender) >= _amount,
+                underlyingValue(msg.sender, _valueAll) >= _amount,
             "ERROR_TRANSFER-VALUE_BADCONDITOONS"
         );
-        _attributions = (_amount * totalAttributions) / valueAll();
+        _attributions = (_amount * totalAttributions) / _valueAll;
         attributions[msg.sender] -= _attributions;
         attributions[_destination] += _attributions;
     }
@@ -232,12 +235,13 @@ contract Vault is IVault {
         override
         returns (uint256 _attributions)
     {
+        uint256 _valueAll = valueAll();
         require(
             attributions[msg.sender] != 0 &&
-                underlyingValue(msg.sender) >= _amount,
+                underlyingValue(msg.sender, _valueAll) >= _amount,
             "ERROR_REPAY_DEBT_BADCONDITOONS"
         );
-        _attributions = (_amount * totalAttributions) / valueAll();
+        _attributions = (_amount * totalAttributions) / _valueAll;
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
         balance -= _amount;
@@ -438,11 +442,24 @@ contract Vault is IVault {
         override
         returns (uint256)
     {
-
-        uint256 valueAll = valueAll();
+        uint256 _valueAll = valueAll();
         uint256 attribution = attributions[_target];
-        if (valueAll != 0 && attribution != 0) {
-            return (valueAll * attribution) / totalAttributions;
+
+        if (_valueAll != 0 && attribution != 0) {
+            return (_valueAll * attribution) / totalAttributions;
+        } else {
+            return 0;
+        }
+    }
+    
+    function underlyingValue(address _target, uint256 _valueAll)
+        public
+        view
+        returns (uint256)
+    {
+        uint256 attribution = attributions[_target];
+        if (_valueAll != 0 && attribution != 0) {
+            return (_valueAll * attribution) / totalAttributions;
         } else {
             return 0;
         }

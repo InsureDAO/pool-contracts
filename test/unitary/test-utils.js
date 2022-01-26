@@ -163,7 +163,7 @@ const verifyVaultStatus = async({vault, balance, valueAll, totalAttributions, to
 
 const verifyVaultStatusOf = async({vault, target, attributions, underlyingValue, debt}) => {
     expect(await vault.attributions(target)).to.equal(attributions);
-    expect(await vault.underlyingValue(target)).to.equal(underlyingValue);
+    expect(await vault["underlyingValue(address)"](target)).to.equal(underlyingValue);
     expect(await vault.debts(target)).to.equal(debt);
 }
 
@@ -174,7 +174,7 @@ const verifyVaultStatus_legacy = async({vault, valueAll, totalAttributions}) => 
 
 const verifyVaultStatusOf_legacy = async({vault, target, attributions, underlyingValue}) => {
     expect(await vault.attributions(target)).to.equal(attributions);
-    expect(await vault.underlyingValue(target)).to.equal(underlyingValue);
+    expect(await vault["underlyingValue(address)"](target)).to.equal(underlyingValue);
 }
 
 const verifyDebtOf = async({vault, target, debt}) => {
