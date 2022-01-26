@@ -537,8 +537,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _totalSupply = totalSupply();
         if (_totalSupply != 0) {
             return (totalLiquidity() * MAGIC_SCALE_1E6) / _totalSupply;
-        } else {
-            return 0;
         }
     }
 
