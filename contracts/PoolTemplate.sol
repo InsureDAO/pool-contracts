@@ -920,7 +920,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         if (from != address(0)) {
             uint256 reqAmount = withdrawalReq[from].amount;
-            if (reqAmount > 0){
+            if (reqAmount != 0){
                 uint256 _after = balanceOf(from) - amount;
                 if (_after < reqAmount) {
                     withdrawalReq[from].amount = _after;
