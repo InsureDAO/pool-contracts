@@ -167,7 +167,12 @@ contract Vault is IVault {
         _attributions = (totalAttributions * _amount) / _valueAll;
         uint256 _available = available();
 
+        require(
+            attributions[msg.sender] < _attributions,
+            "WITHDRAW-VALUE_BADCONDITIONS"
+        );
         attributions[msg.sender] -= _attributions;
+
         totalAttributions -= _attributions;
 
         if (_available < _amount) {
