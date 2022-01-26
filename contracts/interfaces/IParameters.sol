@@ -1,4 +1,4 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 
 abstract contract IParameters {
     function setVault(address _token, address _vault) external virtual;

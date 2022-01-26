@@ -236,27 +236,32 @@ describe("Parameters", function () {
 
     describe("setLowerSlack", function () {
       it("should allow setting by the admin address", async () => {
+        await parameters.setUpperSlack(TEST_ADDRESS, 6000);
         await parameters.setLowerSlack(TEST_ADDRESS, 5000);
         expect(await parameters.getLowerSlack(TEST_ADDRESS)).to.equal(5000);
       });
 
       it("should only allow setting attempt by the admin", async () => {
+        await parameters.setUpperSlack(TEST_ADDRESS, 6000);
         await expect(
           parameters.connect(alice).setLowerSlack(TEST_ADDRESS, 5000)
         ).to.revertedWith("Restricted: caller is not allowed to operate");
       });
 
       it("should return the dafault value if the address not registered", async () => {
+        await parameters.setUpperSlack(ZERO_ADDRESS, 6000);
         await parameters.setLowerSlack(ZERO_ADDRESS, 5000);
         expect(await parameters.getLowerSlack(TEST_ADDRESS)).to.equal(5000);
       });
 
       it("should return the value if registered", async () => {
+        await parameters.setUpperSlack(TEST_ADDRESS, 60000);
         await parameters.setLowerSlack(TEST_ADDRESS, 50000);
         expect(await parameters.getLowerSlack(TEST_ADDRESS)).to.equal(50000);
       });
 
       it("should emit the event", async () => {
+        await parameters.setUpperSlack(TEST_ADDRESS, 6000);
         await expect(parameters.setLowerSlack(TEST_ADDRESS, 5000)).to.emit(
           parameters,
           "LowerSlack"
