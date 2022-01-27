@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -18,8 +18,6 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
     string private _symbol = "iLP";
     uint8 private _decimals = 18;
 
-    constructor() {}
-
     function initializeToken(
         string memory name_,
         string memory symbol_,
@@ -29,7 +27,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
          *@notice initialize token. Only called internally.
          *
          */
-        assert(!tokenInitialized);
+        require(!tokenInitialized, "Token is already initialized");
         tokenInitialized = true;
         _name = name_;
         _symbol = symbol_;
@@ -39,7 +37,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
     /**
      * @dev Returns the name of the token.
      */
-    function name() public view virtual override returns (string memory) {
+    function name() external view virtual override returns (string memory) {
         return _name;
     }
 
@@ -47,7 +45,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * @dev Returns the symbol of the token, usually a shorter version of the
      * name.
      */
-    function symbol() public view virtual override returns (string memory) {
+    function symbol() external view virtual override returns (string memory) {
         return _symbol;
     }
 
@@ -64,7 +62,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * no way affects any of the arithmetic of the contract, including
      * {IERC20-balanceOf} and {IERC20-transfer}.
      */
-    function decimals() public view virtual override returns (uint8) {
+    function decimals() external view virtual override returns (uint8) {
         return _decimals;
     }
 
@@ -97,12 +95,12 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * - the caller must have a balance of at least `amount`.
      */
     function transfer(address recipient, uint256 amount)
-        public
+        external
         virtual
         override
         returns (bool)
     {
-        _transfer(_msgSender(), recipient, amount);
+        _transfer(msg.sender, recipient, amount);
         return true;
     }
 
@@ -110,7 +108,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * @dev See {IERC20-allowance}.
      */
     function allowance(address owner, address spender)
-        public
+        external
         view
         virtual
         override
@@ -127,12 +125,12 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * - `spender` cannot be the zero address.
      */
     function approve(address spender, uint256 amount)
-        public
+        external
         virtual
         override
         returns (bool)
     {
-        _approve(_msgSender(), spender, amount);
+        _approve(msg.sender, spender, amount);
         return true;
     }
 
@@ -154,15 +152,15 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
         address recipient,
         uint256 amount
     ) public virtual override returns (bool) {
-        _transfer(sender, recipient, amount);
-
         uint256 currentAllowance = _allowances[sender][_msgSender()];
-        require(
-            currentAllowance >= amount,
-            "ERC20: transfer amount exceeds allowance"
-        );
+        if (currentAllowance != type(uint256).max) {
+            require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
+            unchecked {
+                _approve(sender, msg.sender, currentAllowance - amount);
+            }
+        }
 
-        _approve(sender, _msgSender(), currentAllowance - amount);
+        _transfer(sender, recipient, amount);
 
         return true;
     }
@@ -180,15 +178,17 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * - `spender` cannot be the zero address.
      */
     function increaseAllowance(address spender, uint256 addedValue)
-        public
+        external
         virtual
         returns (bool)
     {
-        _approve(
-            _msgSender(),
-            spender,
-            _allowances[_msgSender()][spender] + addedValue
-        );
+        if (addedValue != 0) {
+            _approve(
+                msg.sender,
+                spender,
+                _allowances[msg.sender][spender] + addedValue
+            );
+        }
         return true;
     }
 
@@ -207,17 +207,19 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * `subtractedValue`.
      */
     function decreaseAllowance(address spender, uint256 subtractedValue)
-        public
+        external
         virtual
         returns (bool)
     {
-        uint256 currentAllowance = _allowances[_msgSender()][spender];
-        require(
-            currentAllowance >= subtractedValue,
-            "ERC20: decreased allowance below zero"
-        );
+        if (subtractedValue != 0) {
+            uint256 currentAllowance = _allowances[msg.sender][spender];
+            require(
+                currentAllowance >= subtractedValue,
+                "ERC20: decreased allowance below zero"
+            );
 
-        _approve(_msgSender(), spender, currentAllowance - subtractedValue);
+            _approve(msg.sender, spender, currentAllowance - subtractedValue);
+        }
 
         return true;
     }
@@ -241,24 +243,28 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
         address recipient,
         uint256 amount
     ) internal virtual {
-        require(sender != address(0), "ERC20: transfer from the zero address");
-        require(recipient != address(0), "ERC20: transfer to the zero address");
+        if (amount != 0) {
+            require(sender != address(0), "ERC20: transfer from the zero address");
+            require(recipient != address(0), "ERC20: transfer to the zero address");
 
-        _beforeTokenTransfer(sender, recipient, amount);
+            _beforeTokenTransfer(sender, recipient, amount);
 
-        uint256 senderBalance = _balances[sender];
-        require(
-            senderBalance >= amount,
-            "ERC20: transfer amount exceeds balance"
-        );
+            uint256 senderBalance = _balances[sender];
+            require(
+                senderBalance >= amount,
+                "ERC20: transfer amount exceeds balance"
+            );
 
-        _balances[sender] = senderBalance - amount;
+            unchecked {
+                _balances[sender] = senderBalance - amount;
+            }
 
-        _balances[recipient] += amount;
+            _balances[recipient] += amount;
 
-        emit Transfer(sender, recipient, amount);
+            emit Transfer(sender, recipient, amount);
 
-        _afterTokenTransfer(sender, recipient, amount);
+            _afterTokenTransfer(sender, recipient, amount);
+        }
     }
 
     /** @dev Creates `amount` tokens and assigns them to `account`, increasing
@@ -271,15 +277,17 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * - `account` cannot be the zero address.
      */
     function _mint(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: mint to the zero address");
+        if (amount != 0) {
+            require(account != address(0), "ERC20: mint to the zero address");
 
-        _beforeTokenTransfer(address(0), account, amount);
+            _beforeTokenTransfer(address(0), account, amount);
 
-        _totalSupply += amount;
-        _balances[account] += amount;
-        emit Transfer(address(0), account, amount);
+            _totalSupply += amount;
+            _balances[account] += amount;
+            emit Transfer(address(0), account, amount);
 
-        _afterTokenTransfer(address(0), account, amount);
+            _afterTokenTransfer(address(0), account, amount);
+        }
     }
 
     /**
@@ -294,19 +302,23 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * - `account` must have at least `amount` tokens.
      */
     function _burn(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: burn from the zero address");
+        if (amount != 0) {
+            require(account != address(0), "ERC20: burn from the zero address");
 
-        _beforeTokenTransfer(account, address(0), amount);
+            _beforeTokenTransfer(account, address(0), amount);
 
-        uint256 accountBalance = _balances[account];
-        require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
-        _balances[account] = accountBalance - amount;
+            uint256 accountBalance = _balances[account];
+            require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
+            unchecked {
+                _balances[account] = accountBalance - amount;
+            }
 
-        _totalSupply -= amount;
+            _totalSupply -= amount;
 
-        emit Transfer(account, address(0), amount);
+            emit Transfer(account, address(0), amount);
 
-        _afterTokenTransfer(account, address(0), amount);
+            _afterTokenTransfer(account, address(0), amount);
+        }
     }
 
     /**
