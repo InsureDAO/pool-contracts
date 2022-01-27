@@ -104,7 +104,7 @@ describe("Vault", function () {
       await vault.connect(alice).addValue(10000, alice.address, alice.address);
       await controller.yield();
 
-      expect(await vault.underlyingValue(alice.address)).to.equal(15000);
+      expect(await vault["underlyingValue(address)"](alice.address)).to.equal(15000);
       expect(await vault.getPricePerFullShare()).to.equal(
         "1500000"
       );
@@ -126,7 +126,7 @@ describe("Vault", function () {
       await vault.connect(creator).setKeeper(controller.address);
       await controller.yield();
 
-      expect(await vault.underlyingValue(alice.address)).to.equal(15000);
+      expect(await vault["underlyingValue(address)"](alice.address)).to.equal(15000);
       expect(await vault.getPricePerFullShare()).to.equal("1500000");
 
       await expect(vault.connect(alice).utilize()).to.revertedWith("ERROR_NOT_KEEPER");
@@ -136,11 +136,11 @@ describe("Vault", function () {
       await vault.connect(alice).addValue(10000, alice.address, alice.address);
       await controller.yield();
 
-      expect(await vault.underlyingValue(alice.address)).to.equal(15000);
+      expect(await vault["underlyingValue(address)"](alice.address)).to.equal(15000);
 
       await vault.connect(alice).transferValue(15000, bob.address);
 
-      expect(await vault.underlyingValue(bob.address)).to.equal(15000);
+      expect(await vault["underlyingValue(address)"](bob.address)).to.equal(15000);
       expect(await vault.attributionOf(bob.address)).to.equal(10000);
 
       await vault.connect(bob).transferAttribution(10000, chad.address);
