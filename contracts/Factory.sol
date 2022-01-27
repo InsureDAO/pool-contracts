@@ -217,7 +217,7 @@ contract Factory is IFactory {
 
 
         //initialize
-        market.initialize(_metaData, _conditions, _references);
+        market.initialize(msg.sender, _metaData, _conditions, _references);
 
         emit MarketCreated(
             address(market),

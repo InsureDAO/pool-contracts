@@ -2,7 +2,8 @@ pragma solidity 0.8.7;
 
 interface IUniversalMarket {
     function initialize(
-        string calldata _metaData,
+        address _depositor,
+        string calldata _metaData, 
         uint256[] calldata _conditions,
         address[] calldata _references
     ) external;

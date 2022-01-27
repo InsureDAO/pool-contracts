@@ -751,7 +751,6 @@ describe("Pool", function () {
         usdc.address,
         registry.address,
         parameters.address,
-        gov.address,
       ]
     );
 
@@ -843,6 +842,7 @@ describe("Pool", function () {
 
         await expect(
           pool.initialize(
+            ZERO_ADDRESS,
             "Here is metadata.",
             [0, 0], //deposit 0 USDC
             [usdc.address, usdc.address, registry.address, parameters.address]
@@ -893,7 +893,6 @@ describe("Pool", function () {
               usdc.address,
               registry.address,
               parameters.address,
-              gov.address,
             ]
           )
         ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
@@ -919,7 +918,6 @@ describe("Pool", function () {
               ZERO_ADDRESS,
               registry.address,
               parameters.address,
-              gov.address,
             ]
           )
         ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
@@ -945,7 +943,6 @@ describe("Pool", function () {
               usdc.address,
               ZERO_ADDRESS,
               parameters.address,
-              gov.address,
             ]
           )
         ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
@@ -971,33 +968,6 @@ describe("Pool", function () {
               usdc.address,
               registry.address,
               ZERO_ADDRESS,
-              gov.address,
-            ]
-          )
-        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
-      });
-
-      it("fail when _references[4] is zero address", async () => {
-        //approve whatever an address can be in _references[1].
-        await factory.approveReference(
-          poolTemplate.address,
-          4,
-          ZERO_ADDRESS,
-          true
-        );
-
-        //but this PoolTemplate doesn't want address(0)
-        await expect(
-          factory.createMarket(
-            poolTemplate.address,
-            "Here is metadata.",
-            [0, 0], //deposit 0 USDC
-            [
-              usdc.address,
-              usdc.address,
-              registry.address,
-              parameters.address,
-              ZERO_ADDRESS,
             ]
           )
         ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
@@ -1014,7 +984,6 @@ describe("Pool", function () {
               usdc.address,
               registry.address,
               parameters.address,
-              gov.address,
             ]
           )
         ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");

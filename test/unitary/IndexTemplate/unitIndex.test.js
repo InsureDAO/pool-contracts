@@ -241,7 +241,6 @@ describe("Index", function () {
         usdc.address,
         registry.address,
         parameters.address,
-        gov.address,
       ]
     );
     await factory.createMarket(
@@ -253,7 +252,6 @@ describe("Index", function () {
         usdc.address,
         registry.address,
         parameters.address,
-        gov.address,
       ]
     );
 
@@ -527,6 +525,7 @@ describe("Index", function () {
 
       await expect(
         index.initialize(
+          ZERO_ADDRESS,
           "Here is metadata.",
           [0, 0],
           [usdc.address, registry.address, parameters.address]

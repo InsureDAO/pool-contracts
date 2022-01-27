@@ -168,7 +168,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * references[1] = underlying token address
      * references[2] = registry
      * references[3] = parameter
-     * references[4] = initialDepositor
      * conditions[0] = minimim deposit amount defined by the factory
      * conditions[1] = initial deposit amount defined by the creator
      * @param _metaData arbitrary string to store market information
@@ -176,6 +175,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @param _references array of references
      */
     function initialize(
+        address _depositor,
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
@@ -187,7 +187,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 _references[1] != address(0) &&
                 _references[2] != address(0) &&
                 _references[3] != address(0) &&
-                _references[4] != address(0) &&
                 _conditions[0] <= _conditions[1],
             "ERROR: INITIALIZATION_BAD_CONDITIONS"
         );
@@ -216,7 +215,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         marketStatus = MarketStatus.Trading;
 
         if (_conditions[1] > 0) {
-            _depositFrom(_conditions[1], _references[4]);
+            _depositFrom(_conditions[1], _depositor);
         }
     }
 
