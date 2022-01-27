@@ -151,19 +151,16 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
         address sender,
         address recipient,
         uint256 amount
-    ) external virtual override returns (bool) {
-        if (amount != 0) {
-            uint256 currentAllowance = _allowances[sender][msg.sender];
-            if (currentAllowance != type(uint256).max) {
-                require(
-                    currentAllowance >= amount,
-                    "ERC20: transfer amount exceeds allowance"
-                );
+    ) public virtual override returns (bool) {
+        uint256 currentAllowance = _allowances[sender][_msgSender()];
+        if (currentAllowance != type(uint256).max) {
+            require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
+            unchecked {
                 _approve(sender, msg.sender, currentAllowance - amount);
             }
-
-            _transfer(sender, recipient, amount);
         }
+
+        _transfer(sender, recipient, amount);
 
         return true;
     }
