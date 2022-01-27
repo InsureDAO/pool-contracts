@@ -227,20 +227,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return _mintAmount the amount of iTokens minted from the transaction
      */
     function deposit(uint256 _amount) external returns (uint256 _mintAmount) {
-        require(
-            marketStatus == MarketStatus.Trading && !paused,
-            "ERROR: DEPOSIT_DISABLED"
-        );
-        require(_amount != 0, "ERROR: DEPOSIT_ZERO");
-
-        _mintAmount = worth(_amount);
-
-        vault.addValue(_amount, msg.sender, address(this));
-
-        emit Deposit(msg.sender, _amount, _mintAmount);
-
-        //mint iToken
-        _mint(msg.sender, _mintAmount);
+        _mintAmount = _depositFrom(_amount, msg.sender);
     }
 
     /**
