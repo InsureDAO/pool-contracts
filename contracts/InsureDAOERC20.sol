@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -151,20 +151,16 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
         address sender,
         address recipient,
         uint256 amount
-    ) external virtual override returns (bool) {
-        if (amount != 0) {
-            uint256 currentAllowance = _allowances[sender][msg.sender];
-            if (currentAllowance != type(uint256).max) {
-                require(
-                    currentAllowance >= amount,
-                    "Transfer amount > allowance"
-                );
-
+    ) public virtual override returns (bool) {
+        uint256 currentAllowance = _allowances[sender][_msgSender()];
+        if (currentAllowance != type(uint256).max) {
+            require(currentAllowance >= amount, "Transfer amount > allowance");
+            unchecked {
                 _approve(sender, msg.sender, currentAllowance - amount);
             }
-
-            _transfer(sender, recipient, amount);
         }
+
+        _transfer(sender, recipient, amount);
 
         return true;
     }
@@ -190,7 +186,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
             _approve(
                 msg.sender,
                 spender,
-                _allowances[_msgSender()][spender] + addedValue
+                _allowances[msg.sender][spender] + addedValue
             );
         }
         return true;
@@ -216,7 +212,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
         returns (bool)
     {
         if (subtractedValue != 0) {
-            uint256 currentAllowance = _allowances[_msgSender()][spender];
+            uint256 currentAllowance = _allowances[msg.sender][spender];
             require(
                 currentAllowance >= subtractedValue,
                 "Decreased allowance below zero"

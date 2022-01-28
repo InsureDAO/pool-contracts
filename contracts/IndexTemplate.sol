@@ -165,14 +165,13 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _totalLiquidity = totalLiquidity();
         vault.addValue(_amount, msg.sender, address(this));
 
-        if (_supply != 0) {
-            if (_totalLiquidity != 0) {
-                _mintAmount = (_amount * _supply) / _totalLiquidity;
-            } else {
-                _mintAmount = _amount * _supply;
-            }
-        } else {
+
+        if (_supply == 0) {
             _mintAmount = _amount;
+        } else if (_totalLiquidity == 0) {
+            _mintAmount = _amount * _supply;
+        } else {
+            _mintAmount = (_amount * _supply) / _totalLiquidity;
         }
         emit Deposit(msg.sender, _amount, _mintAmount);
         //mint iToken
@@ -193,8 +192,10 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     function requestWithdraw(uint256 _amount) external {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
         require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
+        
         withdrawalReq[msg.sender].timestamp = (uint64)(block.timestamp);
         withdrawalReq[msg.sender].amount = (uint192)(_amount);
+        
         emit WithdrawRequested(msg.sender, _amount, block.timestamp);
     }
 
@@ -205,16 +206,17 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
         require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
-        require(!locked, "ERROR: WITHDRAWAL_PENDING");
+        require(!locked, "ERROR: WITHDRAWAL_MARKET_PAUSED");
 
-        uint256 _lockup = parameters.getLockup(msg.sender);
-        uint256 _requestTime = withdrawalReq[msg.sender].timestamp;
+        uint256 _lockupPlusRequestTime = parameters.getLockup(msg.sender) + withdrawalReq[msg.sender].timestamp;
+        
         require(
-            _requestTime + _lockup < block.timestamp,
+            _lockupPlusRequestTime < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            _requestTime + _lockup + parameters.getWithdrawable(msg.sender) > block.timestamp,
+            _lockupPlusRequestTime + parameters.getWithdrawable(msg.sender) >
+                block.timestamp,
             "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
@@ -267,6 +269,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     function withdrawable() public view returns (uint256 _retVal) {
         uint256 _totalLiquidity = totalLiquidity();
         uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
+
         if (_totalLiquidity != 0) {
             uint256 _length = poolList.length;
             uint256 _lowestAvailableRate = _MAGIC_SCALE_1E6;
@@ -276,6 +279,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             for (uint256 i; i < _length;) {
                 address _poolAddress = poolList[i];
                 uint256 _allocPoint = allocPoints[_poolAddress];
+
                 if (_allocPoint != 0) {
                     uint256 _allocated = IPoolTemplate(_poolAddress)
                     .allocatedCredit(address(this));
@@ -348,7 +352,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _totalAllocatedCredit = totalAllocatedCredit;
         uint256 _length = poolList.length;
         PoolStatus[] memory _poolList = new PoolStatus[](_length);
-
         //Check each pool and if current credit allocation > target && it is impossible to adjust, then withdraw all availablle credit
         for (uint256 i; i < _length;) {
             address _pool = poolList[i];
@@ -397,6 +400,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 //get how much liquidty is available to withdraw
                 uint256 _available = _poolList[i].available;
                 //Withdraw or Deposit credit
+
                 if (_current == _target) {
                     IPoolTemplate(_poolList[i].addr).allocateCredit(0);
                 } else if (_current < _target) {
@@ -473,6 +477,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice Resume market
      */
     function resume() external override {
+        require(locked, "ERROR: MARKET_IS_NOT_LOCKED");
         uint256 _poolLength = poolList.length;
 
         for (uint256 i; i < _poolLength;) {
@@ -507,6 +512,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice get the current leverage rate 1e6x
      * @return _rate leverage rate
      */
+
     function leverage() external view returns (uint256) {
         uint256 _totalLiquidity = totalLiquidity();
         //check current leverage rate
@@ -528,8 +534,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @return The value against the underlying token balance.
      */
     function rate() external view returns (uint256) {
-        if (totalSupply() != 0) {
-            return (totalLiquidity() * MAGIC_SCALE_1E6) / totalSupply();
+        uint256 _totalSupply = totalSupply();
+        if (_totalSupply != 0) {
+            return (totalLiquidity() * MAGIC_SCALE_1E6) / _totalSupply;
         } else {
             return 0;
         }
@@ -542,10 +549,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      */
     function valueOfUnderlying(address _owner) external view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
-        if (_balance == 0) {
+        uint256 _totalSupply = totalSupply();
+        if (_balance == 0 || _totalSupply == 0) {
             return 0;
         } else {
-            return (_balance * totalLiquidity()) / totalSupply();
+            return (_balance * totalLiquidity()) / _totalSupply;
         }
     }
 
@@ -590,6 +598,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @param _target new leverage rate
      */
     function setLeverage(uint256 _target) external override onlyOwner {
+        require(_target >= MAGIC_SCALE_1E6, "leverage must be x1 or higher");
         targetLev = _target;
         adjustAlloc();
         emit LeverageSet(_target);
@@ -627,7 +636,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             }
             poolList[_index] = _pool;
         }
+
         uint256 _totalAllocPoint = totalAllocPoint;
+
         if (_totalAllocPoint != 0) {
             totalAllocPoint =
                 _totalAllocPoint -
@@ -671,6 +682,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @return _totalValue accrued but yet claimed premium within underlying pools
      */
     function _accruedPremiums() internal view returns (uint256 _totalValue) {
+
         uint256 poolLength = poolList.length;
         for (uint256 i; i < poolLength;) {
             if (allocPoints[poolList[i]] != 0) {

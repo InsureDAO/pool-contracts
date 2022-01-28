@@ -28,6 +28,7 @@ contract Registry is IRegistry {
     }
 
     constructor(address _ownership) {
+        require(_ownership != address(0), "ERROR: ZERO_ADDRESS");
         ownership = IOwnership(_ownership);
     }
 
@@ -96,7 +97,7 @@ contract Registry is IRegistry {
     /**
      * @notice Get the cds address for a particular address
      * @param _address address covered by CDS
-     * @return true if the id within the market already exists
+     * @return CDS contract address
      */
     function getCDS(address _address) external view override returns (address) {
         address _addr = cds[_address];
