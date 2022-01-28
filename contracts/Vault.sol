@@ -161,7 +161,7 @@ contract Vault is IVault {
         require(
             attributions[msg.sender] != 0 &&
                 underlyingValue(msg.sender, _valueAll) >= _amount,
-            "WITHDRAW-VALUE_BADCONDITOONS"
+            "WITHDRAW-VALUE_BADCONDITIONS"
         );
 
         _attributions = (totalAttributions * _amount) / _valueAll;

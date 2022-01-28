@@ -1274,7 +1274,7 @@ describe("Vault", function () {
         vault
           .connect(alice)
           .setKeeper(alice.address)
-        ).to.revertedWith("Restricted: caller is not allowed to operate");
+        ).to.revertedWith("Caller is not allowed to operate");
     }) 
 
     it("should succeed to set keeper", async () => {
