@@ -56,7 +56,7 @@ describe("Parameters", function () {
       it("should only allow setting attempt by the admin", async () => {
         await expect(
           parameters.connect(alice).setVault(TEST_ADDRESS, TEST_ADDRESS)
-        ).to.revertedWith("Restricted: caller is not allowed to operate");
+        ).to.revertedWith("Caller is not allowed to operate");
       });
 
       it("should only allow registration once", async () => {
@@ -91,7 +91,7 @@ describe("Parameters", function () {
           parameters
             .connect(alice)
             .setPremiumModel(TEST_ADDRESS, premiumModel.address)
-        ).to.revertedWith("Restricted: caller is not allowed to operate");
+        ).to.revertedWith("Caller is not allowed to operate");
       });
       it("should return the dafault value if the address not registered", async () => {
         await parameters.setPremiumModel(ZERO_ADDRESS, premiumModel.address);
@@ -123,7 +123,7 @@ describe("Parameters", function () {
       it("should only allow setting attempt by the admin", async () => {
         await expect(
           parameters.connect(alice).setLockup(TEST_ADDRESS, 86400)
-        ).to.revertedWith("Restricted: caller is not allowed to operate");
+        ).to.revertedWith("Caller is not allowed to operate");
       });
 
       it("should return the dafault value if the address not registered", async () => {
@@ -153,7 +153,7 @@ describe("Parameters", function () {
       it("should only allow setting attempt by the admin", async () => {
         await expect(
           parameters.connect(alice).setGrace(TEST_ADDRESS, 86400)
-        ).to.revertedWith("Restricted: caller is not allowed to operate");
+        ).to.revertedWith("Caller is not allowed to operate");
       });
 
       it("should return the dafault value if the address not registered", async () => {
@@ -183,7 +183,7 @@ describe("Parameters", function () {
       it("should only allow setting attempt by the admin", async () => {
         await expect(
           parameters.connect(alice).setMinDate(TEST_ADDRESS, 604800)
-        ).to.revertedWith("Restricted: caller is not allowed to operate");
+        ).to.revertedWith("Caller is not allowed to operate");
       });
 
       it("should return the dafault value if the address not registered", async () => {
@@ -213,7 +213,7 @@ describe("Parameters", function () {
       it("should only allow setting attempt by the admin", async () => {
         await expect(
           parameters.connect(alice).setUpperSlack(TEST_ADDRESS, 5000)
-        ).to.revertedWith("Restricted: caller is not allowed to operate");
+        ).to.revertedWith("Caller is not allowed to operate");
       });
 
       it("should return the dafault value if the address not registered", async () => {
@@ -245,7 +245,7 @@ describe("Parameters", function () {
         await parameters.setUpperSlack(TEST_ADDRESS, 6000);
         await expect(
           parameters.connect(alice).setLowerSlack(TEST_ADDRESS, 5000)
-        ).to.revertedWith("Restricted: caller is not allowed to operate");
+        ).to.revertedWith("Caller is not allowed to operate");
       });
 
       it("should return the dafault value if the address not registered", async () => {
@@ -277,7 +277,7 @@ describe("Parameters", function () {
       it("should only allow setting attempt by the admin", async () => {
         await expect(
           parameters.connect(alice).setWithdrawable(TEST_ADDRESS, 604800)
-        ).to.revertedWith("Restricted: caller is not allowed to operate");
+        ).to.revertedWith("Caller is not allowed to operate");
       });
 
       it("should return the dafault value if the address not registered", async () => {
@@ -322,7 +322,7 @@ describe("Parameters", function () {
               "0x0000000000000000000000000000000000000000000000000000000000000000",
               "0x0000000000000000000000000000000000000000000000000000000000000001"
             )
-        ).to.revertedWith("Restricted: caller is not allowed to operate");
+        ).to.revertedWith("Caller is not allowed to operate");
       });
 
       it("should return the value if registered", async () => {
@@ -358,7 +358,7 @@ describe("Parameters", function () {
       it("should only allow setting attempt by the admin", async () => {
         await expect(
           parameters.connect(alice).setMaxList(TEST_ADDRESS, 10)
-        ).to.revertedWith("Restricted: caller is not allowed to operate");
+        ).to.revertedWith("Caller is not allowed to operate");
       });
 
       it("should return the dafault value if the address not registered", async () => {
@@ -387,7 +387,7 @@ describe("Parameters", function () {
       it("should only allow setting attempt by the admin", async () => {
         await expect(
           parameters.connect(alice).setFeeRate(TEST_ADDRESS, 20000)
-        ).to.revertedWith("Restricted: caller is not allowed to operate");
+        ).to.revertedWith("Caller is not allowed to operate");
       });
 
       it("should return the dafault value if the address not registered", async () => {

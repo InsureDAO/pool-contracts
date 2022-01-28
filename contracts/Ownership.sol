@@ -36,7 +36,7 @@ contract Ownership is IOwnership {
     modifier onlyOwner() {
         require(
             _owner == msg.sender,
-            "Restricted: caller is not allowed to operate"
+            "Caller is not allowed to operate"
         );
         _;
     }
@@ -44,7 +44,7 @@ contract Ownership is IOwnership {
     modifier onlyFutureOwner() {
         require(
             _futureOwner == msg.sender,
-            "Restricted: caller is not allowed to operate"
+            "Caller is not allowed to operate"
         );
         _;
     }

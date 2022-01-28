@@ -30,7 +30,7 @@ contract BondingPremium is IPremiumModel {
     modifier onlyOwner() {
         require(
             ownership.owner() == msg.sender,
-            "Restricted: caller is not allowed to operate"
+            "Caller is not allowed to operate"
         );
         _;
     }
@@ -64,7 +64,7 @@ contract BondingPremium is IPremiumModel {
     ) external view override returns (uint256) {
         require(
             _totalLiquidity >= _lockedAmount,
-            "ERROR: _lockedAmount > _totalLiquidity"
+            "_lockedAmount > _totalLiquidity"
         );
 
         if (_totalLiquidity == 0) {

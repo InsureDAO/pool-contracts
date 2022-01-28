@@ -533,7 +533,7 @@ describe("Index", function () {
           [0, 0],
           [usdc.address, registry.address, parameters.address]
         )
-      ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+      ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
     });
 
     it("reverts when address is zero and/or metadata is empty", async function () {
@@ -563,7 +563,7 @@ describe("Index", function () {
           [],
           [usdc.address, registry.address, parameters.address]
         )
-      ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+      ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
 
       await expect(
         factory.createMarket(
@@ -572,7 +572,7 @@ describe("Index", function () {
           [],
           [ZERO_ADDRESS, registry.address, parameters.address]
         )
-      ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+      ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
 
       await expect(
         factory.createMarket(
@@ -581,7 +581,7 @@ describe("Index", function () {
           [],
           [usdc.address, ZERO_ADDRESS, parameters.address]
         )
-      ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+      ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
 
       await expect(
         factory.createMarket(
@@ -590,7 +590,7 @@ describe("Index", function () {
           [],
           [usdc.address, registry.address, ZERO_ADDRESS]
         )
-      ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+      ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
     });
   });
 
@@ -2747,14 +2747,14 @@ describe("Index", function () {
 
       await expect(
         index.connect(alice).withdraw(depositAmount)
-      ).to.revertedWith("ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST");
+      ).to.revertedWith("WITHDRAWAL_NO_ACTIVE_REQUEST");
     });
 
     it("reverts when the withdraw amount exceeded the request", async function () {
       await moveForwardPeriods(7);
       await expect(
         index.connect(alice).withdraw(depositAmount.add(1))
-      ).to.revertedWith("ERROR: WITHDRAWAL_EXCEEDED_REQUEST");
+      ).to.revertedWith("WITHDRAWAL_EXCEEDED_REQUEST");
     });
 
     it("reverts when zero requests", async function () {
@@ -2801,7 +2801,7 @@ describe("Index", function () {
 
       await expect(
         index.connect(alice).withdraw(depositAmount)
-      ).to.revertedWith("ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY");
+      ).to.revertedWith("WITHDRAW_INSUFFICIENT_LIQUIDITY");
     });
 
     it("should incur adjust alloc when withdrawal amount is large enough", async function () {

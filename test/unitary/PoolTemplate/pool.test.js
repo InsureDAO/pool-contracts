@@ -847,7 +847,7 @@ describe("Pool", function () {
             [0, 0], //deposit 0 USDC
             [usdc.address, usdc.address, registry.address, parameters.address]
           )
-        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+        ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
 
       it("initial deposit", async () => {
@@ -896,7 +896,7 @@ describe("Pool", function () {
               gov.address,
             ]
           )
-        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+        ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
 
       it("fail when _references[1] is zero address", async () => {
@@ -922,7 +922,7 @@ describe("Pool", function () {
               gov.address,
             ]
           )
-        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+        ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
 
       it("fail when _references[2] is zero address", async () => {
@@ -948,7 +948,7 @@ describe("Pool", function () {
               gov.address,
             ]
           )
-        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+        ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
 
       it("fail when _references[3] is zero address", async () => {
@@ -974,7 +974,7 @@ describe("Pool", function () {
               gov.address,
             ]
           )
-        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+        ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
 
       it("fail when _references[4] is zero address", async () => {
@@ -1000,7 +1000,7 @@ describe("Pool", function () {
               ZERO_ADDRESS,
             ]
           )
-        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+        ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
 
       it("fail when bytes(_metaData).length == 0", async () => {
@@ -1017,7 +1017,7 @@ describe("Pool", function () {
               gov.address,
             ]
           )
-        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+        ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
     });
 
@@ -1147,7 +1147,7 @@ describe("Pool", function () {
         //withdraw without request
         await expect(
           market.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST");
+        ).to.revertedWith("WITHDRAWAL_NO_ACTIVE_REQUEST");
       });
 
       it("revert withdraw when amount > requested", async function () {
@@ -1162,7 +1162,7 @@ describe("Pool", function () {
 
         await expect(
           market.connect(alice).withdraw(depositAmount.add(1))
-        ).to.revertedWith("ERROR: WITHDRAWAL_EXCEEDED_REQUEST");
+        ).to.revertedWith("WITHDRAWAL_EXCEEDED_REQUEST");
       });
 
       it("revert withdraw when withdrawable span is over", async function () {
@@ -1178,7 +1178,7 @@ describe("Pool", function () {
 
         await expect(
           market.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST");
+        ).to.revertedWith("WITHDRAWAL_NO_ACTIVE_REQUEST");
       });
 
       it("revert withdraw request more than balance", async function () {
@@ -1231,7 +1231,7 @@ describe("Pool", function () {
 
         await expect(
           market.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY");
+        ).to.revertedWith("WITHDRAW_INSUFFICIENT_LIQUIDITY");
       });
     });
 
@@ -1274,7 +1274,7 @@ describe("Pool", function () {
     describe("allocateCredit", function () {
       it("reverts when trying to allocate zero", async () => {
         await expect(market.allocateCredit(ZERO)).to.revertedWith(
-          "ERROR: ALLOCATE_CREDIT_BAD_CONDITIONS"
+          "ALLOCATE_CREDIT_BAD_CONDITIONS"
         );
       });
 
@@ -1297,7 +1297,7 @@ describe("Pool", function () {
             WEEK,
             padded1
           )
-        ).to.revertedWith("ERROR: INSURE_EXCEEDED_AVAILABLE_BALANCE");
+        ).to.revertedWith("INSURE_EXCEEDED_AVAIL_BALANCE");
       });
 
       it("revert when exceed max cost", async () => {
@@ -1468,7 +1468,7 @@ describe("Pool", function () {
 
       await expect(
         market.connect(alice).withdraw(depositAmount.div(2).add(1))
-      ).to.revertedWith("ERROR: WITHDRAWAL_EXCEEDED_REQUEST");
+      ).to.revertedWith("WITHDRAWAL_EXCEEDED_REQUEST");
 
       await withdraw({
         target: market,
@@ -1848,7 +1848,7 @@ describe("Pool", function () {
         market
           .connect(bob)
           .insure(depositAmount.add(1), depositAmount, WEEK, padded1)
-      ).to.revertedWith("ERROR: INSURE_EXCEEDED_AVAILABLE_BALANCE");
+      ).to.revertedWith("INSURE_EXCEEDED_AVAIL_BALANCE");
 
       await moveForwardPeriods(8);
 
@@ -2035,7 +2035,7 @@ describe("Pool", function () {
 
       await expect(
         market.connect(bob).transferInsurance("0", tom.address)
-      ).to.revertedWith("ERROR: INSURANCE_TRANSFER_BAD_CONDITIONS");
+      ).to.revertedWith("INSURANCE_TRANSFER_BAD_CONS");
 
       //when already redeemed
       await insure({
@@ -2066,7 +2066,7 @@ describe("Pool", function () {
 
       await expect(
         market.connect(bob).transferInsurance("1", tom.address)
-      ).to.revertedWith("ERROR: INSURANCE_TRANSFER_BAD_CONDITIONS");
+      ).to.revertedWith("INSURANCE_TRANSFER_BAD_CONS");
     });
   });
 

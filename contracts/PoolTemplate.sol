@@ -145,7 +145,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     modifier onlyOwner() {
         require(
             msg.sender == parameters.getOwner(),
-            "Restricted: caller is not allowed to operate"
+            "Caller is not allowed to operate"
         );
         _;
     }
@@ -186,7 +186,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 _references[3] != address(0) &&
                 _references[4] != address(0) &&
                 _conditions[0] <= _conditions[1],
-            "ERROR: INITIALIZATION_BAD_CONDITIONS"
+            "INITIALIZATION_BAD_CONDITIONS"
         );
         initialized = true;
 
@@ -292,11 +292,11 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         );
         require(
             _endTime + parameters.getWithdrawable(msg.sender) > block.timestamp,
-            "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
+            "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
             withdrawalReq[msg.sender].amount >= _amount,
-            "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
+            "WITHDRAWAL_EXCEEDED_REQUEST"
         );
         require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
 
@@ -308,7 +308,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         require(
             _retVal <= availableBalance(),
-            "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
+            "WITHDRAW_INSUFFICIENT_LIQUIDITY"
         );
 
         //reduce requested amount
@@ -383,7 +383,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     {
         require(
             IRegistry(registry).isListed(msg.sender),
-            "ERROR: ALLOCATE_CREDIT_BAD_CONDITIONS"
+            "ALLOCATE_CREDIT_BAD_CONDITIONS"
         );
 
         IndexInfo storage _index = indicies[msg.sender];
@@ -429,7 +429,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             IRegistry(registry).isListed(msg.sender) &&
             _index.credit >= _credit &&
             _credit <= availableBalance(),
-            "ERROR: WITHDRAW_CREDIT_BAD_CONDITIONS"
+            "WITHDRAW_CREDIT_BAD_CONDITIONS"
         );
 
         uint256 _rewardPerCredit = rewardPerCredit;
@@ -485,7 +485,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         );
         require(
             _amount <= availableBalance(),
-            "ERROR: INSURE_EXCEEDED_AVAILABLE_BALANCE"
+            "INSURE_EXCEEDED_AVAIL_BALANCE"
         );
 
         require(_span <= 365 days, "ERROR: INSURE_EXCEEDED_MAX_SPAN");
@@ -621,7 +621,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 insurance.insured == msg.sender &&
                 insurance.endTime >= block.timestamp &&
                 insurance.status,
-            "ERROR: INSURANCE_TRANSFER_BAD_CONDITIONS"
+            "INSURANCE_TRANSFER_BAD_CONS"
         );
 
         insurance.insured = _to;
