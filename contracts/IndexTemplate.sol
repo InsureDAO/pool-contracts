@@ -540,9 +540,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      */
     function valueOfUnderlying(address _owner) external view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
-        if (_balance == 0) {
-            return 0;
-        } else {
+        if (_balance != 0) {
             return (_balance * totalLiquidity()) / totalSupply();
         }
     }
