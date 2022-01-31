@@ -266,7 +266,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * Otherwise, the allocation to a specific pool may take up the overall allocation, and may break the risk sharing.
      * @return _retVal withdrawable amount
      */
-    function withdrawable() public view returns (uint256 _retVal) {
+    function withdrawable() public returns (uint256 _retVal) {
         uint256 _totalLiquidity = totalLiquidity();
         uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
 
@@ -281,10 +281,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 uint256 _allocPoint = allocPoints[_poolAddress];
 
                 if (_allocPoint != 0) {
-                    uint256 _allocated = IPoolTemplate(_poolAddress)
-                    .allocatedCredit(address(this));
-                    uint256 _availableBalance = IPoolTemplate(_poolAddress)
-                    .availableBalance();
+                    (uint256 _allocated, uint256 _availableBalance) = _getAllocatedCreditAndAvailableBalance(_poolAddress);
                     //check if some portion of credit is locked
                     if (_allocated > _availableBalance) {
                         uint256 _availableRate = (_availableBalance *
@@ -361,12 +358,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 //Target credit allocation for a pool
                 uint256 _target = (_targetCredit * _allocation) /
                     _allocatablePoints;
-                //get how much has been allocated for a pool
-                uint256 _current = IPoolTemplate(_pool).allocatedCredit(
-                    address(this)
-                );
-                //get how much liquidty is available to withdraw
-                uint256 _available = IPoolTemplate(_pool).availableBalance();
+                // //get how much has been allocated for a pool
+                // //get how much liquidty is available to withdraw
+                (uint256 _current, uint256 _available) = _getAllocatedCreditAndAvailableBalance(_pool);
                 //if needed to withdraw credit but unable, then withdraw all available.
                 //Otherwise, skip.
                 if (
@@ -694,5 +688,14 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 ++i;
             }
         }
+    }
+
+    function _getAllocatedCreditAndAvailableBalance(address _poolAddress) internal returns (uint256, uint256) {
+        //get how much has been allocated for a pool
+        uint256 _allocated = IPoolTemplate(_poolAddress).allocatedCredit(address(this));
+        //get how much liquidty is available to withdraw
+        uint256 _availableBalance = IPoolTemplate(_poolAddress).availableBalance();
+
+        return (_allocated, _availableBalance);    
     }
 }
