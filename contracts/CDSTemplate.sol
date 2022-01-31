@@ -271,6 +271,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @return _balance available liquidity of this pool
      */
     function totalLiquidity() external view returns (uint256) {
+        require(registry.isListed(msg.sender), "ERROR_NOT_LISTED");
         return vault.underlyingValue(address(this));
     }
 
