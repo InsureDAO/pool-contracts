@@ -862,11 +862,11 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         public
         view
         override
-        returns (uint256)
+        returns (uint256 _balance)
     {
         uint256 _totalLiquidity = totalLiquidity();
         if (_totalLiquidity != 0) {
-            return _totalLiquidity - lockedAmount;
+            _balance = _totalLiquidity - lockedAmount;
         }
     }
 
@@ -874,14 +874,12 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @notice Returns the utilization rate for this pool. Scaled by 1e6 (100% = 1e6)
      * @return _rate utilization rate
      */
-    function utilizationRate() external view override returns (uint256) {
+    function utilizationRate() external view override returns (uint256 _rate) {
         uint256 _lockedAmount = lockedAmount;
         uint256 _totalLiquidity = totalLiquidity();
         
         if (_lockedAmount != 0 && _totalLiquidity != 0) {
-            return (_lockedAmount * MAGIC_SCALE_1E6) / _totalLiquidity;
-        } else {
-            return 0;
+            _rate = (_lockedAmount * MAGIC_SCALE_1E6) / _totalLiquidity;
         }
     }
 
@@ -889,16 +887,16 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @notice Pool's Liquidity + Liquidity from Index (how much can the pool sell cover)
      * @return _balance total liquidity of this pool
      */
-    function totalLiquidity() public view override returns (uint256) {
-        return originalLiquidity() + totalCredit;
+    function totalLiquidity() public view override returns (uint256 _balance) {
+        _balance = originalLiquidity() + totalCredit;
     }
 
     /**
      * @notice Pool's Liquidity
      * @return _balance total liquidity of this pool
      */
-    function originalLiquidity() public view returns (uint256) {
-        return
+    function originalLiquidity() public view returns (uint256 _balance) {
+        _balance = 
             vault.underlyingValue(address(this)) -
             vault.attributionValue(attributionDebt);
     }

@@ -314,8 +314,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     unchecked {
                         _retVal = _totalLiquidity - _necessaryAmount;
                     }
-                } else {
-                    _retVal = 0;
                 }
             }
         }
@@ -514,11 +512,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @return _rate leverage rate
      */
 
-    function leverage() external view returns (uint256) {
+    function leverage() external view returns (uint256 _rate) {
         uint256 _totalLiquidity = totalLiquidity();
         //check current leverage rate
         if (_totalLiquidity != 0) {
-            return (totalAllocatedCredit * MAGIC_SCALE_1E6) / _totalLiquidity;
+            _rate = (totalAllocatedCredit * MAGIC_SCALE_1E6) / _totalLiquidity;
         }
     }
 
@@ -526,8 +524,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice total Liquidity of the pool (how much can the pool sell cover)
      * @return _balance total liquidity of the pool
      */
-    function totalLiquidity() public view returns (uint256) {
-        return vault.underlyingValue(address(this)) + _accruedPremiums();
+    function totalLiquidity() public view returns (uint256 _balance) {
+        _balance = vault.underlyingValue(address(this)) + _accruedPremiums();
     }
 
     /**
