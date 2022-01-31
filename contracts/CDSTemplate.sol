@@ -143,7 +143,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     }
 
     /**
-     * @notice A liquidity provider supplies collatral to the pool and receives iTokens
+     * @notice A depositor supplies fund to the pool without receiving iTokens
      * @param _amount amount of token to deposit
      */
     function fund(uint256 _amount) external {
