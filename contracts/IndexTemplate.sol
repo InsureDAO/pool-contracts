@@ -165,13 +165,13 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _totalLiquidity = totalLiquidity();
         vault.addValue(_amount, msg.sender, address(this));
 
-
-        if (_supply == 0) {
-            _mintAmount = _amount;
-        } else if (_totalLiquidity == 0) {
-            _mintAmount = _amount * _supply;
-        } else {
-            _mintAmount = (_amount * _supply) / _totalLiquidity;
+        _mintAmount = _amount;
+        if (_supply > 0) {
+            if (_totalLiquidity == 0) {
+                _mintAmount = _amount * _supply;
+            } else {
+                _mintAmount = (_amount * _supply) / _totalLiquidity;
+            }
         }
         emit Deposit(msg.sender, _amount, _mintAmount);
         //mint iToken
