@@ -195,19 +195,17 @@ contract Factory is IFactory {
 
         address _registry = registry;
         if (
-            IRegistry(_registry).confirmExistence(
+            !IRegistry(_registry).confirmExistence(
                 address(_template),
                 _references[0]
-            ) == false
+            )
         ) {
             IRegistry(_registry).setExistence(
                 address(_template),
                 _references[0]
             );
-        } else {
-            if (!templates[address(_template)].allowDuplicate) {
-                revert("ERROR: DUPLICATE_MARKET");
-            }
+        } else if (!templates[address(_template)].allowDuplicate) {
+            revert("ERROR: DUPLICATE_MARKET");
         }
 
         //create market
