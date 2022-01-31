@@ -220,7 +220,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
 
 
         //reduce requested amount
-        request.amount -= _amount;
+        withdrawalReq[msg.sender].amount -= _amount;
 
         //Burn iToken
         _burn(msg.sender, _amount);
