@@ -10,7 +10,6 @@ pragma solidity 0.8.10;
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IParameters.sol";
 import "./interfaces/IPremiumModel.sol";
-import "hardhat/console.sol";
 
 contract Parameters is IParameters {
     event VaultSet(address indexed token, address vault);
@@ -37,10 +36,11 @@ contract Parameters is IParameters {
     mapping(address => uint256) private _lockup; //funds lock up period after user requested to withdraw liquidity
     mapping(address => uint256) private _min; //minimum period to purchase an insurance policy
     mapping(address => uint256) private _maxList; //maximum number of pools one index can allocate
-    mapping(address => uint256) private _withdawable; //a certain period a user can withdraw after lock up ends
+    mapping(address => uint256) private _withdrawable; //a certain period a user can withdraw after lock up ends
     mapping(bytes32 => bytes32) private _conditions; //condition mapping for future use cases
 
     constructor(address _ownership) {
+        require(_ownership != address(0), "ERROR: ZERO_ADDRESS");
         ownership = _ownership;
     }
 
@@ -116,13 +116,15 @@ contract Parameters is IParameters {
     /**
      * @notice set slack rate of leverage before adjustAlloc
      * @param _address address to set the parameter
-     * @param _target parameter (slack rate 100% = 1000
+     * @param _target parameter (slack rate 100% = 1e6
      */
     function setUpperSlack(address _address, uint256 _target)
         external
         override
         onlyOwner
     {
+        require(_lowerSlack[_address] <= _target, "ERROR: SMALLER_THAN_LOWER_SLACK");
+        
         _upperSlack[_address] = _target;
         emit UpperSlack(_address, _target);
     }
@@ -137,6 +139,7 @@ contract Parameters is IParameters {
         override
         onlyOwner
     {
+        require(_target <= _upperSlack[_address], "ERROR: EXCEED_UPPER_SLACK");
         _lowerSlack[_address] = _target;
         emit LowerSlack(_address, _target);
     }
@@ -151,7 +154,7 @@ contract Parameters is IParameters {
         override
         onlyOwner
     {
-        _withdawable[_address] = _target;
+        _withdrawable[_address] = _target;
         emit WithdrawableSet(_address, _target);
     }
 
@@ -180,6 +183,7 @@ contract Parameters is IParameters {
         override
         onlyOwner
     {
+        require(_target <= 1000000, "ERROR: EXCEED_MAX_FEE_RATE");
         _fee[_address] = _target;
         emit FeeRateSet(_address, _target);
     }
@@ -194,6 +198,7 @@ contract Parameters is IParameters {
         override
         onlyOwner
     {
+        require(_target > 1,"ERROR: MAX_LIST_UNDER_1");
         _maxList[_address] = _target;
         emit MaxListSet(_address, _target);
     }
@@ -245,7 +250,8 @@ contract Parameters is IParameters {
         uint256 _lockedAmount,
         address _target
     ) external view override returns (uint256) {
-        if (_premium[_target] == address(0)) {
+        address _targetPremium = _premium[_target];
+        if (_targetPremium == address(0)) {
             return
                 IPremiumModel(_premium[address(0)]).getPremium(
                     _amount,
@@ -255,7 +261,7 @@ contract Parameters is IParameters {
                 );
         } else {
             return
-                IPremiumModel(_premium[_target]).getPremium(
+                IPremiumModel(_targetPremium).getPremium(
                     _amount,
                     _term,
                     _totalLiquidity,
@@ -351,9 +357,9 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        uint256 _targetWithdrawable = _withdawable[_target];
+        uint256 _targetWithdrawable = _withdrawable[_target];
         if (_targetWithdrawable == 0) {
-            return _withdawable[address(0)];
+            return _withdrawable[address(0)];
         } else {
             return _targetWithdrawable;
         }
@@ -408,11 +414,11 @@ contract Parameters is IParameters {
         override
         returns (uint256)
     {
-        uint256 _max = _maxList[_target];
-        if (_max == 0) {
+        uint256 _targetMaxList = _maxList[_target];
+        if (_targetMaxList == 0) {
             return _maxList[address(0)];
         } else {
-            return _max;
+            return _targetMaxList;
         }
     }
 

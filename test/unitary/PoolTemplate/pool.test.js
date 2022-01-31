@@ -1112,7 +1112,7 @@ describe("Pool", function () {
 
         await expect(
           market.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("ERROR: WITHDRAWAL_PENDING");
+        ).to.revertedWith("ERROR: WITHDRAWAL_MARKET_PENDING");
       });
 
       it("revert withdraw when earlier than withdrawable timestamp", async () => {
@@ -1952,12 +1952,6 @@ describe("Pool", function () {
         payoutDenominator: 10000,
         incidentTimestamp: incident,
       });
-
-      await expect(
-        market
-          .connect(bob)
-          .insure(insureAmount, insureAmount, DAY.mul(6), padded1)
-      ).to.revertedWith("ERROR: INSURE_SPAN_BELOW_MIN");
 
       await moveForwardPeriods(11);
 

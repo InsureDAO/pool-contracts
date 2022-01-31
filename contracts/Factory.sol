@@ -39,8 +39,8 @@ contract Factory is IFactory {
     );
 
     struct Template {
-        bool isOpen; //true if the market allows anyone to create a market
         bool approval; //true if the template exists
+        bool isOpen; //true if the market allows anyone to create a market
         bool allowDuplicate; //true if the market with same ID is allowed
     }
     mapping(address => Template) public templates;
@@ -76,6 +76,9 @@ contract Factory is IFactory {
     }
 
     constructor(address _registry, address _ownership) {
+        require(_registry != address(0), "ERROR: ZERO_ADDRESS");
+        require(_ownership != address(0), "ERROR: ZERO_ADDRESS");
+        
         registry = _registry;
         ownership = IOwnership(_ownership);
     }
@@ -94,10 +97,9 @@ contract Factory is IFactory {
         bool _isOpen,
         bool _duplicate
     ) external override onlyOwner {
-        require(address(_template) != address(0));
-        templates[address(_template)].approval = _approval;
-        templates[address(_template)].isOpen = _isOpen;
-        templates[address(_template)].allowDuplicate = _duplicate;
+        require(address(_template) != address(0), "ERROR_ZERO_ADDRESS");
+        Template memory approvedTemplate = Template(_approval, _isOpen, _duplicate);
+        templates[address(_template)] = approvedTemplate;
         emit TemplateApproval(_template, _approval, _isOpen, _duplicate);
     }
 
@@ -191,30 +193,27 @@ contract Factory is IFactory {
             }
         }
 
-        IRegistry iRegistry = IRegistry(registry);
+        address _registry = registry;
         if (
-            iRegistry.confirmExistence(
+            !IRegistry(_registry).confirmExistence(
                 address(_template),
                 _references[0]
-            ) == false
+            )
         ) {
-            iRegistry.setExistence(
+            IRegistry(_registry).setExistence(
                 address(_template),
                 _references[0]
             );
-        } else {
-            if (!templates[address(_template)].allowDuplicate) {
-                revert("ERROR: DUPLICATE_MARKET");
-            }
+        } else if (!templates[address(_template)].allowDuplicate) {
+            revert("ERROR: DUPLICATE_MARKET");
         }
 
         //create market
         IUniversalMarket market = IUniversalMarket(
             _createClone(address(_template))
         );
-
-        iRegistry.supportMarket(address(market));
-
+        
+        IRegistry(_registry).supportMarket(address(market));
 
         //initialize
         market.initialize(_metaData, _conditions, _references);
@@ -255,5 +254,6 @@ contract Factory is IFactory {
             // create the actual delegate contract reference and return its address
             result := create(0, clone, 0x37)
         }
+        require(result != address(0), "ERROR: ZERO_ADDRESS");
     }
 }

@@ -40,6 +40,7 @@ contract Vault is IVault {
 
 
     event ControllerSet(address controller);
+    event KeeperChanged(address keeper);
 
     modifier onlyOwner() {
         require(
@@ -63,9 +64,9 @@ contract Vault is IVault {
         address _controller,
         address _ownership
     ) {
-        require(_token != address(0));
-        require(_registry != address(0));
-        require(_ownership != address(0));
+        require(_token != address(0), "ERROR_ZERO_ADDRESS");
+        require(_registry != address(0), "ERROR_ZERO_ADDRESS");
+        require(_ownership != address(0), "ERROR_ZERO_ADDRESS");
         //controller can be zero
 
         token = _token;
@@ -96,10 +97,11 @@ contract Vault is IVault {
         require(_shares[0] + _shares[1] == 1000000, "ERROR_INCORRECT_SHARE");
 
         uint256 _attributions;
+        uint256 _pool = valueAll();
         if (totalAttributions == 0) {
             _attributions = _amount;
         } else {
-            uint256 _pool = valueAll();
+            require(_pool != 0, "ERROR_VALUE_ALL_IS_ZERO"); //should never triggered
             _attributions = (_amount * totalAttributions) / _pool;
         }
         IERC20(token).safeTransferFrom(_from, address(this), _amount);
@@ -153,26 +155,35 @@ contract Vault is IVault {
         override
         returns (uint256 _attributions)
     {
+        require(_to != address(0), "ERROR_ZERO_ADDRESS");
+        
+        uint256 _valueAll = valueAll();
         require(
             attributions[msg.sender] != 0 &&
-                underlyingValue(msg.sender) >= _amount,
+                underlyingValue(msg.sender, _valueAll) >= _amount,
             "WITHDRAW-VALUE_BADCONDITIONS"
         );
-        _attributions = (totalAttributions * _amount) / valueAll();
 
+        _attributions = (totalAttributions * _amount) / _valueAll;
+        uint256 _available = available();
+
+        require(
+            attributions[msg.sender] >= _attributions,
+            "WITHDRAW-VALUE_BADCONDITIONS"
+        );
         attributions[msg.sender] -= _attributions;
+
         totalAttributions -= _attributions;
 
-        uint256 _availableAmount = available();
-        if (_availableAmount < _amount) {
+        if (_available < _amount) {
             //when USDC in this contract isn't enough
             uint256 _shortage;
             unchecked {
-                _shortage = _amount - _availableAmount;
+                _shortage = _amount - _available;
             }
             _unutilize(_shortage);
 
-            require(available() >= _amount, "Withdraw amount > Available");
+            require(_available >= _amount, "Withdraw amount > Available");
         }
 
         balance -= _amount;
@@ -190,12 +201,16 @@ contract Vault is IVault {
         override
         returns (uint256 _attributions)
     {
+        require(_destination != address(0), "ERROR_ZERO_ADDRESS");
+        
+        uint256 _valueAll = valueAll();
+        
         require(
             attributions[msg.sender] != 0 &&
-                underlyingValue(msg.sender) >= _amount,
+                underlyingValue(msg.sender, _valueAll) >= _amount,
             "TRANSFER-VALUE_BADCONDITIONS"
         );
-        _attributions = (_amount * totalAttributions) / valueAll();
+        _attributions = (_amount * totalAttributions) / _valueAll;
         attributions[msg.sender] -= _attributions;
         attributions[_destination] += _attributions;
     }
@@ -225,12 +240,13 @@ contract Vault is IVault {
         override
         returns (uint256 _attributions)
     {
+        uint256 _valueAll = valueAll();
         require(
             attributions[msg.sender] != 0 &&
-                underlyingValue(msg.sender) >= _amount,
+                underlyingValue(msg.sender, _valueAll) >= _amount,
             "ERROR_REPAY_DEBT_BADCONDITIONS"
         );
-        _attributions = (_amount * totalAttributions) / valueAll();
+        _attributions = (_amount * totalAttributions) / _valueAll;
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
         balance -= _amount;
@@ -258,16 +274,17 @@ contract Vault is IVault {
      */
     function repayDebt(uint256 _amount, address _target) external override {
         uint256 _debt = debts[_target];
-        IERC20 iToken = IERC20(token);
-        if (_debt >= _amount) {
-            debts[_target] -= _amount;
-            totalDebt -= _amount;
-            iToken.safeTransferFrom(msg.sender, address(this), _amount);
+
+        if (_debt > _amount) {
+            unchecked {
+                debts[_target] = _debt - _amount;
+            }
         } else {
             debts[_target] = 0;
-            totalDebt -= _debt;
-            iToken.safeTransferFrom(msg.sender, address(this), _debt);
+            _amount = _debt;
         }
+        totalDebt -= _amount;
+        IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
     }
 
     /**
@@ -281,6 +298,8 @@ contract Vault is IVault {
         override
         returns (uint256 _retVal)
     {
+        require(_to != address(0), "ERROR_ZERO_ADDRESS");
+
         _retVal = _withdrawAttribution(_attribution, _to);
     }
 
@@ -294,6 +313,8 @@ contract Vault is IVault {
         override
         returns (uint256 _retVal)
     {
+        require(_to != address(0), "ERROR_ZERO_ADDRESS");
+        
         _retVal = _withdrawAttribution(attributions[msg.sender], _to);
     }
 
@@ -311,6 +332,7 @@ contract Vault is IVault {
             attributions[msg.sender] >= _attribution,
             "WITHDRAW-ATTRIBUTION_BADCONS"
         );
+        uint256 _available = available();
         _retVal = (_attribution * valueAll()) / totalAttributions;
 
         unchecked {
@@ -318,11 +340,10 @@ contract Vault is IVault {
         }
         totalAttributions -= _attribution;
 
-        uint256 _availableAmount = available();
-        if (_availableAmount < _retVal) {
+        if (_available < _retVal) {
             uint256 _shortage;
             unchecked {
-                _shortage = _retVal - _availableAmount;
+                _shortage = _retVal - _available;
             }
             _unutilize(_shortage);
         }
@@ -354,10 +375,12 @@ contract Vault is IVault {
     }
 
     /**
-     * @notice the controller can utilize all available stored funds
+     * @notice utilize all available underwritten funds into the set controller.
      * @return _amount amount of tokens utilized
      */
     function utilize() external override returns (uint256 _amount) {
+        require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
+        
         address _token = token;
         if (keeper != address(0)) {
             require(msg.sender == keeper, "ERROR_NOT_KEEPER");
@@ -405,10 +428,9 @@ contract Vault is IVault {
         returns (uint256)
     {
         uint256 _totalAttributions = totalAttributions;
+
         if (_totalAttributions != 0 && _attribution != 0) {
             return (_attribution * valueAll()) / _totalAttributions;
-        } else {
-            return 0;
         }
     }
 
@@ -423,11 +445,22 @@ contract Vault is IVault {
         override
         returns (uint256)
     {
-        uint256 _attribution = attributions[_target];
-        if (_attribution != 0) {
-            return (valueAll() * _attribution) / totalAttributions;
-        } else {
-            return 0;
+        uint256 _valueAll = valueAll();
+        uint256 attribution = attributions[_target];
+
+        if (_valueAll != 0 && attribution != 0) {
+            return (_valueAll * attribution) / totalAttributions;
+        }
+    }
+    
+    function underlyingValue(address _target, uint256 _valueAll)
+        public
+        view
+        returns (uint256)
+    {
+        uint256 attribution = attributions[_target];
+        if (_valueAll != 0 && attribution != 0) {
+            return (_valueAll * attribution) / totalAttributions;
         }
     }
 
@@ -450,8 +483,11 @@ contract Vault is IVault {
     function _unutilize(uint256 _amount) internal {
         require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
 
+        uint256 beforeBalance = IERC20(token).balanceOf(address(this));
         controller.withdraw(address(this), _amount);
-        balance += _amount;
+        uint256 received = IERC20(token).balanceOf(address(this)) - beforeBalance;
+        require(received >= _amount, "ERROR_INSUFFICIENT_RETURN_VALUE");
+        balance += received;
     }
 
     /**
@@ -484,16 +520,21 @@ contract Vault is IVault {
         override
         onlyOwner
     {
-        address __token = token;
         uint256 _balance = balance;
-        if (_token == __token && _balance < IERC20(__token).balanceOf(address(this))) {
-            uint256 _redundant = IERC20(__token).balanceOf(address(this)) -
-            _balance;
-            IERC20(__token).safeTransfer(_to, _redundant);
-        } else if (IERC20(_token).balanceOf(address(this)) != 0) {
+        uint256 _tokenBalance = IERC20(_token).balanceOf(address(this));
+        if (
+            _token == token &&
+            _balance < _tokenBalance
+        ) {
+            uint256 _redundant;
+            unchecked{
+                _redundant = _tokenBalance - _balance;
+            }
+            IERC20(token).safeTransfer(_to, _redundant);
+        } else if (_tokenBalance != 0) {
             IERC20(_token).safeTransfer(
                 _to,
-                IERC20(_token).balanceOf(address(this))
+                _tokenBalance
             );
         }
     }
@@ -506,22 +547,24 @@ contract Vault is IVault {
         require(_controller != address(0), "ERROR_ZERO_ADDRESS");
 
         if (address(controller) != address(0)) {
+            uint256 beforeUnderlying = controller.valueAll();
             controller.migrate(address(_controller));
-            controller = IController(_controller);
-        } else {
-            controller = IController(_controller);
+            require(IController(_controller).valueAll() >= beforeUnderlying, "ERROR_VALUE_ALL_DECREASED");
         }
+        controller = IController(_controller);
 
         emit ControllerSet(_controller);
     }
 
     /**
-     * @notice the controller can utilize all available stored funds
+     * @notice set keeper to incentivize calling utilize()
      * @param _keeper keeper address
      */
     function setKeeper(address _keeper) external override onlyOwner {
         if (keeper != _keeper) {
             keeper = _keeper;
         }
+
+        emit KeeperChanged(_keeper);
     }
 }
