@@ -264,9 +264,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * Withdrawable amount = Index liquidity - necessary amount to support credit liquidity
      * Necessary amoount Locked * totalAllocPoint / allocpoint of the lowest available liquidity market
      * Otherwise, the allocation to a specific pool may take up the overall allocation, and may break the risk sharing.
-     * @return _retVal withdrawable amount
+     * @return withdrawable amount
      */
-    function withdrawable() public view returns (uint256 _retVal) {
+    function withdrawable() public view returns (uint256) {
         uint256 _totalLiquidity = totalLiquidity();
         uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
 
@@ -306,13 +306,13 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             }
             //Calculate the return value
             if (_lowestAvailableRate == _MAGIC_SCALE_1E6) {
-                _retVal = _totalLiquidity;
+                return _totalLiquidity;
             } else {
                 uint256 _necessaryAmount = _targetLockedCreditScore * totalAllocPoint * MAGIC_SCALE_1E6
                     / (_targetAllocPoint * targetLev);
                 if (_necessaryAmount < _totalLiquidity) {
                     unchecked {
-                        _retVal = _totalLiquidity - _necessaryAmount;
+                        return _totalLiquidity - _necessaryAmount;
                     }
                 }
             }
@@ -509,23 +509,23 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
     /**
      * @notice get the current leverage rate 1e6x
-     * @return _rate leverage rate
+     * @return leverage rate
      */
 
-    function leverage() external view returns (uint256 _rate) {
+    function leverage() external view returns (uint256) {
         uint256 _totalLiquidity = totalLiquidity();
         //check current leverage rate
         if (_totalLiquidity != 0) {
-            _rate = (totalAllocatedCredit * MAGIC_SCALE_1E6) / _totalLiquidity;
+            return (totalAllocatedCredit * MAGIC_SCALE_1E6) / _totalLiquidity;
         }
     }
 
     /**
      * @notice total Liquidity of the pool (how much can the pool sell cover)
-     * @return _balance total liquidity of the pool
+     * @return total liquidity of the pool
      */
-    function totalLiquidity() public view returns (uint256 _balance) {
-        _balance = vault.underlyingValue(address(this)) + _accruedPremiums();
+    function totalLiquidity() public view returns (uint256) {
+        return vault.underlyingValue(address(this)) + _accruedPremiums();
     }
 
     /**
