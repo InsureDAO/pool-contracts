@@ -1,6 +1,8 @@
 pragma solidity 0.8.7;
 
 abstract contract IPoolTemplate {
+
+    function registerIndex(uint256 _index)external virtual;
     function allocateCredit(uint256 _credit)
         external
         virtual
