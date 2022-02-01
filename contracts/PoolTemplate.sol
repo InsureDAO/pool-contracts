@@ -686,6 +686,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         string calldata _memo
     ) external override onlyOwner {
         require(!paused, "ERROR: UNABLE_TO_APPLY");
+        require(_incidentTimestamp < block.timestamp, "ERROR: INCIDENT_DATE");
         incident.payoutNumerator = _payoutNumerator;
         incident.payoutDenominator = _payoutDenominator;
         incident.incidentTimestamp = _incidentTimestamp;
