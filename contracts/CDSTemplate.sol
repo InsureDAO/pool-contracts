@@ -98,7 +98,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
                 _references[2] != address(0),
-            "ERROR: INITIALIZATION_BAD_CONDITIONS"
+            "INITIALIZATION_BAD_CONDITIONS"
         );
 
         initialized = true;
@@ -143,7 +143,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     }
 
     /**
-     * @notice A liquidity provider supplies collatral to the pool and receives iTokens
+     * @notice A depositor supplies fund to the pool without receiving iTokens
      * @param _amount amount of token to deposit
      */
     function fund(uint256 _amount) external {
@@ -205,11 +205,11 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
             unlocksAt +
                 parameters.getWithdrawable(msg.sender) >
                 block.timestamp,
-            "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
+            "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
             request.amount >= _amount,
-            "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
+            "WITHDRAWAL_EXCEEDED_REQUEST"
         );
 
         //Calculate underlying value
@@ -220,7 +220,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
 
 
         //reduce requested amount
-        request.amount -= _amount;
+        withdrawalReq[msg.sender].amount -= _amount;
 
         //Burn iToken
         _burn(msg.sender, _amount);
@@ -243,7 +243,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         override
         returns (uint256 _compensated)
     {
-        require(registry.isListed(msg.sender));
+        require(registry.isListed(msg.sender), "ERROR:UNREGISTERED");
         
         uint256 _available = vault.underlyingValue(address(this));
         uint256 _crowdAttribution = crowdPool;

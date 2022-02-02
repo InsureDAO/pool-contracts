@@ -44,13 +44,13 @@ describe.skip("test PremiumModel", () => {
     it("test_commit_owner_only", async () => {
       await expect(
         premium.connect(alice).commitTransferOwnership(alice.address)
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
+      ).to.revertedWith("Caller is not allowed to operate");
     });
 
     it("test_apply_owner_only", async () => {
       await expect(
         premium.connect(alice).applyTransferOwnership()
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
+      ).to.revertedWith("Caller is not allowed to operate");
     });
 
     //test
