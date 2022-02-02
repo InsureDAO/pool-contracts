@@ -183,7 +183,7 @@ contract Vault is IVault {
             }
             _unutilize(_shortage);
 
-            require(_available >= _amount, "Withdraw amount > Available");
+            require(available() >= _amount, "Withdraw amount > Available");
         }
 
         balance -= _amount;
