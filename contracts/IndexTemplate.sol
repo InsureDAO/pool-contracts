@@ -435,14 +435,10 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             _compensated = _amount;
         } else {
             //Withdraw credit to cashout the earnings
-            uint256 _shortage;
-            if (totalLiquidity() < _amount) {
-                //Insolvency case
-                _shortage = _amount - _value;
-                uint256 _cds = ICDSTemplate(registry.getCDS(address(this)))
-                    .compensate(_shortage);
-                _compensated = _value + _cds;
+            unchecked {
+                ICDSTemplate(registry.getCDS(address(this))).compensate(_amount - _value);
             }
+            _compensated = vault.underlyingValue(address(this));
             vault.offsetDebt(_compensated, msg.sender);
         }
         adjustAlloc();
