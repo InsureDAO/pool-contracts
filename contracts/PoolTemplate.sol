@@ -145,7 +145,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     modifier onlyOwner() {
         require(
             msg.sender == parameters.getOwner(),
-            "Restricted: caller is not allowed to operate"
+            "Caller is not allowed to operate"
         );
         _;
     }
@@ -186,19 +186,19 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 _references[3] != address(0) &&
                 _references[4] != address(0) &&
                 _conditions[0] <= _conditions[1],
-            "ERROR: INITIALIZATION_BAD_CONDITIONS"
+            "INITIALIZATION_BAD_CONDITIONS"
         );
         initialized = true;
 
         string memory _name = string(
             abi.encodePacked(
                 "InsureDAO-",
-                IERC20Metadata(_references[1]).name(),
+                IERC20Metadata(_references[0]).name(),
                 "-PoolInsurance"
             )
         );
         string memory _symbol = string(
-            abi.encodePacked("i-", IERC20Metadata(_references[1]).symbol())
+            abi.encodePacked("i-", IERC20Metadata(_references[0]).symbol())
         );
         uint8 _decimals = IERC20Metadata(_references[0]).decimals();
 
@@ -227,20 +227,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return _mintAmount the amount of iTokens minted from the transaction
      */
     function deposit(uint256 _amount) external returns (uint256 _mintAmount) {
-        require(
-            marketStatus == MarketStatus.Trading && !paused,
-            "ERROR: DEPOSIT_DISABLED"
-        );
-        require(_amount != 0, "ERROR: DEPOSIT_ZERO");
-
-        _mintAmount = worth(_amount);
-
-        vault.addValue(_amount, msg.sender, address(this));
-
-        emit Deposit(msg.sender, _amount, _mintAmount);
-
-        //mint iToken
-        _mint(msg.sender, _mintAmount);
+        _mintAmount = _depositFrom(_amount, msg.sender);
     }
 
     /**
@@ -305,11 +292,11 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         );
         require(
             _endTime + parameters.getWithdrawable(msg.sender) > block.timestamp,
-            "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
+            "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
             withdrawalReq[msg.sender].amount >= _amount,
-            "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
+            "WITHDRAWAL_EXCEEDED_REQUEST"
         );
         require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
 
@@ -321,7 +308,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         require(
             _retVal <= availableBalance(),
-            "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
+            "WITHDRAW_INSUFFICIENT_LIQUIDITY"
         );
 
         //reduce requested amount
@@ -396,7 +383,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     {
         require(
             IRegistry(registry).isListed(msg.sender),
-            "ERROR: ALLOCATE_CREDIT_BAD_CONDITIONS"
+            "ALLOCATE_CREDIT_BAD_CONDITIONS"
         );
 
         IndexInfo storage _index = indicies[msg.sender];
@@ -442,7 +429,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             IRegistry(registry).isListed(msg.sender) &&
             _index.credit >= _credit &&
             _credit <= availableBalance(),
-            "ERROR: WITHDRAW_CREDIT_BAD_CONDITIONS"
+            "WITHDRAW_CREDIT_BAD_CONDITIONS"
         );
 
         uint256 _rewardPerCredit = rewardPerCredit;
@@ -498,7 +485,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         );
         require(
             _amount <= availableBalance(),
-            "ERROR: INSURE_EXCEEDED_AVAILABLE_BALANCE"
+            "INSURE_EXCEEDED_AVAIL_BALANCE"
         );
 
         require(_span <= 365 days, "ERROR: INSURE_EXCEEDED_MAX_SPAN");
@@ -634,7 +621,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 insurance.insured == msg.sender &&
                 insurance.endTime >= block.timestamp &&
                 insurance.status,
-            "ERROR: INSURANCE_TRANSFER_BAD_CONDITIONS"
+            "INSURANCE_TRANSFER_BAD_CONS"
         );
 
         insurance.insured = _to;
@@ -686,6 +673,9 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         string calldata _memo
     ) external override onlyOwner {
         require(!paused, "ERROR: UNABLE_TO_APPLY");
+        require(_incidentTimestamp < block.timestamp, "ERROR: INCIDENT_DATE");
+        require(marketStatus == MarketStatus.Trading, "ERROR: NOT_TRADING_STATUS");
+
         incident.payoutNumerator = _payoutNumerator;
         incident.payoutDenominator = _payoutDenominator;
         incident.incidentTimestamp = _incidentTimestamp;
@@ -835,8 +825,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     /**
      * @notice Get token number for the specified underlying value
-     * @param _value amount of iToken
-     * @return _amount The balance of underlying tokens for the specified amount
+     * @param _value the amount of the underlying
+     * @return _amount the number of the iTokens corresponding to _value
      */
     function worth(uint256 _value) public view returns (uint256 _amount) {
     
@@ -960,11 +950,14 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         super._beforeTokenTransfer(from, to, amount);
 
         if (from != address(0)) {
-            uint256 _after = balanceOf(from) - amount;
-            if (_after < withdrawalReq[from].amount) {
-                withdrawalReq[from].amount = _after;
-            }
-        }
+            uint256 reqAmount = withdrawalReq[from].amount;
+            if (reqAmount != 0){
+                uint256 _after = balanceOf(from) - amount;
+                if (_after < reqAmount) {
+                    withdrawalReq[from].amount = _after;
+                }
+            } 
+        }  
     }
 
     /**

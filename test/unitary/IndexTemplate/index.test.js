@@ -715,7 +715,7 @@ describe.skip("Index", function () {
       await moveForwardPeriods(8);
 
       await expect(index.connect(alice).withdraw("10001")).to.revertedWith(
-        "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
+        "WITHDRAWAL_EXCEEDED_REQUEST"
       );
     });
 
@@ -773,7 +773,7 @@ describe.skip("Index", function () {
       await moveForwardPeriods(8);
 
       await expect(index.connect(alice).withdraw("951")).to.revertedWith(
-        "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
+        "WITHDRAW_INSUFFICIENT_LIQUIDITY"
       );
     });
   });
@@ -884,7 +884,7 @@ describe.skip("Index", function () {
       await moveForwardPeriods(8);
 
       await expect(index.connect(alice).withdraw("10000")).to.revertedWith(
-        "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
+        "WITHDRAWAL_EXCEEDED_REQUEST"
       );
       await index.connect(tom).withdraw("10000");
 

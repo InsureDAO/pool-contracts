@@ -19,7 +19,7 @@ contract PremiumModel {
     uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
 
     modifier onlyOwner() {
-        require(isOwner(), "Restricted: caller is not allowed to operate");
+        require(isOwner(), "Caller is not allowed to operate");
         _;
     }
 

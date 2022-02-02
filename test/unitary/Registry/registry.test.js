@@ -42,7 +42,7 @@ describe("registry", function () {
       it("reverts", async function () {
         await expect(
           registry.connect(alice).setFactory(factory.address)
-        ).to.revertedWith("Restricted: caller is not allowed to operate");
+        ).to.revertedWith("Caller is not allowed to operate");
       });
     });
     it("should not be zero address", async () => {
@@ -121,7 +121,7 @@ describe("registry", function () {
       await registry.setCDS(market2.address, cds1.address);
       await expect(
         registry.connect(factory).setCDS(market2.address, cds1.address)
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
+      ).to.revertedWith("Caller is not allowed to operate");
     });
     it("cds address should not be zero address", async () => {
       await expect(

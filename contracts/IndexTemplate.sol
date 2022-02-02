@@ -96,7 +96,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     modifier onlyOwner() {
         require(
             msg.sender == parameters.getOwner(),
-            "Restricted: caller is not allowed to operate"
+            "Caller is not allowed to operate"
         );
         _;
     }
@@ -130,7 +130,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
                 _references[2] != address(0),
-            "ERROR: INITIALIZATION_BAD_CONDITIONS"
+            "INITIALIZATION_BAD_CONDITIONS"
         );
 
         initialized = true;
@@ -217,11 +217,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         require(
             _lockupPlusRequestTime + parameters.getWithdrawable(msg.sender) >
                 block.timestamp,
-            "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
+            "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
             withdrawalReq[msg.sender].amount >= _amount,
-            "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
+            "WITHDRAWAL_EXCEEDED_REQUEST"
         );
 
         //Calculate underlying value
@@ -229,7 +229,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         _retVal = (_liquidty * _amount) / totalSupply();
         require(
             _retVal <= withdrawable(),
-            "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
+            "WITHDRAW_INSUFFICIENT_LIQUIDITY"
         );
 
         //reduce requested amount
@@ -447,7 +447,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     {
         require(
             allocPoints[msg.sender] != 0,
-            "ERROR_COMPENSATE_UNAUTHORIZED_CALLER"
+            "COMPENSATE_UNAUTHORIZED_CALLER"
         );
         uint256 _value = vault.underlyingValue(address(this));
         if (_value >= _amount) {
@@ -460,8 +460,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             if (totalLiquidity() < _amount) {
                 //Insolvency case
                 unchecked {
-                    _compensated = _value + ICDSTemplate(registry.getCDS(address(this))).compensate(_amount - _value);
+                    ICDSTemplate(registry.getCDS(address(this))).compensate(_amount - _value);
                 }
+                _compensated = vault.underlyingValue(address(this));
             }
             vault.offsetDebt(_compensated, msg.sender);
         }
@@ -537,8 +538,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _totalSupply = totalSupply();
         if (_totalSupply != 0) {
             return (totalLiquidity() * MAGIC_SCALE_1E6) / _totalSupply;
-        } else {
-            return 0;
         }
     }
 
@@ -550,9 +549,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     function valueOfUnderlying(address _owner) external view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
         uint256 _totalSupply = totalSupply();
-        if (_balance == 0 || _totalSupply == 0) {
-            return 0;
-        } else {
+        if (_balance != 0 && _totalSupply != 0) {
             return (_balance * totalLiquidity()) / _totalSupply;
         }
     }

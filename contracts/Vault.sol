@@ -45,7 +45,7 @@ contract Vault is IVault {
     modifier onlyOwner() {
         require(
             ownership.owner() == msg.sender,
-            "Restricted: caller is not allowed to operate"
+            "Caller is not allowed to operate"
         );
         _;
     }
@@ -64,9 +64,9 @@ contract Vault is IVault {
         address _controller,
         address _ownership
     ) {
-        require(_token != address(0));
-        require(_registry != address(0));
-        require(_ownership != address(0));
+        require(_token != address(0), "ERROR_ZERO_ADDRESS");
+        require(_registry != address(0), "ERROR_ZERO_ADDRESS");
+        require(_ownership != address(0), "ERROR_ZERO_ADDRESS");
         //controller can be zero
 
         token = _token;
@@ -156,17 +156,23 @@ contract Vault is IVault {
         returns (uint256 _attributions)
     {
         require(_to != address(0), "ERROR_ZERO_ADDRESS");
-
+        
+        uint256 _valueAll = valueAll();
         require(
             attributions[msg.sender] != 0 &&
-                underlyingValue(msg.sender) >= _amount,
-            "ERROR_WITHDRAW-VALUE_BADCONDITOONS"
+                underlyingValue(msg.sender, _valueAll) >= _amount,
+            "WITHDRAW-VALUE_BADCONDITIONS"
         );
+
+        _attributions = (totalAttributions * _amount) / _valueAll;
         uint256 _available = available();
 
-        _attributions = (totalAttributions * _amount) / valueAll();
-
+        require(
+            attributions[msg.sender] >= _attributions,
+            "WITHDRAW-VALUE_BADCONDITIONS"
+        );
         attributions[msg.sender] -= _attributions;
+
         totalAttributions -= _attributions;
 
         if (_available < _amount) {
@@ -177,7 +183,7 @@ contract Vault is IVault {
             }
             _unutilize(_shortage);
 
-            require(_available >= _amount, "Available is not enough for withdraw");
+            require(_available >= _amount, "Withdraw amount > Available");
         }
 
         balance -= _amount;
@@ -196,13 +202,15 @@ contract Vault is IVault {
         returns (uint256 _attributions)
     {
         require(_destination != address(0), "ERROR_ZERO_ADDRESS");
-
+        
+        uint256 _valueAll = valueAll();
+        
         require(
             attributions[msg.sender] != 0 &&
-                underlyingValue(msg.sender) >= _amount,
-            "ERROR_TRANSFER-VALUE_BADCONDITOONS"
+                underlyingValue(msg.sender, _valueAll) >= _amount,
+            "TRANSFER-VALUE_BADCONDITIONS"
         );
-        _attributions = (_amount * totalAttributions) / valueAll();
+        _attributions = (_amount * totalAttributions) / _valueAll;
         attributions[msg.sender] -= _attributions;
         attributions[_destination] += _attributions;
     }
@@ -232,12 +240,13 @@ contract Vault is IVault {
         override
         returns (uint256 _attributions)
     {
+        uint256 _valueAll = valueAll();
         require(
             attributions[msg.sender] != 0 &&
-                underlyingValue(msg.sender) >= _amount,
-            "ERROR_REPAY_DEBT_BADCONDITOONS"
+                underlyingValue(msg.sender, _valueAll) >= _amount,
+            "ERROR_REPAY_DEBT_BADCONDITIONS"
         );
-        _attributions = (_amount * totalAttributions) / valueAll();
+        _attributions = (_amount * totalAttributions) / _valueAll;
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
         balance -= _amount;
@@ -321,7 +330,7 @@ contract Vault is IVault {
     {
         require(
             attributions[msg.sender] >= _attribution,
-            "ERROR_WITHDRAW-ATTRIBUTION_BADCONDITOONS"
+            "WITHDRAW-ATTRIBUTION_BADCONS"
         );
         uint256 _available = available();
         _retVal = (_attribution * valueAll()) / totalAttributions;
@@ -356,7 +365,7 @@ contract Vault is IVault {
 
         require(
             _amount != 0 && attributions[msg.sender] >= _amount,
-            "ERROR_TRANSFER-ATTRIBUTION_BADCONDITOONS"
+            "TRANSFER-ATTRIBUTION_BADCONS"
         );
 
         unchecked {
@@ -366,7 +375,7 @@ contract Vault is IVault {
     }
 
     /**
-     * @notice the controller can utilize all available stored funds
+     * @notice utilize all available underwritten funds into the set controller.
      * @return _amount amount of tokens utilized
      */
     function utilize() external override returns (uint256 _amount) {
@@ -422,8 +431,6 @@ contract Vault is IVault {
 
         if (_totalAttributions != 0 && _attribution != 0) {
             return (_attribution * valueAll()) / _totalAttributions;
-        } else {
-            return 0;
         }
     }
 
@@ -438,13 +445,22 @@ contract Vault is IVault {
         override
         returns (uint256)
     {
-
-        uint256 valueAll = valueAll();
+        uint256 _valueAll = valueAll();
         uint256 attribution = attributions[_target];
-        if (valueAll != 0 && attribution != 0) {
-            return (valueAll * attribution) / totalAttributions;
-        } else {
-            return 0;
+
+        if (_valueAll != 0 && attribution != 0) {
+            return (_valueAll * attribution) / totalAttributions;
+        }
+    }
+    
+    function underlyingValue(address _target, uint256 _valueAll)
+        public
+        view
+        returns (uint256)
+    {
+        uint256 attribution = attributions[_target];
+        if (_valueAll != 0 && attribution != 0) {
+            return (_valueAll * attribution) / totalAttributions;
         }
     }
 
@@ -541,7 +557,7 @@ contract Vault is IVault {
     }
 
     /**
-     * @notice the controller can utilize all available stored funds
+     * @notice set keeper to incentivize calling utilize()
      * @param _keeper keeper address
      */
     function setKeeper(address _keeper) external override onlyOwner {
