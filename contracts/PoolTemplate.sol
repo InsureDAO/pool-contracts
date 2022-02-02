@@ -857,7 +857,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     /**
      * @notice Returns the amount of underlying tokens available for withdrawals
-     * @return _balance available liquidity of this pool
+     * @return available liquidity of this pool
      */
     function availableBalance()
         public
@@ -873,7 +873,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     /**
      * @notice Returns the utilization rate for this pool. Scaled by 1e6 (100% = 1e6)
-     * @return _rate utilization rate
+     * @return utilization rate
      */
     function utilizationRate() external view override returns (uint256) {
         uint256 _lockedAmount = lockedAmount;
@@ -881,14 +881,12 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         
         if (_lockedAmount != 0 && _totalLiquidity != 0) {
             return (_lockedAmount * MAGIC_SCALE_1E6) / _totalLiquidity;
-        } else {
-            return 0;
         }
     }
 
     /**
      * @notice Pool's Liquidity + Liquidity from Index (how much can the pool sell cover)
-     * @return _balance total liquidity of this pool
+     * @return total liquidity of this pool
      */
     function totalLiquidity() public view override returns (uint256) {
         return originalLiquidity() + totalCredit;
@@ -896,7 +894,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     /**
      * @notice Pool's Liquidity
-     * @return _balance total liquidity of this pool
+     * @return total liquidity of this pool
      */
     function originalLiquidity() public view returns (uint256) {
         return

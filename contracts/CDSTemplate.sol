@@ -268,7 +268,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
 
     /**
      * @notice total Liquidity of the pool (how much can the pool sell cover)
-     * @return _balance available liquidity of this pool
+     * @return available liquidity of this pool
      */
     function totalLiquidity() external view returns (uint256) {
         return vault.underlyingValue(address(this));
