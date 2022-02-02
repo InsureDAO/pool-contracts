@@ -22,7 +22,7 @@ contract Registry is IRegistry {
     modifier onlyOwner() {
         require(
             ownership.owner() == msg.sender,
-            "Restricted: caller is not allowed to operate"
+            "Caller is not allowed to operate"
         );
         _;
     }

@@ -70,7 +70,7 @@ contract Factory is IFactory {
     modifier onlyOwner() {
         require(
             ownership.owner() == msg.sender,
-            "Restricted: caller is not allowed to operate"
+            "Caller is not allowed to operate"
         );
         _;
     }
@@ -97,7 +97,7 @@ contract Factory is IFactory {
         bool _isOpen,
         bool _duplicate
     ) external override onlyOwner {
-        require(address(_template) != address(0));
+        require(address(_template) != address(0), "ERROR_ZERO_ADDRESS");
         Template memory approvedTemplate = Template(_approval, _isOpen, _duplicate);
         templates[address(_template)] = approvedTemplate;
         emit TemplateApproval(_template, _approval, _isOpen, _duplicate);
@@ -195,19 +195,17 @@ contract Factory is IFactory {
 
         address _registry = registry;
         if (
-            IRegistry(_registry).confirmExistence(
+            !IRegistry(_registry).confirmExistence(
                 address(_template),
                 _references[0]
-            ) == false
+            )
         ) {
             IRegistry(_registry).setExistence(
                 address(_template),
                 _references[0]
             );
-        } else {
-            if (!templates[address(_template)].allowDuplicate) {
-                revert("ERROR: DUPLICATE_MARKET");
-            }
+        } else if (!templates[address(_template)].allowDuplicate) {
+            revert("ERROR: DUPLICATE_MARKET");
         }
 
         //create market
