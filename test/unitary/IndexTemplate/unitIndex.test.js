@@ -241,7 +241,6 @@ describe("Index", function () {
         usdc.address,
         registry.address,
         parameters.address,
-        gov.address,
       ]
     );
     let receipt = await tx.wait();
@@ -255,7 +254,6 @@ describe("Index", function () {
         usdc.address,
         registry.address,
         parameters.address,
-        gov.address,
       ]
     );
     receipt = await tx.wait();
@@ -529,6 +527,7 @@ describe("Index", function () {
 
       await expect(
         index.initialize(
+          ZERO_ADDRESS,
           "Here is metadata.",
           [0, 0],
           [usdc.address, registry.address, parameters.address]

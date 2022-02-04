@@ -216,7 +216,7 @@ contract Factory is IFactory {
         IRegistry(_registry).supportMarket(address(market));
 
         //initialize
-        market.initialize(_metaData, _conditions, _references);
+        market.initialize(msg.sender, _metaData, _conditions, _references);
 
         emit MarketCreated(
             address(market),

@@ -260,6 +260,7 @@ describe("CDS", function () {
 
         await expect(
           cds.initialize(
+            ZERO_ADDRESS,
             "Here is metadata.",
             [0, 0],
             [usdc.address, registry.address, parameters.address]
