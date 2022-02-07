@@ -75,10 +75,13 @@ async function main() {
 
 
   //----- CREATE MARKETS -----//
+
+  let markets = await registry.getAllMarkets();
+  console.log(markets)
   
-  const marketAddress1 = await factory.markets(0);
-  const marketAddress2 = await factory.markets(1);
-  const marketAddress3 = await factory.markets(2);
+  const marketAddress1 = markets[0];
+  const marketAddress2 = markets[1];
+  const marketAddress3 = markets[2];
   market1 = await PoolTemplate.attach(marketAddress1);
   market2 = await PoolTemplate.attach(marketAddress2);
   market3 = await PoolTemplate.attach(marketAddress3);
@@ -103,8 +106,11 @@ async function main() {
   );
   await tx.wait();
 
-  const marketAddress4 = await factory.markets(3);
-  const marketAddress5 = await factory.markets(4);
+  markets = await registry.getAllMarkets();
+  console.log(markets)
+
+  const marketAddress4 = markets[3];
+  const marketAddress5 = markets[4];
   cds = await CDSTemplate.attach(marketAddress4);
   index = await IndexTemplate.attach(marketAddress5);
   console.log("cds deployed to", marketAddress4);
@@ -121,7 +127,7 @@ async function main() {
   tx = await index.set(2, market3.address, "1000");
   await tx.wait();
 
-  tx = await index.setLeverage("2000");
+  tx = await index.setLeverage("2000000");
   console.log("all done");
 
   //write deployments.js
@@ -160,8 +166,8 @@ async function main() {
       Market1,
       Market2,
       Market3,
-      IndexAddress,
-      CDSAddress,
+      Index,
+      CDS,
     })
     `
   try {
