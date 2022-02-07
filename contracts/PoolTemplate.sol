@@ -84,6 +84,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     struct IndexInfo {
         uint256 credit; //How many credit (equal to liquidity) the index has allocated
         uint256 rewardDebt; // Reward debt. *See explanation below.
+        uint256 index; //index number
         bool exist; //true if the index has allocated credit
     }
 
@@ -370,6 +371,39 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      */
 
     /**
+     * @notice Register an index that can allocate credit to the pool
+     * @param _index index number of an index pool to get registered in the pool
+     */
+
+    function registerIndex(uint256 _index)external override{
+        require(
+            IRegistry(registry).isListed(msg.sender),
+            "ERROR: UNREGISTERED_INDEX"
+        );
+        require(
+            _index <= parameters.getMaxList(address(this)),
+            "ERROR: EXCEEEDED_MAX_LIST"
+        );
+        uint256 _length = indexList.length;
+        if (_length <= _index) {
+            require(_length == _index, "ERROR: BAD_INDEX");
+            indexList.push(msg.sender);
+            indicies[msg.sender].exist = true;
+            indicies[msg.sender].index = _index;
+        } else {
+            address _indexAddress = indexList[_index];
+            if (_indexAddress != address(0) && _indexAddress != msg.sender) {
+                 require(indicies[msg.sender].credit == 0,"ERROR: UPDATE_RESTRICTED");
+                 indicies[_indexAddress].index = 0;
+                 indicies[_indexAddress].exist = false;
+                 indicies[msg.sender].index = _index;
+                 indicies[msg.sender].exist = true;
+                 indexList[_index] = msg.sender;
+            }
+        }
+    }
+
+    /**
      * @notice Allocate credit from an index. Allocated credits are deemed as equivalent liquidity as real token deposits.
      * @param _credit credit (liquidity amount) to be added to this pool
      * @return _pending pending preium for the caller index
@@ -380,19 +414,16 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         override
         returns (uint256 _pending)
     {
+        IndexInfo storage _index = indicies[msg.sender];
         require(
-            IRegistry(registry).isListed(msg.sender),
+            _index.exist,
             "ALLOCATE_CREDIT_BAD_CONDITIONS"
         );
 
-        IndexInfo storage _index = indicies[msg.sender];
         uint256 _rewardPerCredit = rewardPerCredit;
         uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
 
-        if (!_index.exist) {
-            _index.exist = true;
-            indexList.push(msg.sender);
-        } else if (_index.credit != 0) {
+        if (_index.credit != 0){
             _pending = _sub(
                 (_index.credit * _rewardPerCredit) / _MAGIC_SCALE_1E6,
                 _index.rewardDebt
@@ -425,7 +456,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         IndexInfo storage _index = indicies[msg.sender];
 
         require(
-            IRegistry(registry).isListed(msg.sender) &&
+            _index.exist &&
             _index.credit >= _credit &&
             _credit <= availableBalance(),
             "WITHDRAW_CREDIT_BAD_CONDITIONS"
