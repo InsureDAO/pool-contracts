@@ -10,7 +10,8 @@ interface IIndexTemplate {
     //onlyOwner
     function setLeverage(uint256 _target) external;
     function set(
-        uint256 _index,
+        uint256 _indexA,
+        uint256 _indexB,
         address _pool,
         uint256 _allocPoint
     ) external;

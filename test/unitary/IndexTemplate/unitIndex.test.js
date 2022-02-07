@@ -287,8 +287,8 @@ describe("Index", function () {
 
     await registry.setCDS(ZERO_ADDRESS, cds.address); //default CDS
 
-    await index.set("0", market1.address, defaultLeverage); //set market1 to the Index
-    await index.set("1", market2.address, defaultLeverage); //set market2 to the Index
+    await index.set("0", "0",market1.address, defaultLeverage); //set market1 to the Index
+    await index.set("1", "0",market2.address, defaultLeverage); //set market2 to the Index
 
     await index.setLeverage(targetLeverage); //2x
 
