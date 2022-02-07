@@ -395,7 +395,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             address _indexAddress = indexList[_index];
             if (_indexAddress != address(0) && _indexAddress != msg.sender) {
                  require(indicies[msg.sender].credit == 0,"ERROR: UPDATE_RESTRICTED");
+                 indicies[_indexAddress].index = 0;
+                 indicies[_indexAddress].exist = false;
                  indicies[msg.sender].index = _index;
+                 indicies[msg.sender].exist = true;
                  indexList[_index] = msg.sender;
             }
         }
