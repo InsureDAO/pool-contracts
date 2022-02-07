@@ -107,11 +107,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     //
 
     ///@notice Market status transition management
-    enum MarketStatus {
-        Trading,
-        Payingout
-    }
-    MarketStatus public marketStatus;
+    MarketStatus public override marketStatus;
 
     ///@notice user's withdrawal status management
     struct Withdrawal {
