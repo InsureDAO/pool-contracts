@@ -283,14 +283,13 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 uint256 _allocPoint = allocPoints[_poolAddress];
 
                 if (_allocPoint != 0) {
-                    uint256 _allocated = IPoolTemplate(_poolAddress)
-                    .allocatedCredit(address(this));
-                    uint256 _availableBalance = IPoolTemplate(_poolAddress)
-                    .availableBalance();
+                    uint256 _allocated;
+                    uint256 _availableBalance;
+                    (_allocated, _availableBalance) = IPoolTemplate(_poolAddress)
+                        .pairValues(address(this));
                     //check if some portion of credit is locked
                     if (_allocated > _availableBalance) {
-                        uint256 _availableRate = (_availableBalance *
-                        _MAGIC_SCALE_1E6) / _allocated;
+                        uint256 _availableRate = (_availableBalance * _MAGIC_SCALE_1E6) / _allocated;
                         uint256 _lockedCredit;
                         unchecked {
                             _lockedCredit = _allocated - _availableBalance;
@@ -360,12 +359,10 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 //Target credit allocation for a pool
                 uint256 _target = (_targetCredit * _allocation) /
                     _allocatablePoints;
-                //get how much has been allocated for a pool
-                uint256 _current = IPoolTemplate(_pool).allocatedCredit(
-                    address(this)
-                );
-                //get how much liquidty is available to withdraw
-                uint256 _available = IPoolTemplate(_pool).availableBalance();
+                //get how much has been allocated for a pool and get how much liquidty is available to withdraw
+                uint256 _current;
+                uint256 _available;
+                (_current, _available) = IPoolTemplate(_pool).pairValues(address(this));
                 //if needed to withdraw credit but unable, then withdraw all available.
                 //Otherwise, skip.
                 if (
@@ -624,9 +621,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         } else {
             address _poolAddress = poolList[_indexA];
             if (_poolAddress != address(0) && _poolAddress != _pool) {
-                uint256 _current = IPoolTemplate(_poolAddress).allocatedCredit(
-                    address(this)
-                );
+                uint256 _current;
+                (_current, ) = IPoolTemplate(_poolAddress).pairValues(address(this));
                 IPoolTemplate(_poolAddress).withdrawCredit(_current);
             }
             IPoolTemplate(_pool).registerIndex(_indexB);

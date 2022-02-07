@@ -872,17 +872,17 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     }
 
     /**
-     * @notice Get allocated credit
+     * @notice Get allocated credit & available balance
      * @param _index address of an index
      * @return The balance of credit allocated by the specified index
      */
-    function allocatedCredit(address _index)
+    function pairValues(address _index)
         external
         view
         override
-        returns (uint256)
+        returns (uint256, uint256)
     {
-        return indicies[_index].credit;
+        return (indicies[_index].credit, availableBalance());
     }
 
     /**

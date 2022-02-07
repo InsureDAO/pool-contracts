@@ -7,11 +7,11 @@ abstract contract IPoolTemplate {
         virtual
         returns (uint256 _mintAmount);
 
-    function allocatedCredit(address _index)
+    function pairValues(address _index)
         external
         view
         virtual
-        returns (uint256);
+        returns (uint256, uint256);
 
     function withdrawCredit(uint256 _credit)
         external

@@ -61,7 +61,9 @@ const verifyPoolsStatus = async({pools}) => {
 }
 
 const _verifyPoolStatusForIndex = async({pool, indexAddress, allocatedCredit, pendingPremium}) => {
-    expect(await pool.allocatedCredit(indexAddress)).to.equal(allocatedCredit);
+    let _allocatedCredit;
+    [_allocatedCredit, ] = await pool.pairValues(indexAddress);
+    expect(_allocatedCredit).to.equal(allocatedCredit);
     expect(await pool.pendingPremium(indexAddress)).to.equal(pendingPremium);
 }
 
@@ -94,7 +96,9 @@ const verifyPoolsStatus_legacy = async({pools}) => {
 }
 
 const _verifyPoolStatusForIndex_legacy = async({pool, allocatedCreditOf, allocatedCredit}) => {
-    expect(await pool.allocatedCredit(allocatedCreditOf)).to.equal(allocatedCredit);
+    let _allocatedCredit;
+    [_allocatedCredit, ] = await pool.pairValues(allocatedCreditOf);
+    expect(_allocatedCredit).to.equal(allocatedCredit);
 }
 
 const verifyPoolsStatusForIndex_legacy = async({pools}) => {
