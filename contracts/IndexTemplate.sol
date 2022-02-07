@@ -274,7 +274,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         if (_totalLiquidity != 0) {
             uint256 _length = poolList.length;
-            uint256 _lowestAvailableRate = _MAGIC_SCALE_1E6;
+            uint256 _highestLockScore;
             uint256 _targetAllocPoint;
             uint256 _targetLockedCreditScore;
             //Check which pool has the lowest available rate and keep stats
@@ -289,14 +289,13 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     .availableBalance();
                     //check if some portion of credit is locked
                     if (_allocated > _availableBalance) {
-                        uint256 _availableRate = (_availableBalance *
-                        _MAGIC_SCALE_1E6) / _allocated;
                         uint256 _lockedCredit;
                         unchecked {
                             _lockedCredit = _allocated - _availableBalance;
                         }
-                        if (_availableRate < _lowestAvailableRate || i == 0) {
-                            _lowestAvailableRate = _availableRate;
+                        uint256 _lockScore = _lockedCredit * MAGIC_SCALE_1E6/ _allocPoint;
+                        if (_highestLockScore < _lockScore) {
+                            _highestLockScore = _lockScore;
                             _targetLockedCreditScore = _lockedCredit;
                             _targetAllocPoint = _allocPoint;
                         }
@@ -307,7 +306,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 }
             }
             //Calculate the return value
-            if (_lowestAvailableRate == _MAGIC_SCALE_1E6) {
+            if (_highestLockScore == 0) {
                 return _totalLiquidity;
             } else {
                 uint256 _necessaryAmount = _targetLockedCreditScore * totalAllocPoint * MAGIC_SCALE_1E6
