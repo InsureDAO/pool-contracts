@@ -120,6 +120,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @param _references array of references
      */
     function initialize(
+        address _depositor,
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
