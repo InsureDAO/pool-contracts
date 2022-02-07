@@ -151,7 +151,7 @@ describe("CDS", function () {
     await parameters.setMaxList(ZERO_ADDRESS, "10");
 
     //market1
-    await factory.createMarket(
+    let tx = await factory.createMarket(
       poolTemplate.address,
       "Here is metadata.",
       [0, 0],
@@ -163,16 +163,18 @@ describe("CDS", function () {
         gov.address,
       ]
     );
-    const marketAddress1 = await factory.markets(0);
+    let receipt = await tx.wait();
+    const marketAddress1 = receipt.events[2].args[0];
     market1 = await PoolTemplate.attach(marketAddress1);
 
-    await factory.createMarket(
+    tx = await factory.createMarket(
       cdsTemplate.address,
       "Here is metadata.",
       [0, 0],
       [usdc.address, registry.address, parameters.address]
     );
-    const marketAddress2 = await factory.markets(1);
+    receipt = await tx.wait();
+    const marketAddress2 = receipt.events[2].args[0];
     cds = await CDSTemplate.attach(marketAddress2);
 
     await registry.setCDS(ZERO_ADDRESS, cds.address);
@@ -254,14 +256,16 @@ describe("CDS", function () {
 
       it("reverts when already initialized", async () => {
         // 91
-        // "ERROR: INITIALIZATION_BAD_CONDITIONS"
+        // "INITIALIZATION_BAD_CONDITIONS"
+
         await expect(
           cds.initialize(
+            ZERO_ADDRESS,
             "Here is metadata.",
             [0, 0],
             [usdc.address, registry.address, parameters.address]
           )
-        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+        ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
 
       it("reverts when address is zero and/or metadata is empty 1", async () => {
@@ -279,8 +283,8 @@ describe("CDS", function () {
             [0, 0],
             [ZERO_ADDRESS, registry.address, parameters.address]
           )
-        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
-      });
+        ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
+});
 
       it("reverts when address is zero and/or metadata is empty 2", async () => {
         await factory.approveReference(
@@ -297,7 +301,7 @@ describe("CDS", function () {
             [0, 0],
             [usdc.address, ZERO_ADDRESS, parameters.address]
           )
-        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+        ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
 
       it("reverts when address is zero and/or metadata is empty 3", async () => {
@@ -315,7 +319,7 @@ describe("CDS", function () {
             [0, 0],
             [usdc.address, registry.address, ZERO_ADDRESS]
           )
-        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+        ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
 
       it("reverts when address is zero and/or metadata is empty 4", async () => {
@@ -326,7 +330,7 @@ describe("CDS", function () {
             [0, 0],
             [usdc.address, registry.address, parameters.address]
           )
-        ).to.revertedWith("ERROR: INITIALIZATION_BAD_CONDITIONS");
+        ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
     });
 
@@ -1184,7 +1188,7 @@ describe("CDS", function () {
 
         await expect(
           cds.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST");
+        ).to.revertedWith("WITHDRAWAL_NO_ACTIVE_REQUEST");
       });
 
       it("reverts when the withdraw amount exceeded the request", async () => {
@@ -1192,7 +1196,7 @@ describe("CDS", function () {
 
         await expect(
           cds.connect(alice).withdraw(depositAmount.add(1))
-        ).to.revertedWith("ERROR: WITHDRAWAL_EXCEEDED_REQUEST");
+        ).to.revertedWith("WITHDRAWAL_EXCEEDED_REQUEST");
       });
 
       it("reverts when withdraw zero amount", async () => {

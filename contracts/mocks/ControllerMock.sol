@@ -1,4 +1,4 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 
 import "../mocks/TestERC20Mock.sol";
 import "../interfaces/IVault.sol";
@@ -10,7 +10,7 @@ contract ControllerMock {
     IOwnership public ownership;
 
     modifier onlyOwner() {
-        require(ownership.owner() == msg.sender, 'Restricted: caller is not allowed to operate');
+        require(ownership.owner() == msg.sender, 'Caller is not allowed to operate');
         _;
     }
 

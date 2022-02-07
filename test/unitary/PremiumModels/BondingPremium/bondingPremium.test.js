@@ -150,8 +150,6 @@ describe("test BondingPremium", () => {
         BASE_big.mul(800000),
         BASE_big.mul(400000)
       );
-      console.log(actualRate.toString());
-
       expect(actualRate).to.closeTo(expectedRate, expectedRate.div(1000));
     });
 
@@ -210,7 +208,7 @@ describe("test BondingPremium", () => {
           BASE_big.mul(totalLiquidity_1),
           BASE_big.mul(lockedAmount_1)
         )
-      ).to.revertedWith("ERROR: _lockedAmount > _totalLiquidity");
+      ).to.revertedWith("_lockedAmount > _totalLiquidity");
     });
   });
 
@@ -351,7 +349,7 @@ describe("test BondingPremium", () => {
     it("revert when not owner", async () => {
       await expect(
         premium.connect(alice).setPremiumParameters(0, 0, 0, 0)
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
+      ).to.revertedWith("Caller is not allowed to operate");
     });
   });
 });

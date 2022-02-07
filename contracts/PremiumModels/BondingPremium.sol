@@ -1,4 +1,4 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 /**
  * @title BondingPremium
  * @author @InsureDAO
@@ -7,7 +7,6 @@ pragma solidity 0.8.7;
  */
 
 import "../interfaces/IPremiumModel.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "abdk-libraries-solidity/ABDKMath64x64.sol";
 import "../interfaces/IOwnership.sol";
 
@@ -15,7 +14,7 @@ contract BondingPremium is IPremiumModel {
     using ABDKMath64x64 for uint256;
     using ABDKMath64x64 for int128;
 
-    IOwnership public ownership;
+    IOwnership public immutable ownership;
 
     //variables
     uint256 public k; //final curve rate of the dynamic pricing
@@ -24,15 +23,14 @@ contract BondingPremium is IPremiumModel {
     uint256 public T_1; //goal TVL (USDC)
 
     //constants
-    uint256 public constant DECIMAL = uint256(1e6); //Decimals of USDC
-    uint256 public constant BASE = uint256(1e6); //bonding curve graph takes 1e6 as 100.0000%
-    uint256 public constant BASE_x2 = uint256(1e12); //BASE^2
-    uint256 public constant ADJUSTER = uint256(10); //adjuster of 1e6 to 1e5 (100.0000% to 100.000%)
+    uint256 private constant DECIMAL = uint256(1e6); //Decimals of USDC
+    uint256 private constant BASE = uint256(1e6); //bonding curve graph takes 1e6 as 100.0000%
+    uint256 private constant BASE_x2 = uint256(1e12); //BASE^2
 
     modifier onlyOwner() {
         require(
             ownership.owner() == msg.sender,
-            "Restricted: caller is not allowed to operate"
+            "Caller is not allowed to operate"
         );
         _;
     }
@@ -44,7 +42,9 @@ contract BondingPremium is IPremiumModel {
         k = 200100000;
         c = 10000;
         b = 1000;
-        T_1 = 1000000 * DECIMAL;
+        unchecked {
+            T_1 = 1000000 * DECIMAL;
+        }
     }
 
     /***
@@ -61,41 +61,50 @@ contract BondingPremium is IPremiumModel {
     function getCurrentPremiumRate(
         uint256 _totalLiquidity,
         uint256 _lockedAmount
-    ) public view override returns (uint256) {
+    ) external view override returns (uint256) {
         require(
             _totalLiquidity >= _lockedAmount,
-            "ERROR: _lockedAmount > _totalLiquidity"
+            "_lockedAmount > _totalLiquidity"
         );
+
+        if (_totalLiquidity == 0) {
+            return 0;
+        }
+
+        uint256 _BASE = BASE;
+
         // utilization rate (0~1000000)
-        uint256 _util = (_lockedAmount * BASE) / _totalLiquidity;
+        uint256 _util = (_lockedAmount * _BASE) / _totalLiquidity;
 
         // yearly premium rate
         uint256 _premiumRate;
 
-        uint256 T_0 = _totalLiquidity;
-        if (T_0 > T_1) {
-            T_0 = T_1;
-        }
+        uint256 _T_1 = T_1;
+        uint256 T_0 = _totalLiquidity > _T_1 ? _T_1 : _totalLiquidity;
+
+        uint256 _k = k;
+        uint256 _b = b;
+        uint256 _BASE_x2 = BASE_x2;
 
         uint256 a = (sqrt(
-            (BASE_x2 * BASE_x2 * T_1 + 4 * k * T_0 * BASE_x2) / T_1
-        ) - BASE_x2) / 2; //a*BASE (in calc)
+            (_BASE_x2 * _BASE_x2 * _T_1 + 4 * _k * T_0 * _BASE_x2) / _T_1
+        ) - _BASE_x2) / 2; //a*BASE (in calc)
 
-        uint256 Q = (BASE - _util) + a / BASE; //x+a (in calc)
+        uint256 Q = (_BASE - _util) + a / _BASE; //x+a (in calc)
 
         _premiumRate =
             365 *
-            (k * T_0 * BASE - a * Q * T_1) +
+            (_k * T_0 * _BASE - a * Q * _T_1) +
             Q *
-            (c - b) *
-            (T_1 - T_0) *
-            BASE +
-            b *
+            (c - _b) *
+            (_T_1 - T_0) *
+            _BASE +
+            _b *
             Q *
-            T_1 *
-            BASE;
+            _T_1 *
+            _BASE;
 
-        _premiumRate = _premiumRate / Q / T_1 / BASE;
+        _premiumRate = _premiumRate / Q / _T_1 / _BASE;
 
         //Return premium
         return _premiumRate;
@@ -127,53 +136,62 @@ contract BondingPremium is IPremiumModel {
             return 0;
         }
 
-        uint256 u1 = BASE - ((_lockedAmount * BASE) / _totalLiquidity); //util rate before. 1000000 = 100.000%
-        uint256 u2 = BASE -
-            (((_lockedAmount + _amount) * BASE) / _totalLiquidity); //util rate after. 1000000 = 100.000%
-
-        uint256 T_0 = _totalLiquidity;
-        if (T_0 > T_1) {
-            T_0 = T_1;
+        uint256 _BASE = BASE;
+        uint256 u1;
+        uint256 u2;
+        unchecked {
+            u1 = _BASE - ((_lockedAmount * _BASE) / _totalLiquidity); //util rate before. 1000000 = 100.000%
+            u2 = _BASE -
+                (((_lockedAmount + _amount) * _BASE) / _totalLiquidity); //util rate after. 1000000 = 100.000%
         }
 
+        uint256 _T_1 = T_1;
+        uint256 T_0 = _totalLiquidity > _T_1 ? _T_1 : _totalLiquidity;
+
+        uint256 _k = k;
+        uint256 _BASE_x2 = BASE_x2;
         uint256 a = (sqrt(
-            (BASE_x2 * BASE_x2 * T_1 + 4 * k * T_0 * BASE_x2) / T_1
-        ) - BASE_x2) / 2; //a*BASE (in calc)
+            (_BASE_x2 * _BASE_x2 * _T_1 + 4 * _k * T_0 * _BASE_x2) / _T_1
+        ) - _BASE_x2) / 2; //a*BASE (in calc)
 
         Temp memory temp;
         temp.a = a.fromUInt();
-        temp.BASE_temp = BASE.fromUInt();
+        temp.BASE_temp = _BASE.fromUInt();
         temp.a = temp.a.div(temp.BASE_temp);
 
         //calc 0=>u1 area
         temp.u = u1.fromUInt();
-        int128 ln_u1 = (temp.u).add(temp.a).ln();
-        uint256 ln_res_u1 = ln_u1.mulu(k); //k*ln(x+a) //very percise.
+//        int128 ln_u1 = (temp.u).add(temp.a).ln();
+//        uint256 ln_res_u1 = ln_u1.mulu(_k); //k*ln(x+a) //very percise.
+        uint256 _c = c;
+        uint256 _b = b;
 
-        uint256 _premium_u1 = (365 * T_0 * ln_res_u1 * BASE) +
+        uint256 _premium_u1 = (365 * T_0 * ((temp.u).add(temp.a).ln()).mulu(_k) * _BASE) +
             u1 *
-            ((T_1 - T_0) * c * BASE + T_0 * b * BASE) -
-            T_1 *
+            ((_T_1 - T_0) * _c * _BASE + T_0 * _b * _BASE) -
+            _T_1 *
             365 *
             a *
             u1;
 
         //calc 0=>u2 area
         temp.u = u2.fromUInt();
-        int128 ln_u2 = (temp.u).add(temp.a).ln();
-        uint256 ln_res_u2 = ln_u2.mulu(k); //k*ln(x+a) //very percise.
+//        int128 ln_u2 = (temp.u).add(temp.a).ln();
+//        uint256 ln_res_u2 = ln_u2.mulu(k); //k*ln(x+a) //very percise.
 
-        uint256 _premium_u2 = (365 * T_0 * ln_res_u2 * BASE) +
+        uint256 _premium_u2 = (365 * T_0 * ((temp.u).add(temp.a).ln()).mulu(k) * _BASE) +
             u2 *
-            ((T_1 - T_0) * c * BASE + T_0 * b * BASE) -
-            T_1 *
+            ((_T_1 - T_0) * _c * _BASE + T_0 * _b * BASE) -
+            _T_1 *
             365 *
             a *
             u2;
 
         //(u1 area) - (u2 area) = premium rate between u1 and u2
         uint256 premiumRate = _premium_u1 - _premium_u2;
-        premiumRate = premiumRate / T_1 / (u1 - u2) / BASE;
+        unchecked {
+            premiumRate = premiumRate / _T_1 / (u1 - u2) / _BASE;
+        }
 
         return premiumRate;
     }
@@ -237,10 +255,12 @@ contract BondingPremium is IPremiumModel {
 
     function sqrt(uint256 x) internal pure returns (uint256 y) {
         uint256 z = (x + 1) / 2;
-        y = x;
-        while (z < y) {
-            y = z;
-            z = (x / z + z) / 2;
+        unchecked {
+            y = x;
+            while (z < y) {
+                y = z;
+                z = (x / z + z) / 2;
+            }
         }
     }
 }

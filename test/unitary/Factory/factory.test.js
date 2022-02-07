@@ -110,7 +110,7 @@ describe("Factory", function () {
         factory
           .connect(alice)
           .approveTemplate(poolTemplate.address, true, true, true)
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
+      ).to.revertedWith("Caller is not allowed to operate");
     });
     it("Should register a template address", async () => {
       await factory.approveTemplate(poolTemplate.address, true, true, true);
@@ -272,7 +272,7 @@ describe("Factory", function () {
         factory
           .connect(alice)
           .approveReference(poolTemplate.address, 0, dai.address, true)
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
+      ).to.revertedWith("Caller is not allowed to operate");
     });
 
     it("Should allow creating market based on the registered reference if it is defined", async () => {
@@ -417,7 +417,7 @@ describe("Factory", function () {
     it("Reverts transaction not from the admin", async () => {
       await expect(
         factory.connect(alice).setCondition(poolTemplate.address, 0, 100)
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
+      ).to.revertedWith("Caller is not allowed to operate");
     });
     it("Reverts when the template is not registered", async () => {
       await expect(

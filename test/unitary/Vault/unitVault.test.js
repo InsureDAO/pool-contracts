@@ -362,13 +362,13 @@ describe("Vault", function () {
 
       await expect(
         vault.connect(alice).withdrawValue(depositAmount, alice.address)
-      ).to.revertedWith("ERROR_WITHDRAW-VALUE_BADCONDITOONS");
+      ).to.revertedWith("WITHDRAW-VALUE_BADCONDITIONS");
     });
 
     it("revert when underlyingValue(msg.sender) < _amount", async () => {
       await expect(
         vault.connect(alice).withdrawValue(depositAmount.add(1), alice.address)
-      ).to.revertedWith("ERROR_WITHDRAW-VALUE_BADCONDITOONS");
+      ).to.revertedWith("WITHDRAW-VALUE_BADCONDITIONS");
     });
   });
 
@@ -426,13 +426,13 @@ describe("Vault", function () {
     it("revert when he has no attribution", async () => {
       await expect(
         vault.connect(bob).transferValue(depositAmount, alice.address)
-      ).to.revertedWith("ERROR_TRANSFER-VALUE_BADCONDITOONS");
+      ).to.revertedWith("TRANSFER-VALUE_BADCONDITIONS");
     });
 
     it("revert when he try to transfer more than he has", async () => {
       await expect(
         vault.connect(alice).transferValue(depositAmount.add(1), bob.address)
-      ).to.revertedWith("ERROR_TRANSFER-VALUE_BADCONDITOONS");
+      ).to.revertedWith("TRANSFER-VALUE_BADCONDITIONS");
     });
   });
 
@@ -1173,7 +1173,7 @@ describe("Vault", function () {
         vault
           .connect(alice)
           .withdrawAttribution(depositAmount.add(1), alice.address)
-      ).to.revertedWith("ERROR_WITHDRAW-ATTRIBUTION_BADCONDITOONS");
+      ).to.revertedWith("WITHDRAW-ATTRIBUTION_BADCONS");
     });
   });
 
@@ -1251,7 +1251,7 @@ describe("Vault", function () {
         vault
           .connect(alice)
           .transferAttribution(depositAmount.add(1), bob.address)
-      ).to.revertedWith("ERROR_TRANSFER-ATTRIBUTION_BADCONDITOONS");
+      ).to.revertedWith("TRANSFER-ATTRIBUTION_BADCONS");
     });
   });
 
@@ -1267,4 +1267,25 @@ describe("Vault", function () {
 
     it("should allow controller to utilize", async () => {});
   });
+
+  describe("seKeeper", function () {
+    it("revert when the sender is not owner", async () => {
+      await expect(
+        vault
+          .connect(alice)
+          .setKeeper(alice.address)
+        ).to.revertedWith("Caller is not allowed to operate");
+    }) 
+
+    it("should succeed to set keeper", async () => {
+        await vault.connect(creator).setKeeper(alice.address);
+        expect(await vault.keeper()).to.equal(alice.address);
+    })
+
+    it("should emit the event", async () => {
+      await expect(
+        vault.connect(creator).setKeeper(alice.address)
+      ).to.emit(vault, "KeeperChanged").withArgs(alice.address);
+    })
+  })
 });

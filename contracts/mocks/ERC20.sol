@@ -1,7 +1,6 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /**
  * @dev Implementation of the `IERC20` interface.
@@ -27,8 +26,6 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
  * allowances. See `IERC20.approve`.
  */
 contract ERC20 is IERC20 {
-    using SafeMath for uint256;
-
     mapping(address => uint256) private _balances;
 
     mapping(address => mapping(address => uint256)) private _allowances;
@@ -112,11 +109,11 @@ contract ERC20 is IERC20 {
         uint256 amount
     ) public override returns (bool) {
         _transfer(sender, recipient, amount);
-        _approve(
-            sender,
-            msg.sender,
-            _allowances[sender][msg.sender].sub(amount)
-        );
+        uint256 currentAllowance = _allowances[sender][msg.sender];
+        require(currentAllowance >= amount, "Transfer amount > allowance");
+        unchecked {
+            _approve(sender, msg.sender, currentAllowance - amount);
+        }
         return true;
     }
 
@@ -139,7 +136,7 @@ contract ERC20 is IERC20 {
         _approve(
             msg.sender,
             spender,
-            _allowances[msg.sender][spender].add(addedValue)
+            _allowances[msg.sender][spender] + addedValue
         );
         return true;
     }
@@ -162,11 +159,11 @@ contract ERC20 is IERC20 {
         public
         returns (bool)
     {
-        _approve(
-            msg.sender,
-            spender,
-            _allowances[msg.sender][spender].sub(subtractedValue)
-        );
+        uint256 currentAllowance = _allowances[msg.sender][spender];
+        require(currentAllowance >= subtractedValue, "Decreased allowance below zero");
+        unchecked {
+            _approve(msg.sender, spender, currentAllowance - subtractedValue);
+        }
         return true;
     }
 
@@ -189,11 +186,15 @@ contract ERC20 is IERC20 {
         address recipient,
         uint256 amount
     ) internal {
-        require(sender != address(0), "ERC20: transfer from the zero address");
-        require(recipient != address(0), "ERC20: transfer to the zero address");
+        require(sender != address(0), "Transfer from the zero address");
+        require(recipient != address(0), "Transfer to the zero address");
 
-        _balances[sender] = _balances[sender].sub(amount);
-        _balances[recipient] = _balances[recipient].add(amount);
+        uint256 senderBalance = _balances[sender];
+        require(senderBalance >= amount, "Transfer amount exceeds balance");
+        unchecked {
+            _balances[sender] = senderBalance - amount;
+        }
+        _balances[recipient] += amount;
         emit Transfer(sender, recipient, amount);
     }
 
@@ -207,10 +208,10 @@ contract ERC20 is IERC20 {
      * - `to` cannot be the zero address.
      */
     function _mint(address account, uint256 amount) internal {
-        require(account != address(0), "ERC20: mint to the zero address");
+        require(account != address(0), "Mint to the zero address");
 
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
+        _totalSupply += amount;
+        _balances[account] += amount;
         emit Transfer(address(0), account, amount);
     }
 
@@ -226,10 +227,14 @@ contract ERC20 is IERC20 {
      * - `account` must have at least `amount` tokens.
      */
     function _burn(address account, uint256 value) internal {
-        require(account != address(0), "ERC20: burn from the zero address");
+        require(account != address(0), "Burn from the zero address");
 
-        _totalSupply = _totalSupply.sub(value);
-        _balances[account] = _balances[account].sub(value);
+        uint256 accountBalance = _balances[account];
+        require(accountBalance >= value, "Burn amount exceeds balance");
+        unchecked {
+            _balances[account] = accountBalance - value;
+        }
+        _totalSupply -= value;
         emit Transfer(account, address(0), value);
     }
 
@@ -251,8 +256,8 @@ contract ERC20 is IERC20 {
         address spender,
         uint256 value
     ) internal {
-        require(owner != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
+        require(owner != address(0), "Approve from the zero address");
+        require(spender != address(0), "Approve to the zero address");
 
         _allowances[owner][spender] = value;
         emit Approval(owner, spender, value);
@@ -266,10 +271,10 @@ contract ERC20 is IERC20 {
      */
     function _burnFrom(address account, uint256 amount) internal {
         _burn(account, amount);
-        _approve(
-            account,
-            msg.sender,
-            _allowances[account][msg.sender].sub(amount)
-        );
+        uint256 currentAllowance = _allowances[account][msg.sender];
+        require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
+        unchecked {
+            _approve(account, msg.sender, currentAllowance - amount);
+        }
     }
 }

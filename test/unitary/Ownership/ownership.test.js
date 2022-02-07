@@ -2,6 +2,10 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
+const {
+  ZERO_ADDRESS,
+} = require("../constant-utils");
+
 describe("Ownership", function () {
   beforeEach(async () => {
     //import
@@ -48,13 +52,13 @@ describe("Ownership", function () {
     it("commit_transfer_ownership revert: onlyOwner", async () => {
       await expect(
         ownership.connect(alice).commitTransferOwnership(alice.address)
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
+      ).to.revertedWith("Caller is not allowed to operate");
     });
 
     it("commit_transfer_ownership revert: zero address", async () => {
       await expect(
         ownership.connect(alice).commitTransferOwnership(alice.address)
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
+      ).to.revertedWith("Caller is not allowed to operate");
     });
 
     it("accept_transfer_ownership successfully", async () => {
@@ -63,7 +67,7 @@ describe("Ownership", function () {
       await ownership.connect(alice).acceptTransferOwnership();
 
       expect(await ownership.owner()).to.equal(alice.address);
-      expect(await ownership.futureOwner()).to.equal(alice.address);
+      expect(await ownership.futureOwner()).to.equal(ZERO_ADDRESS);
     });
 
     it("accept_transfer_ownership emit event successfully", async () => {
@@ -80,7 +84,7 @@ describe("Ownership", function () {
       //await ethers.provider.send("evm_increaseTime", [86400 * 4]);
       await expect(
         ownership.connect(bob).commitTransferOwnership(alice.address)
-      ).to.revertedWith("Restricted: caller is not allowed to operate");
+      ).to.revertedWith("Caller is not allowed to operate");
     });
   });
 });
