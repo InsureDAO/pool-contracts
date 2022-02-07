@@ -194,7 +194,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             abi.encodePacked(
                 "InsureDAO-",
                 IERC20Metadata(_references[0]).name(),
-                "-PoolInsurance"
+                "-Insurance"
             )
         );
         string memory _symbol = string(

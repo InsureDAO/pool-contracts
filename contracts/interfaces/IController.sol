@@ -5,6 +5,8 @@ interface IController {
 
     function valueAll() external view returns (uint256);
 
+    function utilizeAmount() external returns (uint256);
+
     function earn(address, uint256) external;
 
     function migrate(address) external;
