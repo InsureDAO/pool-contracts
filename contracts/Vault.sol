@@ -378,19 +378,24 @@ contract Vault is IVault {
      * @notice utilize all available underwritten funds into the set controller.
      * @return _amount amount of tokens utilized
      */
-    function utilize() external override returns (uint256 _amount) {
+    function utilize() external override returns (uint256) {
         require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
         
         address _token = token;
         if (keeper != address(0)) {
             require(msg.sender == keeper, "ERROR_NOT_KEEPER");
         }
-        _amount = available(); //balance
+
+        uint256 _amount = controller.utilizeAmount(); //balance
+        require(_amount <= available(), "EXCEED_AVAILABLE");
+
         if (_amount != 0) {
             IERC20(_token).safeTransfer(address(controller), _amount);
             balance -= _amount;
             controller.earn(_token, _amount);
         }
+
+        return _amount;
     }
 
     /**

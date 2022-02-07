@@ -3,8 +3,9 @@ pragma solidity 0.8.10;
 import "../mocks/TestERC20Mock.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IOwnership.sol";
+import "../interfaces/IController.sol";
 
-contract ControllerMock {
+contract ControllerMock is IController{
     TestERC20Mock public token;
     IVault public vault;
     IOwnership public ownership;
@@ -26,6 +27,10 @@ contract ControllerMock {
 
     function valueAll() external view returns (uint256) {
         return token.balanceOf(address(this));
+    }
+
+    function utilizeAmount() external returns (uint256){
+        return vault.valueAll()/2; //for test
     }
 
     function earn(address, uint256) external {
