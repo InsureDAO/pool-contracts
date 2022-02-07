@@ -243,7 +243,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         if (_liquidityAfter != 0) {
             uint256 _leverage = (totalAllocatedCredit * MAGIC_SCALE_1E6) /
                 _liquidityAfter;
-            //execut adjustAlloc only when the leverage became above target + upper-slack
+            //execute adjustAlloc only when the leverage became above target + upper-slack
             if (
                 targetLev + parameters.getUpperSlack(address(this)) < _leverage
             ) {
@@ -354,7 +354,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         for (uint256 i; i < _length;) {
             address _pool = poolList[i];
             if (_pool != address(0)) {
-                //never be false
                 uint256 _allocation = allocPoints[_pool];
                 //Target credit allocation for a pool
                 uint256 _target = (_targetCredit * _allocation) /
@@ -455,14 +454,10 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             _compensated = _amount;
         } else {
             //Withdraw credit to cashout the earnings
-            if (totalLiquidity() < _amount) {
-                //Insolvency case
-                unchecked {
-                    ICDSTemplate(registry.getCDS(address(this))).compensate(_amount - _value);
-                }
-                _compensated = vault.underlyingValue(address(this));
+            unchecked {
+                ICDSTemplate(registry.getCDS(address(this))).compensate(_amount - _value);
             }
-            vault.offsetDebt(_compensated, msg.sender);
+            _compensated = vault.underlyingValue(address(this));
         }
         adjustAlloc();
         emit Compensated(msg.sender, _compensated);

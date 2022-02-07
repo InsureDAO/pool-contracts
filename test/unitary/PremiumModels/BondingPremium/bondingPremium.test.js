@@ -150,8 +150,6 @@ describe("test BondingPremium", () => {
         BASE_big.mul(800000),
         BASE_big.mul(400000)
       );
-      console.log(actualRate.toString());
-
       expect(actualRate).to.closeTo(expectedRate, expectedRate.div(1000));
     });
 
