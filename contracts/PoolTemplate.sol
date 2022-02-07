@@ -84,6 +84,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     struct IndexInfo {
         uint256 credit; //How many credit (equal to liquidity) the index has allocated
         uint256 rewardDebt; // Reward debt. *See explanation below.
+        uint256 index; //index number
         bool exist; //true if the index has allocated credit
     }
 
@@ -165,7 +166,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * references[1] = underlying token address
      * references[2] = registry
      * references[3] = parameter
-     * references[4] = initialDepositor
      * conditions[0] = minimim deposit amount defined by the factory
      * conditions[1] = initial deposit amount defined by the creator
      * @param _metaData arbitrary string to store market information
@@ -173,6 +173,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @param _references array of references
      */
     function initialize(
+        address _depositor,
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
@@ -184,7 +185,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 _references[1] != address(0) &&
                 _references[2] != address(0) &&
                 _references[3] != address(0) &&
-                _references[4] != address(0) &&
                 _conditions[0] <= _conditions[1],
             "INITIALIZATION_BAD_CONDITIONS"
         );
@@ -213,7 +213,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         marketStatus = MarketStatus.Trading;
 
         if (_conditions[1] != 0) {
-            _depositFrom(_conditions[1], _references[4]);
+            _depositFrom(_conditions[1], _depositor);
         }
     }
 
@@ -371,6 +371,39 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      */
 
     /**
+     * @notice Register an index that can allocate credit to the pool
+     * @param _index index number of an index pool to get registered in the pool
+     */
+
+    function registerIndex(uint256 _index)external override{
+        require(
+            IRegistry(registry).isListed(msg.sender),
+            "ERROR: UNREGISTERED_INDEX"
+        );
+        require(
+            _index <= parameters.getMaxList(address(this)),
+            "ERROR: EXCEEEDED_MAX_LIST"
+        );
+        uint256 _length = indexList.length;
+        if (_length <= _index) {
+            require(_length == _index, "ERROR: BAD_INDEX");
+            indexList.push(msg.sender);
+            indicies[msg.sender].exist = true;
+            indicies[msg.sender].index = _index;
+        } else {
+            address _indexAddress = indexList[_index];
+            if (_indexAddress != address(0) && _indexAddress != msg.sender) {
+                 require(indicies[msg.sender].credit == 0,"ERROR: UPDATE_RESTRICTED");
+                 indicies[_indexAddress].index = 0;
+                 indicies[_indexAddress].exist = false;
+                 indicies[msg.sender].index = _index;
+                 indicies[msg.sender].exist = true;
+                 indexList[_index] = msg.sender;
+            }
+        }
+    }
+
+    /**
      * @notice Allocate credit from an index. Allocated credits are deemed as equivalent liquidity as real token deposits.
      * @param _credit credit (liquidity amount) to be added to this pool
      * @return _pending pending preium for the caller index
@@ -381,19 +414,16 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         override
         returns (uint256 _pending)
     {
+        IndexInfo storage _index = indicies[msg.sender];
         require(
-            IRegistry(registry).isListed(msg.sender),
+            _index.exist,
             "ALLOCATE_CREDIT_BAD_CONDITIONS"
         );
 
-        IndexInfo storage _index = indicies[msg.sender];
         uint256 _rewardPerCredit = rewardPerCredit;
         uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
 
-        if (!_index.exist) {
-            _index.exist = true;
-            indexList.push(msg.sender);
-        } else if (_index.credit != 0) {
+        if (_index.credit != 0){
             _pending = _sub(
                 (_index.credit * _rewardPerCredit) / _MAGIC_SCALE_1E6,
                 _index.rewardDebt
@@ -426,7 +456,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         IndexInfo storage _index = indicies[msg.sender];
 
         require(
-            IRegistry(registry).isListed(msg.sender) &&
+            _index.exist &&
             _index.credit >= _credit &&
             _credit <= availableBalance(),
             "WITHDRAW_CREDIT_BAD_CONDITIONS"
@@ -673,6 +703,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         string calldata _memo
     ) external override onlyOwner {
         require(!paused, "ERROR: UNABLE_TO_APPLY");
+        require(_incidentTimestamp < block.timestamp, "ERROR: INCIDENT_DATE");
         require(marketStatus == MarketStatus.Trading, "ERROR: NOT_TRADING_STATUS");
 
         incident.payoutNumerator = _payoutNumerator;
@@ -856,7 +887,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     /**
      * @notice Returns the amount of underlying tokens available for withdrawals
-     * @return _balance available liquidity of this pool
+     * @return available liquidity of this pool
      */
     function availableBalance()
         public
@@ -872,7 +903,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     /**
      * @notice Returns the utilization rate for this pool. Scaled by 1e6 (100% = 1e6)
-     * @return _rate utilization rate
+     * @return utilization rate
      */
     function utilizationRate() external view override returns (uint256) {
         uint256 _lockedAmount = lockedAmount;
@@ -880,14 +911,12 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         
         if (_lockedAmount != 0 && _totalLiquidity != 0) {
             return (_lockedAmount * MAGIC_SCALE_1E6) / _totalLiquidity;
-        } else {
-            return 0;
         }
     }
 
     /**
      * @notice Pool's Liquidity + Liquidity from Index (how much can the pool sell cover)
-     * @return _balance total liquidity of this pool
+     * @return total liquidity of this pool
      */
     function totalLiquidity() public view override returns (uint256) {
         return originalLiquidity() + totalCredit;
@@ -895,7 +924,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     /**
      * @notice Pool's Liquidity
-     * @return _balance total liquidity of this pool
+     * @return total liquidity of this pool
      */
     function originalLiquidity() public view returns (uint256) {
         return

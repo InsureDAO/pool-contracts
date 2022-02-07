@@ -241,7 +241,6 @@ describe("Index", function () {
         usdc.address,
         registry.address,
         parameters.address,
-        gov.address,
       ]
     );
     let receipt = await tx.wait();
@@ -255,7 +254,6 @@ describe("Index", function () {
         usdc.address,
         registry.address,
         parameters.address,
-        gov.address,
       ]
     );
     receipt = await tx.wait();
@@ -289,10 +287,10 @@ describe("Index", function () {
 
     await registry.setCDS(ZERO_ADDRESS, cds.address); //default CDS
 
-    await index.set("0", market1.address, defaultLeverage); //set market1 to the Index
-    await index.set("1", market2.address, defaultLeverage); //set market2 to the Index
+    await index.set("0", "0",market1.address, defaultLeverage); //set market1 to the Index
+    await index.set("1", "0",market2.address, defaultLeverage); //set market2 to the Index
 
-    await index.setLeverage(targetLeverage);
+    await index.setLeverage(targetLeverage); //2x
 
     await parameters.setUpperSlack(index.address, "500000"); //leverage+50% (+0.5)
     await parameters.setLowerSlack(index.address, "500000"); //leverage-50% (-0.5)
@@ -529,6 +527,7 @@ describe("Index", function () {
 
       await expect(
         index.initialize(
+          ZERO_ADDRESS,
           "Here is metadata.",
           [0, 0],
           [usdc.address, registry.address, parameters.address]
@@ -2097,8 +2096,6 @@ describe("Index", function () {
       //index
       let leverage = await index.leverage();
       let indexLiquidity = await index.totalLiquidity();
-
-
       let expectedWithdrawable = indexLiquidity.sub(lockedAmount);
       let withdrawable = await index.withdrawable();
 

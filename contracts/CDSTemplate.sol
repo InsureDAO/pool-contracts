@@ -88,6 +88,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @param _references array of references
      */
     function initialize(
+        address _depositor,
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
@@ -143,7 +144,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     }
 
     /**
-     * @notice A liquidity provider supplies collatral to the pool and receives iTokens
+     * @notice A depositor supplies fund to the pool without receiving iTokens
      * @param _amount amount of token to deposit
      */
     function fund(uint256 _amount) external {
@@ -268,7 +269,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
 
     /**
      * @notice total Liquidity of the pool (how much can the pool sell cover)
-     * @return _balance available liquidity of this pool
+     * @return available liquidity of this pool
      */
     function totalLiquidity() external view returns (uint256) {
         return vault.underlyingValue(address(this));
