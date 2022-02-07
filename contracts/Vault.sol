@@ -164,7 +164,7 @@ contract Vault is IVault {
             "WITHDRAW-VALUE_BADCONDITIONS"
         );
 
-        _attributions = (totalAttributions * _amount) / _valueAll;
+        _attributions = _divRoundUp(totalAttributions * _amount, valueAll());
         uint256 _available = available();
 
         require(
@@ -210,7 +210,7 @@ contract Vault is IVault {
                 underlyingValue(msg.sender, _valueAll) >= _amount,
             "TRANSFER-VALUE_BADCONDITIONS"
         );
-        _attributions = (_amount * totalAttributions) / _valueAll;
+        _attributions = _divRoundUp(totalAttributions * _amount, valueAll());
         attributions[msg.sender] -= _attributions;
         attributions[_destination] += _attributions;
     }
@@ -246,7 +246,7 @@ contract Vault is IVault {
                 underlyingValue(msg.sender, _valueAll) >= _amount,
             "ERROR_REPAY_DEBT_BADCONDITIONS"
         );
-        _attributions = (_amount * totalAttributions) / _valueAll;
+         _attributions = _divRoundUp(totalAttributions * _amount, valueAll());
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
         balance -= _amount;
@@ -571,5 +571,19 @@ contract Vault is IVault {
         }
 
         emit KeeperChanged(_keeper);
+    }
+
+    /**
+     * @notice internal division function to prevent underflow
+     * @param _a number to get divided by _b
+     * @param _b number to divide _a
+     */
+    function _divRoundUp(uint _a, uint _b) internal pure returns (uint256) {
+        require(_a >= _b, "ERROR_NUMERATOR_TOO_SMALL");
+        uint _c = _a/ _b;
+        if(_c * _b != _a){
+            _c += 1;
+        }
+        return _c;
     }
 }
