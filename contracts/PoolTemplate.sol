@@ -484,10 +484,11 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         if (_pending != 0) {
             vault.transferAttribution(_pending, msg.sender);
             attributionDebt -= _pending;
-            _index.rewardDebt =
+        }
+        
+        _index.rewardDebt =
                 (_index.credit * _rewardPerCredit) /
                 _MAGIC_SCALE_1E6;
-        }
     }
 
     /**
