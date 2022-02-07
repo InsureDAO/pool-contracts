@@ -249,8 +249,8 @@ describe("CDS", function () {
         expect(await cds.registry()).to.equal(registry.address);
         expect(await cds.parameters()).to.equal(parameters.address);
         expect(await cds.vault()).to.equal(vault.address);
-        expect(await cds.name()).to.equal("InsureDAO-CDS");
-        expect(await cds.symbol()).to.equal("iCDS");
+        expect(await cds.name()).to.equal("InsureDAO-Reserve");
+        expect(await cds.symbol()).to.equal("iReserve");
         expect(await cds.decimals()).to.equal(18); //MockERC20 decimals
       });
 
