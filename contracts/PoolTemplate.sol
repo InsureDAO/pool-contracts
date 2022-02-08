@@ -107,11 +107,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     //
 
     ///@notice Market status transition management
-    enum MarketStatus {
-        Trading,
-        Payingout
-    }
-    MarketStatus public marketStatus;
+    MarketStatus public override marketStatus;
 
     ///@notice user's withdrawal status management
     struct Withdrawal {
@@ -194,11 +190,11 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             abi.encodePacked(
                 "InsureDAO-",
                 IERC20Metadata(_references[0]).name(),
-                "-PoolInsurance"
+                "-Insurance"
             )
         );
         string memory _symbol = string(
-            abi.encodePacked("i-", IERC20Metadata(_references[0]).symbol())
+            abi.encodePacked("i", IERC20Metadata(_references[0]).symbol())
         );
         uint8 _decimals = IERC20Metadata(_references[0]).decimals();
 
@@ -484,10 +480,11 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         if (_pending != 0) {
             vault.transferAttribution(_pending, msg.sender);
             attributionDebt -= _pending;
-            _index.rewardDebt =
+        }
+        
+        _index.rewardDebt =
                 (_index.credit * _rewardPerCredit) /
                 _MAGIC_SCALE_1E6;
-        }
     }
 
     /**
@@ -751,8 +748,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 _deductionFromIndex;
         
         if (_totalLiquidity != 0) {
-            _deductionFromIndex = (_debt * _totalCredit * _MAGIC_SCALE_1E6) /
-                _totalLiquidity;
+            _deductionFromIndex = _debt * _totalCredit / _totalLiquidity;
         }
         
         uint256 _actualDeduction;
@@ -764,10 +760,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             if (_credit != 0) {
                 uint256 _shareOfIndex = (_credit * _MAGIC_SCALE_1E6) /
                     _totalCredit;
-                uint256 _redeemAmount = _divCeil(
-                    _deductionFromIndex * _shareOfIndex,
-                    MAGIC_SCALE_1E6 * MAGIC_SCALE_1E6
-                );
+                uint256 _redeemAmount = _deductionFromIndex * _shareOfIndex / MAGIC_SCALE_1E6;
                 _actualDeduction += IIndexTemplate(_index).compensate(
                     _redeemAmount
                 );
@@ -778,12 +771,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         }
 
         uint256 _deductionFromPool = _debt -
-            _deductionFromIndex /
-            _MAGIC_SCALE_1E6;
-        uint256 _shortage = _deductionFromIndex /
-            _MAGIC_SCALE_1E6 -
+            _deductionFromIndex;
+        uint256 _shortage = _deductionFromIndex  -
             _actualDeduction;
-
+            
         if (_deductionFromPool != 0) {
             vault.offsetDebt(_deductionFromPool, address(this));
         }

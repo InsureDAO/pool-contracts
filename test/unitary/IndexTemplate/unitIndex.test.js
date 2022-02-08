@@ -2102,42 +2102,61 @@ describe("Index", function () {
       expect(withdrawable).to.equal(expectedWithdrawable);
     });
 
-    it.skip("should return zero when _leverage > targetLev + upperSlack", async function () {
-      //setup
-      await market1.connect(alice).deposit(depositAmount);
+    it("should return zero when more than the leveraged amount is locked", async function () {
+
       await index.connect(alice).deposit(depositAmount);
 
-      //test
-      let insureAmount = depositAmount.div(2); //5000
+      let insureAmount = depositAmount; //10000
 
+      //income: 900. 
       await market1.connect(bob).insure(
         insureAmount, //insured amount
         depositAmount, //max-cost
         YEAR, //span
         target //targetID
       );
+
+      //income: 900. 
       await market2
         .connect(bob)
         .insure(insureAmount, depositAmount, YEAR, target);
 
-      expect(await index.withdrawable()).is.not.equal(ZERO);
+      //Change the leverage rate to 1.5x. 
+      await index.setLeverage(1500000);
+      expect(await index.leverage()).to.equal(1694915);
 
-      await index.adjustAlloc();
 
-      expect(await index.withdrawable()).is.not.equal(ZERO);
+      //should return zero since over leveraged
+      let withdrawable = await index.withdrawable();
+      expect(withdrawable).to.equal(0);
 
-      //test
-      await index.connect(alice).requestWithdraw(depositAmount.div(10)); //10% of the depositeAmount
-      await moveForwardPeriods(7);
 
-      await index.connect(alice).withdraw(depositAmount.div(10)); //10% of the depositeAmount. leverage is higher than targetLev
+      //this won't change when only one side of pool liquidity is added
+      await market1.connect(alice).deposit(depositAmount);
+      withdrawable = await index.withdrawable();
+      expect(withdrawable).to.equal(0);
 
-      expect(await index.withdrawable()).is.not.equal(ZERO);
+      //but this situation changes when the other side of liquidity is added
+      await market2.connect(alice).deposit(depositAmount);
+      withdrawable = await index.withdrawable();
+      expect(withdrawable).to.equal(11800);
+    });
 
-      //Main test
-      await parameters.setUpperSlack(index.address, ZERO);
+    it("should return full amount when the locked amount is fully available", async function () {
 
-      expect(await index.withdrawable()).is.equal(ZERO);
+      await index.connect(alice).deposit(depositAmount);
+      await market2.connect(alice).deposit(depositAmount);
+
+      let insureAmount = depositAmount.mul(1); //10000
+
+      //income: 900. 
+      await market2
+        .connect(bob)
+        .insure(insureAmount, depositAmount, YEAR, target);
+
+      //should return zero since over leveraged
+      let withdrawable = await index.withdrawable();
+      expect(withdrawable).to.equal(10450);
     });
   });
 

@@ -43,6 +43,8 @@ interface IVault {
         returns (uint256);
 
     function utilize() external returns (uint256 _amount);
+    function valueAll() external view returns (uint256);
+
 
     function token() external returns (address);
 

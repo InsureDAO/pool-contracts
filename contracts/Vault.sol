@@ -164,7 +164,7 @@ contract Vault is IVault {
             "WITHDRAW-VALUE_BADCONDITIONS"
         );
 
-        _attributions = (totalAttributions * _amount) / _valueAll;
+        _attributions = _divRoundUp(totalAttributions * _amount, valueAll());
         uint256 _available = available();
 
         require(
@@ -210,7 +210,7 @@ contract Vault is IVault {
                 underlyingValue(msg.sender, _valueAll) >= _amount,
             "TRANSFER-VALUE_BADCONDITIONS"
         );
-        _attributions = (_amount * totalAttributions) / _valueAll;
+        _attributions = _divRoundUp(totalAttributions * _amount, valueAll());
         attributions[msg.sender] -= _attributions;
         attributions[_destination] += _attributions;
     }
@@ -246,7 +246,7 @@ contract Vault is IVault {
                 underlyingValue(msg.sender, _valueAll) >= _amount,
             "ERROR_REPAY_DEBT_BADCONDITIONS"
         );
-        _attributions = (_amount * totalAttributions) / _valueAll;
+         _attributions = _divRoundUp(totalAttributions * _amount, valueAll());
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
         balance -= _amount;
@@ -378,19 +378,24 @@ contract Vault is IVault {
      * @notice utilize all available underwritten funds into the set controller.
      * @return _amount amount of tokens utilized
      */
-    function utilize() external override returns (uint256 _amount) {
+    function utilize() external override returns (uint256) {
         require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
         
         address _token = token;
         if (keeper != address(0)) {
             require(msg.sender == keeper, "ERROR_NOT_KEEPER");
         }
-        _amount = available(); //balance
+
+        uint256 _amount = controller.utilizeAmount(); //balance
+        require(_amount <= available(), "EXCEED_AVAILABLE");
+
         if (_amount != 0) {
             IERC20(_token).safeTransfer(address(controller), _amount);
             balance -= _amount;
             controller.earn(_token, _amount);
         }
+
+        return _amount;
     }
 
     /**
@@ -526,12 +531,17 @@ contract Vault is IVault {
             _token == token &&
             _balance < _tokenBalance
         ) {
-            uint256 _redundant;
-            unchecked{
-                _redundant = _tokenBalance - _balance;
+            uint256 _utilized = controller.valueAll();
+            uint256 _actualValue = IERC20(token).balanceOf(address(this)) + _utilized;
+            uint256 _virtualValue = balance + _utilized;
+            if(_actualValue > _virtualValue){
+                uint256 _redundant;
+                unchecked{
+                    _redundant = _tokenBalance - _balance;
+                }
+                IERC20(token).safeTransfer(_to, _redundant);
             }
-            IERC20(token).safeTransfer(_to, _redundant);
-        } else if (_tokenBalance != 0) {
+        } else if (_token != address(token) && _tokenBalance != 0) {
             IERC20(_token).safeTransfer(
                 _to,
                 _tokenBalance
@@ -566,5 +576,19 @@ contract Vault is IVault {
         }
 
         emit KeeperChanged(_keeper);
+    }
+
+    /**
+     * @notice internal division function to prevent underflow
+     * @param _a number to get divided by _b
+     * @param _b number to divide _a
+     */
+    function _divRoundUp(uint _a, uint _b) internal pure returns (uint256) {
+        require(_a >= _b, "ERROR_NUMERATOR_TOO_SMALL");
+        uint _c = _a/ _b;
+        if(_c * _b != _a){
+            _c += 1;
+        }
+        return _c;
     }
 }
