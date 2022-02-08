@@ -307,7 +307,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         _retVal = (_amount * _liquidity) / _supply;
 
         require(
-            _retVal <= availableBalance(),
+            _retVal <= _availableBalance(),
             "WITHDRAW_INSUFFICIENT_LIQUIDITY"
         );
 
@@ -458,7 +458,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         require(
             _index.exist &&
             _index.credit >= _credit &&
-            _credit <= availableBalance(),
+            _credit <= _availableBalance(),
             "WITHDRAW_CREDIT_BAD_CONDITIONS"
         );
 
@@ -514,7 +514,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             "ERROR: INSURE_MARKET_PENDING"
         );
         require(
-            _amount <= availableBalance(),
+            _amount <= _availableBalance(),
             "INSURE_EXCEEDED_AVAIL_BALANCE"
         );
 
@@ -890,7 +890,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return available liquidity of this pool
      */
     function availableBalance()
-        public
+        external
         view
         override
         returns (uint256)
