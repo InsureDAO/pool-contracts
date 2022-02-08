@@ -159,8 +159,7 @@ describe("CDS", function () {
         usdc.address,
         usdc.address,
         registry.address,
-        parameters.address,
-        gov.address,
+        parameters.address
       ]
     );
     let receipt = await tx.wait();

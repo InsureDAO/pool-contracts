@@ -7,23 +7,22 @@ const fs = require("fs");
  */
 
 async function main() {
-  //configs
-  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+  //----- IMPORT -----//
   [creator] = await ethers.getSigners();
 
+  const {
+    ZERO_ADDRESS
+  } = require("./config.js");
 
-  //contracts
-  const USDC = await ethers.getContractFactory("ERC20Mock");
+  const USDC = await ethers.getContractFactory("ERC20Mock"); //6 decimals
 
 
   //----- DEPLOY -----//
   const usdc = await USDC.deploy(creator.address);
-  //await usdc.deployed();
   console.log("usdc deployed to:", usdc.address);
 
 
-
-  //write deployments.js
+  //----- WRITE -----//
   let text = 
     `
     const USDCAddress = "${usdc.address}" \n 

@@ -7,26 +7,15 @@ const fs = require("fs");
  */
 
 async function main() {
-  //configs
-  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+  //----- IMPORT -----//
   [creator] = await ethers.getSigners();
 
+  const {
+    ZERO_ADDRESS,
+    GOV_TOKENS_RINKEBY,
+    INDEX_COUNT
+  } = require("./config.js");
 
-  //contracts
-  const Ownership = await ethers.getContractFactory("Ownership");
-  const USDC = await ethers.getContractFactory("ERC20Mock");
-  const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
-  const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
-  const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
-
-  const Factory = await ethers.getContractFactory("Factory");
-  const Vault = await ethers.getContractFactory("Vault");
-  const Registry = await ethers.getContractFactory("Registry");
-
-  const PremiumModel = await ethers.getContractFactory("BondingPremium");
-  const Parameters = await ethers.getContractFactory("Parameters");
-
-  //addresses
   const {
     USDCAddress,
     OwnershipAddress,
@@ -36,140 +25,111 @@ async function main() {
     ParametersAddress,
     VaultAddress,
     PoolTemplateAddress,
-    CDSTemplateAddress,
     IndexTemplateAddress,
+    CDSTemplateAddress,
+    Pools,
+    Indicies,
+    CDS
   } = require("./deployments.js");
 
-  //----- DEPLOY -----//
-
-  //attach
-  const usdc = await USDC.attach(USDCAddress);
-  console.log("usdc attached to:", usdc.address);
-
-  const ownership = await Ownership.attach(OwnershipAddress);
-  console.log("ownership attached to:", ownership.address);
-
-  const registry = await Registry.attach(RegistryAddress);
-  console.log("registry attached to:", registry.address);
-
-  const factory = await Factory.attach(FactoryAddress);
-  console.log("factory attached to:", factory.address);
-
-  const premium = await PremiumModel.attach(PremiumModelAddress);
-  console.log("premium attached to:", premium.address);
-
-  const parameters = await Parameters.attach(ParametersAddress);
-  console.log("parameters attached to:", parameters.address);
+  const Ownership = await ethers.getContractFactory("Ownership");
+  const USDC = await ethers.getContractFactory("ERC20Mock");
+  const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+  const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
+  const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
+  const Factory = await ethers.getContractFactory("Factory");
+  const Vault = await ethers.getContractFactory("Vault");
+  const Registry = await ethers.getContractFactory("Registry");
+  const PremiumModel = await ethers.getContractFactory("BondingPremium");
+  const Parameters = await ethers.getContractFactory("Parameters");
   
+  const usdc = await USDC.attach(USDCAddress);
+  const ownership = await Ownership.attach(OwnershipAddress);
+  const registry = await Registry.attach(RegistryAddress);
+  const factory = await Factory.attach(FactoryAddress);
+  const premium = await PremiumModel.attach(PremiumModelAddress);
+  const parameters = await Parameters.attach(ParametersAddress);
   const vault = await Vault.attach(VaultAddress);
-  console.log("vault attached to:", vault.address);
-
   const poolTemplate = await PoolTemplate.attach(PoolTemplateAddress);
-  console.log("poolTemplate attached to:", poolTemplate.address);
-
   const cdsTemplate = await CDSTemplate.attach(CDSTemplateAddress);
-  console.log("cdsTemplate attached to:", cdsTemplate.address);
-
   const indexTemplate = await IndexTemplate.attach(IndexTemplateAddress);
+
+  console.log("usdc attached to:", usdc.address);
+  console.log("ownership attached to:", ownership.address);
+  console.log("registry attached to:", registry.address);
+  console.log("factory attached to:", factory.address);
+  console.log("premium attached to:", premium.address);
+  console.log("parameters attached to:", parameters.address);
+  console.log("vault attached to:", vault.address);
+  console.log("poolTemplate attached to:", poolTemplate.address);
+  console.log("cdsTemplate attached to:", cdsTemplate.address);
   console.log("indexTemplate attached to:", indexTemplate.address);
 
-
-  //----- CREATE MARKETS -----//
-  
-  const marketAddress1 = await factory.markets(0);
-  const marketAddress2 = await factory.markets(1);
-  const marketAddress3 = await factory.markets(2);
-  market1 = await PoolTemplate.attach(marketAddress1);
-  market2 = await PoolTemplate.attach(marketAddress2);
-  market3 = await PoolTemplate.attach(marketAddress3);
-  console.log("pool1 deployed to", market1.address);
-  console.log("pool2 deployed to", market2.address);
-  console.log("pool3 deployed to", market3.address);
-
-  //cds&index
-  tx = await factory.createMarket(
-    cdsTemplate.address,
-    "Here is metadata.",
-    [0],
-    [usdc.address, registry.address, parameters.address]
-  );
-  await tx.wait();
-
-  tx = await factory.createMarket(
-    indexTemplate.address,
-    "Here is metadata.",
-    [0],
-    [usdc.address, registry.address, parameters.address]
-  );
-  await tx.wait();
-
-  const marketAddress4 = await factory.markets(3);
-  const marketAddress5 = await factory.markets(4);
-  cds = await CDSTemplate.attach(marketAddress4);
-  index = await IndexTemplate.attach(marketAddress5);
-  console.log("cds deployed to", marketAddress4);
-  console.log("index deployed to", marketAddress5);
-
-  //set parameters
-  tx = await registry.setCDS(ZERO_ADDRESS, cds.address);
-  await tx.wait();
-
-  tx = await index.set(0, market1.address, "1000");
-  await tx.wait();
-  tx = await index.set(1, market2.address, "1000");
-  await tx.wait();
-  tx = await index.set(2, market3.address, "1000");
-  await tx.wait();
-
-  tx = await index.setLeverage("2000");
-  console.log("all done");
-
-  //write deployments.js
-  let text = 
-    `
-    const USDC = "${usdc.address}" 
-    const OwnershipAddress = "${ownership.address}"  
-    const RegistryAddress = "${registry.address}"  
-    const FactoryAddress = "${factory.address}"  
-    const PremiumModelAddress = "${premium.address}"  
-    const ParametersAddress = "${parameters.address}"  
-    const VaultAddress = "${vault.address}"
-
-    const PoolTemplateAddress = "${poolTemplate.address}" 
-    const IndexTemplateAddress = "${indexTemplate.address}"  
-    const CDSTemplateAddress = "${cdsTemplate.address}"
-
-    const Market1 = "${market1.address}"
-    const Market2 = "${market2.address}" 
-    const Market3 = "${market3.address}" 
-    const Index = "${index.address}" 
-    const CDS = "${cds.address}" 
-
-
-    Object.assign(exports, {
-      USDCAddress,
-      OwnershipAddress,
-      RegistryAddress,
-      FactoryAddress,
-      PremiumModelAddress,
-      ParametersAddress,
-      VaultAddress,
-      PoolTemplateAddress,
-      IndexTemplateAddress,
-      CDSTemplateAddress,
-      Market1,
-      Market2,
-      Market3,
-      IndexAddress,
-      CDSAddress,
-    })
-    `
-  try {
-    fs.writeFileSync("./scripts/Rinkeby/deployments.js", text);
-    console.log('write end');
-  }catch(e){
-    console.log(e);
+  function getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min) + min); //The maximum is exclusive and the minimum is inclusive
   }
+
+  //----- Set Indicies -----//
+  let pairs = new Array(Pools.length)
+  for(let i=0; i<pairs.length; i++){
+    pairs[i] = 0
+  }
+
+  pairs[8] = 1
+  pairs[11] = 1
+  pairs[9] = 1
+  pairs[5] = 1
+  pairs[12] = 1
+  pairs[1] = 1
+  pairs[13] = 1
+  pairs[10] = 1
+  pairs[6] = 1
+
+
+  //Randomly set a random number of pools.
+  for(const indexAddress of Indicies){
+    const index = await IndexTemplate.attach(indexAddress);
+
+    let poolCounts = getRandomInt(3, 11); //Parameters.maxList()
+
+    let settingPools = []
+    for(let i=0; i<poolCounts; i++){
+      console.log(i)
+      let pass = false
+
+      while(!pass){
+        let slot = getRandomInt(0, Pools.length)
+        if(settingPools.includes(slot) == false){
+          settingPools.push(slot)
+          pass = true
+        }
+      }
+    }
+    console.log("settingPools:", settingPools)
+
+    //set
+    console.log("index: ", index.address)
+    for(let i = 0; i < settingPools.length; i++){
+      tx = await index.set(i, pairs[settingPools[i]], Pools[settingPools[i]], "1000");
+      await tx.wait()
+      console.log("set(",i, ",", pairs[settingPools[i]], ",", Pools[settingPools[i]], "1000")
+    }
+
+    tx = await index.setLeverage("2000000"); //x2
+    await tx.wait()
+
+    //calc index:pool pair
+    for(const pool of settingPools){
+      pairs[pool]++
+    }
+  }
+  
+  await registry.setCDS(ZERO_ADDRESS, CDS[0].address);
+
+
+  console.log("all done");
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -15,16 +15,23 @@ module.exports = {
   solidity: "0.8.10",
   defaultNetwork: "hardhat",
   networks: {
-    hardhat: {},
+    hardhat: {
+      initialBaseFeePerGas: 0,
+      //forking: {url: "https://eth-mainnet.alchemyapi.io/v2/-vmufhhPyGeTxZH6ep9q2PuHjaPp4l0u",} //remove comment when testing mainnet fork
+    },
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${KEY}`],
       gas: 6e6,
       gasPrice: 1e9,
-      timeout: 2000000000
+      timeout: 2000000000,
     },
     ropsten: {
       url: `https://ropsten.infura.io/v3/${INFURA_KEY}`,
+      accounts: [`0x${KEY}`]
+    },
+    rinkarbitrum: {
+      url: 'https://rinkeby.arbitrum.io/rpc',
       accounts: [`0x${KEY}`]
     },
   },

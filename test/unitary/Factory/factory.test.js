@@ -160,8 +160,7 @@ describe("Factory", function () {
           dai.address,
           dai.address,
           registry.address,
-          parameters.address,
-          creator.address,
+          parameters.address
         ]
       );
       expect(market).to.exist;
@@ -225,7 +224,6 @@ describe("Factory", function () {
             dai.address,
             registry.address,
             parameters.address,
-            alice.address,
           ]
         );
       await expect(
@@ -240,7 +238,6 @@ describe("Factory", function () {
               dai.address,
               registry.address,
               parameters.address,
-              alice.address,
             ]
           )
       ).to.revertedWith("ERROR: DUPLICATE_MARKET");
@@ -316,7 +313,6 @@ describe("Factory", function () {
           dai.address,
           registry.address,
           parameters.address,
-          creator.address,
         ]
       );
       expect(market).to.exist;
@@ -398,8 +394,7 @@ describe("Factory", function () {
           dai.address,
           dai.address,
           registry.address,
-          parameters.address,
-          creator.address,
+          parameters.address
         ]
       );
       expect(market).to.exist;
@@ -467,8 +462,7 @@ describe("Factory", function () {
             dai.address,
             dai.address,
             registry.address,
-            parameters.address,
-            alice.address,
+            parameters.address
           ]
         );
       expect(market).to.exist;
