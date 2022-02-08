@@ -303,7 +303,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         _retVal = (_amount * _liquidity) / _supply;
 
         require(
-            _retVal <= availableBalance(),
+            _retVal <= _availableBalance(),
             "WITHDRAW_INSUFFICIENT_LIQUIDITY"
         );
 
@@ -454,7 +454,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         require(
             _index.exist &&
             _index.credit >= _credit &&
-            _credit <= availableBalance(),
+            _credit <= _availableBalance(),
             "WITHDRAW_CREDIT_BAD_CONDITIONS"
         );
 
@@ -511,7 +511,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             "ERROR: INSURE_MARKET_PENDING"
         );
         require(
-            _amount <= availableBalance(),
+            _amount <= _availableBalance(),
             "INSURE_EXCEEDED_AVAIL_BALANCE"
         );
 
@@ -863,17 +863,17 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     }
 
     /**
-     * @notice Get allocated credit
+     * @notice Get allocated credit & available balance
      * @param _index address of an index
      * @return The balance of credit allocated by the specified index
      */
-    function allocatedCredit(address _index)
+    function pairValues(address _index)
         external
         view
         override
-        returns (uint256)
+        returns (uint256, uint256)
     {
-        return indicies[_index].credit;
+        return (indicies[_index].credit, _availableBalance());
     }
 
     /**
@@ -881,9 +881,17 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return available liquidity of this pool
      */
     function availableBalance()
-        public
+        external
         view
         override
+        returns (uint256)
+    {
+        return _availableBalance();
+    }
+
+    function _availableBalance()
+        internal
+        view
         returns (uint256)
     {
         uint256 _totalLiquidity = totalLiquidity();
