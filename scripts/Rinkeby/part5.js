@@ -72,21 +72,12 @@ async function main() {
   }
 
   //----- Set Indicies -----//
+  
+  //memory for PoolTemplate:indexList[]
   let pairs = new Array(Pools.length)
   for(let i=0; i<pairs.length; i++){
     pairs[i] = 0
   }
-
-  pairs[8] = 1
-  pairs[11] = 1
-  pairs[9] = 1
-  pairs[5] = 1
-  pairs[12] = 1
-  pairs[1] = 1
-  pairs[13] = 1
-  pairs[10] = 1
-  pairs[6] = 1
-
 
   //Randomly set a random number of pools.
   for(const indexAddress of Indicies){
@@ -125,9 +116,8 @@ async function main() {
       pairs[pool]++
     }
   }
-  
-  await registry.setCDS(ZERO_ADDRESS, CDS[0].address);
 
+  await registry.setCDS(ZERO_ADDRESS, CDS[0]);
 
   console.log("all done");
 }
