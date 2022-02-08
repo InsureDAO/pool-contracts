@@ -137,7 +137,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
             _mintAmount = _amount;
         }
 
-    emit Deposit(msg.sender, _amount, _mintAmount);
+        emit Deposit(msg.sender, _amount, _mintAmount);
 
         //mint iToken
         _mint(msg.sender, _mintAmount);

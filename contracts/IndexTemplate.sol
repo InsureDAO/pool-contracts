@@ -293,7 +293,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                         unchecked {
                             _lockedCredit = _allocated - _availableBalance;
                         }
-                        uint256 _lockScore = _lockedCredit * MAGIC_SCALE_1E6/ _allocPoint;
+                        uint256 _lockScore = _lockedCredit * _MAGIC_SCALE_1E6/ _allocPoint;
                         if (_highestLockScore < _lockScore) {
                             _highestLockScore = _lockScore;
                             _targetLockedCreditScore = _lockedCredit;
@@ -309,7 +309,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             if (_highestLockScore == 0) {
                 return _totalLiquidity;
             } else {
-                uint256 _necessaryAmount = _targetLockedCreditScore * totalAllocPoint * MAGIC_SCALE_1E6
+                uint256 _necessaryAmount = _targetLockedCreditScore * totalAllocPoint * _MAGIC_SCALE_1E6
                     / (_targetAllocPoint * targetLev);
                 if (_necessaryAmount < _totalLiquidity) {
                     unchecked {
