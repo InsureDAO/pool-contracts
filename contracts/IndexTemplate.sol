@@ -274,7 +274,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         if (_totalLiquidity != 0) {
             uint256 _length = poolList.length;
-            uint256 _lowestAvailableRate = _MAGIC_SCALE_1E6;
+            uint256 _highestLockScore;
             uint256 _targetAllocPoint;
             uint256 _targetLockedCreditScore;
             //Check which pool has the lowest available rate and keep stats
@@ -289,14 +289,13 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     .availableBalance();
                     //check if some portion of credit is locked
                     if (_allocated > _availableBalance) {
-                        uint256 _availableRate = (_availableBalance *
-                        _MAGIC_SCALE_1E6) / _allocated;
                         uint256 _lockedCredit;
                         unchecked {
                             _lockedCredit = _allocated - _availableBalance;
                         }
-                        if (_availableRate < _lowestAvailableRate || i == 0) {
-                            _lowestAvailableRate = _availableRate;
+                        uint256 _lockScore = _lockedCredit * MAGIC_SCALE_1E6/ _allocPoint;
+                        if (_highestLockScore < _lockScore) {
+                            _highestLockScore = _lockScore;
                             _targetLockedCreditScore = _lockedCredit;
                             _targetAllocPoint = _allocPoint;
                         }
@@ -307,7 +306,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 }
             }
             //Calculate the return value
-            if (_lowestAvailableRate == _MAGIC_SCALE_1E6) {
+            if (_highestLockScore == 0) {
                 return _totalLiquidity;
             } else {
                 uint256 _necessaryAmount = _targetLockedCreditScore * totalAllocPoint * MAGIC_SCALE_1E6
@@ -368,15 +367,37 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 uint256 _available = IPoolTemplate(_pool).availableBalance();
                 //if needed to withdraw credit but unable, then withdraw all available.
                 //Otherwise, skip.
-                if (
-                    (_current > _target && _current - _target > _available) ||
-                    IPoolTemplate(_pool).paused()
+                if(
+                    IPoolTemplate(_pool).marketStatus() == IPoolTemplate.MarketStatus.Payingout
+                ){
+                    totalAllocatedCredit -= _current;
+                    _poolList[i].addr = address(0);
+                    _allocatable = _safeMinus(_allocatable, _current);
+                    _allocatablePoints -= _allocation;
+                } else if (
+                    _current > _target && _current - _target > _available
                 ) {
                     IPoolTemplate(_pool).withdrawCredit(_available);
                     _totalAllocatedCredit -= _available;
                     _poolList[i].addr = address(0);
                     _allocatable -= _current - _available;
                     _allocatablePoints -= _allocation;
+                } else if (
+                    IPoolTemplate(_pool).paused()
+                ) {
+                    if(_current > _available){
+                        IPoolTemplate(_pool).withdrawCredit(_available);
+                        totalAllocatedCredit -= _available;
+                        _poolList[i].addr = address(0);
+                        _allocatable -= _safeMinus(_allocatable, _available);
+                        _allocatablePoints -= _allocation;
+                    } else {
+                        IPoolTemplate(_pool).withdrawCredit(_current);
+                        totalAllocatedCredit -= _current;
+                        _poolList[i].addr = address(0);
+                        _allocatable -= _safeMinus(_allocatable, _current);
+                        _allocatablePoints -= _allocation;
+                    }
                 } else {
                     _poolList[i].addr = _pool;
                     _poolList[i].current = _current;
@@ -461,7 +482,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             }
             _compensated = vault.underlyingValue(address(this));
         }
-        adjustAlloc();
         emit Compensated(msg.sender, _compensated);
     }
 
@@ -485,7 +505,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 ++i;
             }
         }
-
+        adjustAlloc();
         locked = false;
         emit Resumed();
     }
@@ -627,6 +647,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 uint256 _current = IPoolTemplate(_poolAddress).allocatedCredit(
                     address(this)
                 );
+                require(
+                    IPoolTemplate(_poolAddress).marketStatus() == IPoolTemplate.MarketStatus.Trading &&
+                    IPoolTemplate(_poolAddress).availableBalance() >= _current,
+                    "ERROR: CANNOT_EXIT_POOL"
+                );
                 IPoolTemplate(_poolAddress).withdrawCredit(_current);
             }
             IPoolTemplate(_pool).registerIndex(_indexB);
@@ -691,4 +716,17 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             }
         }
     }
+
+    /**
+     * @notice Overflow free minus function that returns zero
+     * @return _result result of the subtraction operation
+     */
+    function _safeMinus(uint256 _a, uint256 _b) internal pure returns (uint256 _result) {
+        if(_a >= _b){
+            _result = _a - _b;
+        }else{
+            _result = 0;
+        }
+    }
+    
 }

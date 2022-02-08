@@ -104,7 +104,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
 
         initialized = true;
 
-        initializeToken("InsureDAO-CDS", "iCDS", IERC20Metadata(_references[0]).decimals());
+        initializeToken("InsureDAO-Reserve", "iReserve", IERC20Metadata(_references[0]).decimals());
 
         parameters = IParameters(_references[2]);
         vault = IVault(parameters.getVault(_references[0]));
