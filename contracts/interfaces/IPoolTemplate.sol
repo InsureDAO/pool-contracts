@@ -24,7 +24,7 @@ abstract contract IPoolTemplate {
         returns (uint256 _retVal);
 
     function marketStatus() external view virtual returns(MarketStatus);
-    function availableBalance() public view virtual returns (uint256 _balance);
+    function availableBalance() external view virtual returns (uint256 _balance);
 
     function utilizationRate() external view virtual returns (uint256 _rate);
     function totalLiquidity() public view virtual returns (uint256 _balance);
