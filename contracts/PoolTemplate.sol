@@ -882,7 +882,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         override
         returns (uint256, uint256)
     {
-        return (indicies[_index].credit, availableBalance());
+        return (indicies[_index].credit, _availableBalance());
     }
 
     /**
@@ -893,6 +893,14 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         public
         view
         override
+        returns (uint256)
+    {
+        return _availableBalance();
+    }
+
+    function _availableBalance()
+        internal
+        view
         returns (uint256)
     {
         uint256 _totalLiquidity = totalLiquidity();
