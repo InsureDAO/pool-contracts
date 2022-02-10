@@ -496,8 +496,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         for (uint256 i; i < _poolLength;) {
             require(
-                !(IPoolTemplate(poolList[i]).paused()),
-                "ERROR: POOL_IS_PAUSED"
+                IPoolTemplate(poolList[i]).marketStatus() == IPoolTemplate.MarketStatus.Trading,
+                "ERROR: POOL_IS_PAYINGOUT"
             );
             unchecked {
                 ++i;

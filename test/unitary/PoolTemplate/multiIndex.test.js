@@ -323,7 +323,7 @@ describe("multiIndex", function () {
   describe("registerIndex", function () {
     beforeEach(async () => {
     });
-    it("", async function () {
+    it("renew index", async function () {
       
     });
   });
