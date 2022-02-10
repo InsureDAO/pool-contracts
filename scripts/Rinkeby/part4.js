@@ -67,7 +67,8 @@ async function main() {
 
   //----- CREATE MARKETS -----//
   let tx;
-  await usdc.approve(vault.address, APPROVE_AMOUNT)
+  tx = await usdc.approve(vault.address, APPROVE_AMOUNT)
+  await tx.wait()
 
   //PoolTemplate
   for(const addr of GOV_TOKENS_RINKEBY){

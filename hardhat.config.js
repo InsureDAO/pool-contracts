@@ -23,7 +23,7 @@ module.exports = {
       url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${KEY}`],
       gas: 6e6,
-      gasPrice: 1e9,
+      gasPrice: 1e11,
       timeout: 2000000000,
     },
     ropsten: {
@@ -46,7 +46,7 @@ module.exports = {
   },
   paths: {
     sources: "./contracts",
-    tests: "./test/unitary",
+    tests: "./test/unitary/PoolTemplate",
     cache: "./cache",
     artifacts: "./artifacts",
   },

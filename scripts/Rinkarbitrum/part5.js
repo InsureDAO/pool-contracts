@@ -1,9 +1,9 @@
 const hre = require("hardhat");
 const ethers = hre.ethers;
-const { BigNumber } = require('ethers');
+const fs = require("fs");
 
 /***
- * attach and setup for all contracts
+ * deploy markets
  */
 
 async function main() {
@@ -11,7 +11,9 @@ async function main() {
   [creator] = await ethers.getSigners();
 
   const {
-    ZERO_ADDRESS
+    ZERO_ADDRESS,
+    GOV_TOKENS_RINKEBY,
+    INDEX_COUNT
   } = require("./config.js");
 
   const {
@@ -23,8 +25,11 @@ async function main() {
     ParametersAddress,
     VaultAddress,
     PoolTemplateAddress,
-    CDSTemplateAddress,
     IndexTemplateAddress,
+    CDSTemplateAddress,
+    Pools,
+    Indicies,
+    CDS
   } = require("./deployments.js");
 
   const Ownership = await ethers.getContractFactory("Ownership");
@@ -60,125 +65,61 @@ async function main() {
   console.log("cdsTemplate attached to:", cdsTemplate.address);
   console.log("indexTemplate attached to:", indexTemplate.address);
 
+  function getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min) + min); //The maximum is exclusive and the minimum is inclusive
+  }
 
-  //----- SETUP -----//
-  let tx = await registry.setFactory(factory.address);
+  //----- Set Indicies -----//
+  
+  //memory for PoolTemplate:indexList[]
+  let pairs = new Array(Pools.length)
+  for(let i=0; i<pairs.length; i++){
+    pairs[i] = 0
+  }
 
-  tx = await factory.approveTemplate(poolTemplate.address, true, true, false); //anyone can create pool.
+  //Randomly set a random number of pools.
+  for(const indexAddress of Indicies){
+    const index = await IndexTemplate.attach(indexAddress);
 
-  tx = await factory.approveTemplate(indexTemplate.address, true, false, true);
+    let poolCounts = getRandomInt(3, 5); //Parameters.maxList() = 10
 
-  tx = await factory.approveTemplate(cdsTemplate.address, true, false, true);
+    let settingPools = []
+    for(let i=0; i<poolCounts; i++){
+      console.log(i)
+      let pass = false
 
-  await tx.wait();
+      while(!pass){
+        let slot = getRandomInt(0, Pools.length)
+        if(settingPools.includes(slot) == false){
+          settingPools.push(slot)
+          pass = true
+        }
+      }
+    }
+    console.log("settingPools:", settingPools)
 
-  console.log(1)
+    //set
+    console.log("index: ", index.address)
+    for(let i = 0; i < settingPools.length; i++){
+      tx = await index.set(i, pairs[settingPools[i]], Pools[settingPools[i]], "1000");
+      await tx.wait()
+      console.log("set(",i, ",", pairs[settingPools[i]], ",", Pools[settingPools[i]], "1000")
+    }
 
+    tx = await index.setLeverage("2000000"); //x2
+    await tx.wait()
 
-  //pool setup
-  tx = await factory.approveReference(
-    poolTemplate.address,
-    0, //target governance token address
-    ZERO_ADDRESS,
-    true
-  );
+    //calc index:pool pair
+    for(const pool of settingPools){
+      pairs[pool]++
+    }
+  }
 
-  tx = await factory.approveReference(
-    poolTemplate.address,
-    1, //underlying token address
-    usdc.address,
-    true
-  );
+  await registry.setCDS(ZERO_ADDRESS, CDS[0]);
 
-  tx = await factory.approveReference(
-    poolTemplate.address,
-    2, //registry
-    registry.address,
-    true
-  );
-
-  tx = await factory.approveReference(
-    poolTemplate.address,
-    3, //parameter
-    parameters.address,
-    true
-  );
-
-  tx = await factory.setCondition(
-    poolTemplate.address,
-    0, //initial deposit
-    BigNumber.from("1000000000"), //1000USDC w/6decimals
-  );
-
-
-  console.log(2)
-  //index setup
-  tx = await factory.approveReference(
-    indexTemplate.address,
-    0,
-    usdc.address,
-    true
-  );
-
-  tx = await factory.approveReference(
-    indexTemplate.address,
-    1,
-    registry.address,
-    true
-  );
-
-  tx = await factory.approveReference(
-    indexTemplate.address,
-    2,
-    parameters.address,
-    true
-  );
-
-  console.log(3)
-  //cds setup
-  tx = await factory.approveReference(
-    cdsTemplate.address,
-    0,
-    usdc.address,
-    true
-  );
-
-  tx = await factory.approveReference(
-    cdsTemplate.address,
-    1,
-    registry.address,
-    true
-  );
-
-  await factory.approveReference(
-    cdsTemplate.address,
-    2,
-    parameters.address,
-    true
-  );
-
-  console.log(4)
-  //set parameters
-  tx = await parameters.setFeeRate(ZERO_ADDRESS, "10000");
-
-  tx = await parameters.setGrace(ZERO_ADDRESS, "259200");
-
-  tx = await parameters.setLockup(ZERO_ADDRESS, "7200");
-
-  tx = await parameters.setMinDate(ZERO_ADDRESS, "604800");
-
-  tx = await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
-
-  tx = await parameters.setWithdrawable(ZERO_ADDRESS, "604800");
-
-  tx = await parameters.setVault(usdc.address, vault.address);
-
-  tx = await parameters.setMaxList(ZERO_ADDRESS, "10");
-
-  await tx.wait();
-
-
-  console.log(5)
+  console.log("all done");
 }
 
 // We recommend this pattern to be able to use async/await everywhere

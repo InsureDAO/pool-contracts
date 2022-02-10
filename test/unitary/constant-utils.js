@@ -14,10 +14,13 @@ const DAY = BigNumber.from("86400");
 const ten_to_the_18 = BigNumber.from("1000000000000000000");
 const ten_to_the_6 = BigNumber.from("1000000");
 const ten_to_the_5 = BigNumber.from("100000");
+const ten_to_the_3 = BigNumber.from("1000");
 
 const ZERO = ethers.BigNumber.from("0");
 const ONE = ethers.BigNumber.from("1");
 const TWO = ethers.BigNumber.from("2");
+
+const INITIAL_DEPOSIT = ten_to_the_3.mul(ten_to_the_18)
 
 const short = [
     "0x4e69636b00000000000000000000000000000000000000000000000000000000",
@@ -83,6 +86,8 @@ Object.assign(exports, {
     ten_to_the_18,
     ten_to_the_6,
     ten_to_the_5,
+    ten_to_the_3,
+    INITIAL_DEPOSIT,
     ZERO,
     ONE,
     TWO,

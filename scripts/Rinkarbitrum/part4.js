@@ -1,9 +1,10 @@
 const hre = require("hardhat");
 const ethers = hre.ethers;
 const { BigNumber } = require('ethers');
+const fs = require("fs");
 
 /***
- * attach and setup for all contracts
+ * deploy markets
  */
 
 async function main() {
@@ -11,7 +12,10 @@ async function main() {
   [creator] = await ethers.getSigners();
 
   const {
-    ZERO_ADDRESS
+    ZERO_ADDRESS,
+    APPROVE_AMOUNT,
+    GOV_TOKENS_RINKEBY,
+    INDEX_COUNT,
   } = require("./config.js");
 
   const {
@@ -61,124 +65,103 @@ async function main() {
   console.log("indexTemplate attached to:", indexTemplate.address);
 
 
-  //----- SETUP -----//
-  let tx = await registry.setFactory(factory.address);
+  //----- CREATE MARKETS -----//
+  let tx;
+  tx = await usdc.approve(vault.address, APPROVE_AMOUNT)
+  await tx.wait()
 
-  tx = await factory.approveTemplate(poolTemplate.address, true, true, false); //anyone can create pool.
+  //PoolTemplate
+  for(const addr of GOV_TOKENS_RINKEBY){
+    console.log("creating pool for: ", addr)
+    tx = await factory.createMarket(
+      poolTemplate.address,
+      "meta",
+      [0, BigNumber.from("1000000000")], //initial deposit
+      [addr, usdc.address, registry.address, parameters.address]
+    );
+    await tx.wait()
+  }
 
-  tx = await factory.approveTemplate(indexTemplate.address, true, false, true);
+  //INDEX
+  for(let i=0; i<INDEX_COUNT; i++){
+    tx = await factory.createMarket(
+      indexTemplate.address,
+      "Here is metadata.",
+      [0],
+      [usdc.address, registry.address, parameters.address]
+    );
+    await tx.wait()
+  }
+  
 
-  tx = await factory.approveTemplate(cdsTemplate.address, true, false, true);
-
-  await tx.wait();
-
-  console.log(1)
-
-
-  //pool setup
-  tx = await factory.approveReference(
-    poolTemplate.address,
-    0, //target governance token address
-    ZERO_ADDRESS,
-    true
-  );
-
-  tx = await factory.approveReference(
-    poolTemplate.address,
-    1, //underlying token address
-    usdc.address,
-    true
-  );
-
-  tx = await factory.approveReference(
-    poolTemplate.address,
-    2, //registry
-    registry.address,
-    true
-  );
-
-  tx = await factory.approveReference(
-    poolTemplate.address,
-    3, //parameter
-    parameters.address,
-    true
-  );
-
-  tx = await factory.setCondition(
-    poolTemplate.address,
-    0, //initial deposit
-    BigNumber.from("1000000000"), //1000USDC w/6decimals
-  );
-
-
-  console.log(2)
-  //index setup
-  tx = await factory.approveReference(
-    indexTemplate.address,
-    0,
-    usdc.address,
-    true
-  );
-
-  tx = await factory.approveReference(
-    indexTemplate.address,
-    1,
-    registry.address,
-    true
-  );
-
-  tx = await factory.approveReference(
-    indexTemplate.address,
-    2,
-    parameters.address,
-    true
-  );
-
-  console.log(3)
-  //cds setup
-  tx = await factory.approveReference(
+  //CDS
+  tx = await factory.createMarket(
     cdsTemplate.address,
-    0,
-    usdc.address,
-    true
+    "Here is metadata.",
+    [0],
+    [usdc.address, registry.address, parameters.address]
   );
-
-  tx = await factory.approveReference(
-    cdsTemplate.address,
-    1,
-    registry.address,
-    true
-  );
-
-  await factory.approveReference(
-    cdsTemplate.address,
-    2,
-    parameters.address,
-    true
-  );
-
-  console.log(4)
-  //set parameters
-  tx = await parameters.setFeeRate(ZERO_ADDRESS, "10000");
-
-  tx = await parameters.setGrace(ZERO_ADDRESS, "259200");
-
-  tx = await parameters.setLockup(ZERO_ADDRESS, "7200");
-
-  tx = await parameters.setMinDate(ZERO_ADDRESS, "604800");
-
-  tx = await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
-
-  tx = await parameters.setWithdrawable(ZERO_ADDRESS, "604800");
-
-  tx = await parameters.setVault(usdc.address, vault.address);
-
-  tx = await parameters.setMaxList(ZERO_ADDRESS, "10");
-
-  await tx.wait();
+  await tx.wait()
 
 
-  console.log(5)
+  //Get Addresses
+  let markets = await registry.getAllMarkets();
+
+  let pools = []
+  let indicies = []
+  let cds = []
+
+  for(let i=0; i<markets.length; i++){
+    let text = `\n       "` + markets[i] + `"`
+
+    if(i < GOV_TOKENS_RINKEBY.length){
+      pools.push(text)
+    }else if(i < INDEX_COUNT + GOV_TOKENS_RINKEBY.length){
+      indicies.push(text)
+    }else{
+      cds.push(text)
+    }
+  }
+
+  //----- WRITE -----//
+  let text = 
+    `
+    const USDCAddress = "${usdc.address}" 
+    const OwnershipAddress = "${ownership.address}"  
+    const RegistryAddress = "${registry.address}"  
+    const FactoryAddress = "${factory.address}"  
+    const PremiumModelAddress = "${premium.address}"  
+    const ParametersAddress = "${parameters.address}"  
+    const VaultAddress = "${vault.address}"  \n
+    const PoolTemplateAddress = "${poolTemplate.address}" 
+    const IndexTemplateAddress = "${indexTemplate.address}"  
+    const CDSTemplateAddress = "${cdsTemplate.address}"  \n
+    const Pools= [${pools}\n      ]\n
+    const Indicies = [${indicies}\n      ]\n
+    const CDS = [${cds}\n      ]\n
+
+    Object.assign(exports, {
+      USDCAddress,
+      OwnershipAddress,
+      RegistryAddress,
+      FactoryAddress,
+      PremiumModelAddress,
+      ParametersAddress,
+      VaultAddress,
+      PoolTemplateAddress,
+      IndexTemplateAddress,
+      CDSTemplateAddress,
+      Pools,
+      Indicies,
+      CDS
+    })
+    `
+  try {
+    fs.writeFileSync("./scripts/Rinkarbitrum/deployments.js", text);
+    console.log('write end');
+  }catch(e){
+    console.log(e);
+  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
