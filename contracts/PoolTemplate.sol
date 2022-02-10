@@ -449,6 +449,11 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         override
         returns (uint256 _pending)
     {
+        require(
+            marketStatus == MarketStatus.Trading,
+            "POOL_IS_IN_TRADING_STATUS"
+        );
+
         IndexInfo storage _index = indicies[msg.sender];
 
         require(
