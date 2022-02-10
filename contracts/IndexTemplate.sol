@@ -640,6 +640,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             IPoolTemplate(_pool).registerIndex(_indexB);
             poolList.push(_pool);
         } else {
+            //action for existing slot
             address _poolAddress = poolList[_indexA];
             if (_poolAddress != address(0) && _poolAddress != _pool) {
                 uint256 _current;

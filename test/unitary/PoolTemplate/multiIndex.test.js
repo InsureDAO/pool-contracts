@@ -22,6 +22,7 @@ const {
   NULL_ADDRESS,
   ten_to_the_18,
   INITIAL_DEPOSIT,
+  SmartContractHackingCover,
   long,
   wrong,
   short,
@@ -59,6 +60,8 @@ describe("multiIndex", function () {
 
   const depositAmount = BigNumber.from("10000").mul(ten_to_the_18);
   const depositAmountLarge = BigNumber.from("40000").mul(ten_to_the_18);
+
+  const insureAmount = BigNumber.from("5000").mul(ten_to_the_18);
   const defaultRate = BigNumber.from("1000000");
 
   const defaultLeverage = BigNumber.from("1000000");
@@ -131,7 +134,7 @@ describe("multiIndex", function () {
     const Ownership = await ethers.getContractFactory("Ownership");
     const USDC = await ethers.getContractFactory("TestERC20Mock");
     const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
-    const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
+    IndexTemplate = await ethers.getContractFactory("IndexTemplate");
     const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
     const Factory = await ethers.getContractFactory("Factory");
     const Vault = await ethers.getContractFactory("Vault");
@@ -299,11 +302,11 @@ describe("multiIndex", function () {
 
     await registry.setCDS(ZERO_ADDRESS, cds.address); //default CDS
 
-    await index1.set("0", "0", market1.address, defaultLeverage); //set market1 to the Index
-    await index1.set("1", "0", market2.address, defaultLeverage); //set market2 to the Index
+    await index1.set("0", "0", market1.address, ten_to_the_18); //set market1 to the Index
+    await index1.set("1", "0", market2.address, ten_to_the_18); //set market2 to the Index
 
-    await index2.set("0", "1", market1.address, defaultLeverage); //set market1 to the Index
-    await index2.set("1", "1", market2.address, defaultLeverage); //set market2 to the Index
+    await index2.set("0", "1", market1.address, ten_to_the_18); //set market1 to the Index
+    await index2.set("1", "1", market2.address, ten_to_the_18); //set market2 to the Index
 
     await index1.setLeverage(targetLeverage); //2x
     await index2.setLeverage(targetLeverage); //2x
@@ -320,11 +323,110 @@ describe("multiIndex", function () {
     await restore(snapshotId);
   });
 
-  describe("registerIndex", function () {
+  describe("over write indexList", function () {
     beforeEach(async () => {
+      await usdc.connect(alice).approve(vault.address, depositAmount);
+      await index1.connect(alice).deposit(depositAmount)
+
+      {//sanity check
+        await verifyPoolsStatus({
+          pools: [
+            {
+              pool: market1,
+              totalSupply: INITIAL_DEPOSIT,
+              totalLiquidity: depositAmount.add(INITIAL_DEPOSIT),
+              availableBalance: depositAmount.add(INITIAL_DEPOSIT),
+              rate: defaultRate,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO,
+            },
+            {
+              pool: market2,
+              totalSupply: INITIAL_DEPOSIT,
+              totalLiquidity: depositAmount.add(INITIAL_DEPOSIT),
+              availableBalance: depositAmount.add(INITIAL_DEPOSIT),
+              rate: defaultRate,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO,
+            },
+          ],
+        });
+
+      }
+
+      await usdc.connect(alice).approve(vault.address, depositAmountLarge);
+      await index2.connect(alice).deposit(depositAmountLarge);
+
+      {//sanity check
+        await verifyPoolsStatus({
+          pools: [
+            {
+              pool: market1,
+              totalSupply: INITIAL_DEPOSIT,
+              totalLiquidity: depositAmount.add(INITIAL_DEPOSIT).add(depositAmountLarge),
+              availableBalance: depositAmount.add(INITIAL_DEPOSIT).add(depositAmountLarge),
+              rate: defaultRate,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO,
+            },
+            {
+              pool: market2,
+              totalSupply: INITIAL_DEPOSIT,
+              totalLiquidity: depositAmount.add(INITIAL_DEPOSIT).add(depositAmountLarge),
+              availableBalance: depositAmount.add(INITIAL_DEPOSIT).add(depositAmountLarge),
+              rate: defaultRate,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO,
+            },
+          ],
+        });
+
+      }
+
+      //create Index
+      let count = (await registry.getAllMarkets()).length
+
+      tx = await factory.createMarket(
+        indexTemplate.address,
+        "Here is metadata.",
+        [],
+        [usdc.address, registry.address, parameters.address]
+      );
+      await tx.wait();
+
+      let markets = await registry.getAllMarkets()
+
+      index3 = await IndexTemplate.attach(markets[count]);
     });
-    it("renew index", async function () {
-      
+    it("revert before withdrawCredit", async function () {
+      //should be reverted before withdrawCredit
+      await expect(index3.set(0, 0, market1.address, ten_to_the_18)).to.revertedWith(
+        "ERROR: UPDATE_RESTRICTED"
+      );
+    });
+
+    it("should set new index address", async function () {
+      await index1.set(0, 0, market1.address, ZERO) //withdrawCredit
+      await index3.set(0, 0, market1.address, ten_to_the_18)
+
+      expect(await market1.indexList(0)).to.equal(index3.address)
+    });
+
+    it("when index1 has rewardDebt", async function () {
+      await index1.set(0, 0, market1.address, ZERO) //withdrawCredit
+
+      await usdc.connect(alice).approve(vault.address, initialMint);
+      await market1.connect(alice).insure(insureAmount, insureAmount, YEAR, SmartContractHackingCover);
+
+      await index1.set(0, 0, market1.address, ten_to_the_18);
+      expect((await market1.indicies(index1.address)).rewardDebt).to.not.equal(ZERO)
+
+      await index1.set(0, 0, market1.address, ZERO); //this makes rewardDebt zero
+      expect((await market1.indicies(index1.address)).rewardDebt).to.equal(ZERO)
+
+      //success
+      await index3.set(0, 0, market1.address, ten_to_the_18)
+      expect(await market1.indexList(0)).to.equal(index3.address)
     });
   });
 });

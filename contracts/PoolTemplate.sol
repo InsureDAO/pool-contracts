@@ -16,6 +16,8 @@ import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IIndexTemplate.sol";
 
+import "hardhat/console.sol";
+
 contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     /**
      * EVENTS
@@ -389,12 +391,14 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         } else {
             address _indexAddress = indexList[_index];
             if (_indexAddress != address(0) && _indexAddress != msg.sender) {
-                 require(indicies[msg.sender].credit == 0,"ERROR: UPDATE_RESTRICTED");
-                 indicies[_indexAddress].index = 0;
-                 indicies[_indexAddress].exist = false;
-                 indicies[msg.sender].index = _index;
-                 indicies[msg.sender].exist = true;
-                 indexList[_index] = msg.sender;
+                require(indicies[msg.sender].credit == 0,"ERROR: UPDATE_RESTRICTED");
+                require(indicies[_indexAddress].credit == 0,"ERROR: UPDATE_RESTRICTED");
+
+                indicies[_indexAddress].index = 0;
+                indicies[_indexAddress].exist = false;
+                indicies[msg.sender].index = _index;
+                indicies[msg.sender].exist = true;
+                indexList[_index] = msg.sender;
             }
         }
     }
@@ -501,7 +505,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @param _amount target amount to get covered
      * @param _maxCost maximum cost to pay for the premium. revert if the premium is higher
      * @param _span length to get covered(e.g. 7 days)
-     * @param _target target id
+     * @param _target Insurance type id. eg Smart Contract Hacking Cover = 0x00..00
      * @return id of the insurance policy
      */
     function insure(

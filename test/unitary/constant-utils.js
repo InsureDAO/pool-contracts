@@ -22,6 +22,8 @@ const TWO = ethers.BigNumber.from("2");
 
 const INITIAL_DEPOSIT = ten_to_the_3.mul(ten_to_the_18)
 
+const SmartContractHackingCover = "0x0000000000000000000000000000000000000000000000000000000000000001";
+
 const short = [
     "0x4e69636b00000000000000000000000000000000000000000000000000000000",
 ];
@@ -88,6 +90,7 @@ Object.assign(exports, {
     ten_to_the_5,
     ten_to_the_3,
     INITIAL_DEPOSIT,
+    SmartContractHackingCover,
     ZERO,
     ONE,
     TWO,
