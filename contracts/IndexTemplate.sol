@@ -470,8 +470,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _value = vault.underlyingValue(address(this));
         if (_value >= _amount) {
             //When the deposited value without earned premium is enough to cover
-            vault.offsetDebt(_amount, msg.sender);
-            //vault.transferValue(_amount, msg.sender);
             _compensated = _amount;
         } else {
             //Withdraw credit to cashout the earnings
@@ -480,6 +478,12 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             }
             _compensated = vault.underlyingValue(address(this));
         }
+
+        vault.offsetDebt(_compensated, msg.sender);
+        
+        //totalLiquity has been changed
+        adjustAlloc();
+
         emit Compensated(msg.sender, _compensated);
     }
 

@@ -52,7 +52,7 @@ async function now() {
   return BigNumber.from((await ethers.provider.getBlock("latest")).timestamp);
 }
 
-describe.skip("Pool", function () {
+describe("Pool", function () {
   const initialMint = BigNumber.from("100000"); //initial token amount for users
 
   const depositAmount = BigNumber.from("10000"); //default deposit amount for test
