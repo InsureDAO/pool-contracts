@@ -1351,7 +1351,7 @@ describe("Index", function () {
           index: index,
           targetAddress: alice.address,
           valueOfUnderlying: depositAmount,
-          withdrawTimestamp: next, //updated
+          withdrawTimestamp: next.add(WEEK), //updated
           withdrawAmount: depositAmount, //updated
         });
       }
@@ -1402,7 +1402,7 @@ describe("Index", function () {
             index: index,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount,
-            withdrawTimestamp: next, //updated
+            withdrawTimestamp: next.add(WEEK), //updated
             withdrawAmount: depositAmount, //updated
           });
 
@@ -1810,7 +1810,7 @@ describe("Index", function () {
           index: index,
           targetAddress: alice.address,
           valueOfUnderlying: depositAmount,
-          withdrawTimestamp: next,
+          withdrawTimestamp: next.add(WEEK),
           withdrawAmount: depositAmount,
         });
         await verifyIndexStatusOf({
@@ -1831,7 +1831,7 @@ describe("Index", function () {
           index: index,
           targetAddress: alice.address,
           valueOfUnderlying: depositAmount.div(2), //lp decrease
-          withdrawTimestamp: next,
+          withdrawTimestamp: next.add(WEEK),
           withdrawAmount: depositAmount.div(2), //updated
         });
 
@@ -1890,7 +1890,7 @@ describe("Index", function () {
             index: index,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount.div(2),
-            withdrawTimestamp: next,
+            withdrawTimestamp: next.add(WEEK),
             withdrawAmount: depositAmount.div(2),
           });
 
@@ -2214,7 +2214,7 @@ describe("Index", function () {
             index: index,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount,
-            withdrawTimestamp: next, //updated
+            withdrawTimestamp: next.add(WEEK), //updated
             withdrawAmount: depositAmount, //updated
           });
 
@@ -2431,7 +2431,7 @@ describe("Index", function () {
             index: index,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount.div(2),
-            withdrawTimestamp: next,
+            withdrawTimestamp: next.add(WEEK),
             withdrawAmount: depositAmount.div(2), //decrease
           });
 
@@ -2655,7 +2655,7 @@ describe("Index", function () {
           index: index,
           targetAddress: alice.address,
           valueOfUnderlying: income,
-          withdrawTimestamp: next,
+          withdrawTimestamp: next.add(WEEK),
           withdrawAmount: depositAmount.div(2), //decrease
         });
 
@@ -2720,7 +2720,7 @@ describe("Index", function () {
           index: index,
           targetAddress: alice.address,
           valueOfUnderlying: depositAmount,
-          withdrawTimestamp: next,
+          withdrawTimestamp: next.add(WEEK),
           withdrawAmount: depositAmount,
         });
       }
@@ -2735,7 +2735,7 @@ describe("Index", function () {
           index: index,
           targetAddress: alice.address,
           valueOfUnderlying: depositAmount.div(2),
-          withdrawTimestamp: next, //no change
+          withdrawTimestamp: next.add(WEEK), //no change
           withdrawAmount: depositAmount.div(2), //updated
         });
       }

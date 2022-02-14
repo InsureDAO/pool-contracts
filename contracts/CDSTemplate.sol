@@ -28,7 +28,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     event WithdrawRequested(
         address indexed withdrawer,
         uint256 amount,
-        uint256 time
+        uint256 unlockTime
     );
     event Withdraw(address indexed withdrawer, uint256 amount, uint256 retVal);
     event Compensated(address indexed index, uint256 amount);
@@ -179,9 +179,13 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
         require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
 
-        withdrawalReq[msg.sender].timestamp = block.timestamp;
+
+        uint256 _unlocksAt = block.timestamp + parameters.getLockup(msg.sender);
+
+        withdrawalReq[msg.sender].timestamp = _unlocksAt;
         withdrawalReq[msg.sender].amount = _amount;
-        emit WithdrawRequested(msg.sender, _amount, block.timestamp);
+
+        emit WithdrawRequested(msg.sender, _amount, _unlocksAt);
     }
 
     /**
@@ -194,16 +198,14 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
         
         Withdrawal memory request = withdrawalReq[msg.sender];
-        uint256 _lockup = parameters.getLockup(msg.sender);
-        uint256 unlocksAt = request.timestamp + _lockup;
         
         require(
-            unlocksAt <
+            request.timestamp <
                 block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            unlocksAt +
+            request.timestamp +
                 parameters.getWithdrawable(msg.sender) >
                 block.timestamp,
             "WITHDRAWAL_NO_ACTIVE_REQUEST"

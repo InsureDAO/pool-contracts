@@ -858,7 +858,7 @@ describe("CDS", function () {
             cds: cds,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount,
-            withdrawTimestamp: next, //set
+            withdrawTimestamp: next.add(WEEK), //set.  withdrawable time
             withdrawAmount: depositAmount, //set
           });
 
@@ -935,7 +935,7 @@ describe("CDS", function () {
             cds: cds,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount,
-            withdrawTimestamp: next, //set
+            withdrawTimestamp: next.add(WEEK), //set
             withdrawAmount: depositAmount, //set
           });
 
@@ -993,7 +993,7 @@ describe("CDS", function () {
             cds: cds,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount.div(2), //changed
-            withdrawTimestamp: next, //set
+            withdrawTimestamp: next.add(WEEK), //set
             withdrawAmount: depositAmount.div(2), //changed
           });
 
@@ -1060,7 +1060,7 @@ describe("CDS", function () {
             cds: cds,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount,
-            withdrawTimestamp: next, //set
+            withdrawTimestamp: next.add(WEEK), //set
             withdrawAmount: depositAmount, //set
           });
 
@@ -1123,7 +1123,7 @@ describe("CDS", function () {
             cds: cds,
             targetAddress: alice.address,
             valueOfUnderlying: ZERO,
-            withdrawTimestamp: next, //no change. user can withdraw half now, and half later.
+            withdrawTimestamp: next.add(WEEK), //no change. user can withdraw half now, and half later.
             withdrawAmount: ZERO, //should reduce request amount
           });
 
