@@ -187,11 +187,11 @@ const verifyDebtOf = async({vault, target, debt}) => {
 
 
 //function
-const insure = async({pool, insurer, amount, maxCost, span, target}) => {
-    let tx = await pool.connect(insurer).insure(amount, maxCost, span, target);
+const insure = async({pool, insurer, amount, maxCost, span, target, insured, agent}) => {
+    let tx = await pool.connect(insurer).insure(amount, maxCost, span, target, insured, agent );
 
     let receipt = await tx.wait()
-    let premium = receipt.events[4].args[6]
+    let premium = receipt.events[4].args[8]
 
     return premium
 }

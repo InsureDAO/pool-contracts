@@ -323,7 +323,7 @@ describe("Pool", function () {
 
   const insure = async ({ pool, insurer, amount, maxCost, span, target }) => {
     await usdc.connect(insurer).approve(vault.address, maxCost);
-    let tx = await pool.connect(insurer).insure(amount, maxCost, span, target);
+    let tx = await pool.connect(insurer).insure(amount, maxCost, span, target, insurer.address, insurer.address);
 
     let receipt = await tx.wait();
     let premium = receipt.events[2].args["premium"];
@@ -641,10 +641,6 @@ describe("Pool", function () {
       valueOfUnderlyingOf: to_address,
       valueOfUnderlying: u[`${to_address}`].lp.mul(m1.rate).div(defaultRate),
     });
-  };
-
-  const transferInsurance = async ({ market, from, to_address, id }) => {
-    await market.connect(from).transferInsurance(id, to_address);
   };
 
   const createMarket = async ({ depositAmount, references, depositor }) => {
@@ -1194,6 +1190,8 @@ describe("Pool", function () {
           maxCost: insureAmount,
           span: WEEK,
           target: padded1,
+          insured: bob.address,
+          agent: bob.address
         });
 
         await moveForwardPeriods(8);
@@ -1220,6 +1218,8 @@ describe("Pool", function () {
           maxCost: depositAmount,
           span: WEEK,
           target: padded1,
+          insured: bob.address,
+          agent: bob.address
         });
 
         await insure({
@@ -1229,6 +1229,8 @@ describe("Pool", function () {
           maxCost: depositAmount,
           span: WEEK,
           target: padded1,
+          insured: bob.address,
+          agent: bob.address
         });
 
         await moveForwardPeriods(10);
@@ -1264,7 +1266,9 @@ describe("Pool", function () {
             depositAmount.add(1), //more than deposited
             depositAmount,
             WEEK,
-            padded1
+            padded1,
+            bob.address,
+            bob.address
           )
         ).to.revertedWith("INSURE_EXCEEDED_AVAIL_BALANCE");
       });
@@ -1284,7 +1288,9 @@ describe("Pool", function () {
             depositAmount,
             ZERO, //zero
             WEEK,
-            padded1
+            padded1,
+            bob.address,
+            bob.address
           )
         ).to.revertedWith("ERROR: INSURE_EXCEEDED_MAX_COST");
       });
@@ -1303,7 +1309,9 @@ describe("Pool", function () {
             depositAmount,
             depositAmount,
             YEAR.add(1), //max is YEAR
-            padded1
+            padded1,
+            bob.address,
+            bob.address
           )
         ).to.revertedWith("ERROR: INSURE_EXCEEDED_MAX_SPAN");
       });
@@ -1322,7 +1330,9 @@ describe("Pool", function () {
             depositAmount,
             depositAmount,
             WEEK.sub(1), //min is WEEK
-            padded1
+            padded1,
+            bob.address,
+            bob.address
           )
         ).to.revertedWith("ERROR: INSURE_SPAN_BELOW_MIN");
       });
@@ -1350,7 +1360,7 @@ describe("Pool", function () {
         await expect(
           market
             .connect(bob)
-            .insure(depositAmount, depositAmount, WEEK, padded1)
+            .insure(depositAmount, depositAmount, WEEK, padded1, bob.address, bob.address)
         ).to.revertedWith("ERROR: INSURE_MARKET_PENDING");
       });
 
@@ -1364,17 +1374,13 @@ describe("Pool", function () {
 
         await market.setPaused(true);
         await expect(
-          market.connect(bob).insure(insureAmount, insureAmount, WEEK, padded1)
+          market.connect(bob).insure(insureAmount, insureAmount, WEEK, padded1, bob.address, bob.address)
         ).to.revertedWith("ERROR: INSURE_MARKET_PAUSED");
       });
     });
 
     describe("redeem", function () {
       it("should redeem the covered amount", async () => {});
-    });
-
-    describe("transferInsurance", function () {
-      it("should transfer the insurance", async () => {});
     });
 
     describe("resume", function () {});
@@ -1398,6 +1404,8 @@ describe("Pool", function () {
         maxCost: insureAmount,
         span: WEEK,
         target: padded1,
+        insured: bob.address,
+        agent: bob.address
       });
 
       await expect(market.unlock("0")).to.revertedWith(
@@ -1462,6 +1470,8 @@ describe("Pool", function () {
         maxCost: insureAmount,
         span: YEAR,
         target: padded1,
+        insured: bob.address,
+        agent: bob.address
       });
 
       //the premium paid second time should be allocated to both Alice and Chad
@@ -1481,6 +1491,8 @@ describe("Pool", function () {
         maxCost: insureAmount,
         span: YEAR,
         target: padded1,
+        insured: bob.address,
+        agent: bob.address
       });
 
       //withdrawal also harvest accrued premium
@@ -1555,6 +1567,8 @@ describe("Pool", function () {
         maxCost: insureAmount,
         span: WEEK,
         target: padded1,
+        insured: bob.address,
+        agent: bob.address
       });
 
       let incident = await now();
@@ -1607,6 +1621,8 @@ describe("Pool", function () {
         maxCost: insureAmount.div(10),
         span: WEEK,
         target: padded1,
+        insured: bob.address,
+        agent: bob.address
       });
 
       incident = await now();
@@ -1660,6 +1676,8 @@ describe("Pool", function () {
         maxCost: insureAmount,
         span: WEEK,
         target: padded1,
+        insured: bob.address,
+        agent: bob.address
       });
 
       let incident = await now();
@@ -1695,61 +1713,6 @@ describe("Pool", function () {
       });
     });
 
-    it("allows insurance transfer", async function () {
-      await approveDepositAndWithdrawRequest({
-        token: usdc,
-        target: market,
-        depositor: alice,
-        amount: depositAmount,
-      });
-
-      await insure({
-        pool: market,
-        insurer: bob,
-        amount: insureAmount,
-        maxCost: insureAmount,
-        span: WEEK,
-        target: padded1,
-      });
-
-      await market.connect(bob).transferInsurance("0", tom.address);
-
-      let incident = await now();
-      let proof = await applyCover({
-        pool: market,
-        pending: 604800,
-        targetAddress: ZERO_ADDRESS,
-        payoutNumerator: 5000,
-        payoutDenominator: 10000,
-        incidentTimestamp: incident,
-      });
-
-      await redeem({
-        pool: market,
-        redeemer: tom,
-        id: "0",
-        proof: proof,
-      });
-
-      await moveForwardPeriods(11);
-      await resume({
-        market: market,
-      });
-
-      await withdraw({
-        target: market,
-        withdrawer: alice,
-        amount: depositAmount,
-      });
-
-      await verifyBalances({
-        token: usdc,
-        userBalances: {
-          [alice.address]: u[alice.address].balance,
-          [tom.address]: u[tom.address].balance,
-        },
-      });
-    });
     it("revert redemption when insurance is not m1 target", async function () {
       await approveDepositAndWithdrawRequest({
         token: usdc,
@@ -1765,6 +1728,8 @@ describe("Pool", function () {
         maxCost: insureAmount,
         span: WEEK,
         target: padded1,
+        insured: bob.address,
+        agent: bob.address
       });
 
       let incident = await now();
@@ -1816,7 +1781,7 @@ describe("Pool", function () {
       await expect(
         market
           .connect(bob)
-          .insure(depositAmount.add(1), depositAmount, WEEK, padded1)
+          .insure(depositAmount.add(1), depositAmount, WEEK, padded1, bob.address, bob.address)
       ).to.revertedWith("INSURE_EXCEEDED_AVAIL_BALANCE");
 
       await moveForwardPeriods(8);
@@ -1850,6 +1815,8 @@ describe("Pool", function () {
         maxCost: insureAmount,
         span: WEEK,
         target: padded1,
+        insured: bob.address,
+        agent: bob.address
       });
 
       let incident = await now();
@@ -1909,6 +1876,8 @@ describe("Pool", function () {
         maxCost: insureAmount,
         span: WEEK,
         target: padded1,
+        insured: bob.address,
+        agent: bob.address
       });
 
       //Cannot get insured when payingout
@@ -1935,12 +1904,14 @@ describe("Pool", function () {
         maxCost: insureAmount,
         span: WEEK,
         target: padded1,
+        insured: bob.address,
+        agent: bob.address
       });
 
       //Cannot get insured when paused
       await market.setPaused(true);
       await expect(
-        market.connect(bob).insure(insureAmount, insureAmount, WEEK, padded1)
+        market.connect(bob).insure(insureAmount, insureAmount, WEEK, padded1, bob.address, bob.address)
       ).to.revertedWith("ERROR: INSURE_MARKET_PAUSED");
 
       await market.setPaused(false);
@@ -1952,6 +1923,8 @@ describe("Pool", function () {
         maxCost: insureAmount,
         span: WEEK,
         target: padded1,
+        insured: bob.address,
+        agent: bob.address
       });
     });
 
@@ -1972,70 +1945,15 @@ describe("Pool", function () {
         maxCost: insureAmount,
         span: YEAR,
         target: padded1,
+        insured: bob.address,
+        agent: bob.address
       });
       //Cannot get insured for more than 365 days
       await expect(
         market
           .connect(bob)
-          .insure(insureAmount, insureAmount, YEAR.add(DAY), padded1)
+          .insure(insureAmount, insureAmount, YEAR.add(DAY), padded1, bob.address, bob.address)
       ).to.revertedWith("ERROR: INSURE_EXCEEDED_MAX_SPAN");
-    });
-
-    it("revert insurance transfer if its expired or non existent", async function () {
-      await approveDeposit({
-        token: usdc,
-        target: market,
-        depositor: alice,
-        amount: depositAmountLarge,
-      });
-      await market.connect(alice).requestWithdraw("10000");
-
-      //when expired
-      await insure({
-        pool: market,
-        insurer: bob,
-        amount: insureAmount,
-        maxCost: insureAmount,
-        span: WEEK,
-        target: padded1,
-      });
-
-      await moveForwardPeriods(9);
-
-      await expect(
-        market.connect(bob).transferInsurance("0", tom.address)
-      ).to.revertedWith("INSURANCE_TRANSFER_BAD_CONS");
-
-      //when already redeemed
-      await insure({
-        pool: market,
-        insurer: bob,
-        amount: insureAmount,
-        maxCost: insureAmount,
-        span: WEEK,
-        target: padded1,
-      });
-
-      let incident = await now();
-      let proof = await applyCover({
-        pool: market,
-        pending: 604800,
-        targetAddress: ZERO_ADDRESS,
-        payoutNumerator: 5000,
-        payoutDenominator: 10000,
-        incidentTimestamp: incident,
-      });
-
-      await redeem({
-        pool: market,
-        redeemer: bob,
-        id: "1",
-        proof: proof,
-      });
-
-      await expect(
-        market.connect(bob).transferInsurance("1", tom.address)
-      ).to.revertedWith("INSURANCE_TRANSFER_BAD_CONS");
     });
   });
 
@@ -2057,6 +1975,8 @@ describe("Pool", function () {
         maxCost: insureAmount,
         span: YEAR,
         target: padded1,
+        insured: bob.address,
+        agent: bob.address
       });
 
       await insure({
@@ -2066,6 +1986,8 @@ describe("Pool", function () {
         maxCost: insureAmount,
         span: YEAR,
         target: padded1,
+        insured: chad.address,
+        agent: chad.address
       });
 
       expect(await market.allInsuranceCount()).to.equal("2");
