@@ -195,8 +195,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
         require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
         
-        withdrawalReq[msg.sender].timestamp = (uint64)(block.timestamp);
-
         uint64 _unlocksAt = (uint64)(block.timestamp + parameters.getLockup(msg.sender));
 
         withdrawalReq[msg.sender].timestamp = _unlocksAt;
