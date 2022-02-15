@@ -34,7 +34,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     event WithdrawRequested(
         address indexed withdrawer,
         uint256 amount,
-        uint256 time
+        uint256 unlockTime
     );
     event Withdraw(address indexed withdrawer, uint256 amount, uint256 retVal);
     event Compensated(address indexed index, uint256 amount);
@@ -195,10 +195,12 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
         require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
         
-        withdrawalReq[msg.sender].timestamp = (uint64)(block.timestamp);
+        uint64 _unlocksAt = (uint64)(block.timestamp + parameters.getLockup(msg.sender));
+
+        withdrawalReq[msg.sender].timestamp = _unlocksAt;
         withdrawalReq[msg.sender].amount = (uint192)(_amount);
         
-        emit WithdrawRequested(msg.sender, _amount, block.timestamp);
+        emit WithdrawRequested(msg.sender, _amount, _unlocksAt);
     }
 
     /**
@@ -210,19 +212,19 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
         require(!locked, "ERROR: WITHDRAWAL_MARKET_PAUSED");
 
-        uint256 _lockupPlusRequestTime = parameters.getLockup(msg.sender) + withdrawalReq[msg.sender].timestamp;
+        Withdrawal memory request = withdrawalReq[msg.sender];
         
         require(
-            _lockupPlusRequestTime < block.timestamp,
+            request.timestamp < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            _lockupPlusRequestTime + parameters.getWithdrawable(msg.sender) >
+            request.timestamp + parameters.getWithdrawable(msg.sender) >
                 block.timestamp,
             "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
-            withdrawalReq[msg.sender].amount >= _amount,
+            request.amount >= _amount,
             "WITHDRAWAL_EXCEEDED_REQUEST"
         );
 

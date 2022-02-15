@@ -26,7 +26,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     event WithdrawRequested(
         address indexed withdrawer,
         uint256 amount,
-        uint256 time
+        uint256 unlockTime
     );
     event Withdraw(address indexed withdrawer, uint256 amount, uint256 retVal);
     event Unlocked(uint256 indexed id, uint256 amount);
@@ -267,9 +267,11 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
         require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
         
-        withdrawalReq[msg.sender].timestamp = block.timestamp;
+        uint256 _unlocksAt = block.timestamp + parameters.getLockup(msg.sender);
+
+        withdrawalReq[msg.sender].timestamp = _unlocksAt;
         withdrawalReq[msg.sender].amount = _amount;
-        emit WithdrawRequested(msg.sender, _amount, block.timestamp);
+        emit WithdrawRequested(msg.sender, _amount, _unlocksAt);
     }
 
     /**
@@ -282,19 +284,19 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             marketStatus == MarketStatus.Trading,
             "ERROR: WITHDRAWAL_MARKET_PENDING"
         );
-        
-        uint256 _endTime = parameters.getLockup(msg.sender) + withdrawalReq[msg.sender].timestamp;
+
+        Withdrawal memory request = withdrawalReq[msg.sender];
 
         require(
-            _endTime < block.timestamp,
+            request.timestamp < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            _endTime + parameters.getWithdrawable(msg.sender) > block.timestamp,
+            request.timestamp + parameters.getWithdrawable(msg.sender) > block.timestamp,
             "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
-            withdrawalReq[msg.sender].amount >= _amount,
+            request.amount >= _amount,
             "WITHDRAWAL_EXCEEDED_REQUEST"
         );
         require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
