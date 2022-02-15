@@ -422,11 +422,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         );
 
         uint256 _rewardPerCredit = rewardPerCredit;
-        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
 
         if (_index.credit != 0){
             _pending = _sub(
-                (_index.credit * _rewardPerCredit) / _MAGIC_SCALE_1E6,
+                (_index.credit * _rewardPerCredit) / MAGIC_SCALE_1E6,
                 _index.rewardDebt
             );
             if (_pending != 0) {
@@ -441,7 +440,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         }
         _index.rewardDebt =
             (_index.credit * _rewardPerCredit) /
-            _MAGIC_SCALE_1E6;
+            MAGIC_SCALE_1E6;
     }
 
     /**
@@ -469,11 +468,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         );
 
         uint256 _rewardPerCredit = rewardPerCredit;
-        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
 
         //calculate acrrued premium
         _pending = _sub(
-            (_index.credit * _rewardPerCredit) / _MAGIC_SCALE_1E6,
+            (_index.credit * _rewardPerCredit) / MAGIC_SCALE_1E6,
             _index.rewardDebt
         );
 
@@ -494,7 +492,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         
         _index.rewardDebt =
                 (_index.credit * _rewardPerCredit) /
-                _MAGIC_SCALE_1E6;
+                MAGIC_SCALE_1E6;
     }
 
     /**
@@ -738,7 +736,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         uint256 _debt = vault.debts(address(this));
         uint256 _totalCredit = totalCredit;
-        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
         uint256 _totalLiquidity = totalLiquidity();
         uint256 _deductionFromIndex;
         
@@ -753,7 +750,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             uint256 _credit = indicies[_index].credit;
 
             if (_credit != 0) {
-                uint256 _shareOfIndex = (_credit * _MAGIC_SCALE_1E6) /
+                uint256 _shareOfIndex = (_credit * MAGIC_SCALE_1E6) /
                     _totalCredit;
                 uint256 _redeemAmount = _deductionFromIndex * _shareOfIndex / MAGIC_SCALE_1E6;
                 _actualDeduction += IIndexTemplate(_index).compensate(
