@@ -601,7 +601,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @param _merkleProof merkle proof (similar to "verify" function of MerkleProof.sol of OpenZeppelin
      * Ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/MerkleProof.sol
      */
-    function redeem(uint256 _id, bytes32[] calldata _merkleProof) external {
+    function redeem(uint256 _id, uint256 _loss, bytes32[] calldata _merkleProof) external {
         require(
             marketStatus == MarketStatus.Payingout,
             "ERROR: NO_APPLICABLE_INCIDENT"
@@ -622,13 +622,13 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
                 _merkleProof,
                 _targets,
                 keccak256(
-                    abi.encodePacked(_insurance.target, _insurance.insured)
+                    abi.encodePacked(_insurance.target, _insurance.insured, _loss)
                 )
             ) ||
                 MerkleProof.verify(
                     _merkleProof,
                     _targets,
-                    keccak256(abi.encodePacked(_insurance.target, address(0)))
+                    keccak256(abi.encodePacked(_insurance.target, address(0), _loss))
                 ),
             "ERROR: INSURANCE_EXEMPTED"
         );
@@ -636,8 +636,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         lockedAmount -= _insurance.amount;
 
 
-        uint256 _payoutAmount = (_insurance.amount * incident.payoutNumerator) /
-            incident.payoutDenominator;
+        _loss = _loss * incident.payoutNumerator / incident.payoutDenominator;
+        uint256 _payoutAmount = _insurance.amount > _loss ? _loss : _insurance.amount;
 
         vault.borrowValue(_payoutAmount, _insurance.insured);
 

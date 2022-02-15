@@ -82,14 +82,15 @@ describe("multiIndex", function () {
   }) => {
     const padded1 = ethers.utils.hexZeroPad("0x1", 32);
     const padded2 = ethers.utils.hexZeroPad("0x2", 32);
+    const _loss = BigNumber.from("1000000");
 
     const getLeaves = (target) => {
       return [
-        { id: padded1, account: target },
-        { id: padded1, account: TEST_ADDRESS },
-        { id: padded2, account: TEST_ADDRESS },
-        { id: padded2, account: NULL_ADDRESS },
-        { id: padded1, account: NULL_ADDRESS },
+        { id: padded1, account: target, loss: _loss },
+        { id: padded1, account: TEST_ADDRESS, loss: _loss },
+        { id: padded2, account: TEST_ADDRESS, loss: _loss },
+        { id: padded2, account: NULL_ADDRESS, loss: _loss },
+        { id: padded1, account: NULL_ADDRESS, loss: _loss },
       ];
     };
 
@@ -97,10 +98,10 @@ describe("multiIndex", function () {
     const encoded = (target) => {
       const list = getLeaves(target);
 
-      return list.map(({ id, account }) => {
+      return list.map(({ id, account, loss}) => {
         return ethers.utils.solidityKeccak256(
-          ["bytes32", "address"],
-          [id, account]
+          ["bytes32", "address", "uint256"],
+          [id, account, loss]
         );
       });
     };

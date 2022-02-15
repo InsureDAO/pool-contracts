@@ -60,6 +60,7 @@ describe("Pool", function () {
   const defaultRate = BigNumber.from("1000000"); //initial rate between USDC and LP token
   const insureAmount = BigNumber.from("10000"); //default insure amount for test
 
+  const _loss = BigNumber.from("1000000");
   const governanceFeeRate = BigNumber.from("100000"); //10% of the Premium
   const RATE_DIVIDER = BigNumber.from("1000000"); //1e6
   const UTILIZATION_RATE_LENGTH_1E6 = BigNumber.from("1000000"); //1e6
@@ -390,8 +391,8 @@ describe("Pool", function () {
     return premium;
   };
 
-  const redeem = async ({ pool, redeemer, id, proof }) => {
-    let tx = await pool.connect(redeemer).redeem(id, proof);
+  const redeem = async ({ pool, redeemer, id, loss, proof }) => {
+    let tx = await pool.connect(redeemer).redeem(id, loss, proof);
 
     let receipt = await tx.wait();
 
@@ -568,14 +569,15 @@ describe("Pool", function () {
   }) => {
     const padded1 = ethers.utils.hexZeroPad("0x1", 32);
     const padded2 = ethers.utils.hexZeroPad("0x2", 32);
+    const _loss = BigNumber.from("1000000");
 
     const getLeaves = (target) => {
       return [
-        { id: padded1, account: target },
-        { id: padded1, account: TEST_ADDRESS },
-        { id: padded2, account: TEST_ADDRESS },
-        { id: padded2, account: NULL_ADDRESS },
-        { id: padded1, account: NULL_ADDRESS },
+        { id: padded1, account: target, loss: _loss },
+        { id: padded1, account: TEST_ADDRESS, loss: _loss },
+        { id: padded2, account: TEST_ADDRESS, loss: _loss },
+        { id: padded2, account: NULL_ADDRESS, loss: _loss },
+        { id: padded1, account: NULL_ADDRESS, loss: _loss },
       ];
     };
 
@@ -583,10 +585,10 @@ describe("Pool", function () {
     const encoded = (target) => {
       const list = getLeaves(target);
 
-      return list.map(({ id, account }) => {
+      return list.map(({ id, account, loss }) => {
         return ethers.utils.solidityKeccak256(
-          ["bytes32", "address"],
-          [id, account]
+          ["bytes32", "address", "uint256"],
+          [id, account, loss]
         );
       });
     };
@@ -1586,6 +1588,7 @@ describe("Pool", function () {
         pool: market,
         redeemer: bob,
         id: 0,
+        loss: _loss,
         proof: proof,
       });
 
@@ -1639,6 +1642,7 @@ describe("Pool", function () {
         pool: market,
         redeemer: bob,
         id: "1",
+        loss: _loss,
         proof: proof,
       });
 
@@ -1694,6 +1698,7 @@ describe("Pool", function () {
         pool: market,
         redeemer: bob,
         id: "0",
+        loss: _loss,
         proof: proof,
       });
 
@@ -1748,7 +1753,7 @@ describe("Pool", function () {
         market: market,
       });
 
-      await expect(market.connect(bob).redeem("0", proof)).to.revertedWith(
+      await expect(market.connect(bob).redeem("0", _loss, proof)).to.revertedWith(
         "ERROR: NO_APPLICABLE_INCIDENT"
       );
 
@@ -1835,7 +1840,7 @@ describe("Pool", function () {
         market: market,
       });
 
-      await expect(market.connect(bob).redeem("0", proof)).to.revertedWith(
+      await expect(market.connect(bob).redeem("0", _loss, proof)).to.revertedWith(
         "ERROR: NO_APPLICABLE_INCIDENT"
       );
 
