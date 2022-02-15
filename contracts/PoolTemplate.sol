@@ -37,6 +37,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 startTime,
         uint256 endTime,
         address insured,
+        address agent,
         uint256 premium
     );
     event Redeemed(
@@ -55,7 +56,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         string rawdata,
         string memo
     );
-    event TransferInsurance(uint256 indexed id, address from, address to);
     event CreditIncrease(address indexed depositor, uint256 credit);
     event CreditDecrease(address indexed withdrawer, uint256 credit);
     event MarketStatusChanged(MarketStatus statusValue);
@@ -126,6 +126,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 amount; //insured amount
         bytes32 target; //target id in bytes32
         address insured; //the address holds the right to get insured
+        address agent; //address have control. can be different from insured.
         bool status; //true if insurance is not expired or redeemed
     }
     mapping(uint256 => Insurance) public insurances;
@@ -421,11 +422,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         );
 
         uint256 _rewardPerCredit = rewardPerCredit;
-        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
 
         if (_index.credit != 0){
             _pending = _sub(
-                (_index.credit * _rewardPerCredit) / _MAGIC_SCALE_1E6,
+                (_index.credit * _rewardPerCredit) / MAGIC_SCALE_1E6,
                 _index.rewardDebt
             );
             if (_pending != 0) {
@@ -440,7 +440,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         }
         _index.rewardDebt =
             (_index.credit * _rewardPerCredit) /
-            _MAGIC_SCALE_1E6;
+            MAGIC_SCALE_1E6;
     }
 
     /**
@@ -468,11 +468,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         );
 
         uint256 _rewardPerCredit = rewardPerCredit;
-        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
 
         //calculate acrrued premium
         _pending = _sub(
-            (_index.credit * _rewardPerCredit) / _MAGIC_SCALE_1E6,
+            (_index.credit * _rewardPerCredit) / MAGIC_SCALE_1E6,
             _index.rewardDebt
         );
 
@@ -493,7 +492,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         
         _index.rewardDebt =
                 (_index.credit * _rewardPerCredit) /
-                _MAGIC_SCALE_1E6;
+                MAGIC_SCALE_1E6;
     }
 
     /**
@@ -512,9 +511,13 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 _amount,
         uint256 _maxCost,
         uint256 _span,
-        bytes32 _target
+        bytes32 _target,
+        address _for,
+        address _agent
     ) external returns (uint256) {
         require(!paused, "ERROR: INSURE_MARKET_PAUSED");
+        require(_for != address(0), "ERROR: ZERO_ADDRESS");
+        require(_agent != address(0), "ERROR: ZERO_ADDRESS");
         require(
             marketStatus == MarketStatus.Trading,
             "ERROR: INSURE_MARKET_PENDING"
@@ -536,7 +539,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         
         uint256 _endTime = _span + block.timestamp;
         uint256 _fee = parameters.getFeeRate(msg.sender);
-        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
         
         //current liquidity
         uint256 _liquidity = totalLiquidity();
@@ -547,7 +549,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             _premium,
             msg.sender,
             [address(this), parameters.getOwner()],
-            [_MAGIC_SCALE_1E6 - _fee, _fee]
+            [MAGIC_SCALE_1E6 - _fee, _fee]
         );
 
         //Lock covered amount
@@ -559,7 +561,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             (uint48)(_endTime),
             _amount,
             _target,
-            msg.sender,
+            _for,
+            _agent,
             true
         );
         
@@ -572,7 +575,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             uint256 _attributionForIndex = (_newAttribution[0] * _totalCredit) /
                 _liquidity;
             attributionDebt += _attributionForIndex;
-            rewardPerCredit += ((_attributionForIndex * _MAGIC_SCALE_1E6) /
+            rewardPerCredit += ((_attributionForIndex * MAGIC_SCALE_1E6) /
                 _totalCredit);
         }
 
@@ -582,7 +585,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             _target,
             block.timestamp,
             _endTime,
-            msg.sender,
+            _for,
+            _agent,
             _premium
         );
 
@@ -603,7 +607,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         
         Insurance memory _insurance = insurances[_id];
         require(_insurance.status, "ERROR: INSURANCE_NOT_ACTIVE");
-        require(_insurance.insured == msg.sender, "ERROR: NOT_YOUR_INSURANCE");
+        require(_insurance.insured == msg.sender || _insurance.agent == msg.sender, "ERROR: NOT_YOUR_INSURANCE");
         uint48 _incidentTimestamp = (uint48)(incident.incidentTimestamp);
         require(
             _insurance.startTime <= _incidentTimestamp && _insurance.endTime >= _incidentTimestamp,
@@ -633,35 +637,15 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 _payoutAmount = (_insurance.amount * incident.payoutNumerator) /
             incident.payoutDenominator;
 
-        vault.borrowValue(_payoutAmount, msg.sender);
+        vault.borrowValue(_payoutAmount, _insurance.insured);
 
         emit Redeemed(
             _id,
-            msg.sender,
+            _insurance.insured,
             _insurance.target,
             _insurance.amount,
             _payoutAmount
         );
-    }
-
-    /**
-     * @notice Transfers an active insurance
-     * @param _id id of the insurance policy
-     * @param _to receipient of of the policy
-     */
-    function transferInsurance(uint256 _id, address _to) external {
-        Insurance storage insurance = insurances[_id];
-
-        require(
-            _to != address(0) &&
-                insurance.insured == msg.sender &&
-                insurance.endTime >= block.timestamp &&
-                insurance.status,
-            "INSURANCE_TRANSFER_BAD_CONS"
-        );
-
-        insurance.insured = _to;
-        emit TransferInsurance(_id, msg.sender, _to);
     }
 
     /**
@@ -751,7 +735,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         uint256 _debt = vault.debts(address(this));
         uint256 _totalCredit = totalCredit;
-        uint256 _MAGIC_SCALE_1E6 = MAGIC_SCALE_1E6;
         uint256 _totalLiquidity = totalLiquidity();
         uint256 _deductionFromIndex;
         
@@ -766,7 +749,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             uint256 _credit = indicies[_index].credit;
 
             if (_credit != 0) {
-                uint256 _shareOfIndex = (_credit * _MAGIC_SCALE_1E6) /
+                uint256 _shareOfIndex = (_credit * MAGIC_SCALE_1E6) /
                     _totalCredit;
                 uint256 _redeemAmount = _deductionFromIndex * _shareOfIndex / MAGIC_SCALE_1E6;
                 _actualDeduction += IIndexTemplate(_index).compensate(

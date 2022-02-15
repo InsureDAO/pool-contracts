@@ -1033,12 +1033,14 @@ describe("Index", function () {
 
       let compensate = depositAmount;
 
-      //Bob buys insurance and redeem
+      //Chad buys insurance and redeem
       let tx = await market1.connect(chad).insure(
         depositAmount, //insured amount
         depositAmount, //max-cost
         YEAR, //span
-        target //targetID
+        target, //targetID
+        chad.address,
+        chad.address
       );
       let premiumAmount = (await tx.wait()).events[2].args["premium"];
       let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
@@ -2070,13 +2072,15 @@ describe("Index", function () {
         insureAmount, //insured amount
         depositAmount, //max-cost
         YEAR, //span
-        target //targetID
+        target, //targetID
+        bob.address,
+        bob.address
       );
 
       //income: 450. index earns 450. index has 100% share in market2
       await market2
         .connect(bob)
-        .insure(insureAmount, depositAmount, YEAR, target);
+        .insure(insureAmount, depositAmount, YEAR, target, bob.address, bob.address);
 
       await index.adjustAlloc(); //index's earned premium get in effect on the markets.
 
@@ -2113,13 +2117,15 @@ describe("Index", function () {
         insureAmount, //insured amount
         depositAmount, //max-cost
         YEAR, //span
-        target //targetID
+        target, //targetID
+        bob.address,
+        bob.address
       );
 
       //income: 900. 
       await market2
         .connect(bob)
-        .insure(insureAmount, depositAmount, YEAR, target);
+        .insure(insureAmount, depositAmount, YEAR, target, bob.address, bob.address);
 
       //Change the leverage rate to 1.5x. 
       await index.setLeverage(1500000);
@@ -2152,7 +2158,7 @@ describe("Index", function () {
       //income: 900. 
       await market2
         .connect(bob)
-        .insure(insureAmount, depositAmount, YEAR, target);
+        .insure(insureAmount, depositAmount, YEAR, target, bob.address, bob.address);
 
       //should return zero since over leveraged
       let withdrawable = await index.withdrawable();
@@ -2622,7 +2628,9 @@ describe("Index", function () {
         depositAmount, //insured amount
         depositAmount, //max-cost
         YEAR, //span
-        target //targetID
+        target, //targetID
+        chad.address,
+        chad.address
       );
       let premiumAmount = (await tx.wait()).events[2].args["premium"];
       let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
@@ -2791,7 +2799,9 @@ describe("Index", function () {
         insureAmount, //insured amount
         depositAmount, //max-cost
         YEAR, //span
-        target //targetID
+        target, //targetID
+        bob.address,
+        bob.address
       );
 
       let income = insureAmount.div(10).sub(insureAmount.div(10).div(10)); //10% of insureAmount is premium (for test). 10% of premium goes to governance.

@@ -416,7 +416,7 @@ describe("multiIndex", function () {
       await index1.set(0, 0, market1.address, ZERO) //withdrawCredit
 
       await usdc.connect(alice).approve(vault.address, initialMint);
-      await market1.connect(alice).insure(insureAmount, insureAmount, YEAR, SmartContractHackingCover);
+      await market1.connect(alice).insure(insureAmount, insureAmount, YEAR, SmartContractHackingCover, alice.address, alice.address);
 
       await index1.set(0, 0, market1.address, ten_to_the_18);
       expect((await market1.indicies(index1.address)).rewardDebt).to.not.equal(ZERO)
