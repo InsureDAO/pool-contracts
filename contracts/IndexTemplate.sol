@@ -434,6 +434,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     unchecked {
                         _decrease = _current - _target;
                     }
+                    // _decrease can be higher than _available
+                    if (_available < _decrease) {
+                        _decrease = _available;
+                    }
+                    
                     IPoolTemplate(_poolList[i].addr).withdrawCredit(_decrease);
                     _totalAllocatedCredit -= _decrease;
                 }
