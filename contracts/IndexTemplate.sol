@@ -348,9 +348,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         //Check current leverage rate and get target total credit allocation
         uint256 _targetCredit = (targetLev * _liquidity) / MAGIC_SCALE_1E6;
         uint256 _allocatable = _targetCredit;
-        uint256 _allocatablePoints = totalAllocPoint;
         uint256 _totalAllocatedCredit = totalAllocatedCredit;
+
+        uint256 _totalAllocPoint = totalAllocPoint;
         uint256 _length = poolList.length;
+
         PoolStatus[] memory _poolList = new PoolStatus[](_length);
         //Check each pool and if current credit allocation > target && it is impossible to adjust, then withdraw all availablle credit
         for (uint256 i; i < _length;) {
@@ -359,7 +361,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 uint256 _allocation = allocPoints[_pool];
                 //Target credit allocation for a pool
                 uint256 _target = (_targetCredit * _allocation) /
-                    _allocatablePoints;
+                    _totalAllocPoint;
                 //get how much has been allocated for a pool and get how much liquidty is available to withdraw
                 uint256 _current;
                 uint256 _available;
@@ -369,10 +371,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 if(
                     IPoolTemplate(_pool).marketStatus() == IPoolTemplate.MarketStatus.Payingout
                 ){
-                    totalAllocatedCredit -= _current;
+                    _totalAllocatedCredit -= _current;
                     _poolList[i].addr = address(0);
                     _allocatable = _safeMinus(_allocatable, _current);
-                    _allocatablePoints -= _allocation;
                 } else if (
                     _current > _target && _current - _target > _available
                 ) {
@@ -380,22 +381,19 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     _totalAllocatedCredit -= _available;
                     _poolList[i].addr = address(0);
                     _allocatable -= _current - _available;
-                    _allocatablePoints -= _allocation;
                 } else if (
                     IPoolTemplate(_pool).paused()
                 ) {
                     if(_current > _available){
                         IPoolTemplate(_pool).withdrawCredit(_available);
-                        totalAllocatedCredit -= _available;
+                        _totalAllocatedCredit -= _available;
                         _poolList[i].addr = address(0);
                         _allocatable -= _safeMinus(_allocatable, _available);
-                        _allocatablePoints -= _allocation;
                     } else {
                         IPoolTemplate(_pool).withdrawCredit(_current);
-                        totalAllocatedCredit -= _current;
+                        _totalAllocatedCredit -= _current;
                         _poolList[i].addr = address(0);
                         _allocatable -= _safeMinus(_allocatable, _current);
-                        _allocatablePoints -= _allocation;
                     }
                 } else {
                     _poolList[i].addr = _pool;
@@ -413,7 +411,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             if (_poolList[i].addr != address(0)) {
                 //Target credit allocation for a pool
                 uint256 _target = (_allocatable * _poolList[i].allocation) /
-                    _allocatablePoints;
+                    _totalAllocPoint;
                 //get how much has been allocated for a pool
                 uint256 _current = _poolList[i].current;
                 //get how much liquidty is available to withdraw
@@ -483,7 +481,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         vault.offsetDebt(_compensated, msg.sender);
         
         //totalLiquity has been changed
-        adjustAlloc();
+        //adjustAlloc();
 
         emit Compensated(msg.sender, _compensated);
     }

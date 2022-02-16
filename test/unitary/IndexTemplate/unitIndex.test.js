@@ -105,9 +105,6 @@ describe("Index", function () {
     const root = await tree.getHexRoot();
     const leaf = leaves[0];
     const proof = await tree.getHexProof(leaf);
-    //console.log("tree", tree.toString());
-    //console.log("proof", leaves, proof, root, leaf);
-    //console.log("verify", tree.verify(proof, leaf, root)); // true
 
     await pool.applyCover(
       pending,
@@ -1031,12 +1028,14 @@ describe("Index", function () {
       //setup
       await index.connect(bob).deposit(depositAmount); //LP:USDC = 1:1
 
+      let insureAmount = depositAmount.div(2)
+
       let compensate = depositAmount;
 
       //Chad buys insurance and redeem
       let tx = await market1.connect(chad).insure(
-        depositAmount, //insured amount
-        depositAmount, //max-cost
+        insureAmount, //insured amount
+        insureAmount, //max-cost
         YEAR, //span
         target, //targetID
         chad.address,
@@ -1059,7 +1058,7 @@ describe("Index", function () {
       await market1.connect(chad).redeem(0, proof); //market1 has debt now
 
       await moveForwardPeriods(1);
-
+      
       await market1.resume(); //clean up the debt
       //index lose depositedAmount to compensate for Market1
 
@@ -1068,21 +1067,21 @@ describe("Index", function () {
       await verifyVaultStatusOf({
         vault: vault,
         target: index.address,
-        attributions: income,
-        underlyingValue: income,
+        attributions: depositAmount.sub(insureAmount).add(income),
+        underlyingValue: depositAmount.sub(insureAmount).add(income),
         debt: ZERO,
       });
 
       await verifyIndexStatus({
         index: index,
         totalSupply: depositAmount, //lp minted
-        totalLiquidity: income,
-        totalAllocatedCredit: income.mul(targetLeverage).div(defaultLeverage), //
+        totalLiquidity: depositAmount.sub(insureAmount).add(income),
+        totalAllocatedCredit: depositAmount.sub(insureAmount).add(income).mul(targetLeverage).div(defaultLeverage), //
         totalAllocPoint: targetLeverage,
         targetLev: targetLeverage,
         leverage: targetLeverage, //actual leverage
-        withdrawable: income,
-        rate: defaultRate.mul(income).div(depositAmount),
+        withdrawable: depositAmount.sub(insureAmount).add(income),
+        rate: defaultRate.mul(depositAmount.sub(insureAmount).add(income)).div(depositAmount),
       });
 
       //now deposit again
@@ -1091,7 +1090,7 @@ describe("Index", function () {
       let mintedAmount = (await tx.wait()).events[3].args["value"];
 
       expect(mintedAmount).to.equal(
-        depositAmount.mul(depositAmount).div(income)
+        depositAmount.mul(depositAmount).div(depositAmount.sub(insureAmount).add(income))
       ); //mintAmount = amount * totalSupply / totalLiquidity
     });
 
@@ -2110,10 +2109,9 @@ describe("Index", function () {
 
       await index.connect(alice).deposit(depositAmount);
 
-      let insureAmount = depositAmount; //10000
+      let insureAmount = depositAmount.div(2);
 
-      //income: 900. 
-      await market1.connect(bob).insure(
+      let tx = await market1.connect(bob).insure(
         insureAmount, //insured amount
         depositAmount, //max-cost
         YEAR, //span
@@ -2122,30 +2120,58 @@ describe("Index", function () {
         bob.address
       );
 
-      //income: 900. 
-      await market2
-        .connect(bob)
-        .insure(insureAmount, depositAmount, YEAR, target, bob.address, bob.address);
+      let premiumAmount_1 = (await tx.wait()).events[2].args["premium"];
+      let govFee_1 = premiumAmount_1.mul(governanceFeeRate).div(RATE_DIVIDER);
+      let income_1 = premiumAmount_1.sub(govFee_1);
+
+      tx = await market2.connect(bob).insure(
+        insureAmount,
+        depositAmount,
+        YEAR, 
+        target, 
+        bob.address, 
+        bob.address
+      );
+
+      let premiumAmount_2 = (await tx.wait()).events[2].args["premium"];
+      let govFee_2 = premiumAmount_2.mul(governanceFeeRate).div(RATE_DIVIDER);
+      let income_2 = premiumAmount_2.sub(govFee_2);
+
+      let income = income_1.add(income_2)
+      let insureAmountTotal = insureAmount.mul(2)
+
 
       //Change the leverage rate to 1.5x. 
       await index.setLeverage(1500000);
-      expect(await index.leverage()).to.equal(1694915);
+      expect(await index.leverage()).to.equal(1500000);
 
+      
+      let _targetLeverage = defaultLeverage.mul(3).div(2) //x1.5
 
-      //should return zero since over leveraged
-      let withdrawable = await index.withdrawable();
-      expect(withdrawable).to.equal(0);
+      await verifyIndexStatus({
+        index: index,
+        totalSupply: depositAmount,
+        totalLiquidity: depositAmount.add(income),
+        totalAllocatedCredit: depositAmount.add(income).mul(_targetLeverage).div(defaultLeverage), //
+        totalAllocPoint: defaultLeverage.mul(2),
+        targetLev: _targetLeverage,
+        leverage: _targetLeverage, //actual leverage
+        withdrawable: depositAmount.add(income).sub(insureAmount.mul("2").mul("2").div("3")),
+        rate: defaultRate.mul(depositAmount.add(income)).div(depositAmount),
+      });
 
 
       //this won't change when only one side of pool liquidity is added
       await market1.connect(alice).deposit(depositAmount);
       withdrawable = await index.withdrawable();
-      expect(withdrawable).to.equal(0);
+      expect(withdrawable).to.equal(depositAmount.add(income).sub(insureAmount.mul("2").mul("2").div("3")));
 
       //but this situation changes when the other side of liquidity is added
       await market2.connect(alice).deposit(depositAmount);
+
+      //this causes index can withdraw all.
       withdrawable = await index.withdrawable();
-      expect(withdrawable).to.equal(11800);
+      expect(withdrawable).to.equal(depositAmount.add(income));
     });
 
     it("should return full amount when the locked amount is fully available", async function () {
