@@ -179,8 +179,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
         require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
 
-
-        uint256 _unlocksAt = block.timestamp + parameters.getLockup(msg.sender);
+        uint256 _unlocksAt = block.timestamp + parameters.getLockup(address(this));
 
         withdrawalReq[msg.sender].timestamp = _unlocksAt;
         withdrawalReq[msg.sender].amount = _amount;
@@ -206,7 +205,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         );
         require(
             request.timestamp +
-                parameters.getWithdrawable(msg.sender) >
+                parameters.getWithdrawable(address(this)) >
                 block.timestamp,
             "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
