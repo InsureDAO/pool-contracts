@@ -301,7 +301,7 @@ describe("Index", function () {
     await restore(snapshotId);
   });
 
-  describe("initialize", function () {
+  describe.skip("initialize", function () {
     beforeEach(async () => {
       //this is important to check all the variables every time to make sure we forget nothing
       {
@@ -590,7 +590,7 @@ describe("Index", function () {
     });
   });
 
-  describe("deposit", function () {
+  describe.skip("deposit", function () {
     beforeEach(async () => {
       //this is important to check all the variables every time to make sure we forget nothing
       {
@@ -1112,7 +1112,7 @@ describe("Index", function () {
     });
   });
 
-  describe("requestWithdraw", function () {
+  describe.skip("requestWithdraw", function () {
     beforeEach(async () => {
       await index.connect(alice).deposit(depositAmount);
 
@@ -1582,7 +1582,7 @@ describe("Index", function () {
     });
   });
 
-  describe("_beforeTokenTransfer", function () {
+  describe.skip("_beforeTokenTransfer", function () {
     beforeEach(async () => {
       await index.connect(alice).deposit(depositAmount);
 
@@ -2058,7 +2058,7 @@ describe("Index", function () {
     });
   });
 
-  describe("withdrawable", function () {
+  describe.skip("withdrawable", function () {
     it("should retrun index's not locked amount", async function () {
       await market1.connect(alice).deposit(depositAmount);
       //await market2.connect(alice).deposit(depositAmount)
@@ -2192,7 +2192,7 @@ describe("Index", function () {
     });
   });
 
-  describe("withdraw", function () {
+  describe.skip("withdraw", function () {
     beforeEach(async () => {
       await index.connect(alice).deposit(depositAmount);
 
@@ -2861,7 +2861,7 @@ describe("Index", function () {
     });
   });
 
-  describe("compensate", function () {
+  describe.skip("compensate", function () {
     beforeEach(async () => {
       //this is important to check all the variables every time to make sure we forget nothing
       {
@@ -3085,7 +3085,7 @@ describe("Index", function () {
     });
   });
 
-  describe("adjustAlloc", function () {
+  describe.skip("adjustAlloc", function () {
     beforeEach(async () => {
       //this is important to check all the variables every time to make sure we forget nothing
       {
@@ -3290,6 +3290,416 @@ describe("Index", function () {
           });
         }
       }
+    });
+  });
+
+  describe("edge cases", function () {
+    beforeEach(async () => {
+      //this is important to check all the variables every time to make sure we forget nothing
+      {
+        //sanity check
+
+        await verifyPoolsStatus({
+          pools: [
+            {
+              pool: market1,
+              totalSupply: ZERO,
+              totalLiquidity: ZERO,
+              availableBalance: ZERO,
+              rate: ZERO,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO,
+            },
+            {
+              pool: market2,
+              totalSupply: ZERO,
+              totalLiquidity: ZERO,
+              availableBalance: ZERO,
+              rate: ZERO,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO,
+            },
+          ],
+        });
+
+        await verifyIndexStatus({
+          index: index,
+          totalSupply: ZERO,
+          totalLiquidity: ZERO,
+          totalAllocatedCredit: ZERO,
+          totalAllocPoint: targetLeverage,
+          targetLev: targetLeverage,
+          leverage: ZERO,
+          withdrawable: ZERO,
+          rate: ZERO,
+        });
+
+        {
+          //verifyIndexStatusOf
+          await verifyIndexStatusOf({
+            index: index,
+            targetAddress: alice.address,
+            valueOfUnderlying: ZERO,
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO,
+          });
+
+          await verifyIndexStatusOf({
+            index: index,
+            targetAddress: bob.address,
+            valueOfUnderlying: ZERO,
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO,
+          });
+
+          await verifyIndexStatusOf({
+            index: index,
+            targetAddress: chad.address,
+            valueOfUnderlying: ZERO,
+            withdrawTimestamp: ZERO,
+            withdrawAmount: ZERO,
+          });
+
+          await verifyIndexStatusOfPool({
+            index: index,
+            poolAddress: market1.address,
+            allocPoints: targetLeverage.div(2), //alloc evenly
+          });
+
+          await verifyIndexStatusOfPool({
+            index: index,
+            poolAddress: market2.address,
+            allocPoints: targetLeverage.div(2), //alloc evenly
+          });
+        }
+
+        await verifyPoolsStatusForIndex({
+          pools: [
+            {
+              pool: market1,
+              indexAddress: index.address,
+              allocatedCredit: ZERO,
+              pendingPremium: ZERO,
+            },
+            {
+              pool: market2,
+              indexAddress: index.address,
+              allocatedCredit: ZERO,
+              pendingPremium: ZERO,
+            },
+          ],
+        });
+
+        await verifyCDSStatus({
+          cds: cds,
+          surplusPool: ZERO,
+          crowdPool: ZERO,
+          totalSupply: ZERO,
+          totalLiquidity: ZERO,
+          rate: ZERO,
+        });
+
+        await verifyVaultStatus({
+          vault: vault,
+          balance: ZERO,
+          valueAll: ZERO,
+          totalAttributions: ZERO,
+          totalDebt: ZERO,
+        });
+
+        {
+          //Vault Status Of
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: market1.address,
+            attributions: ZERO,
+            underlyingValue: ZERO,
+            debt: ZERO,
+          });
+
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: market2.address,
+            attributions: ZERO,
+            underlyingValue: ZERO,
+            debt: ZERO,
+          });
+
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: index.address,
+            attributions: ZERO,
+            underlyingValue: ZERO,
+            debt: ZERO,
+          });
+
+          await verifyVaultStatusOf({
+            vault: vault,
+            target: cds.address,
+            attributions: ZERO,
+            underlyingValue: ZERO,
+            debt: ZERO,
+          });
+        }
+
+        {
+          //token, lp token
+          await verifyBalances({
+            token: usdc,
+            userBalances: {
+              //EOA
+              [gov.address]: ZERO,
+              [alice.address]: initialMint,
+              [bob.address]: initialMint,
+              [chad.address]: initialMint,
+              //contracts
+              [market1.address]: ZERO,
+              [market2.address]: ZERO,
+              [index.address]: ZERO,
+              [cds.address]: ZERO,
+              [vault.address]: ZERO,
+            },
+          });
+
+          await verifyBalances({
+            token: market1,
+            userBalances: {
+              [alice.address]: ZERO,
+              [bob.address]: ZERO,
+              [chad.address]: ZERO,
+            },
+          });
+
+          await verifyBalances({
+            token: market2,
+            userBalances: {
+              [alice.address]: ZERO,
+              [bob.address]: ZERO,
+              [chad.address]: ZERO,
+            },
+          });
+
+          await verifyBalances({
+            token: index,
+            userBalances: {
+              [alice.address]: ZERO,
+              [bob.address]: ZERO,
+              [chad.address]: ZERO,
+            },
+          });
+
+          await verifyBalances({
+            token: cds,
+            userBalances: {
+              [alice.address]: ZERO,
+              [bob.address]: ZERO,
+              [chad.address]: ZERO,
+            },
+          });
+        }
+      }
+    });
+
+    it("compensate()=>adjustAlloc() when other pool is Paying status", async function () {
+      /**
+       * Testing scenario
+       * 
+       * market1: will do compensate()
+       * market2: Payout status
+       * market3: Trading status
+       */
+
+      //create one more market
+      await factory.createMarket(
+        poolTemplate.address,
+        "Here is metadata.",
+        [0, 0],
+        [
+          usdc.address,
+          usdc.address,
+          registry.address,
+          parameters.address,
+        ]
+      );
+      let markets = await registry.getAllMarkets()
+      let market3 = markets[markets.length - 1]
+
+      //deposit
+      let totalDeposit = depositAmount.mul(3) //30000
+      await index.connect(alice).deposit(totalDeposit)
+
+      //set market to index. adjustAlloc() is done in this function
+      await index.set("2", "0", market3, defaultLeverage);
+
+      //sanity check
+      {
+        await verifyIndexStatus({
+          index: index,
+          totalSupply: totalDeposit,
+          totalLiquidity: totalDeposit,
+          totalAllocatedCredit: totalDeposit.mul(2), //x2 leverage
+          totalAllocPoint: defaultLeverage.mul(3), //3 markets
+          targetLev: targetLeverage,
+          leverage: targetLeverage,
+          withdrawable: totalDeposit,
+          rate: defaultRate,
+        });
+
+        await verifyPoolsStatus({
+          pools: [
+            {
+              pool: market1,
+              totalSupply: ZERO,
+              totalLiquidity: totalDeposit.mul(2).div(3),
+              availableBalance: totalDeposit.mul(2).div(3),
+              rate: ZERO,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO,
+            },
+            {
+              pool: market2,
+              totalSupply: ZERO,
+              totalLiquidity: totalDeposit.mul(2).div(3),
+              availableBalance: totalDeposit.mul(2).div(3),
+              rate: ZERO,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO,
+            },
+            {
+              pool: market2,
+              totalSupply: ZERO,
+              totalLiquidity: totalDeposit.mul(2).div(3),
+              availableBalance: totalDeposit.mul(2).div(3),
+              rate: ZERO,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO,
+            },
+          ],
+        });
+      }
+
+      let insureAmount = depositAmount.div(2) //5000
+
+      //market1: insure()
+      let tx = await market1.connect(chad).insure(
+        insureAmount,
+        insureAmount,
+        YEAR,
+        target,
+        chad.address,
+        chad.address
+      );
+      let premiumAmount = (await tx.wait()).events[2].args["premium"];
+      let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
+      let income = premiumAmount.sub(govFee);
+
+      //market2: insure()
+      tx = await market2.connect(chad).insure(
+        insureAmount,
+        insureAmount,
+        YEAR,
+        target,
+        chad.address,
+        chad.address
+      );
+      premiumAmount = (await tx.wait()).events[2].args["premium"];
+      govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
+      income = income.add(premiumAmount.sub(govFee));
+
+
+      // market2 => Payout status WITHOUT claim
+      let incident = await now();
+      await applyCover({
+        pool: market2,
+        pending: DAY,
+        targetAddress: ZERO_ADDRESS, //everyone
+        payoutNumerator: 10000,
+        payoutDenominator: 10000,
+        incidentTimestamp: incident,
+      });
+
+      // market1 => Payout status WITH claim
+      let proof = await applyCover({
+        pool: market1,
+        pending: DAY,
+        targetAddress: ZERO_ADDRESS, //everyone
+        payoutNumerator: 10000,
+        payoutDenominator: 10000,
+        incidentTimestamp: incident,
+      });
+
+      await market1.connect(chad).redeem(0, proof); //market1 has debt now
+
+      await moveForwardPeriods(1); //1day pass (applyCover().pending ends)
+
+      await market1.resume()
+
+      
+      /** sanity check
+       * market1 had 5000 payout
+       * index deposit was 30000 with leverage of x2
+       * market2 is Paying status
+       * 
+       * market2 credit should keep remain
+       * credit re-distribution has to be done along to the new liquidity and credits.
+       * if market1 payout is big enough, market2 cannot keep the same credit since "_current > _allocatable".
+       */
+
+
+      //@dev not finish yet
+      {
+        await verifyIndexStatus({
+          index: index,
+          totalSupply: totalDeposit,
+          totalLiquidity: totalDeposit,
+          totalAllocatedCredit: totalDeposit.mul(2), //x2 leverage
+          totalAllocPoint: defaultLeverage.mul(3), //3 markets
+          targetLev: targetLeverage,
+          leverage: targetLeverage,
+          withdrawable: totalDeposit,
+          rate: defaultRate,
+        });
+
+        await verifyPoolsStatus({
+          pools: [
+            {
+              pool: market1,
+              totalSupply: ZERO,
+              totalLiquidity: totalDeposit.mul(2).div(3),
+              availableBalance: totalDeposit.mul(2).div(3),
+              rate: ZERO,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO,
+            },
+            {
+              pool: market2,
+              totalSupply: ZERO,
+              totalLiquidity: totalDeposit.mul(2).div(3),
+              availableBalance: totalDeposit.mul(2).div(3),
+              rate: ZERO,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO,
+            },
+            {
+              pool: market2,
+              totalSupply: ZERO,
+              totalLiquidity: totalDeposit.mul(2).div(3),
+              availableBalance: totalDeposit.mul(2).div(3),
+              rate: ZERO,
+              utilizationRate: ZERO,
+              allInsuranceCount: ZERO,
+            },
+          ],
+        });
+      }
+
+
+
+
+
+
+
+
     });
   });
 });
