@@ -59,6 +59,7 @@ describe("Pool", function () {
   const depositAmountLarge = BigNumber.from("40000"); //default deposit amount (large) for test
   const defaultRate = BigNumber.from("1000000"); //initial rate between USDC and LP token
   const insureAmount = BigNumber.from("10000"); //default insure amount for test
+  const loss = BigNumber.from("1000000");
 
   const governanceFeeRate = BigNumber.from("100000"); //10% of the Premium
   const RATE_DIVIDER = BigNumber.from("1000000"); //1e6
@@ -76,17 +77,19 @@ describe("Pool", function () {
     payoutNumerator,
     payoutDenominator,
     incidentTimestamp,
+    lossAmount
   }) => {
     const padded1 = ethers.utils.hexZeroPad("0x1", 32);
     const padded2 = ethers.utils.hexZeroPad("0x2", 32);
+    const _loss = lossAmount
 
     const getLeaves = (target) => {
       return [
-        { id: padded1, account: target },
-        { id: padded1, account: TEST_ADDRESS },
-        { id: padded2, account: TEST_ADDRESS },
-        { id: padded2, account: NULL_ADDRESS },
-        { id: padded1, account: NULL_ADDRESS },
+        { id: padded1, account: target, loss: _loss },
+        { id: padded1, account: TEST_ADDRESS, loss: _loss },
+        { id: padded2, account: TEST_ADDRESS, loss: _loss },
+        { id: padded2, account: NULL_ADDRESS, loss: _loss },
+        { id: padded1, account: NULL_ADDRESS, loss: _loss },
       ];
     };
 
@@ -94,10 +97,10 @@ describe("Pool", function () {
     const encoded = (target) => {
       const list = getLeaves(target);
 
-      return list.map(({ id, account }) => {
+      return list.map(({ id, account, loss }) => {
         return ethers.utils.solidityKeccak256(
-          ["bytes32", "address"],
-          [id, account]
+          ["bytes32", "address", "uint256"],
+          [id, account, loss]
         );
       });
     };
@@ -265,13 +268,14 @@ describe("Pool", function () {
           payoutNumerator: 10000,
           payoutDenominator: 10000,
           incidentTimestamp: incident,
+          lossAmount: loss
         });
       });
 
       it("can redeem for myself", async () => {
         let current = await usdc.balanceOf(chad.address)
   
-        await market.connect(chad).redeem(0, proof);
+        await market.connect(chad).redeem(0, loss, proof);
 
         expect(await usdc.balanceOf(chad.address)).to.equal(current.add(insureAmount))
       });
@@ -279,15 +283,112 @@ describe("Pool", function () {
       it("agent can redeem", async () => {
         let current = await usdc.balanceOf(chad.address)
   
-        await market.connect(tom).redeem(0, proof);
+        await market.connect(tom).redeem(0, loss, proof);
 
         expect(await usdc.balanceOf(chad.address)).to.equal(current.add(insureAmount))
       });
 
       it("revert when not holder nor agent redeem", async () => {
-        await expect(market.connect(bob).redeem(0, proof)).to.revertedWith("ERROR: NOT_YOUR_INSURANCE")       
+        await expect(market.connect(bob).redeem(0, loss, proof)).to.revertedWith("ERROR: NOT_YOUR_INSURANCE")       
+      });
+    });
+    describe("redeem2", function () {
+      beforeEach(async () => {
+        await usdc.connect(alice).approve(vault.address, initialMint)
+        await market.connect(alice).deposit(initialMint)
+
+        await usdc.connect(bob).approve(vault.address, initialMint)
+        await insure({
+          pool: market,
+          insurer: bob,
+          amount: insureAmount,
+          maxCost: insureAmount,
+          span: WEEK,
+          target: padded1,
+          insured: chad.address,
+          agent: tom.address
+        })
       });
 
+      it("redeem amount capped at loss", async () => {
+        let smallLoss = insureAmount.div(2)
+        let incident = await now();
+
+        proof = await applyCover({
+          pool: market,
+          pending: DAY,
+          targetAddress: ZERO_ADDRESS, //everyone
+          payoutNumerator: 10000,
+          payoutDenominator: 10000,
+          incidentTimestamp: incident,
+          lossAmount: smallLoss
+        });
+
+        let current = await usdc.balanceOf(chad.address)
+  
+        await market.connect(chad).redeem(0, smallLoss, proof);
+
+        expect(await usdc.balanceOf(chad.address)).to.equal(current.add(smallLoss))
+      });
+
+      it("loss has effect of partial payment", async () => {
+        let smallLoss = insureAmount.div(2)
+        let incident = await now();
+
+        proof = await applyCover({
+          pool: market,
+          pending: DAY,
+          targetAddress: ZERO_ADDRESS, //everyone
+          payoutNumerator: 5000, 
+          payoutDenominator: 10000, //50%
+          incidentTimestamp: incident,
+          lossAmount: smallLoss
+        });
+
+        let current = await usdc.balanceOf(chad.address)
+  
+        await market.connect(chad).redeem(0, smallLoss, proof);
+
+        expect(await usdc.balanceOf(chad.address)).to.equal(current.add(smallLoss.div(2)))
+      });
+
+      it("only loss has effect of partial payment", async () => {
+        let smallLoss = insureAmount.div(2)
+        let incident = await now();
+
+        proof = await applyCover({
+          pool: market,
+          pending: DAY,
+          targetAddress: ZERO_ADDRESS, //everyone
+          payoutNumerator: 5000, 
+          payoutDenominator: 10000, //50%
+          incidentTimestamp: incident,
+          lossAmount: loss
+        });
+
+        let current = await usdc.balanceOf(chad.address)
+  
+        await market.connect(chad).redeem(0, loss, proof);
+
+        expect(await usdc.balanceOf(chad.address)).to.equal(current.add(insureAmount))
+      });
+
+      it("revert when loss input differ than the merkle tree", async () => {
+        let smallLoss = insureAmount.div(2)
+        let incident = await now();
+
+        proof = await applyCover({
+          pool: market,
+          pending: DAY,
+          targetAddress: ZERO_ADDRESS, //everyone
+          payoutNumerator: 5000, 
+          payoutDenominator: 10000, //50%
+          incidentTimestamp: incident,
+          lossAmount: smallLoss
+        });
+  
+        await expect(market.connect(chad).redeem(0, loss, proof)).to.revertedWith("ERROR: INSURANCE_EXEMPTED");
+      });
     });
   });
 });
