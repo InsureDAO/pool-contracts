@@ -1,11 +1,13 @@
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
+const DAY = 86400;
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+const decimals = BigNumber.from("1000000"); //6
 
-//random token list that I found in etherscan
-const GOV_TOKENS_RINKEBY = [
+const GOV_TOKENS = [
   "0xF9bA5210F91D0474bd1e1DcDAeC4C58E359AaD85", //MKR
   "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", //UNI
   "0xc7AD46e0b8a400Bb3C915120d284AafbA8fc4735", //DAI
@@ -23,16 +25,49 @@ const GOV_TOKENS_RINKEBY = [
   "0xF1f70d79d49b84273Bb6188a0118C02A22e104B8", //ZKL
   "0x75b4902Af3671F3518B3421C73F7Dc7AE6E4Cc51", //BOMB
   "0x4dCf5ac4509888714dd43A5cCc46d7ab389D9c23", //HMT
+  "0x81D99ab8cDd9f1f4Fe72F03DE7eA812773b9424c" //LFT
 ]
 
-const APPROVE_AMOUNT = BigNumber.from("1000000000").mul(GOV_TOKENS_RINKEBY.length) //1000USDC
 
-const INDEX_COUNT = 3
+const INDEX_LIST = [
+  [0, 1, 2, 4, 5, 6, 7, 8, 3, 9],
+  [10, 11, 16, 3, 17],
+  [12, 13, 15, 14, 8]
+]
+
+const slotB = [
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], //Genesis Index
+  [0, 0, 0, 1, 0], //Curve wars Index
+  [0, 0, 0, 0, 1] //Quantstamp Index
+]
+const ALLOCATION_POINT = BigNumber.from("1000000")
+const APPROVE_AMOUNT = BigNumber.from("1000000000").mul(GOV_TOKENS.length) //1000USDC
+
+const GovFeeRatio = 100000; //10%
+const GracePeriod = 60 * 14;
+const LockUpPeriod = 60 * 14;
+const MinDate = 60 * 7;
+const WithdrawablePeriod = 60 * 7;
+const MAX_LIST = 10;
+
+const MinDeposit = (BigNumber.from("1000")).mul(decimals); //1000USDC
+
+
 
 
 Object.assign(exports, {
   ZERO_ADDRESS,
+  USDC_ADDRESS,
+  GOV_TOKENS,
+  INDEX_LIST,
+  slotB,
   APPROVE_AMOUNT,
-  GOV_TOKENS_RINKEBY,
-  INDEX_COUNT
+  GovFeeRatio,
+  GracePeriod,
+  LockUpPeriod,
+  MinDate,
+  WithdrawablePeriod,
+  MAX_LIST,
+  MinDeposit,
+  ALLOCATION_POINT
 })

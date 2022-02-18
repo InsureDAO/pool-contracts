@@ -23,12 +23,15 @@ module.exports = {
       url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${KEY}`],
       gas: 6e6,
-      gasPrice: 1e11,
+      gasPrice: 3e10,
       timeout: 2000000000,
     },
     ropsten: {
       url: `https://ropsten.infura.io/v3/${INFURA_KEY}`,
-      accounts: [`0x${KEY}`]
+      accounts: [`0x${KEY}`],
+      gas: 6e6,
+      gasPrice: 1e10,
+      timeout: 2000000000,
     },
     rinkarbitrum: {
       url: 'https://rinkeby.arbitrum.io/rpc',
