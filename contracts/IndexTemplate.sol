@@ -15,6 +15,8 @@ import "./interfaces/IParameters.sol";
 import "./interfaces/IPoolTemplate.sol";
 import "./interfaces/ICDSTemplate.sol";
 
+import "hardhat/console.sol";
+
 /**
  * An index pool can index a certain number of pools with leverage.
  *
@@ -274,12 +276,12 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _totalLiquidity = totalLiquidity();
 
         if (_totalLiquidity != 0) {
-            uint256 _length = poolList.length;
+            uint256 _poolLength = poolList.length;
             uint256 _highestLockScore;
             uint256 _targetAllocPoint;
             uint256 _targetLockedCreditScore;
             //Check which pool has the lowest available rate and keep stats
-            for (uint256 i; i < _length;) {
+            for (uint256 i; i < _poolLength;) {
                 address _poolAddress = poolList[i];
                 uint256 _allocPoint = allocPoints[_poolAddress];
 
@@ -312,6 +314,13 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             } else {
                 uint256 _necessaryAmount = _targetLockedCreditScore * totalAllocPoint * MAGIC_SCALE_1E6
                     / (_targetAllocPoint * targetLev);
+
+                console.log("_necessaryAmount: ", _necessaryAmount);
+                console.log("_targetLockedCreditScore: ", _targetLockedCreditScore);
+                console.log("totalAllocPoint: ", totalAllocPoint);
+                console.log("_targetAllocPoint: ", _targetAllocPoint);
+                console.log("targetLev: ", targetLev);
+                
                 if (_necessaryAmount < _totalLiquidity) {
                     unchecked {
                         return _totalLiquidity - _necessaryAmount;
@@ -328,115 +337,143 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         _adjustAlloc(totalLiquidity());
     }
 
-    /**
-     * @notice Internal function to adjust allocation
-     * @param _liquidity available liquidity of the index
-     * Allocation adjustment of credit is done by the following steps
-     * 1)Check total allocatable balance of the index
-     * 2)Calculate ideal allocation for each pool
-     * 3)Check Current allocated balance for each pool
-     * 4)Adjust (withdraw/deposit) allocation for each Pool*
-     *
-     * Liquidity in pool may be locked and cannot withdraw. In that case, the index try to withdraw all available liquidity first,
-     * then recalculated available balance and iterate 1)~4) for the remaining.
-     *
-     * The index may allocate credit beyond the share settings to maintain the leverage rate not to surpass the leverage setting.
-     *
-     * Along with adjustment the index clears accrued premiums in underlying pools to this pool during allocation.
+
+     /**
+     * @notice adjust credit allocation 
+     * @param _liquidity available liquidity of the index.
+     * @dev credit adjustment is done based on _liquidity and targetLeverage
+     * 
+     * 1) calculate goal amount of totalCredits
+     * 
+     * 2) First for loop 
+     *    Perform calculation for un-usual pools (eg Pool with Payout status, insufficient withdrawable amount, and Paused status)
+     *      - For paying out pool: Keep the current credits in the pool. Reserve a slot for that amount.
+     *      - For pool with insufficient withdrawable amount: Withdraw as much credits as possible and reserve a slot for the credits what couldn't be withdrawn.
+     *      - For paused pool: Withdraw all credits. If couldn't, reserve a slot for the credits what couldn't be withdrawn.
+     * 
+     * 3) Second for loop
+     *    Distribute allocatable credits to the normal pools
      */
     function _adjustAlloc(uint256 _liquidity) internal {
-        //Check current leverage rate and get target total credit allocation
-        uint256 _targetCredit = (targetLev * _liquidity) / MAGIC_SCALE_1E6;
-        uint256 _allocatable = _targetCredit;
-        uint256 _totalAllocatedCredit = totalAllocatedCredit;
+
+        uint256 _targetTotalCredit = (targetLev * _liquidity) / MAGIC_SCALE_1E6; //Goal total credit for this time
+        uint256 _allocatableCredit = _targetTotalCredit; //use this variable to reserve slots for credits that cannot be withdrawn.
+        
+        uint256 _totalAllocatedCredit = totalAllocatedCredit; //tracks total allocated credits. This should meet with the _targetTotalCredit at the end.
 
         uint256 _totalAllocPoint = totalAllocPoint;
-        uint256 _length = poolList.length;
+        uint256 _afterTotalAllocPoint = _totalAllocPoint;
 
-        PoolStatus[] memory _poolList = new PoolStatus[](_length);
-        //Check each pool and if current credit allocation > target && it is impossible to adjust, then withdraw all availablle credit
-        for (uint256 i; i < _length;) {
+        uint256 _poolLength = poolList.length;
+
+        PoolStatus[] memory _poolList = new PoolStatus[](_poolLength);
+        
+        //First for loop: Priority will be given to pools with special condition.
+        for (uint256 i; i < _poolLength;) {
             address _pool = poolList[i];
+
             if (_pool != address(0)) {
-                uint256 _allocation = allocPoints[_pool];
-                //Target credit allocation for a pool
-                uint256 _target = (_targetCredit * _allocation) /
-                    _totalAllocPoint;
-                //get how much has been allocated for a pool and get how much liquidty is available to withdraw
-                uint256 _current;
-                uint256 _available;
-                (_current, _available) = IPoolTemplate(_pool).pairValues(address(this));
-                //if needed to withdraw credit but unable, then withdraw all available.
-                //Otherwise, skip.
+                uint256 _allocPoint = allocPoints[_pool];
+                uint256 _targetCredit = (_targetTotalCredit * _allocPoint) / _totalAllocPoint;
+
+                //Get "current allocation on the pool" & "Pool's _availableBalance()"
+                (uint256 _currentCredit, uint256 _availableBalance) = IPoolTemplate(_pool).pairValues(address(this));
+
                 if(
+                    //Paying out pool
                     IPoolTemplate(_pool).marketStatus() == IPoolTemplate.MarketStatus.Payingout
                 ){
-                    _totalAllocatedCredit -= _current;
-                    _poolList[i].addr = address(0);
-                    _allocatable = _safeMinus(_allocatable, _current);
+                    //Reserve a slot for all _currentCredit amount. 
+                    _allocatableCredit = _safeMinus(_allocatableCredit, _currentCredit); 
+
+                    _poolList[i].addr = address(0); //done for this pool
+                    _afterTotalAllocPoint -= _allocPoint;
+
                 } else if (
-                    _current > _target && _current - _target > _available
+                    //Credits need to be withdrawn, but there is insufficient available banlance
+                    _currentCredit > _targetCredit && _currentCredit - _targetCredit > _availableBalance
                 ) {
-                    IPoolTemplate(_pool).withdrawCredit(_available);
-                    _totalAllocatedCredit -= _available;
-                    _poolList[i].addr = address(0);
-                    _allocatable -= _current - _available;
+                    //Withdraw as much as possible.
+                    IPoolTemplate(_pool).withdrawCredit(_availableBalance);
+                    _totalAllocatedCredit -= _availableBalance;
+                    
+                    //Reserve a slot for the credits what couldn't be withdrawn.
+                    _allocatableCredit -= _currentCredit - _availableBalance;
+
+                    _poolList[i].addr = address(0); //done for this pool
+                    _afterTotalAllocPoint -= _allocPoint;
+
                 } else if (
+                    //When pool is paused, withdraw all
                     IPoolTemplate(_pool).paused()
                 ) {
-                    if(_current > _available){
-                        IPoolTemplate(_pool).withdrawCredit(_available);
-                        _totalAllocatedCredit -= _available;
-                        _poolList[i].addr = address(0);
-                        _allocatable -= _safeMinus(_allocatable, _available);
+                    if(_currentCredit > _availableBalance){
+                        //withdraw as much as possible
+                        IPoolTemplate(_pool).withdrawCredit(_availableBalance);
+                        _totalAllocatedCredit -= _availableBalance;
+                        
+                        //Reserve a slot for the credits still in the pool
+                        _allocatableCredit -= _currentCredit - _availableBalance;
+
+                        _poolList[i].addr = address(0); //done for this pool
+                        _afterTotalAllocPoint -= _allocPoint;
+                        
                     } else {
-                        IPoolTemplate(_pool).withdrawCredit(_current);
-                        _totalAllocatedCredit -= _current;
-                        _poolList[i].addr = address(0);
-                        _allocatable -= _safeMinus(_allocatable, _current);
+                        //withdraw all
+                        IPoolTemplate(_pool).withdrawCredit(_currentCredit);
+                        _totalAllocatedCredit -= _currentCredit;
+                        
+                        //no need to reserve a slot.
+
+                        _poolList[i].addr = address(0); //done for this pool
+                        _afterTotalAllocPoint -= _allocPoint;
                     }
                 } else {
+                    //normal pools. Adjust credits in the next for loop
+                    _poolList[i].current = _currentCredit;
+                    _poolList[i].available = _availableBalance;
+                    _poolList[i].allocation = _allocPoint;
                     _poolList[i].addr = _pool;
-                    _poolList[i].current = _current;
-                    _poolList[i].available = _available;
-                    _poolList[i].allocation = _allocation;
                 }
             }
             unchecked {
                 ++i;
             }
         }
-        //Check pools that was not falling under the previous criteria, then adjust to meet the target credit allocation.
-        for (uint256 i; i < _length;) {
-            if (_poolList[i].addr != address(0)) {
-                //Target credit allocation for a pool
-                uint256 _target = (_allocatable * _poolList[i].allocation) /
-                    _totalAllocPoint;
-                //get how much has been allocated for a pool
-                uint256 _current = _poolList[i].current;
-                //get how much liquidty is available to withdraw
-                uint256 _available = _poolList[i].available;
-                //Withdraw or Deposit credit
 
-                if (_current == _target) {
+        //Second for loop: Adjust normal pools to the ideal amount of credits
+        for (uint256 i; i < _poolLength;) {
+            if (_poolList[i].addr != address(0)) {
+                uint256 _targetCredit = (_allocatableCredit * _poolList[i].allocation) / _afterTotalAllocPoint;
+  
+                //use "current allocation on the pool" & "Pool's _availableBalance()"
+                (uint256 _currentCredit, uint256 _availableBalance) = (_poolList[i].current, _poolList[i].available);
+
+                if (_currentCredit == _targetCredit) {
                     IPoolTemplate(_poolList[i].addr).allocateCredit(0);
-                } else if (_current < _target) {
-                    //Sometimes we need to allocate more
-                    uint256 _allocate;
+                } else if (_currentCredit < _targetCredit) {
+
+                    uint256 _increase;
                     unchecked {
-                        _allocate = _target - _current;
+                        _increase = _targetCredit - _currentCredit;
                     }
-                    IPoolTemplate(_poolList[i].addr).allocateCredit(_allocate);
-                    _totalAllocatedCredit += _allocate;
-                } else if (_current > _target && _available != 0) {
-                    //if allocated credit is higher than the target, try to decrease
+
+                    //credit allocation
+                    IPoolTemplate(_poolList[i].addr).allocateCredit(_increase);
+                    _totalAllocatedCredit += _increase;
+
+
+                } else if (_currentCredit > _targetCredit && _availableBalance != 0) {
+
                     uint256 _decrease;
                     unchecked {
-                        _decrease = _current - _target;
+                        _decrease = _currentCredit - _targetCredit;
                     }
-                    // _decrease can be higher than _available
-                    if (_available < _decrease) {
-                        _decrease = _available;
+
+                    // _decrease can be higher than _availableBalance
+                    if (_availableBalance < _decrease) {
+                        //In this case, leverage rate after adjustAlloc() will be higher than the targetLev.
+                        _decrease = _availableBalance;
                     }
                     
                     IPoolTemplate(_poolList[i].addr).withdrawCredit(_decrease);
@@ -640,26 +677,25 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             _indexA <= parameters.getMaxList(address(this)),
             "ERROR: EXCEEEDED_MAX_INDEX"
         );
-        uint256 _length = poolList.length;
+        uint256 _poolLength = poolList.length;
 
         //create a new pool or replace existing
-        if (_length <= _indexA) {
-            require(_length == _indexA, "ERROR: BAD_INDEX");
+        if (_poolLength <= _indexA) {
+            require(_poolLength == _indexA, "ERROR: BAD_INDEX");
             IPoolTemplate(_pool).registerIndex(_indexB);
             poolList.push(_pool);
         } else {
             //action for existing slot
             address _poolAddress = poolList[_indexA];
             if (_poolAddress != address(0) && _poolAddress != _pool) {
-                uint256 _current;
-                (_current, ) = IPoolTemplate(_poolAddress).pairValues(address(this));
+                (uint256 _currentCredit, ) = IPoolTemplate(_poolAddress).pairValues(address(this));
                 
                 require(
                     IPoolTemplate(_poolAddress).marketStatus() == IPoolTemplate.MarketStatus.Trading &&
-                    IPoolTemplate(_poolAddress).availableBalance() >= _current,
+                    IPoolTemplate(_poolAddress).availableBalance() >= _currentCredit,
                     "ERROR: CANNOT_EXIT_POOL"
                 );
-                IPoolTemplate(_poolAddress).withdrawCredit(_current);
+                IPoolTemplate(_poolAddress).withdrawCredit(_currentCredit);
             }
             IPoolTemplate(_pool).registerIndex(_indexB);
             poolList[_indexA] = _pool;

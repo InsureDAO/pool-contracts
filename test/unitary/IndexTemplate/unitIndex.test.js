@@ -125,7 +125,7 @@ describe("Index", function () {
 
     const Ownership = await ethers.getContractFactory("Ownership");
     const USDC = await ethers.getContractFactory("TestERC20Mock");
-    const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+    PoolTemplate = await ethers.getContractFactory("PoolTemplate");
     const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
     const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
     const Factory = await ethers.getContractFactory("Factory");
@@ -3522,14 +3522,15 @@ describe("Index", function () {
         ]
       );
       let markets = await registry.getAllMarkets()
-      let market3 = markets[markets.length - 1]
+      let market3_address = markets[markets.length - 1]
+      let market3 = await PoolTemplate.attach(market3_address)
 
       //deposit
       let totalDeposit = depositAmount.mul(3) //30000
       await index.connect(alice).deposit(totalDeposit)
 
       //set market to index. adjustAlloc() is done in this function
-      await index.set("2", "0", market3, defaultLeverage);
+      await index.set("2", "0", market3.address, defaultLeverage);
 
       //sanity check
       {
@@ -3640,56 +3641,74 @@ describe("Index", function () {
        * index deposit was 30000 with leverage of x2
        * market2 is Paying status
        * 
-       * market2 credit should keep remain
-       * credit re-distribution has to be done along to the new liquidity and credits.
-       * if market1 payout is big enough, market2 cannot keep the same credit since "_current > _allocatable".
+       * before
+       * market1: 20000
+       * market2: 20000
+       * market3: 20000
+       * 
+       * 
+       * liquidity became 25900 (900 income) with leverage of x2 
+       * credits of 51800
+       * 
+       * after
+       * credits of 51800
+       * market1: 15900
+       * market2: 20000 (Payout)
+       * market3: 15900
+       * 
+       * withdrawable
+       * market2 5000 locked 1/3 alopPoint 2leverage
+       * => 5000 * 3 / 2 = 7500
+       * 25900 - 7500 = 18400
        */
 
 
       //@dev not finish yet
       {
-        await verifyIndexStatus({
-          index: index,
-          totalSupply: totalDeposit,
-          totalLiquidity: totalDeposit,
-          totalAllocatedCredit: totalDeposit.mul(2), //x2 leverage
-          totalAllocPoint: defaultLeverage.mul(3), //3 markets
-          targetLev: targetLeverage,
-          leverage: targetLeverage,
-          withdrawable: totalDeposit,
-          rate: defaultRate,
-        });
+        let indexLiquidity = totalDeposit.add(income).sub(insureAmount)
 
         await verifyPoolsStatus({
           pools: [
             {
+              pool: market2,
+              totalSupply: ZERO,
+              totalLiquidity: 20000, //Priority to keep current credits
+              availableBalance: 15000,
+              rate: ZERO,
+              utilizationRate: 5000*1000000/20000,
+              allInsuranceCount: 1,
+            },
+            {
               pool: market1,
               totalSupply: ZERO,
-              totalLiquidity: totalDeposit.mul(2).div(3),
-              availableBalance: totalDeposit.mul(2).div(3),
+              totalLiquidity: 15900, 
+              availableBalance: 15900,
               rate: ZERO,
               utilizationRate: ZERO,
-              allInsuranceCount: ZERO,
+              allInsuranceCount: 1,
             },
             {
-              pool: market2,
+              pool: market3,
               totalSupply: ZERO,
-              totalLiquidity: totalDeposit.mul(2).div(3),
-              availableBalance: totalDeposit.mul(2).div(3),
+              totalLiquidity: 15900, 
+              availableBalance: 15900,
               rate: ZERO,
               utilizationRate: ZERO,
-              allInsuranceCount: ZERO,
-            },
-            {
-              pool: market2,
-              totalSupply: ZERO,
-              totalLiquidity: totalDeposit.mul(2).div(3),
-              availableBalance: totalDeposit.mul(2).div(3),
-              rate: ZERO,
-              utilizationRate: ZERO,
-              allInsuranceCount: ZERO,
-            },
+              allInsuranceCount: 0,
+            }
           ],
+        });
+
+        await verifyIndexStatus({
+          index: index,
+          totalSupply: totalDeposit,
+          totalLiquidity: "25900",
+          totalAllocatedCredit: "51800", //x2 leverage
+          totalAllocPoint: defaultLeverage.mul(3), //3 markets
+          targetLev: targetLeverage,
+          leverage: targetLeverage,
+          withdrawable: "18400",
+          rate: defaultRate.mul(25900).div(totalDeposit),
         });
       }
 
