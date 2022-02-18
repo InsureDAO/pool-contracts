@@ -195,7 +195,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
         require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
         
-        uint64 _unlocksAt = (uint64)(block.timestamp + parameters.getLockup(msg.sender));
+        uint64 _unlocksAt = (uint64)(block.timestamp + parameters.getLockup(address(this)));
 
         withdrawalReq[msg.sender].timestamp = _unlocksAt;
         withdrawalReq[msg.sender].amount = (uint192)(_amount);
@@ -219,7 +219,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            request.timestamp + parameters.getWithdrawable(msg.sender) >
+            request.timestamp + parameters.getWithdrawable(address(this)) >
                 block.timestamp,
             "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );

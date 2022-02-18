@@ -267,7 +267,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
         require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
         
-        uint256 _unlocksAt = block.timestamp + parameters.getLockup(msg.sender);
+        uint256 _unlocksAt = block.timestamp + parameters.getLockup(address(this));
 
         withdrawalReq[msg.sender].timestamp = _unlocksAt;
         withdrawalReq[msg.sender].amount = _amount;
@@ -292,7 +292,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            request.timestamp + parameters.getWithdrawable(msg.sender) > block.timestamp,
+            request.timestamp + parameters.getWithdrawable(address(this)) > block.timestamp,
             "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
@@ -356,7 +356,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     function _unlock(uint256 _id) internal {
         require(
             insurances[_id].status &&
-                insurances[_id].endTime + parameters.getGrace(msg.sender) <
+                insurances[_id].endTime + parameters.getGrace(address(this)) <
                 block.timestamp,
             "ERROR: UNLOCK_BAD_COINDITIONS"
         );
@@ -531,7 +531,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         require(_span <= 365 days, "ERROR: INSURE_EXCEEDED_MAX_SPAN");
         require(
-            parameters.getMinDate(msg.sender) <= _span,
+            parameters.getMinDate(address(this)) <= _span,
             "ERROR: INSURE_SPAN_BELOW_MIN"
         );
 
@@ -540,7 +540,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         require(_premium <= _maxCost, "ERROR: INSURE_EXCEEDED_MAX_COST");
         
         uint256 _endTime = _span + block.timestamp;
-        uint256 _fee = parameters.getFeeRate(msg.sender);
+        uint256 _fee = parameters.getFeeRate(address(this));
         
         //current liquidity
         uint256 _liquidity = totalLiquidity();
