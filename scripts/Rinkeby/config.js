@@ -45,9 +45,12 @@ const APPROVE_AMOUNT = BigNumber.from("1000000000").mul(GOV_TOKENS.length) //100
 
 const GovFeeRatio = 100000; //10%
 const GracePeriod = 60 * 14;
-const LockUpPeriod = 60 * 14;
 const MinDate = 60 * 7;
+
+const LockUpPeriod = 60 * 14;
+const CDSLockUpPeriod = 60 * 7;
 const WithdrawablePeriod = 60 * 7;
+
 const MAX_LIST = 10;
 
 const MinDeposit = (BigNumber.from("1000")).mul(decimals); //1000USDC
@@ -65,6 +68,7 @@ Object.assign(exports, {
   GovFeeRatio,
   GracePeriod,
   LockUpPeriod,
+  CDSLockUpPeriod,
   MinDate,
   WithdrawablePeriod,
   MAX_LIST,

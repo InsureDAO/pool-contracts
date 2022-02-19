@@ -172,6 +172,7 @@ async function main() {
   tx = await parameters.setGrace(ZERO_ADDRESS, GracePeriod);
 
   tx = await parameters.setLockup(ZERO_ADDRESS, LockUpPeriod);
+  //setLockUp for CDS for the first one week
 
   tx = await parameters.setMinDate(ZERO_ADDRESS, MinDate);
 
