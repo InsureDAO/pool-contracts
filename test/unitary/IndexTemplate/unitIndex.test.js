@@ -301,7 +301,7 @@ describe("Index", function () {
     await restore(snapshotId);
   });
 
-  describe.skip("initialize", function () {
+  describe("initialize", function () {
     beforeEach(async () => {
       //this is important to check all the variables every time to make sure we forget nothing
       {
@@ -590,7 +590,7 @@ describe("Index", function () {
     });
   });
 
-  describe.skip("deposit", function () {
+  describe("deposit", function () {
     beforeEach(async () => {
       //this is important to check all the variables every time to make sure we forget nothing
       {
@@ -1112,7 +1112,7 @@ describe("Index", function () {
     });
   });
 
-  describe.skip("requestWithdraw", function () {
+  describe("requestWithdraw", function () {
     beforeEach(async () => {
       await index.connect(alice).deposit(depositAmount);
 
@@ -1582,7 +1582,7 @@ describe("Index", function () {
     });
   });
 
-  describe.skip("_beforeTokenTransfer", function () {
+  describe("_beforeTokenTransfer", function () {
     beforeEach(async () => {
       await index.connect(alice).deposit(depositAmount);
 
@@ -2058,7 +2058,7 @@ describe("Index", function () {
     });
   });
 
-  describe.skip("withdrawable", function () {
+  describe("withdrawable", function () {
     it("should retrun index's not locked amount", async function () {
       await market1.connect(alice).deposit(depositAmount);
       //await market2.connect(alice).deposit(depositAmount)
@@ -2192,7 +2192,7 @@ describe("Index", function () {
     });
   });
 
-  describe.skip("withdraw", function () {
+  describe("withdraw", function () {
     beforeEach(async () => {
       await index.connect(alice).deposit(depositAmount);
 
@@ -2861,7 +2861,7 @@ describe("Index", function () {
     });
   });
 
-  describe.skip("compensate", function () {
+  describe("compensate", function () {
     beforeEach(async () => {
       //this is important to check all the variables every time to make sure we forget nothing
       {
@@ -3085,7 +3085,7 @@ describe("Index", function () {
     });
   });
 
-  describe.skip("adjustAlloc", function () {
+  describe("adjustAlloc", function () {
     beforeEach(async () => {
       //this is important to check all the variables every time to make sure we forget nothing
       {

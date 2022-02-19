@@ -346,13 +346,13 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * 1) calculate goal amount of totalCredits
      * 
      * 2) First for loop 
-     *    Perform calculation for un-usual pools (eg Pool with Payout status, insufficient withdrawable amount, and Paused status)
+     *    Perform calculation for un-usual pools (eg Pool with Payout status and Paused status)
      *      - For paying out pool: Keep the current credits in the pool. Reserve a slot for that amount.
-     *      - For pool with insufficient withdrawable amount: Withdraw as much credits as possible and reserve a slot for the credits what couldn't be withdrawn.
      *      - For paused pool: Withdraw all credits. If couldn't, reserve a slot for the credits what couldn't be withdrawn.
      * 
      * 3) Second for loop
-     *    Distribute allocatable credits to the normal pools
+     *    Distribute allocatable credits to the normal pools. 
+     *    When pool has not enough availableBalance to withdraw, withdraw as much as possible, and leverage rate will be higher than the targetLev.
      */
     function _adjustAlloc(uint256 _liquidity) internal {
 
@@ -374,7 +374,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
             if (_pool != address(0)) {
                 uint256 _allocPoint = allocPoints[_pool];
-                uint256 _targetCredit = (_targetTotalCredit * _allocPoint) / _totalAllocPoint;
 
                 //Get "current allocation on the pool" & "Pool's _availableBalance()"
                 (uint256 _currentCredit, uint256 _availableBalance) = IPoolTemplate(_pool).pairValues(address(this));
@@ -385,20 +384,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 ){
                     //Reserve a slot for all _currentCredit amount. 
                     _allocatableCredit = _safeMinus(_allocatableCredit, _currentCredit); 
-
-                    _poolList[i].addr = address(0); //done for this pool
-                    _afterTotalAllocPoint -= _allocPoint;
-
-                } else if (
-                    //Credits need to be withdrawn, but there is insufficient available banlance
-                    _currentCredit > _targetCredit && _currentCredit - _targetCredit > _availableBalance
-                ) {
-                    //Withdraw as much as possible.
-                    IPoolTemplate(_pool).withdrawCredit(_availableBalance);
-                    _totalAllocatedCredit -= _availableBalance;
-                    
-                    //Reserve a slot for the credits what couldn't be withdrawn.
-                    _allocatableCredit -= _currentCredit - _availableBalance;
 
                     _poolList[i].addr = address(0); //done for this pool
                     _afterTotalAllocPoint -= _allocPoint;
@@ -462,7 +447,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     IPoolTemplate(_poolList[i].addr).allocateCredit(_increase);
                     _totalAllocatedCredit += _increase;
 
-
                 } else if (_currentCredit > _targetCredit && _availableBalance != 0) {
 
                     uint256 _decrease;
@@ -485,7 +469,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             }
         }
 
-        totalAllocatedCredit = _totalAllocatedCredit;
+        /** 
+        * when one of the pool had not enough fund to be withdrawn from, 
+        * the balance will be higher than the _targetTotalCredit for the amount that could not be withdrawn
+        */
+        totalAllocatedCredit = _totalAllocatedCredit; 
     }
 
     /**
