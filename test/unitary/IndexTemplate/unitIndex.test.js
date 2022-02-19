@@ -3291,6 +3291,39 @@ describe("Index", function () {
         }
       }
     });
+
+    it("only sencond loop. increase credits", async function () {
+      // write test here
+    });
+
+    it("only sencond loop. decrease credits", async function () {
+      // write test here
+    });
+
+    it("only sencond loop. decrease credits, but insuffucient withdrawable", async function () {
+      // leverage will be higher the targetLev
+    });
+
+    it("only first loop. only Payout", async function () {
+      // write test here
+    });
+
+    it("only first loop. only paused", async function () {
+      // write test here
+    });
+
+    it("only first loop. Payout and paused", async function () {
+      // write test here
+    });
+
+    it("Both loops. Payout, paused, and normal pools", async function () {
+      // write test here
+    });
+
+    it("Both loops. use all branch together", async function () {
+      // write test here
+    });
+
   });
 
   describe("edge cases", function () {
