@@ -55,7 +55,7 @@ async function setNextBlock(time) {
   await ethers.provider.send("evm_setNextBlockTimestamp", [time.toNumber()]);
 }
 
-describe("multiIndex", function () {
+describe.skip("multiIndex", function () {
   const initialMint = BigNumber.from("100000").mul(ten_to_the_18);
 
   const depositAmount = BigNumber.from("10000").mul(ten_to_the_18);
