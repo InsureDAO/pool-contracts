@@ -345,16 +345,17 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         uint256 _allocatablePoints = totalAllocPoint;
         uint256 _totalAllocatedCredit = totalAllocatedCredit;
-        uint256 _length = poolList.length;
+        uint256 _poolLength = poolList.length;
 
         uint totalFreeableCredits;
         uint totalFrozenCredits;
 
         PoolStatus[] memory _pools = new PoolStatus[](_poolLength);
 
-        for (uint i; i < _length; ++i) {
+        for (uint i; i < _poolLength; ++i) {
             address _poolAddr = poolList[i];
-            
+            uint _current;
+            uint _available;
             (_current, _available) = IPoolTemplate(_poolAddr).pairValues(address(this));
             uint256 _allocation = allocPoints[_poolAddr];
 
@@ -366,14 +367,14 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 _totalAllocatedCredit -= freeableCredits;
                 _current -= freeableCredits;
                 freeableCredits = 0;
-                totalFrozenCredits += current;
+                totalFrozenCredits += _current;
             } else if (
                 IPoolTemplate(_poolAddr).marketStatus() == IPoolTemplate.MarketStatus.Payingout
             ) {
                 _allocatablePoints -= _allocation;
                 _allocation = 0;
                 freeableCredits = 0;
-                totalFrozenCredits += current;
+                totalFrozenCredits += _current;
             }
             
             totalFreeableCredits += freeableCredits;
@@ -393,7 +394,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         
         // if target credit is less than current allocated credit minus freeable credits, we go withdraw-only mode
         if (_totalAllocatedCredit - totalFreeableCredits >= _targetTotalCredits) {
-            for (uint i; i < _length; ++i) {
+            for (uint i; i < _poolLength; ++i) {
                 if (_pools[i].freeableCredits > 0) {
                     IPoolTemplate(_pools[i].addr).withdrawCredit(_pools[i].freeableCredits);
                 }
@@ -402,21 +403,21 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         } else {
             uint totalAllocatableCredits = _targetTotalCredits - (_totalAllocatedCredit - totalFreeableCredits);
             uint totalShortage;
-            for (uint i; i < _length; ++i) {
+            for (uint i; i < _poolLength; ++i) {
                 if (_pools[i].allocation == 0) continue;
                 uint256 _target = (_targetTotalCredits * _pools[i].allocation) / _allocatablePoints;
                 // when current - freeableCredits > target, we should withdraw all freeable credits
                 if (_pools[i].current - _pools[i].freeableCredits > _target) {
                     IPoolTemplate(_pools[i].addr).withdrawCredit(_pools[i].freeableCredits);
                     _totalAllocatedCredit -= _pools[i].freeableCredits;
-                else {
+                } else {
                     uint shortage = _target - _pools[i].current;
                     totalShortage += shortage;
                     _pools[i].shortage = shortage;
                 }
             }
 
-            for (uint i; i < _length; ++i) {
+            for (uint i; i < _poolLength; ++i) {
                 if (_pools[i].shortage == 0) continue;
                 uint reallocate = totalAllocatableCredits * _pools[i].shortage / totalShortage;
                 // when reallocate >= freeableCredits, we deposit
