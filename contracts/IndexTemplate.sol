@@ -406,12 +406,13 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             for (uint i; i < _poolLength; ++i) {
                 if (_pools[i].allocation == 0) continue;
                 uint256 _target = (_targetTotalCredits * _pools[i].allocation) / _allocatablePoints;
-                // when current - freeableCredits > target, we should withdraw all freeable credits
-                if (_pools[i].current - _pools[i].freeableCredits > _target) {
+                uint fixedCredits = _pools[i].current - _pools[i].freeableCredits;
+                // when fixedCredits > target, we should withdraw all freeable credits
+                if (fixedCredits > _target) {
                     IPoolTemplate(_pools[i].addr).withdrawCredit(_pools[i].freeableCredits);
                     _totalAllocatedCredit -= _pools[i].freeableCredits;
                 } else {
-                    uint shortage = _target - _pools[i].current;
+                    uint shortage = _target - fixedCredits;
                     totalShortage += shortage;
                     _pools[i].shortage = shortage;
                 }
