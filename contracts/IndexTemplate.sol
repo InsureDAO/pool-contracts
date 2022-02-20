@@ -360,19 +360,19 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             uint256 _allocation = allocPoints[_poolAddr];
 
             uint freeableCredits = (_available > _current ? _current: _available);
-            if (IPoolTemplate(_poolAddr).paused()) {
+            if (
+                IPoolTemplate(_poolAddr).marketStatus() == IPoolTemplate.MarketStatus.Payingout
+            ) {
+                _allocatablePoints -= _allocation;
+                _allocation = 0;
+                freeableCredits = 0;
+                totalFrozenCredits += _current;
+            } else if (_allocation == 0 || IPoolTemplate(_poolAddr).paused()) {
                 _allocatablePoints -= _allocation;
                 _allocation = 0;
                 IPoolTemplate(_poolAddr).withdrawCredit(freeableCredits);
                 _totalAllocatedCredit -= freeableCredits;
                 _current -= freeableCredits;
-                freeableCredits = 0;
-                totalFrozenCredits += _current;
-            } else if (
-                IPoolTemplate(_poolAddr).marketStatus() == IPoolTemplate.MarketStatus.Payingout
-            ) {
-                _allocatablePoints -= _allocation;
-                _allocation = 0;
                 freeableCredits = 0;
                 totalFrozenCredits += _current;
             }
