@@ -647,8 +647,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     "ERROR: CANNOT_EXIT_POOL"
                 );
                 IPoolTemplate(_poolAddress).withdrawCredit(_current);
-                _totalAllocPoint -= allocPoints[_poolAddress];
             }
+            _totalAllocPoint -= allocPoints[_poolAddress];
             IPoolTemplate(_pool).registerIndex(_indexB);
             poolList[_indexA] = _pool;
         }
