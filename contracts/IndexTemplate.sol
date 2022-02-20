@@ -350,25 +350,25 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint totalFreeableCredits;
         uint totalFrozenCredits;
 
-        PoolStatus[] memory _poolList = new PoolStatus[](_poolLength);
+        PoolStatus[] memory _pools = new PoolStatus[](_poolLength);
 
         for (uint i; i < _length; ++i) {
-            address _pool = poolList[i];
+            address _poolAddr = poolList[i];
             
-            (_current, _available) = IPoolTemplate(_pool).pairValues(address(this));
-            uint256 _allocation = allocPoints[_pool];
+            (_current, _available) = IPoolTemplate(_poolAddr).pairValues(address(this));
+            uint256 _allocation = allocPoints[_poolAddr];
 
             uint freeableCredits = (_available > _current ? _current: _available);
-            if (IPoolTemplate(_pool).paused()) {
+            if (IPoolTemplate(_poolAddr).paused()) {
                 _allocatablePoints -= _allocation;
                 _allocation = 0;
-                IPoolTemplate(_pool).withdrawCredit(freeableCredits);
+                IPoolTemplate(_poolAddr).withdrawCredit(freeableCredits);
                 _totalAllocatedCredit -= freeableCredits;
                 _current -= freeableCredits;
                 freeableCredits = 0;
                 totalFrozenCredits += current;
             } else if (
-                IPoolTemplate(_pool).marketStatus() == IPoolTemplate.MarketStatus.Payingout
+                IPoolTemplate(_poolAddr).marketStatus() == IPoolTemplate.MarketStatus.Payingout
             ) {
                 _allocatablePoints -= _allocation;
                 _allocation = 0;
@@ -378,11 +378,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             
             totalFreeableCredits += freeableCredits;
 
-            _poolList[i].addr = _pool;
-            _poolList[i].current = _current;
-            _poolList[i].available = _available;
-            _poolList[i].freeableCredits = freeableCredits;
-            _poolList[i].allocation = _allocation;
+            _pools[i].addr = _poolAddr;
+            _pools[i].current = _current;
+            _pools[i].available = _available;
+            _pools[i].freeableCredits = freeableCredits;
+            _pools[i].allocation = _allocation;
         }
 
         if (_targetTotalCredits <= totalFrozenCredits) {
@@ -394,9 +394,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         // if target credit is less than current allocated credit minus freeable credits, we go withdraw-only mode
         if (_totalAllocatedCredit - totalFreeableCredits >= _targetTotalCredits) {
             for (uint i; i < _length; ++i) {
-                address _pool = _poolList[i];
-                if (_pool.freeableCredits > 0) {
-                    IPoolTemplate(_pool.addr).withdrawCredit(_pool.freeableCredits);
+                if (_pools[i].freeableCredits > 0) {
+                    IPoolTemplate(_pools[i].addr).withdrawCredit(_pools[i].freeableCredits);
                 }
             }
             totalAllocatedCredit = _totalAllocatedCredit - totalFreeableCredits;
@@ -404,33 +403,31 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             uint totalAllocatableCredits = _targetTotalCredits - (_totalAllocatedCredit - totalFreeableCredits);
             uint totalShortage;
             for (uint i; i < _length; ++i) {
-                address _pool = _poolList[i];
-                if (pool.allocation == 0) continue;
-                uint256 _target = (_targetTotalCredits * _pool.allocation) / _allocatablePoints;
+                if (_pools[i].allocation == 0) continue;
+                uint256 _target = (_targetTotalCredits * _pools[i].allocation) / _allocatablePoints;
                 // when current - freeableCredits > target, we should withdraw all freeable credits
-                if (_pool.current - _pool.freeableCredits > _target) {
-                    IPoolTemplate(_pool.addr).withdrawCredit(_pool.freeableCredits);
-                    _totalAllocatedCredit -= _pool.freeableCredits;
+                if (_pools[i].current - _pools[i].freeableCredits > _target) {
+                    IPoolTemplate(_pools[i].addr).withdrawCredit(_pools[i].freeableCredits);
+                    _totalAllocatedCredit -= _pools[i].freeableCredits;
                 else {
-                    uint shortage = _target - _pool.current;
+                    uint shortage = _target - _pools[i].current;
                     totalShortage += shortage;
-                    pool.shortage = shortage;
+                    _pools[i].shortage = shortage;
                 }
             }
 
             for (uint i; i < _length; ++i) {
-                address _pool = _poolList[i];
-                if (pool.shortage == 0) continue;
-                uint reallocate = totalAllocatableCredits * pool.shortage / totalShortage;
+                if (_pools[i].shortage == 0) continue;
+                uint reallocate = totalAllocatableCredits * _pools[i].shortage / totalShortage;
                 // when reallocate >= freeableCredits, we deposit
-                if (reallocate >= pool.freeableCredits) {
-                    // pool.freeableCredits is part of the `reallocate`
-                    uint _allocate = reallocate - pool.freeableCredits;
-                    IPoolTemplate(_pool.addr).allocateCredit(_allocate);
+                if (reallocate >= _pools[i].freeableCredits) {
+                    // freeableCredits is part of the `reallocate`
+                    uint _allocate = reallocate - _pools[i].freeableCredits;
+                    IPoolTemplate(_pools[i].addr).allocateCredit(_allocate);
                     _totalAllocatedCredit += _allocate;
                 } else {
-                    uint _removal = _pool.freeableCredits - reallocate;
-                    IPoolTemplate(_pool.addr).withdrawCredit(_removal);
+                    uint _removal = _pools[i].freeableCredits - reallocate;
+                    IPoolTemplate(_pools[i].addr).withdrawCredit(_removal);
                     _totalAllocatedCredit -= _removal;
                 }
             }
