@@ -420,10 +420,10 @@ describe("multiIndex", function () {
       await market1.connect(alice).insure(insureAmount, insureAmount, YEAR, SmartContractHackingCover, alice.address, alice.address);
 
       await index1.set(0, 0, market1.address, ten_to_the_18);
-      expect((await market1.indicies(index1.address)).rewardDebt).to.not.equal(ZERO)
+      expect((await market1.indices(index1.address)).rewardDebt).to.not.equal(ZERO)
 
       await index1.set(0, 0, market1.address, ZERO); //this makes rewardDebt zero
-      expect((await market1.indicies(index1.address)).rewardDebt).to.equal(ZERO)
+      expect((await market1.indices(index1.address)).rewardDebt).to.equal(ZERO)
 
       //success
       await index3.set(0, 0, market1.address, ten_to_the_18)

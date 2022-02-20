@@ -17,7 +17,7 @@ This repository contains pool related contracts. For goveranance related contrac
 - [`IndexTemplate`](contracts/IndexTemplate.sol): Index template contracts, which leverage and deploy credit(internal token) to underlying individual pools
 - [`PoolTemplate`](contracts/PoolTemplate.sol): Pool template contracts, where people trade risk and premium
 - [`Vault`](contracts/Vault.sol): Manages deposited collateral and accrued premium to yield additional earnings
-- [`Factory`](contracts/Factory.sol): Factory contract to deploy new pools/indicies/cds at lowest gas cost and control delpoying addresses
+- [`Factory`](contracts/Factory.sol): Factory contract to deploy new pools/indices/cds at lowest gas cost and control delpoying addresses
 - [`Parameters`](contracts/Parameters.sol): Store market parameters to each markets. the DAO control address can operate upgrades
 - [`PremiumModel`](contracts/PremiumModel.sol): Stores logic of premium calculation
 - [`Registry`](contracts/Registry.sol): Registeres InsureDAO's official pools.
