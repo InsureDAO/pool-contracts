@@ -401,7 +401,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             }
             totalAllocatedCredit = _totalAllocatedCredit - totalFreeableCredits;
         } else {
-            uint totalAllocatableCredits = _targetTotalCredits - (_totalAllocatedCredit - totalFreeableCredits);
+            uint totalAllocatableCredits = _targetTotalCredits - (_totalAllocatedCredit - totalFrozenCredits - totalFreeableCredits);
             uint totalShortage;
             for (uint i; i < _poolLength; ++i) {
                 if (_pools[i].allocation == 0) continue;
@@ -472,9 +472,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         vault.offsetDebt(_compensated, msg.sender);
         
-        //totalLiquity has been changed
-        adjustAlloc();
-
+        // totalLiquity has been changed, adjustAlloc() will be called by the pool contract
+    
         emit Compensated(msg.sender, _compensated);
     }
 
