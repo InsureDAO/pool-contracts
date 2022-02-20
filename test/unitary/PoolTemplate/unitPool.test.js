@@ -15,6 +15,7 @@ const {
 
   verifyIndexStatus,
 
+  verifyVaultStatusOf,
   verifyVaultStatus_legacy,
   verifyVaultStatusOf_legacy,
   verifyDebtOf,
@@ -68,6 +69,9 @@ describe("Pool", function () {
 
   const insure = async({pool, insurer, amount, maxCost, span, target, insured, agent}) => {
     let tx = await pool.connect(insurer).insure(amount, maxCost, span, target, insured, agent );
+    premiumAmount = (await tx.wait()).events[2].args["premium"];
+
+    return premiumAmount
   } 
 
   const applyCover = async ({
@@ -388,6 +392,103 @@ describe("Pool", function () {
         });
   
         await expect(market.connect(chad).redeem(0, loss, proof)).to.revertedWith("ERROR: INSURANCE_EXEMPTED");
+      });
+    });
+
+    describe("applyBounty", function () {
+      beforeEach(async () => {
+        await usdc.connect(alice).approve(vault.address, initialMint)
+        await market.connect(alice).deposit(initialMint)
+
+        await usdc.connect(bob).approve(vault.address, initialMint)
+        premiumAmount = await insure({
+          pool: market,
+          insurer: bob,
+          amount: insureAmount,
+          maxCost: insureAmount,
+          span: WEEK,
+          target: padded1,
+          insured: chad.address,
+          agent: tom.address
+        })
+         
+        govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
+        income = premiumAmount.sub(govFee);
+      });
+
+      it("suucessflly payout for bounty", async () => {
+        await verifyPoolsStatus({
+          pools: [
+            {
+              pool: market,
+              totalSupply: initialMint,
+              totalLiquidity: initialMint.add(income),
+              availableBalance: initialMint.add(income).sub(insureAmount),
+              rate: defaultRate.mul(initialMint.add(income)).div(initialMint),
+              utilizationRate: defaultRate.mul(insureAmount).div(initialMint.add(income)),
+              allInsuranceCount: 1,
+            }
+          ]
+        });
+        
+        //transfer Bounty & unlock policies
+        let payout = initialMint.div(2)
+
+        expect((await market.insurances(0)).status).to.equal(true)
+        expect(await usdc.balanceOf(tom.address)).to.equal(initialMint)
+        
+        await market.applyBounty(payout, tom.address, [0])
+
+        expect((await market.insurances(0)).status).to.equal(false)
+        expect(await usdc.balanceOf(tom.address)).to.equal(initialMint.add(payout))
+
+        //check debt
+        await verifyVaultStatusOf({
+          vault: vault,
+          target: market.address,
+          attributions: initialMint.add(income).sub(payout),
+          underlyingValue: initialMint.add(income).sub(payout),
+          debt: ZERO
+        })
+
+        //unlock liquidity
+        await verifyPoolsStatus({
+          pools: [
+            {
+              pool: market,
+              totalSupply: initialMint,
+              totalLiquidity: initialMint.add(income).sub(payout),
+              availableBalance: initialMint.add(income).sub(payout),
+              rate: defaultRate.mul(initialMint.add(income).sub(payout)).div(initialMint),
+              utilizationRate: ZERO,
+              allInsuranceCount: 1,
+            }
+          ]
+        });
+
+
+      });
+
+      it("revert when market is paused", async () => {
+        await market.setPaused(true)
+
+        let payout = initialMint.div(2)
+        await expect(market.applyBounty(payout, tom.address, [0])).to.revertedWith("ERROR: MARKET_IS_PAUSED")
+      });
+
+      it("revert when market is in Payout", async () => {
+        await applyCover({
+          pool: market,
+          pending: DAY,
+          targetAddress: ZERO_ADDRESS, //everyone
+          payoutNumerator: 10000,
+          payoutDenominator: 10000,
+          incidentTimestamp: await now(),
+          lossAmount: loss
+        });
+
+        let payout = initialMint.div(2)
+        await expect(market.applyBounty(payout, tom.address, [0])).to.revertedWith("ERROR: NOT_TRADING_STATUS")
       });
     });
   });

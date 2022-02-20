@@ -55,4 +55,10 @@ abstract contract IPoolTemplate {
         string calldata _rawdata,
         string calldata _memo
     ) external virtual;
+
+    function applyBounty(
+        uint256 _amount,
+        address _contributor,
+        uint256[] calldata _ids
+    )external virtual;
 }
