@@ -749,7 +749,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             uint unlockAmount = insurances[_id].amount;
 
             insurances[_id].status = false;
-            totalAmountToUnlock += insurances[_id].amount;
+            totalAmountToUnlock += unlockAmount;
             emit Unlocked(_id, unlockAmount);
         }
         lockedAmount -= totalAmountToUnlock;
