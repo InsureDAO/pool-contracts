@@ -1,10 +1,7 @@
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
-const DAY = 86400;
-
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-const USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
 const decimals = BigNumber.from("1000000"); //6
 
 const GOV_TOKENS = [
@@ -41,18 +38,17 @@ const slotB = [
   [0, 0, 0, 0, 1] //Quantstamp Index
 ]
 const ALLOCATION_POINT = BigNumber.from("1000000")
-const APPROVE_AMOUNT = BigNumber.from("1000000000").mul(GOV_TOKENS.length) //1000USDC
 
+//parameters
 const GovFeeRatio = 100000; //10%
 const GracePeriod = 60 * 14;
 const MinDate = 60 * 7;
-
 const LockUpPeriod = 60 * 14;
 const CDSLockUpPeriod = 60 * 7;
 const WithdrawablePeriod = 60 * 7;
-
 const MAX_LIST = 10;
 
+//minimum deposit to create new pool
 const MinDeposit = (BigNumber.from("1000")).mul(decimals); //1000USDC
 
 
@@ -60,18 +56,17 @@ const MinDeposit = (BigNumber.from("1000")).mul(decimals); //1000USDC
 
 Object.assign(exports, {
   ZERO_ADDRESS,
-  USDC_ADDRESS,
   GOV_TOKENS,
   INDEX_LIST,
   slotB,
-  APPROVE_AMOUNT,
+  ALLOCATION_POINT,
+
   GovFeeRatio,
   GracePeriod,
   LockUpPeriod,
   CDSLockUpPeriod,
-  MinDate,
   WithdrawablePeriod,
+  MinDate,
   MAX_LIST,
-  MinDeposit,
-  ALLOCATION_POINT
+  MinDeposit
 })

@@ -8,6 +8,7 @@ require('dotenv').config()
 const { 
   ETHERSCAN_API,
   KEY,
+  PRODUCTION_KEY,
   INFURA_KEY
  } = process.env
 
@@ -18,6 +19,12 @@ module.exports = {
     hardhat: {
       initialBaseFeePerGas: 0,
       //forking: {url: "https://eth-mainnet.alchemyapi.io/v2/-vmufhhPyGeTxZH6ep9q2PuHjaPp4l0u",} //remove comment when testing mainnet fork
+    },
+    mainnet: {
+      accounts: [`0x${PRODUCTION_KEY}`],
+      gas: 7e10, //70Gwei
+      gasPrice: 3e10,
+      timeout: 2000000000,
     },
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
