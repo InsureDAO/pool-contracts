@@ -21,9 +21,10 @@ module.exports = {
       //forking: {url: "https://eth-mainnet.alchemyapi.io/v2/-vmufhhPyGeTxZH6ep9q2PuHjaPp4l0u",} //remove comment when testing mainnet fork
     },
     mainnet: {
+      url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${PRODUCTION_KEY}`],
-      gas: 7e10, //70Gwei
-      gasPrice: 3e10,
+      gas: 6e6,
+      gasPrice: 7e10,//70Gwei
       timeout: 2000000000,
     },
     rinkeby: {
