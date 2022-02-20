@@ -56,6 +56,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         string rawdata,
         string memo
     );
+    event BountyPaid(uint256 amount, address contributor, uint256[] ids);
+
     event CreditIncrease(address indexed depositor, uint256 credit);
     event CreditDecrease(address indexed withdrawer, uint256 credit);
     event MarketStatusChanged(MarketStatus statusValue);
@@ -725,6 +727,36 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         emit MarketStatusChanged(MarketStatus.Payingout);
     }
 
+    function applyBounty(
+        uint256 _amount,
+        address _contributor,
+        uint256[] calldata _ids
+    )external override onlyOwner {
+        require(!paused, "ERROR: MARKET_IS_PAUSED");
+        require(marketStatus == MarketStatus.Trading, "ERROR: NOT_TRADING_STATUS");
+
+        //borrow value just like redeem()
+        vault.borrowValue(_amount, _contributor);
+
+        _liquidation();
+
+        //unlock policies
+        uint256 totalAmountToUnlock;
+        for (uint256 i; i < _ids.length; ++i) {
+            uint _id = _ids[i];
+            require(insurances[_id].status);
+
+            uint unlockAmount = insurances[_id].amount;
+
+            insurances[_id].status = false;
+            totalAmountToUnlock += unlockAmount;
+            emit Unlocked(_id, unlockAmount);
+        }
+        lockedAmount -= totalAmountToUnlock;
+
+        emit BountyPaid(_amount, _contributor, _ids) ;
+    }
+
     /**
      * @notice Anyone can resume the market after a pending period ends
      */
@@ -735,9 +767,16 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             "ERROR: UNABLE_TO_RESUME"
         );
 
-        uint256 _debt = vault.debts(address(this));
-        uint256 _totalCredit = totalCredit;
+        _liquidation();
+
+        marketStatus = MarketStatus.Trading;
+        emit MarketStatusChanged(MarketStatus.Trading);
+    }
+
+    function _liquidation()internal{
         uint256 _totalLiquidity = totalLiquidity();
+        uint256 _totalCredit = totalCredit;
+        uint256 _debt = vault.debts(address(this));
         uint256 _deductionFromIndex;
         
         if (_totalLiquidity != 0) {
@@ -773,9 +812,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         }
 
         vault.transferDebt(_shortage);
-
-        marketStatus = MarketStatus.Trading;
-        emit MarketStatusChanged(MarketStatus.Trading);
     }
 
     /**
