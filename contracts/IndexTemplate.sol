@@ -15,6 +15,8 @@ import "./interfaces/IParameters.sol";
 import "./interfaces/IPoolTemplate.sol";
 import "./interfaces/ICDSTemplate.sol";
 
+import "hardhat/console.sol";
+
 /**
  * An index pool can index a certain number of pools with leverage.
  *
@@ -341,17 +343,25 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * 4) else allocate the allocatable credits to the pools proportionally to the shortage of each pool
      */
     function _adjustAlloc(uint256 _liquidity) internal {
+        console.log("===== adjustAlloc START =====");
         uint256 _targetTotalCredits = (targetLev * _liquidity) / MAGIC_SCALE_1E6;
 
         uint256 _allocatablePoints = totalAllocPoint;
         uint256 _totalAllocatedCredit = totalAllocatedCredit;
         uint256 _poolLength = poolList.length;
 
-        uint totalFreeableCredits; //合計引き出し可能額
-        uint totalFrozenCredits; //枠を押さえた合計
+        uint totalFreeableCredits;
+        uint totalFrozenCredits;
 
         PoolStatus[] memory _pools = new PoolStatus[](_poolLength);
 
+        console.log("_liquidity:", _liquidity);
+        console.log("targetLev:", targetLev);
+        console.log("_targetTotalCredits:", _targetTotalCredits);
+        console.log("_totalAllocatedCredit:", _totalAllocatedCredit);
+        
+
+        console.log("1st loop");
         for (uint i; i < _poolLength; ++i) {
             address _poolAddr = poolList[i];
             uint _current;
@@ -363,11 +373,13 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             if (
                 IPoolTemplate(_poolAddr).marketStatus() == IPoolTemplate.MarketStatus.Payingout
             ) {
+                console.log("Payout");
                 _allocatablePoints -= _allocation;
                 _allocation = 0;
                 freeableCredits = 0;
                 totalFrozenCredits += _current;
             } else if (_allocation == 0 || IPoolTemplate(_poolAddr).paused()) {
+                console.log("Paused || 0 alloc");
                 _allocatablePoints -= _allocation;
                 _allocation = 0;
                 IPoolTemplate(_poolAddr).withdrawCredit(freeableCredits);
@@ -394,6 +406,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         
         // if target credit is less than current allocated credit minus freeable credits, we go withdraw-only mode
         if (_totalAllocatedCredit - totalFreeableCredits >= _targetTotalCredits) {
+            
             for (uint i; i < _poolLength; ++i) {
                 if (_pools[i].freeableCredits > 0) {
                     IPoolTemplate(_pools[i].addr).withdrawCredit(_pools[i].freeableCredits);
@@ -401,6 +414,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             }
             totalAllocatedCredit = _totalAllocatedCredit - totalFreeableCredits;
         } else {
+            console.log("2st loop");
             uint totalAllocatableCredits = _targetTotalCredits - (_totalAllocatedCredit - totalFrozenCredits - totalFreeableCredits);
             uint totalShortage;
             for (uint i; i < _poolLength; ++i) {
@@ -409,6 +423,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 uint fixedCredits = _pools[i].current - _pools[i].freeableCredits;
                 // when fixedCredits > target, we should withdraw all freeable credits
                 if (fixedCredits > _target) {
+                    console.log("Over utilized");
                     IPoolTemplate(_pools[i].addr).withdrawCredit(_pools[i].freeableCredits);
                     _totalAllocatedCredit -= _pools[i].freeableCredits;
                 } else {
@@ -417,17 +432,19 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     _pools[i].shortage = shortage;
                 }
             }
-
+            console.log("3rd loop");
             for (uint i; i < _poolLength; ++i) {
                 if (_pools[i].shortage == 0) continue;
                 uint reallocate = totalAllocatableCredits * _pools[i].shortage / totalShortage;
                 // when reallocate >= freeableCredits, we deposit
                 if (reallocate >= _pools[i].freeableCredits) {
+                    console.log("allocate");
                     // freeableCredits is part of the `reallocate`
                     uint _allocate = reallocate - _pools[i].freeableCredits;
                     IPoolTemplate(_pools[i].addr).allocateCredit(_allocate);
                     _totalAllocatedCredit += _allocate;
                 } else {
+                    console.log("withdraw");
                     uint _removal = _pools[i].freeableCredits - reallocate;
                     IPoolTemplate(_pools[i].addr).withdrawCredit(_removal);
                     _totalAllocatedCredit -= _removal;
@@ -436,6 +453,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
             totalAllocatedCredit = _totalAllocatedCredit;
         }
+
+        console.log("===== adjustAlloc END =====");
     }
 
     /**

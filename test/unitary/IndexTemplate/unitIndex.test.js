@@ -52,7 +52,7 @@ async function setNextBlock(time) {
   await ethers.provider.send("evm_setNextBlockTimestamp", [time.toNumber()]);
 }
 
-describe("Index", function () {
+describe.skip("Index", function () {
   const initialMint = BigNumber.from("100000");
   const loss = BigNumber.from("1000000");
 
@@ -3057,43 +3057,6 @@ describe("Index", function () {
       // write test here
     });
     it("should emit the event", async function () {
-      // write test here
-    });
-  });
-
-  describe("adjustAlloc", function () {
-    beforeEach(async () => {
-    });
-
-    it("only 3rd loop. increase credits", async function () {
-      // write test here
-    });
-
-    it("only 3rd loop. decrease credits", async function () {
-      // write test here
-    });
-
-    it("only 2nd loop. decrease credits, but insuffucient withdrawable", async function () {
-      // leverage will be higher the targetLev
-    });
-
-    it("only 1st loop. only Payout", async function () {
-      // write test here
-    });
-
-    it("only 1st loop. only paused", async function () {
-      // write test here
-    });
-
-    it("only 1st loop. Payout and paused", async function () {
-      // write test here
-    });
-
-    it("1st and 3rd loops. Payout, paused, and normal pools", async function () {
-      // write test here
-    });
-
-    it("All 1st, 2nd, and 3rd loops. use all branch together", async function () {
       // write test here
     });
   });
