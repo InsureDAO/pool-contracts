@@ -329,6 +329,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice Adjust allocation of credit based on the target leverage rate
      */
     function adjustAlloc() public {
+        console.log("do adjustAlloc()! totalLiquidity:", totalLiquidity());
         _adjustAlloc(totalLiquidity());
     }
 

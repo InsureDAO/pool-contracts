@@ -576,8 +576,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         //Calculate liquidity for index
         if (_totalCredit != 0 && _liquidity != 0) {
-            uint256 _attributionForIndex = (_newAttribution[0] * _totalCredit) /
-                _liquidity;
+            uint256 _attributionForIndex = (_newAttribution[0] * _totalCredit) / _liquidity;
             attributionDebt += _attributionForIndex;
             rewardPerCredit += ((_attributionForIndex * MAGIC_SCALE_1E6) /
                 _totalCredit);

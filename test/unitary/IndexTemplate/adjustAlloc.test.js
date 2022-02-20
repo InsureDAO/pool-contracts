@@ -466,21 +466,21 @@ describe("Index", function () {
 
       //lock credits
       let tx = await market1.connect(chad).insure(
-        depositAmount, //insured amount
-        depositAmount, //max-cost
+        depositAmount.add(depositAmount), //insured amount
+        depositAmount.add(depositAmount), //max-cost
         YEAR, //span
         target, //targetID
         chad.address,
         chad.address
       );
+      console.log("insured!")
 
       let premiumAmount = (await tx.wait()).events[2].args["premium"];
       let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
-      let income = premiumAmount.sub(govFee); //900
+      let income = premiumAmount.sub(govFee);
 
-      await index.adjustAlloc()
-
-      console.log(await index.totalLiquidity()) //20900
+      await index.adjustAlloc() //rewardPerCredit has issue when there is earning by controller.
+      //await index.adjustAlloc() //second adjustAlloc can make it right.
 
       //sanity check
       await verifyPoolsStatusForIndex({
@@ -488,7 +488,7 @@ describe("Index", function () {
           {
             pool: market1,
             indexAddress: index.address,
-            allocatedCredit: depositAmount.add(depositAmount).add(income), //should be 20900 when x3 leverage
+            allocatedCredit: depositAmount.add(depositAmount).add(income),
             pendingPremium: ZERO,
           },
           {
@@ -506,11 +506,25 @@ describe("Index", function () {
         ],
       });
 
+
+      //decrease liquidity
+      //await controller.migrate(tom.address)
+
+      //expect(await index.totalLiquidity()).equal(depositAmount.add(income))
+
+
+      //test when one of the pool is over utilized
+      //await index.adjustAlloc()
+      //await index.adjustAlloc()
+
+      
+
+      
       
     });
 
-    it.skip("only 1st loop. only Payout", async function () {
-      // write test here
+    it("only 1st loop. only Payout", async function () {
+      
     });
 
     it.skip("only 1st loop. only paused", async function () {
