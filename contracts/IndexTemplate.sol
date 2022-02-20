@@ -628,6 +628,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         );
         uint256 _length = poolList.length;
 
+        uint256 _totalAllocPoint = totalAllocPoint;
+
         //create a new pool or replace existing
         if (_length <= _indexA) {
             require(_length == _indexA, "ERROR: BAD_INDEX");
@@ -645,21 +647,13 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     "ERROR: CANNOT_EXIT_POOL"
                 );
                 IPoolTemplate(_poolAddress).withdrawCredit(_current);
+                _totalAllocPoint -= allocPoints[_poolAddress];
             }
             IPoolTemplate(_pool).registerIndex(_indexB);
             poolList[_indexA] = _pool;
         }
 
-        uint256 _totalAllocPoint = totalAllocPoint;
-
-        if (_totalAllocPoint != 0) {
-            totalAllocPoint =
-                _totalAllocPoint -
-                allocPoints[_pool] +
-                _allocPoint;
-        } else {
-            totalAllocPoint = _allocPoint;
-        }
+        totalAllocPoint = _totalAllocPoint + _allocPoint;
         allocPoints[_pool] = _allocPoint;
         adjustAlloc();
         emit AllocationSet(_indexA, _indexB, _pool, _allocPoint);
