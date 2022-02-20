@@ -15,8 +15,6 @@ import "./interfaces/IParameters.sol";
 import "./interfaces/IPoolTemplate.sol";
 import "./interfaces/ICDSTemplate.sol";
 
-import "hardhat/console.sol";
-
 /**
  * An index pool can index a certain number of pools with leverage.
  *
@@ -314,12 +312,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             } else {
                 uint256 _necessaryAmount = _targetLockedCreditScore * totalAllocPoint * MAGIC_SCALE_1E6
                     / (_targetAllocPoint * targetLev);
-
-                console.log("_necessaryAmount: ", _necessaryAmount);
-                console.log("_targetLockedCreditScore: ", _targetLockedCreditScore);
-                console.log("totalAllocPoint: ", totalAllocPoint);
-                console.log("_targetAllocPoint: ", _targetAllocPoint);
-                console.log("targetLev: ", targetLev);
                 
                 if (_necessaryAmount < _totalLiquidity) {
                     unchecked {
@@ -398,7 +390,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                         _totalAllocatedCredit -= _availableBalance;
                         
                         //Reserve a slot for the credits still in the pool
-                        _allocatableCredit -= _currentCredit - _availableBalance;
+                        _allocatableCredit =  _safeMinus(_allocatableCredit, _currentCredit - _availableBalance);
 
                         _poolList[i].addr = address(0); //done for this pool
                         _afterTotalAllocPoint -= _allocPoint;
