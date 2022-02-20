@@ -770,6 +770,14 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         _liquidation();
 
         marketStatus = MarketStatus.Trading;
+
+        for (uint256 i; i < indexLength;) {
+            IIndexTemplate(indexList[i]).adjustAlloc();
+            unchecked {
+                ++i;
+            }
+        }
+
         emit MarketStatusChanged(MarketStatus.Trading);
     }
 

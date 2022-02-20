@@ -472,9 +472,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         vault.offsetDebt(_compensated, msg.sender);
         
-        //totalLiquity has been changed
-        adjustAlloc();
-
+        // totalLiquity has been changed, adjustAlloc() will be called by the pool contract
+    
         emit Compensated(msg.sender, _compensated);
     }
 
