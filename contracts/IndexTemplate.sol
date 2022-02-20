@@ -285,7 +285,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             if (_allocPoint != 0) {
                 (uint256 _allocated, uint256 _available) = IPoolTemplate(_poolAddress).pairValues(address(this));
                 if (_allocated > _available) {
-                    _totalLockedCredits += _allocated - _available;;
+                    _totalLockedCredits += _allocated - _available;
                 }
             }
         }
