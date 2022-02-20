@@ -55,7 +55,7 @@ async function setNextBlock(time) {
   await ethers.provider.send("evm_setNextBlockTimestamp", [time.toNumber()]);
 }
 
-describe.skip("multiIndex", function () {
+describe("multiIndex", function () {
   const initialMint = BigNumber.from("100000").mul(ten_to_the_18);
 
   const depositAmount = BigNumber.from("10000").mul(ten_to_the_18);
@@ -402,7 +402,7 @@ describe.skip("multiIndex", function () {
     it("revert before withdrawCredit", async function () {
       //should be reverted before withdrawCredit
       await expect(index3.set(0, 0, market1.address, ten_to_the_18)).to.revertedWith(
-        "ERROR: UPDATE_RESTRICTED"
+        "ERROR: WITHDRAW_CREDIT_FIRST"
       );
     });
 

@@ -347,8 +347,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _totalAllocatedCredit = totalAllocatedCredit;
         uint256 _poolLength = poolList.length;
 
-        uint totalFreeableCredits;
-        uint totalFrozenCredits;
+        uint totalFreeableCredits; //合計引き出し可能額
+        uint totalFrozenCredits; //枠を押さえた合計
 
         PoolStatus[] memory _pools = new PoolStatus[](_poolLength);
 
@@ -638,12 +638,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             //action for existing slot
             address _poolAddress = poolList[_indexA];
             if (_poolAddress != address(0) && _poolAddress != _pool) {
-                uint256 _current;
-                (_current, ) = IPoolTemplate(_poolAddress).pairValues(address(this));
+                (uint256 _current, uint256 _available) = IPoolTemplate(_poolAddress).pairValues(address(this));
                 
                 require(
                     IPoolTemplate(_poolAddress).marketStatus() == IPoolTemplate.MarketStatus.Trading &&
-                    IPoolTemplate(_poolAddress).availableBalance() >= _current,
+                    _available >= _current,
                     "ERROR: CANNOT_EXIT_POOL"
                 );
                 IPoolTemplate(_poolAddress).withdrawCredit(_current);
