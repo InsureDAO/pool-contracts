@@ -345,7 +345,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      */
     function _adjustAlloc(uint256 _liquidity) internal {
         console.log("===== adjustAlloc START =====");
-        uint256 _targetTotalCredits = (targetLev * _liquidity) / MAGIC_SCALE_1E6;
+        uint256 _targetTotalCredits = (targetLev * _liquidity) / MAGIC_SCALE_1E6; //ゴール
 
         uint256 _allocatablePoints = totalAllocPoint;
         uint256 _totalAllocatedCredit = totalAllocatedCredit;
@@ -406,8 +406,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         }
         
         // if target credit is less than current allocated credit minus freeable credits, we go withdraw-only mode
-        if (_totalAllocatedCredit - totalFreeableCredits >= _targetTotalCredits) {
-            
+        if (_totalAllocatedCredit - totalFreeableCredits > _targetTotalCredits) {
+            console.log("Withdraw Only Mode!");
+            console.log("_totalAllocatedCredit:", _totalAllocatedCredit);
+            console.log("totalFreeableCredits:", totalFreeableCredits);
+            console.log("_targetTotalCredits:", _targetTotalCredits);
             for (uint i; i < _poolLength; ++i) {
                 if (_pools[i].freeableCredits > 0) {
                     IPoolTemplate(_pools[i].addr).withdrawCredit(_pools[i].freeableCredits);
@@ -427,6 +430,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     console.log("Over utilized");
                     IPoolTemplate(_pools[i].addr).withdrawCredit(_pools[i].freeableCredits);
                     _totalAllocatedCredit -= _pools[i].freeableCredits;
+                    console.log("Over utilized, so withdraw amap: ",  _pools[i].freeableCredits);
                 } else {
                     uint shortage = _target - fixedCredits;
                     totalShortage += shortage;
@@ -454,6 +458,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
             totalAllocatedCredit = _totalAllocatedCredit;
         }
+        console.log("======================");
+        console.log("totalAllocatedCredit:", totalAllocatedCredit);
 
         console.log("===== adjustAlloc END =====");
     }

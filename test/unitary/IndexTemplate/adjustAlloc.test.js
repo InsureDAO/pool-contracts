@@ -437,37 +437,12 @@ describe("Index", function () {
 
     it("when one of the pool is over utilized, other pool have less credits to meet the target leverage", async function () {
       await index.connect(alice).deposit(depositAmount)
-      await controller.earn(gov.address, depositAmount)
       await index.setLeverage(targetLeverage.div(2).mul(3)); //3x
-
-      //sanity check before
-      await verifyPoolsStatusForIndex({
-        pools: [
-          {
-            pool: market1,
-            indexAddress: index.address,
-            allocatedCredit: depositAmount.add(depositAmount),
-            pendingPremium: ZERO,
-          },
-          {
-            pool: market2,
-            indexAddress: index.address,
-            allocatedCredit: depositAmount.add(depositAmount),
-            pendingPremium: ZERO,
-          },
-          {
-            pool: market2,
-            indexAddress: index.address,
-            allocatedCredit: depositAmount.add(depositAmount),
-            pendingPremium: ZERO,
-          },
-        ],
-      });
 
       //lock credits
       let tx = await market1.connect(chad).insure(
-        depositAmount.add(depositAmount), //insured amount
-        depositAmount.add(depositAmount), //max-cost
+        depositAmount, //insured amount
+        depositAmount, //max-cost
         YEAR, //span
         target, //targetID
         chad.address,
@@ -477,10 +452,9 @@ describe("Index", function () {
 
       let premiumAmount = (await tx.wait()).events[2].args["premium"];
       let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
-      let income = premiumAmount.sub(govFee);
+      let income = premiumAmount.sub(govFee); //900
 
-      await index.adjustAlloc() //rewardPerCredit has issue when there is earning by controller.
-      //await index.adjustAlloc() //second adjustAlloc can make it right.
+      await index.adjustAlloc()
 
       //sanity check
       await verifyPoolsStatusForIndex({
@@ -488,51 +462,542 @@ describe("Index", function () {
           {
             pool: market1,
             indexAddress: index.address,
-            allocatedCredit: depositAmount.add(depositAmount).add(income),
+            allocatedCredit: 10900,
             pendingPremium: ZERO,
           },
           {
             pool: market2,
             indexAddress: index.address,
-            allocatedCredit: depositAmount.add(depositAmount).add(income),
+            allocatedCredit: 10900,
             pendingPremium: ZERO,
           },
           {
             pool: market2,
             indexAddress: index.address,
-            allocatedCredit: depositAmount.add(depositAmount).add(income),
+            allocatedCredit: 10900,
+            pendingPremium: ZERO,
+          },
+        ],
+      });
+
+      /***
+       * 10900 deposit
+       * 32700 credits
+       * 
+       * market1 100% utilized = 10900
+       * market2 0% utilized = 10900
+       * market3 0% utilized = 10900
+       */
+
+      await index.setLeverage(targetLeverage) //x2
+
+      /***
+       * 10900 deposit
+       * 21800 credits.
+       * 
+       * market1 100% utilized => 10000 (10000locked, 900withdrawed)
+       * market2 0% utilized => 5450 (distribute 10900 into two pools)
+       * market3 0% utilized => 5450
+       */
+      await verifyPoolsStatusForIndex({
+        pools: [
+          {
+            pool: market1,
+            indexAddress: index.address,
+            allocatedCredit: 10000,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 5900,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 5900,
+            pendingPremium: ZERO,
+          },
+        ],
+      });
+    });
+
+    it("Payout pool keep current credits", async function () {
+      await index.connect(alice).deposit(depositAmount)
+      await index.setLeverage(targetLeverage.div(2).mul(3)); //3x
+
+      //lock credits
+      let tx = await market1.connect(chad).insure(
+        depositAmount, //insured amount
+        depositAmount, //max-cost
+        YEAR, //span
+        target, //targetID
+        chad.address,
+        chad.address
+      );
+      console.log("insured!")
+
+      let premiumAmount = (await tx.wait()).events[2].args["premium"];
+      let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
+      let income = premiumAmount.sub(govFee); //900
+
+      await index.adjustAlloc()
+
+      //sanity check
+      await verifyPoolsStatusForIndex({
+        pools: [
+          {
+            pool: market1,
+            indexAddress: index.address,
+            allocatedCredit: 10900,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 10900,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 10900,
+            pendingPremium: ZERO,
+          },
+        ],
+      });
+
+      /***
+       * 10900 deposit
+       * 32700 credits
+       * 
+       * market1 100% utilized = 10900
+       * market2 0% utilized = 10900
+       * market3 0% utilized = 10900
+       */
+      let incident = await now();
+      await applyCover({
+        pool: market1,
+        pending: DAY,
+        targetAddress: ZERO_ADDRESS, //everyone
+        payoutNumerator: 10000,
+        payoutDenominator: 10000,
+        incidentTimestamp: incident,
+      });
+      await index.setLeverage(targetLeverage) //x2
+
+      /***
+       * 10900 deposit
+       * 21800 credits.
+       * 
+       * market1 keeps current => 10900
+       * market2 5000 (distribute 1000 into two pools)
+       * market3 5000
+       */
+      await verifyPoolsStatusForIndex({
+        pools: [
+          {
+            pool: market1,
+            indexAddress: index.address,
+            allocatedCredit: 10900,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 5450,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 5450,
+            pendingPremium: ZERO,
+          },
+        ],
+      });
+    });
+
+    it("Paused pool withdraw all", async function () {
+      await index.connect(alice).deposit(depositAmount)
+      await index.setLeverage(targetLeverage.div(2).mul(3));
+
+      /***
+       * 1000 deposit
+       * 30000 credits
+       * 
+       * market1 = 10000
+       * market2 = 10000
+       * market3 = 10000
+       */
+
+      await market1.setPaused(true)
+      await index.adjustAlloc()
+
+      /***
+       * 10000 deposit
+       * 30000 credits
+       * 
+       * market1 paused = 0
+       * market2 15000
+       * market3 15000
+       */
+       await verifyPoolsStatusForIndex({
+        pools: [
+          {
+            pool: market1,
+            indexAddress: index.address,
+            allocatedCredit: 0,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 15000,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 15000,
+            pendingPremium: ZERO,
+          },
+        ],
+      });
+
+    });
+    it("Paused pool withdraw all (w/ income)", async function () {
+      await index.connect(alice).deposit(depositAmount)
+      await index.setLeverage(targetLeverage.div(2).mul(3));
+
+      /***
+       * 1000 deposit
+       * 30000 credits
+       * 
+       * market1 = 10000
+       * market2 = 10000
+       * market3 = 10000
+       */
+
+      //lock credits
+      let tx = await market2.connect(chad).insure(
+        depositAmount, //insured amount
+        depositAmount, //max-cost
+        YEAR, //span
+        target, //targetID
+        chad.address,
+        chad.address
+      );
+      console.log("insured!")
+
+      let premiumAmount = (await tx.wait()).events[2].args["premium"];
+      let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
+      let income = premiumAmount.sub(govFee); //900
+
+      await market1.setPaused(true)
+      await index.adjustAlloc()
+
+      /***
+       * 10900 deposit
+       * 32700 credits
+       * 
+       * market1 paused = 0
+       * market2 16350
+       * market3 16350
+       */
+       await verifyPoolsStatusForIndex({
+        pools: [
+          {
+            pool: market1,
+            indexAddress: index.address,
+            allocatedCredit: 0,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 16350,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 16350,
+            pendingPremium: ZERO,
+          },
+        ],
+      });
+
+    });
+
+    it("Paused pool withdraw as much as possible", async function () {
+      await index.connect(alice).deposit(depositAmount)
+      await index.setLeverage(targetLeverage.div(2).mul(3));
+
+      //lock credits
+      let tx = await market1.connect(chad).insure(
+        depositAmount, //insured amount
+        depositAmount, //max-cost
+        YEAR, //span
+        target, //targetID
+        chad.address,
+        chad.address
+      );
+      console.log("insured!")
+
+      let premiumAmount = (await tx.wait()).events[2].args["premium"];
+      let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
+      let income = premiumAmount.sub(govFee); //900
+
+      await index.adjustAlloc()
+
+      /***
+       * 10900 deposit
+       * 32700 credits
+       * 
+       * market1 = 10900 (10000 locked)
+       * market2 = 10900
+       * market3 = 10900
+       */
+
+       await market1.setPaused(true)
+       await index.adjustAlloc()
+ 
+       /***
+        * 10900 deposit
+        * 32700 credits
+        * 
+        * market1 10900 (10000 locked, paused) => 10000
+        * market2 10900 => 11350
+        * market3 10900 => 11350
+        */
+        await verifyPoolsStatusForIndex({
+         pools: [
+           {
+             pool: market1,
+             indexAddress: index.address,
+             allocatedCredit: 10000,
+             pendingPremium: ZERO,
+           },
+           {
+             pool: market2,
+             indexAddress: index.address,
+             allocatedCredit: 11350,
+             pendingPremium: ZERO,
+           },
+           {
+             pool: market2,
+             indexAddress: index.address,
+             allocatedCredit: 11350,
+             pendingPremium: ZERO,
+           },
+         ],
+       });
+
+
+    });
+
+    it("set 0 alocPoint", async function () {
+      await index.connect(alice).deposit(depositAmount)
+      await index.setLeverage(targetLeverage.div(2).mul(3));
+
+      /***
+       * 10000 deposit
+       * 30000 credits
+       * 
+       * market1 = 10000
+       * market2 = 10000
+       * market3 = 10000
+       */
+
+      await index.set(0, 0, market1.address, ZERO)
+
+      /***
+       * 10000 deposit
+       * 30000 credits
+       * 
+       * market1 = 0
+       * market2 = 15000
+       * market3 = 15000
+       */
+       await verifyPoolsStatusForIndex({
+        pools: [
+          {
+            pool: market1,
+            indexAddress: index.address,
+            allocatedCredit: 0,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 15000,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 15000,
+            pendingPremium: ZERO,
+          },
+        ],
+      });
+    });
+
+
+    it("Payout and paused pools", async function () {
+      await index.connect(alice).deposit(depositAmount)
+      await index.setLeverage(targetLeverage.div(2).mul(3)); //3x
+
+      let incident = await now();
+      await applyCover({
+        pool: market1,
+        pending: DAY,
+        targetAddress: ZERO_ADDRESS, //everyone
+        payoutNumerator: 10000,
+        payoutDenominator: 10000,
+        incidentTimestamp: incident,
+      });
+      /***
+       * 10000 deposit
+       * 30000 credits
+       * 
+       * market1 = 10000 
+       * market2 = 10000
+       * market3 = 10000
+       */
+
+      await index.setLeverage(targetLeverage) //x2
+
+      /***
+       * 10000 deposit
+       * 20000 credits
+       * 
+       * market1 = 10000
+       * market2 = 5000
+       * market3 = 5000
+       */
+       await verifyPoolsStatusForIndex({
+        pools: [
+          {
+            pool: market1,
+            indexAddress: index.address,
+            allocatedCredit: 10000,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 5000,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 5000,
+            pendingPremium: ZERO,
+          },
+        ],
+      });
+    });
+
+    it("Payout and paused pools w/lock. Withdraw Only Mode", async function () {
+      await index.connect(alice).deposit(depositAmount)
+      await index.setLeverage(targetLeverage.div(2).mul(3)); //3x
+
+      let incident = await now();
+      await applyCover({
+        pool: market1,
+        pending: DAY,
+        targetAddress: ZERO_ADDRESS, //everyone
+        payoutNumerator: 10000,
+        payoutDenominator: 10000,
+        incidentTimestamp: incident,
+      });
+
+       //lock credits
+       let tx = await market2.connect(chad).insure(
+        depositAmount, //insured amount
+        depositAmount, //max-cost
+        YEAR, //span
+        target, //targetID
+        chad.address,
+        chad.address
+      );
+      console.log("insured!")
+
+      let premiumAmount = (await tx.wait()).events[2].args["premium"];
+      let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
+      let income = premiumAmount.sub(govFee); //900
+
+      await index.adjustAlloc()
+
+      /***
+       * 10900 deposit
+       * 32700 credits
+       * 
+       * market1 Payout = 10000 
+       * market2 = 11350
+       * market3 = 11350
+       */
+       await verifyPoolsStatusForIndex({
+        pools: [
+          {
+            pool: market1,
+            indexAddress: index.address,
+            allocatedCredit: 10000,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 11350,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market3,
+            indexAddress: index.address,
+            allocatedCredit: 11350,
             pendingPremium: ZERO,
           },
         ],
       });
 
 
-      //decrease liquidity
-      //await controller.migrate(tom.address)
+      await market2.setPaused(true)
+      await index.setLeverage(targetLeverage) //x2
 
-      //expect(await index.totalLiquidity()).equal(depositAmount.add(income))
-
-
-      //test when one of the pool is over utilized
-      //await index.adjustAlloc()
-      //await index.adjustAlloc()
-
-      
-
-      
-      
-    });
-
-    it("only 1st loop. only Payout", async function () {
-      
-    });
-
-    it.skip("only 1st loop. only paused", async function () {
-      // write test here
-    });
-
-    it.skip("only 1st loop. Payout and paused", async function () {
-      // write test here
+      /***
+       * 10900 deposit
+       * 21800 credits
+       * 
+       * market1 Payout = 10000
+       * market2 paused = 10000
+       * market3 = 1800
+       */
+       await verifyPoolsStatusForIndex({
+        pools: [
+          {
+            pool: market1,
+            indexAddress: index.address,
+            allocatedCredit: 10000,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market2,
+            indexAddress: index.address,
+            allocatedCredit: 10000,
+            pendingPremium: ZERO,
+          },
+          {
+            pool: market3,
+            indexAddress: index.address,
+            allocatedCredit: 1800,
+            pendingPremium: ZERO,
+          },
+        ],
+      });
     });
 
     it.skip("1st and 3rd loops. Payout, paused, and normal pools", async function () {
