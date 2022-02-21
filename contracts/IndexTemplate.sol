@@ -264,59 +264,44 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     }
 
     /**
-     * @notice Get how much can a user withdraw from this index
+     * @notice Get how much can be withdrawn from this index by users
      * Withdrawable amount = Index liquidity - necessary amount to support credit liquidity
-     * Necessary amoount Locked * totalAllocPoint / allocpoint of the lowest available liquidity market
-     * Otherwise, the allocation to a specific pool may take up the overall allocation, and may break the risk sharing.
+     * necessary amount = totalLockedCredits / leverageRate
+     * eg. if leverageRate = 2, then necessary amount = totalLockedCredits / 2
+     * we should also reserve 100% the lockedCredits for the pool with most locked
      * @return withdrawable amount
      */
     function withdrawable() public view returns (uint256) {
         uint256 _totalLiquidity = totalLiquidity();
 
-        if (_totalLiquidity != 0) {
-            uint256 _length = poolList.length;
-            uint256 _highestLockScore;
-            uint256 _targetAllocPoint;
-            uint256 _targetLockedCreditScore;
-            //Check which pool has the lowest available rate and keep stats
-            for (uint256 i; i < _length;) {
-                address _poolAddress = poolList[i];
-                uint256 _allocPoint = allocPoints[_poolAddress];
+        if (_totalLiquidity == 0) return 0;
 
-                if (_allocPoint != 0) {
-                    uint256 _allocated;
-                    uint256 _availableBalance;
-                    (_allocated, _availableBalance) = IPoolTemplate(_poolAddress)
-                        .pairValues(address(this));
-                    //check if some portion of credit is locked
-                    if (_allocated > _availableBalance) {
-                        uint256 _lockedCredit;
-                        unchecked {
-                            _lockedCredit = _allocated - _availableBalance;
-                        }
-                        uint256 _lockScore = _lockedCredit * MAGIC_SCALE_1E6/ _allocPoint;
-                        if (_highestLockScore < _lockScore) {
-                            _highestLockScore = _lockScore;
-                            _targetLockedCreditScore = _lockedCredit;
-                            _targetAllocPoint = _allocPoint;
-                        }
-                    }
-                }
-                unchecked {
-                    ++i;
+        uint256 _length = poolList.length;
+        uint256 _totalLockedCredits;
+        uint256 _maxLockedCredits;
+
+        for (uint256 i; i < _length; ++i) {
+            (uint256 _allocated, uint256 _available) = IPoolTemplate(poolList[i]).pairValues(address(this));
+            if (_allocated > _available) {
+                uint _locked = _allocated - _available;
+                _totalLockedCredits += _locked;
+                if (_locked > _maxLockedCredits) {
+                    _maxLockedCredits = _locked;
                 }
             }
-            //Calculate the return value
-            if (_highestLockScore == 0) {
-                return _totalLiquidity;
-            } else {
-                uint256 _necessaryAmount = _targetLockedCreditScore * totalAllocPoint * MAGIC_SCALE_1E6
-                    / (_targetAllocPoint * targetLev);
-                if (_necessaryAmount < _totalLiquidity) {
-                    unchecked {
-                        return _totalLiquidity - _necessaryAmount;
-                    }
-                }
+        }
+
+        if (_totalLockedCredits == 0) {
+            return _totalLiquidity;
+        } 
+
+        uint256 _necessaryAmount = _totalLockedCredits * MAGIC_SCALE_1E6 / targetLev;
+        if (_maxLockedCredits > _necessaryAmount) {
+            _necessaryAmount = _maxLockedCredits;
+        }
+        if (_necessaryAmount < _totalLiquidity) {
+            unchecked {
+                return _totalLiquidity - _necessaryAmount;
             }
         }
     }
