@@ -104,14 +104,14 @@ describe("Vault", function () {
       await vault.connect(alice).addValue(10000, alice.address, alice.address);
       await controller.yield();
 
-      expect(await vault["underlyingValue(address)"](alice.address)).to.equal(12500);
+      expect(await vault["underlyingValue(address)"](alice.address)).to.equal(17500);
       expect(await vault.getPricePerFullShare()).to.equal(
-        "1250000"
+        "1750000"
       );
 
       await vault.connect(alice).withdrawAllAttribution(alice.address);
 
-      expect(await dai.balanceOf(alice.address)).to.equal(102500);
+      expect(await dai.balanceOf(alice.address)).to.equal(107500);
     });
 
     it("DISALLOWS controller to call utilize when disabled", async () => {
@@ -126,8 +126,8 @@ describe("Vault", function () {
       await vault.connect(creator).setKeeper(controller.address);
       await controller.yield();
 
-      expect(await vault["underlyingValue(address)"](alice.address)).to.equal(12500);
-      expect(await vault.getPricePerFullShare()).to.equal("1250000");
+      expect(await vault["underlyingValue(address)"](alice.address)).to.equal(17500);
+      expect(await vault.getPricePerFullShare()).to.equal("1750000");
 
       await expect(vault.connect(alice).utilize()).to.revertedWith("ERROR_NOT_KEEPER");
     });
@@ -136,17 +136,17 @@ describe("Vault", function () {
       await vault.connect(alice).addValue(10000, alice.address, alice.address);
       await controller.yield();
 
-      expect(await vault["underlyingValue(address)"](alice.address)).to.equal(12500);
+      expect(await vault["underlyingValue(address)"](alice.address)).to.equal(17500);
 
-      await vault.connect(alice).transferValue(12500, bob.address);
+      await vault.connect(alice).transferValue(17500, bob.address);
 
-      expect(await vault["underlyingValue(address)"](bob.address)).to.equal(12500);
+      expect(await vault["underlyingValue(address)"](bob.address)).to.equal(17500);
       expect(await vault.attributionOf(bob.address)).to.equal(10000);
 
       await vault.connect(bob).transferAttribution(10000, chad.address);
       await vault.connect(chad).withdrawAllAttribution(chad.address);
 
-      expect(await dai.balanceOf(chad.address)).to.equal(12500);
+      expect(await dai.balanceOf(chad.address)).to.equal(17500);
     });
 
     it("doesn't count direct transfer", async () => {

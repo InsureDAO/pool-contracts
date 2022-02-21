@@ -2138,14 +2138,17 @@ describe("Index", function () {
       let withdrawable = await index.withdrawable();
       expect(withdrawable).to.equal(0);
 
-
-      //this won't change when only one side of pool liquidity is added
       await market1.connect(alice).deposit(depositAmount);
+      // pools status now is:
+      // market1: locked: 10000, available: 10000
+      // market2: locked: 10000, available: 0
       withdrawable = await index.withdrawable();
-      expect(withdrawable).to.equal(0);
-
-      //but this situation changes when the other side of liquidity is added
+      expect(withdrawable).to.equal(1800);
+      
       await market2.connect(alice).deposit(depositAmount);
+      // pools status now is:
+      // market1: locked: 10000, available: 10000
+      // market2: locked: 10000, available: 10000
       withdrawable = await index.withdrawable();
       expect(withdrawable).to.equal(11800);
     });
@@ -3058,214 +3061,6 @@ describe("Index", function () {
     });
     it("should emit the event", async function () {
       // write test here
-    });
-  });
-
-  describe("adjustAlloc", function () {
-    beforeEach(async () => {
-      //this is important to check all the variables every time to make sure we forget nothing
-      {
-        //sanity check
-
-        await verifyPoolsStatus({
-          pools: [
-            {
-              pool: market1,
-              totalSupply: ZERO,
-              totalLiquidity: ZERO,
-              availableBalance: ZERO,
-              rate: ZERO,
-              utilizationRate: ZERO,
-              allInsuranceCount: ZERO,
-            },
-            {
-              pool: market2,
-              totalSupply: ZERO,
-              totalLiquidity: ZERO,
-              availableBalance: ZERO,
-              rate: ZERO,
-              utilizationRate: ZERO,
-              allInsuranceCount: ZERO,
-            },
-          ],
-        });
-
-        await verifyIndexStatus({
-          index: index,
-          totalSupply: ZERO,
-          totalLiquidity: ZERO,
-          totalAllocatedCredit: ZERO,
-          totalAllocPoint: targetLeverage,
-          targetLev: targetLeverage,
-          leverage: ZERO,
-          withdrawable: ZERO,
-          rate: ZERO,
-        });
-
-        {
-          //verifyIndexStatusOf
-          await verifyIndexStatusOf({
-            index: index,
-            targetAddress: alice.address,
-            valueOfUnderlying: ZERO,
-            withdrawTimestamp: ZERO,
-            withdrawAmount: ZERO,
-          });
-
-          await verifyIndexStatusOf({
-            index: index,
-            targetAddress: bob.address,
-            valueOfUnderlying: ZERO,
-            withdrawTimestamp: ZERO,
-            withdrawAmount: ZERO,
-          });
-
-          await verifyIndexStatusOf({
-            index: index,
-            targetAddress: chad.address,
-            valueOfUnderlying: ZERO,
-            withdrawTimestamp: ZERO,
-            withdrawAmount: ZERO,
-          });
-
-          await verifyIndexStatusOfPool({
-            index: index,
-            poolAddress: market1.address,
-            allocPoints: targetLeverage.div(2), //alloc evenly
-          });
-
-          await verifyIndexStatusOfPool({
-            index: index,
-            poolAddress: market2.address,
-            allocPoints: targetLeverage.div(2), //alloc evenly
-          });
-        }
-
-        await verifyPoolsStatusForIndex({
-          pools: [
-            {
-              pool: market1,
-              indexAddress: index.address,
-              allocatedCredit: ZERO,
-              pendingPremium: ZERO,
-            },
-            {
-              pool: market2,
-              indexAddress: index.address,
-              allocatedCredit: ZERO,
-              pendingPremium: ZERO,
-            },
-          ],
-        });
-
-        await verifyCDSStatus({
-          cds: cds,
-          surplusPool: ZERO,
-          crowdPool: ZERO,
-          totalSupply: ZERO,
-          totalLiquidity: ZERO,
-          rate: ZERO,
-        });
-
-        await verifyVaultStatus({
-          vault: vault,
-          balance: ZERO,
-          valueAll: ZERO,
-          totalAttributions: ZERO,
-          totalDebt: ZERO,
-        });
-
-        {
-          //Vault Status Of
-          await verifyVaultStatusOf({
-            vault: vault,
-            target: market1.address,
-            attributions: ZERO,
-            underlyingValue: ZERO,
-            debt: ZERO,
-          });
-
-          await verifyVaultStatusOf({
-            vault: vault,
-            target: market2.address,
-            attributions: ZERO,
-            underlyingValue: ZERO,
-            debt: ZERO,
-          });
-
-          await verifyVaultStatusOf({
-            vault: vault,
-            target: index.address,
-            attributions: ZERO,
-            underlyingValue: ZERO,
-            debt: ZERO,
-          });
-
-          await verifyVaultStatusOf({
-            vault: vault,
-            target: cds.address,
-            attributions: ZERO,
-            underlyingValue: ZERO,
-            debt: ZERO,
-          });
-        }
-
-        {
-          //token, lp token
-          await verifyBalances({
-            token: usdc,
-            userBalances: {
-              //EOA
-              [gov.address]: ZERO,
-              [alice.address]: initialMint,
-              [bob.address]: initialMint,
-              [chad.address]: initialMint,
-              //contracts
-              [market1.address]: ZERO,
-              [market2.address]: ZERO,
-              [index.address]: ZERO,
-              [cds.address]: ZERO,
-              [vault.address]: ZERO,
-            },
-          });
-
-          await verifyBalances({
-            token: market1,
-            userBalances: {
-              [alice.address]: ZERO,
-              [bob.address]: ZERO,
-              [chad.address]: ZERO,
-            },
-          });
-
-          await verifyBalances({
-            token: market2,
-            userBalances: {
-              [alice.address]: ZERO,
-              [bob.address]: ZERO,
-              [chad.address]: ZERO,
-            },
-          });
-
-          await verifyBalances({
-            token: index,
-            userBalances: {
-              [alice.address]: ZERO,
-              [bob.address]: ZERO,
-              [chad.address]: ZERO,
-            },
-          });
-
-          await verifyBalances({
-            token: cds,
-            userBalances: {
-              [alice.address]: ZERO,
-              [bob.address]: ZERO,
-              [chad.address]: ZERO,
-            },
-          });
-        }
-      }
     });
   });
 });

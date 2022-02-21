@@ -16,8 +16,6 @@ import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IIndexTemplate.sol";
 
-import "hardhat/console.sol";
-
 contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     /**
      * EVENTS
@@ -92,11 +90,11 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         bool exist; //true if the index has allocated credit
     }
 
-    mapping(address => IndexInfo) public indicies;
+    mapping(address => IndexInfo) public indices;
     address[] public indexList;
 
     //
-    // * We do some fancy math for premium calculation of indicies.
+    // * We do some fancy math for premium calculation of indices.
     // Basically, any point in time, the amount of premium entitled to an index but is pending to be distributed is:
     //
     //   pending reward = (index.credit * rewardPerCredit) - index.rewardDebt
@@ -191,16 +189,16 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         );
         initialized = true;
 
-        string memory _name = string(
-            abi.encodePacked(
-                "InsureDAO-",
-                IERC20Metadata(_references[0]).name(),
-                "-Insurance"
-            )
-        );
-        string memory _symbol = string(
-            abi.encodePacked("i", IERC20Metadata(_references[0]).symbol())
-        );
+        string memory _name = "InsureDAO Insurance LP";
+        try IERC20Metadata(_references[0]).name() returns (string memory result) {
+            _name = string(abi.encodePacked("InsureDAO ", result, " Insurance LP"));
+        } catch {}
+
+        string memory _symbol = "iNsure";
+        try IERC20Metadata(_references[0]).symbol() returns (string memory result) {
+            _symbol = string(abi.encodePacked("i", result));
+        } catch {}
+
         uint8 _decimals = IERC20Metadata(_references[1]).decimals();
 
         initializeToken(_name, _symbol, _decimals);
@@ -391,18 +389,18 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         if (_length <= _index) {
             require(_length == _index, "ERROR: BAD_INDEX");
             indexList.push(msg.sender);
-            indicies[msg.sender].exist = true;
-            indicies[msg.sender].index = _index;
+            indices[msg.sender].exist = true;
+            indices[msg.sender].index = _index;
         } else {
             address _indexAddress = indexList[_index];
             if (_indexAddress != address(0) && _indexAddress != msg.sender) {
-                require(indicies[msg.sender].credit == 0,"ERROR: UPDATE_RESTRICTED");
-                require(indicies[_indexAddress].credit == 0,"ERROR: UPDATE_RESTRICTED");
+                require(indices[msg.sender].credit == 0,"ERROR: ALREADY_ALLOCATED");
+                require(indices[_indexAddress].credit == 0,"ERROR: WITHDRAW_CREDIT_FIRST");
 
-                indicies[_indexAddress].index = 0;
-                indicies[_indexAddress].exist = false;
-                indicies[msg.sender].index = _index;
-                indicies[msg.sender].exist = true;
+                indices[_indexAddress].index = 0;
+                indices[_indexAddress].exist = false;
+                indices[msg.sender].index = _index;
+                indices[msg.sender].exist = true;
                 indexList[_index] = msg.sender;
             }
         }
@@ -419,7 +417,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         override
         returns (uint256 _pending)
     {
-        IndexInfo storage _index = indicies[msg.sender];
+        IndexInfo storage _index = indices[msg.sender];
         require(
             _index.exist,
             "ALLOCATE_CREDIT_BAD_CONDITIONS"
@@ -462,7 +460,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             "POOL_IS_IN_TRADING_STATUS"
         );
 
-        IndexInfo storage _index = indicies[msg.sender];
+        IndexInfo storage _index = indices[msg.sender];
 
         require(
             _index.exist &&
@@ -576,8 +574,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         //Calculate liquidity for index
         if (_totalCredit != 0 && _liquidity != 0) {
-            uint256 _attributionForIndex = (_newAttribution[0] * _totalCredit) /
-                _liquidity;
+            uint256 _attributionForIndex = (_newAttribution[0] * _totalCredit) / _liquidity;
             attributionDebt += _attributionForIndex;
             rewardPerCredit += ((_attributionForIndex * MAGIC_SCALE_1E6) /
                 _totalCredit);
@@ -696,7 +693,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         string calldata _rawdata,
         string calldata _memo
     ) external override onlyOwner {
-        require(!paused, "ERROR: UNABLE_TO_APPLY");
         require(_incidentTimestamp < block.timestamp, "ERROR: INCIDENT_DATE");
 
         incident.payoutNumerator = _payoutNumerator;
@@ -708,7 +704,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         uint256 indexLength = indexList.length;
         for (uint256 i; i < indexLength;) {
-            if (indicies[indexList[i]].credit != 0) {
+            if (indices[indexList[i]].credit != 0) {
                 IIndexTemplate(indexList[i]).lock();
             }
             unchecked {
@@ -732,7 +728,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         address _contributor,
         uint256[] calldata _ids
     )external override onlyOwner {
-        require(!paused, "ERROR: MARKET_IS_PAUSED");
         require(marketStatus == MarketStatus.Trading, "ERROR: NOT_TRADING_STATUS");
 
         //borrow value just like redeem()
@@ -770,6 +765,15 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         _liquidation();
 
         marketStatus = MarketStatus.Trading;
+
+        uint256 indexLength = indexList.length;
+        for (uint256 i; i < indexLength;) {
+            IIndexTemplate(indexList[i]).adjustAlloc();
+            unchecked {
+                ++i;
+            }
+        }
+
         emit MarketStatusChanged(MarketStatus.Trading);
     }
 
@@ -787,7 +791,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 indexLength = indexList.length;
         for (uint256 i; i < indexLength;) {
             address _index = indexList[i];
-            uint256 _credit = indicies[_index].credit;
+            uint256 _credit = indices[_index].credit;
 
             if (_credit != 0) {
                 uint256 _shareOfIndex = (_credit * MAGIC_SCALE_1E6) /
@@ -863,12 +867,12 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         override
         returns (uint256)
     {
-        uint256 _credit = indicies[_index].credit;
+        uint256 _credit = indices[_index].credit;
         if (_credit != 0) {
             return
                 _sub(
                     (_credit * rewardPerCredit) / MAGIC_SCALE_1E6,
-                    indicies[_index].rewardDebt
+                    indices[_index].rewardDebt
                 );
         }
     }
@@ -902,7 +906,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         override
         returns (uint256, uint256)
     {
-        return (indicies[_index].credit, _availableBalance());
+        return (indices[_index].credit, _availableBalance());
     }
 
     /**

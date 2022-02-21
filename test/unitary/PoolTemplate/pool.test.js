@@ -52,7 +52,7 @@ async function now() {
   return BigNumber.from((await ethers.provider.getBlock("latest")).timestamp);
 }
 
-describe.skip("Pool", function () {
+describe("Pool", function () {
   const initialMint = BigNumber.from("100000"); //initial token amount for users
 
   const depositAmount = BigNumber.from("10000"); //default deposit amount for test
@@ -1093,12 +1093,6 @@ describe.skip("Pool", function () {
         await expect(
           market.connect(alice).withdraw(depositAmount)
         ).to.revertedWith("ERROR: WITHDRAWAL_QUEUE");
-      });
-
-      it.skip("revert when no deposit", async () => {
-        await expect(
-          market.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("ERROR: REQUEST_EXCEED_BALANCE");
       });
 
       it("revert withdraw when not requested", async function () {
