@@ -406,8 +406,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         }
         
         // if target credit is less than current allocated credit minus freeable credits, we go withdraw-only mode
-        if (_totalAllocatedCredit - totalFreeableCredits >= _targetTotalCredits) {
-            
+        if (_totalAllocatedCredit - totalFreeableCredits >= _targetTotalCredits + totalFrozenCredits) {
             for (uint i; i < _poolLength; ++i) {
                 if (_pools[i].freeableCredits > 0) {
                     IPoolTemplate(_pools[i].addr).withdrawCredit(_pools[i].freeableCredits);

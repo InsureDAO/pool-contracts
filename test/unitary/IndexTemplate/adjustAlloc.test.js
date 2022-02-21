@@ -480,7 +480,7 @@ describe("Index", function () {
       let income = premiumAmount.sub(govFee);
 
       await index.adjustAlloc() //rewardPerCredit has issue when there is earning by controller.
-      //await index.adjustAlloc() //second adjustAlloc can make it right.
+      await index.adjustAlloc() //second adjustAlloc can make it right.
 
       //sanity check
       await verifyPoolsStatusForIndex({
