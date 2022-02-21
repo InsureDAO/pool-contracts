@@ -190,13 +190,11 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         initialized = true;
 
         string memory _name = "InsureDAO Insurance LP";
-        try IERC20Metadata(_references[0]).name() returns (string memory result) {
-            _name = string(abi.encodePacked("InsureDAO ", result, " Insurance LP"));
-        } catch {}
-
         string memory _symbol = "iNsure";
-        try IERC20Metadata(_references[0]).symbol() returns (string memory result) {
-            _symbol = string(abi.encodePacked("i", result));
+        
+        try this.getTokenMetadata(_references[0]) returns (string memory name_, string memory symbol_) {
+            _name = name_;
+            _symbol = symbol_;
         } catch {}
 
         uint8 _decimals = IERC20Metadata(_references[1]).decimals();
@@ -214,6 +212,11 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         if (_conditions[1] != 0) {
             _depositFrom(_conditions[1], _depositor);
         }
+    }
+
+    function getTokenMetadata(address _token) external view returns (string memory _name, string memory _symbol) {
+        _name = string(abi.encodePacked("InsureDAO ", IERC20Metadata(_token).name(), " Insurance LP"));
+        _symbol = string(abi.encodePacked("i", IERC20Metadata(_token).symbol()));
     }
 
     /**
