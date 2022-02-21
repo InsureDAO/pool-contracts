@@ -404,9 +404,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         } else {
             _targetTotalCredits -= totalFrozenCredits;
         }
-        
-        // if target credit is less than current allocated credit minus freeable credits, we go withdraw-only mode
-        if (_totalAllocatedCredit - totalFreeableCredits >= _targetTotalCredits + totalFrozenCredits) {
+        uint _totalFixedCredits = _totalAllocatedCredit - totalFreeableCredits - totalFrozenCredits;
+        // if target credit is less than _totalFixedCredits, we go withdraw-only mode
+        if (_totalFixedCredits >= _targetTotalCredits) {
             for (uint i; i < _poolLength; ++i) {
                 if (_pools[i].freeableCredits > 0) {
                     IPoolTemplate(_pools[i].addr).withdrawCredit(_pools[i].freeableCredits);
@@ -415,7 +415,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             totalAllocatedCredit = _totalAllocatedCredit - totalFreeableCredits;
         } else {
             console.log("2st loop");
-            uint totalAllocatableCredits = _targetTotalCredits - (_totalAllocatedCredit - totalFrozenCredits - totalFreeableCredits);
+            uint totalAllocatableCredits = _targetTotalCredits - _totalFixedCredits;
             uint totalShortage;
             for (uint i; i < _poolLength; ++i) {
                 if (_pools[i].allocation == 0) continue;
