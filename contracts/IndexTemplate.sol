@@ -268,6 +268,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * Withdrawable amount = Index liquidity - necessary amount to support credit liquidity
      * necessary amount = totalLockedCredits / leverageRate
      * eg. if leverageRate = 2, then necessary amount = totalLockedCredits / 2
+     * we should also reserve 100% the lockedCredits for the pool with most locked
      * @return withdrawable amount
      */
     function withdrawable() public view returns (uint256) {
@@ -277,6 +278,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         uint256 _length = poolList.length;
         uint256 _totalLockedCredits;
+        uint256 _maxLockedCredits;
 
         for (uint256 i; i < _length; ++i) {
             address _poolAddress = poolList[i];
@@ -285,7 +287,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             if (_allocPoint != 0) {
                 (uint256 _allocated, uint256 _available) = IPoolTemplate(_poolAddress).pairValues(address(this));
                 if (_allocated > _available) {
-                    _totalLockedCredits += _allocated - _available;
+                    uint _locked = _allocated - _available;
+                    _totalLockedCredits += _locked;
+                    if (_locked > _maxLockedCredits) {
+                        _maxLockedCredits = _locked;
+                    }
                 }
             }
         }
@@ -295,6 +301,9 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         } 
 
         uint256 _necessaryAmount = _totalLockedCredits * MAGIC_SCALE_1E6 / targetLev;
+        if (_maxLockedCredits > _necessaryAmount) {
+            _necessaryAmount = _maxLockedCredits;
+        }
         if (_necessaryAmount < _totalLiquidity) {
             unchecked {
                 return _totalLiquidity - _necessaryAmount;
