@@ -33,10 +33,6 @@ contract ControllerMock is IController{
         return vault.valueAll()/2; //for test
     }
 
-    function earn(address, uint256) external {
-        //do something for yield here in real contracts
-    }
-
     function setVault(address _address) external onlyOwner{
         vault = IVault(_address);
     }
@@ -47,7 +43,14 @@ contract ControllerMock is IController{
         token.mint(address(this), _mint);
     }
 
-    function migrate(address) external {
+    function earn(address, uint256 _amount) external {
         //do something for yield here in real contracts
+        token.mint(address(this), _amount);
+    }
+
+    function migrate(address _to) external onlyOwner{
+        //do something for yield here in real contracts
+        uint256 amount = token.balanceOf(address(this));
+        token.transfer(_to, amount);
     }
 }

@@ -7,6 +7,8 @@ interface IIndexTemplate {
 
     function resume() external;
 
+    function adjustAlloc() external;
+
     //onlyOwner
     function setLeverage(uint256 _target) external;
     function set(
