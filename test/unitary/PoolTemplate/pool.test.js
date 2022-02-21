@@ -1095,12 +1095,6 @@ describe("Pool", function () {
         ).to.revertedWith("ERROR: WITHDRAWAL_QUEUE");
       });
 
-      it.skip("revert when no deposit", async () => {
-        await expect(
-          market.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("ERROR: REQUEST_EXCEED_BALANCE");
-      });
-
       it("revert withdraw when not requested", async function () {
         await approveDeposit({
           token: usdc,

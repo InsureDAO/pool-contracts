@@ -448,8 +448,6 @@ describe("Index", function () {
         chad.address,
         chad.address
       );
-      console.log("insured!")
-
       let premiumAmount = (await tx.wait()).events[2].args["premium"];
       let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
       let income = premiumAmount.sub(govFee); //900
@@ -536,8 +534,6 @@ describe("Index", function () {
         chad.address,
         chad.address
       );
-      console.log("insured!")
-
       let premiumAmount = (await tx.wait()).events[2].args["premium"];
       let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
       let income = premiumAmount.sub(govFee); //900
@@ -690,8 +686,6 @@ describe("Index", function () {
         chad.address,
         chad.address
       );
-      console.log("insured!")
-
       let premiumAmount = (await tx.wait()).events[2].args["premium"];
       let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
       let income = premiumAmount.sub(govFee); //900
@@ -745,8 +739,6 @@ describe("Index", function () {
         chad.address,
         chad.address
       );
-      console.log("insured!")
-
       let premiumAmount = (await tx.wait()).events[2].args["premium"];
       let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
       let income = premiumAmount.sub(govFee); //900
@@ -926,8 +918,6 @@ describe("Index", function () {
         chad.address,
         chad.address
       );
-      console.log("insured!")
-
       let premiumAmount = (await tx.wait()).events[2].args["premium"];
       let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
       let income = premiumAmount.sub(govFee); //900
@@ -1024,8 +1014,6 @@ describe("Index", function () {
         chad.address,
         chad.address
       );
-      console.log("insured!")
-
       let premiumAmount = (await tx.wait()).events[2].args["premium"];
       let govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
       let income = premiumAmount.sub(govFee); //900

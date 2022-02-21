@@ -52,7 +52,7 @@ async function setNextBlock(time) {
   await ethers.provider.send("evm_setNextBlockTimestamp", [time.toNumber()]);
 }
 
-describe.skip("Index", function () {
+describe("Index", function () {
   const initialMint = BigNumber.from("100000");
   const loss = BigNumber.from("1000000");
 

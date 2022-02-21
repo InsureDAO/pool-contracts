@@ -16,8 +16,6 @@ import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IIndexTemplate.sol";
 
-import "hardhat/console.sol";
-
 contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     /**
      * EVENTS
