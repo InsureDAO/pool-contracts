@@ -281,17 +281,12 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _maxLockedCredits;
 
         for (uint256 i; i < _length; ++i) {
-            address _poolAddress = poolList[i];
-            uint256 _allocPoint = allocPoints[_poolAddress];
-
-            if (_allocPoint != 0) {
-                (uint256 _allocated, uint256 _available) = IPoolTemplate(_poolAddress).pairValues(address(this));
-                if (_allocated > _available) {
-                    uint _locked = _allocated - _available;
-                    _totalLockedCredits += _locked;
-                    if (_locked > _maxLockedCredits) {
-                        _maxLockedCredits = _locked;
-                    }
+            (uint256 _allocated, uint256 _available) = IPoolTemplate(poolList[i]).pairValues(address(this));
+            if (_allocated > _available) {
+                uint _locked = _allocated - _available;
+                _totalLockedCredits += _locked;
+                if (_locked > _maxLockedCredits) {
+                    _maxLockedCredits = _locked;
                 }
             }
         }
