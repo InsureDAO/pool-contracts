@@ -2138,14 +2138,17 @@ describe("Index", function () {
       let withdrawable = await index.withdrawable();
       expect(withdrawable).to.equal(0);
 
-
-      //this won't change when only one side of pool liquidity is added
       await market1.connect(alice).deposit(depositAmount);
+      // pools status now is:
+      // market1: locked: 10000, available: 10000
+      // market2: locked: 10000, available: 0
       withdrawable = await index.withdrawable();
-      expect(withdrawable).to.equal(0);
-
-      //but this situation changes when the other side of liquidity is added
+      expect(withdrawable).to.equal(1800);
+      
       await market2.connect(alice).deposit(depositAmount);
+      // pools status now is:
+      // market1: locked: 10000, available: 10000
+      // market2: locked: 10000, available: 10000
       withdrawable = await index.withdrawable();
       expect(withdrawable).to.equal(11800);
     });
