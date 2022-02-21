@@ -475,13 +475,6 @@ describe("Pool", function () {
 
       });
 
-      it("revert when market is paused", async () => {
-        await market.setPaused(true)
-
-        let payout = initialMint.div(2)
-        await expect(market.applyBounty(payout, tom.address, [0])).to.revertedWith("ERROR: MARKET_IS_PAUSED")
-      });
-
       it("revert when market is in Payout", async () => {
         await applyCover({
           pool: market,
