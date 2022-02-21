@@ -222,6 +222,12 @@ describe("Pool", function () {
   });
 
   describe("PoolTemplate", function () {
+    describe("metadata", function () {
+      it("should return correct metadata", async () => {
+        expect(await market.name()).to.equal("InsureDAO DAI Insurance LP");
+        expect(await market.symbol()).to.equal("iDAI");
+      })
+    });
     describe("insure", function () {
       beforeEach(async () => {
         await usdc.connect(alice).approve(vault.address, initialMint)
