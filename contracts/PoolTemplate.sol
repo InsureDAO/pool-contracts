@@ -696,7 +696,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         string calldata _rawdata,
         string calldata _memo
     ) external override onlyOwner {
-        require(!paused, "ERROR: UNABLE_TO_APPLY");
         require(_incidentTimestamp < block.timestamp, "ERROR: INCIDENT_DATE");
 
         incident.payoutNumerator = _payoutNumerator;
@@ -732,7 +731,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         address _contributor,
         uint256[] calldata _ids
     )external override onlyOwner {
-        require(!paused, "ERROR: MARKET_IS_PAUSED");
         require(marketStatus == MarketStatus.Trading, "ERROR: NOT_TRADING_STATUS");
 
         //borrow value just like redeem()
