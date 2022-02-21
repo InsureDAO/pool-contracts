@@ -162,13 +162,13 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         emit Fund(msg.sender, _amount, _attribution);
     }
 
-    function defund(uint256 _amount) external override onlyOwner {
+    function defund(address _to, uint256 _amount) external override onlyOwner {
         require(!paused, "ERROR: PAUSED");
 
-        uint256 _attribution = vault.withdrawValue(_amount, msg.sender);
+        uint256 _attribution = vault.withdrawValue(_amount, _to);
         surplusPool -= _attribution;
 
-        emit Defund(msg.sender, _amount, _attribution);
+        emit Defund(_to, _amount, _attribution);
     }
 
     /**
