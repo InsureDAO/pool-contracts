@@ -708,7 +708,7 @@ describe("CDS", function () {
       });
 
       it("success", async () => {
-        await cds.defund(depositAmount);
+        await cds.defund(gov.address ,depositAmount);
 
         {
           //sanity check
@@ -767,7 +767,7 @@ describe("CDS", function () {
       });
 
       it("revert onlyOwner", async () => {
-        await expect(cds.connect(alice).defund(depositAmount)).to.revertedWith(
+        await expect(cds.connect(alice).defund(alice.address, depositAmount)).to.revertedWith(
           "ERROR: ONLY_OWNER"
         );
       });
