@@ -379,7 +379,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @param _index index number of an index pool to get registered in the pool
      */
 
-    function registerIndex(uint256 _index)external override{
+    function registerIndex(uint256 _index) external override{
         require(
             IRegistry(registry).isListed(msg.sender),
             "ERROR: UNREGISTERED_INDEX"
