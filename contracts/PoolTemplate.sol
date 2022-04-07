@@ -730,7 +730,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 _amount,
         address _contributor,
         uint256[] calldata _ids
-    )external override onlyOwner {
+    ) external override onlyOwner {
         require(marketStatus == MarketStatus.Trading, "ERROR: NOT_TRADING_STATUS");
 
         //borrow value just like redeem()
@@ -780,7 +780,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         emit MarketStatusChanged(MarketStatus.Trading);
     }
 
-    function _liquidation()internal{
+    function _liquidation() internal {
         uint256 _totalLiquidity = totalLiquidity();
         uint256 _totalCredit = totalCredit;
         uint256 _debt = vault.debts(address(this));
