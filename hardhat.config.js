@@ -15,6 +15,15 @@ const {
 module.exports = {
   solidity: "0.8.10",
   defaultNetwork: "hardhat",
+  solidity: {
+    version: "0.8.10",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200000,
+      },
+    },
+  },
   networks: {
     hardhat: {
       initialBaseFeePerGas: 0,
@@ -24,21 +33,21 @@ module.exports = {
       url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${PRODUCTION_KEY}`],
       gas: 6e6,
-      gasPrice: 7e10,//70Gwei
+      gasPrice: 8e10,//80Gwei
       timeout: 2000000000,
     },
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${KEY}`],
       gas: 6e6,
-      gasPrice: 2e10,
+      gasPrice: 5e10, //50GWei
       timeout: 2000000000,
     },
     ropsten: {
       url: `https://ropsten.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${KEY}`],
       gas: 6e6,
-      gasPrice: 1e10,
+      gasPrice: 1e10,//10Gwei
       timeout: 2000000000,
     },
     rinkarbitrum: {

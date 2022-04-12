@@ -40,15 +40,15 @@ const slotB = [
 const ALLOCATION_POINT = BigNumber.from("1000000")
 
 //parameters
+const DAY = 60;//TEST
 const GovFeeRatio = 100000; //10%
-const GracePeriod = 60 * 14;
-const MinDate = 60 * 7;
-const LockUpPeriod = 60 * 14;
-const CDSLockUpPeriod = 60 * 7;
-const WithdrawablePeriod = 60 * 7;
+const GracePeriod = DAY * 14;
+const LockUpPeriod = DAY * 14;
+const CDSLockUpPeriod = DAY * 21;
+const MinDate = DAY * 7;
+const WithdrawablePeriod = DAY * 7;
 const MAX_LIST = 10;
 
-//minimum deposit to create new pool
 const MinDeposit = (BigNumber.from("1000")).mul(decimals); //1000USDC
 
 

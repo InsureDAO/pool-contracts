@@ -1,8 +1,6 @@
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
-const DAY = 86400;
-
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const decimals = BigNumber.from("1000000"); //6
 
@@ -42,11 +40,12 @@ const slotB = [
   [0, 0, 0, 0, 1] //Quantstamp Index
 ]
 const ALLOCATION_POINT = BigNumber.from("1000000")
-const APPROVE_AMOUNT = BigNumber.from("1000000000").mul(GOV_TOKENS.length) //1000USDC
 
+const DAY = 60;//TEST
 const GovFeeRatio = 100000; //10%
 const GracePeriod = DAY * 14;
 const LockUpPeriod = DAY * 14;
+const CDSLockUpPeriod = DAY * 21;
 const MinDate = DAY * 7;
 const WithdrawablePeriod = DAY * 7;
 const MAX_LIST = 10;
@@ -61,13 +60,14 @@ Object.assign(exports, {
   GOV_TOKENS,
   INDEX_LIST,
   slotB,
-  APPROVE_AMOUNT,
+  ALLOCATION_POINT,
+
   GovFeeRatio,
   GracePeriod,
   LockUpPeriod,
-  MinDate,
+  CDSLockUpPeriod,
   WithdrawablePeriod,
+  MinDate,
   MAX_LIST,
-  MinDeposit,
-  ALLOCATION_POINT
+  MinDeposit
 })
