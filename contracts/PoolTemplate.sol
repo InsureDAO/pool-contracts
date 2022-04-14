@@ -1,4 +1,4 @@
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 
 /**
  * @author InsureDAO
@@ -6,29 +6,25 @@ pragma solidity 0.8.7;
  * SPDX-License-Identifier: GPL-3.0
  */
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+
+import "./InsureDAOERC20.sol";
+import "./interfaces/IPoolTemplate.sol";
+import "./interfaces/IUniversalMarket.sol";
 
 import "./interfaces/IParameters.sol";
 import "./interfaces/IVault.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IIndexTemplate.sol";
 
-contract PoolTemplate is IERC20 {
-    using Address for address;
-    using SafeMath for uint256;
-
+contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     /**
      * EVENTS
      */
-
     event Deposit(address indexed depositor, uint256 amount, uint256 mint);
     event WithdrawRequested(
         address indexed withdrawer,
         uint256 amount,
-        uint256 time
+        uint256 unlockTime
     );
     event Withdraw(address indexed withdrawer, uint256 amount, uint256 retVal);
     event Unlocked(uint256 indexed id, uint256 amount);
@@ -39,6 +35,7 @@ contract PoolTemplate is IERC20 {
         uint256 startTime,
         uint256 endTime,
         address insured,
+        address agent,
         uint256 premium
     );
     event Redeemed(
@@ -54,32 +51,24 @@ contract PoolTemplate is IERC20 {
         uint256 payoutDenominator,
         uint256 incidentTimestamp,
         bytes32 merkleRoot,
-        bytes32[] rawdata,
+        string rawdata,
         string memo
     );
-    event TransferInsurance(uint256 indexed id, address from, address to);
+    event BountyPaid(uint256 amount, address contributor, uint256[] ids);
+
     event CreditIncrease(address indexed depositor, uint256 credit);
     event CreditDecrease(address indexed withdrawer, uint256 credit);
     event MarketStatusChanged(MarketStatus statusValue);
     event Paused(bool paused);
     event MetadataChanged(string metadata);
+
     /**
      * Storage
      */
-
     /// @notice Market setting
     bool public initialized;
-    bool public paused;
+    bool public override paused;
     string public metadata;
-    uint256 public target;
-
-    /// @notice EIP-20 token variables
-    string public name;
-    string public symbol;
-    uint8 public decimals;
-    mapping(address => uint256) private _balances;
-    mapping(address => mapping(address => uint256)) private _allowances;
-    uint256 private _totalSupply;
 
     /// @notice External contract call addresses
     IParameters public parameters;
@@ -87,38 +76,40 @@ contract PoolTemplate is IERC20 {
     IVault public vault;
 
     /// @notice Market variables
-    uint256 public ownAttributions; //how much attribution point this pool's original liquidity has
-    uint256 public lockedAmount; //Liquidity locked when utilized
-    uint256 public totalCredit; //Liquidity from index
-    uint256 public rewardPerCredit; //Times REWARD_DECIMALS. To avoid overdlow
+    uint256 public attributionDebt; //pool's attribution for indices
+    uint256 public override lockedAmount; //Liquidity locked when utilized
+    uint256 public override totalCredit; //Liquidity from index
+    uint256 public rewardPerCredit; //Times MAGIC_SCALE_1E6. To avoid reward decimal truncation *See explanation below.
     uint256 public pendingEnd; //pending time when paying out
 
     /// @notice Market variables for margin account
     struct IndexInfo {
         uint256 credit; //How many credit (equal to liquidity) the index has allocated
         uint256 rewardDebt; // Reward debt. *See explanation below.
+        uint256 index; //index number
         bool exist; //true if the index has allocated credit
-        //
-        // We do some fancy math here. Basically, any point in time, the amount of premium
-        // entitled to an index but is pending to be distributed is:
-        //
-        //   pending reward = (index.credit * rewardPerCredit) - index.rewardDebt
-        //
-        // When the pool receives premium, it updates rewardPerCredit
-        //
-        // Whenever an index deposits, withdraws credit to a pool, Here's what happens:
-        //   1. The index receives the pending reward sent to the index vault.
-        //   2. The index's rewardDebt get updated.
     }
-    mapping(address => IndexInfo) public indexes;
+
+    mapping(address => IndexInfo) public indices;
     address[] public indexList;
 
+    //
+    // * We do some fancy math for premium calculation of indices.
+    // Basically, any point in time, the amount of premium entitled to an index but is pending to be distributed is:
+    //
+    //   pending reward = (index.credit * rewardPerCredit) - index.rewardDebt
+    //
+    // When the pool receives premium, it updates rewardPerCredit
+    //
+    // Whenever an index deposits, withdraws credit to a pool, Here's what happens:
+    //   1. The index receives the pending reward sent to the index vault.
+    //   2. The index's rewardDebt get updated.
+    //
+    // This mechanism is widely used (e.g. SushiSwap: MasterChef.sol)
+    //
+
     ///@notice Market status transition management
-    enum MarketStatus {
-        Trading,
-        Payingout
-    }
-    MarketStatus public marketStatus;
+    MarketStatus public override marketStatus;
 
     ///@notice user's withdrawal status management
     struct Withdrawal {
@@ -130,15 +121,16 @@ contract PoolTemplate is IERC20 {
     ///@notice insurance status management
     struct Insurance {
         uint256 id; //each insuance has their own id
-        uint256 startTime; //timestamp of starttime
-        uint256 endTime; //timestamp of endtime
+        uint48 startTime; //timestamp of starttime
+        uint48 endTime; //timestamp of endtime
         uint256 amount; //insured amount
         bytes32 target; //target id in bytes32
         address insured; //the address holds the right to get insured
+        address agent; //address have control. can be different from insured.
         bool status; //true if insurance is not expired or redeemed
     }
-    Insurance[] public insurances;
-    mapping(address => uint256[]) public insuranceHoldings;
+    mapping(uint256 => Insurance) public insurances;
+    uint256 public allInsuranceCount;
 
     ///@notice incident status management
     struct Incident {
@@ -148,23 +140,17 @@ contract PoolTemplate is IERC20 {
         bytes32 merkleRoot;
     }
     Incident public incident;
+    uint256 private constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
 
-    ///@notice magic numbers
-    uint256 public constant UTILIZATION_RATE_LENGTH = 1e8;
-    uint256 public constant REWARD_DECIMALS = 1e12;
-
-    /**
-     * @notice Throws if called by any account other than the owner.
-     */
     modifier onlyOwner() {
         require(
             msg.sender == parameters.getOwner(),
-            "Restricted: caller is not allowed to operate"
+            "Caller is not allowed to operate"
         );
         _;
     }
 
-    constructor() public {
+    constructor() {
         initialized = true;
     }
 
@@ -179,39 +165,41 @@ contract PoolTemplate is IERC20 {
      * references[1] = underlying token address
      * references[2] = registry
      * references[3] = parameter
-     * conditions[0] = target id
-     * conditions[1] = minimim deposit amount
+     * conditions[0] = minimim deposit amount defined by the factory
+     * conditions[1] = initial deposit amount defined by the creator
      * @param _metaData arbitrary string to store market information
      * @param _conditions array of conditions
      * @param _references array of references
      */
     function initialize(
+        address _depositor,
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external {
+    ) external override {
         require(
-            initialized == false &&
-                bytes(_metaData).length > 0 &&
+            !initialized &&
+                bytes(_metaData).length != 0 &&
                 _references[0] != address(0) &&
                 _references[1] != address(0) &&
                 _references[2] != address(0) &&
-                _references[3] != address(0),
-            "ERROR: INITIALIZATION_BAD_CONDITIONS"
+                _references[3] != address(0) &&
+                _conditions[0] <= _conditions[1],
+            "INITIALIZATION_BAD_CONDITIONS"
         );
         initialized = true;
 
-        name = string(
-            abi.encodePacked(
-                "InsureDAO-",
-                IERC20Metadata(_references[1]).name(),
-                "-PoolInsurance"
-            )
-        );
-        symbol = string(
-            abi.encodePacked("i-", IERC20Metadata(_references[1]).name())
-        );
-        decimals = IERC20Metadata(_references[0]).decimals();
+        string memory _name = "InsureDAO Insurance LP";
+        string memory _symbol = "iNsure";
+        
+        try this.getTokenMetadata(_references[0]) returns (string memory name_, string memory symbol_) {
+            _name = name_;
+            _symbol = symbol_;
+        } catch {}
+
+        uint8 _decimals = IERC20Metadata(_references[1]).decimals();
+
+        initializeToken(_name, _symbol, _decimals);
 
         registry = IRegistry(_references[2]);
         parameters = IParameters(_references[3]);
@@ -221,104 +209,122 @@ contract PoolTemplate is IERC20 {
 
         marketStatus = MarketStatus.Trading;
 
-        target = _conditions[0];
-        if (_conditions[1] > 0) {
-            deposit(_conditions[1]);
+        if (_conditions[1] != 0) {
+            _depositFrom(_conditions[1], _depositor);
         }
     }
 
+    function getTokenMetadata(address _token) external view returns (string memory _name, string memory _symbol) {
+        _name = string(abi.encodePacked("InsureDAO ", IERC20Metadata(_token).name(), " Insurance LP"));
+        _symbol = string(abi.encodePacked("i", IERC20Metadata(_token).symbol()));
+    }
+
     /**
-     * Pool initeractions
+     * Pool interactions
      */
 
     /**
-     * @notice A provider supplies token to the pool and receives iTokens
-     * @param _amount amount of token to deposit
-     * @return _mintAmount the amount of iToken minted from the transaction
+     * @notice A liquidity provider supplies tokens to the pool and receives iTokens
+     * @param _amount amount of tokens to deposit
+     * @return _mintAmount the amount of iTokens minted from the transaction
      */
-    function deposit(uint256 _amount) public returns (uint256 _mintAmount) {
+    function deposit(uint256 _amount) external returns (uint256 _mintAmount) {
+        _mintAmount = _depositFrom(_amount, msg.sender);
+    }
+
+    /**
+     * @notice Internal deposit function that allows third party to deposit
+     * @param _amount amount of tokens to deposit
+     * @param _from deposit beneficiary's address
+     * @return _mintAmount the amount of iTokens minted from the transaction
+     */
+    function _depositFrom(uint256 _amount, address _from)
+        internal
+        returns (uint256 _mintAmount)
+    {
+        require(_amount != 0, "ERROR: DEPOSIT_ZERO");
         require(
-            marketStatus == MarketStatus.Trading && paused == false,
-            "ERROR: DEPOSIT_DISABLED"
+            marketStatus == MarketStatus.Trading,
+            "ERROR: DEPOSIT_DISABLED(1)"
         );
-        require(_amount > 0, "ERROR: DEPOSIT_ZERO");
+        require(
+            !paused,
+            "ERROR: DEPOSIT_DISABLED(2)"
+        );
 
         _mintAmount = worth(_amount);
 
-        uint256 _newAttribution = vault.addValue(
-            _amount,
-            msg.sender,
-            address(this)
-        );
-        ownAttributions = ownAttributions.add(_newAttribution);
+        vault.addValue(_amount, _from, address(this));
 
-        emit Deposit(msg.sender, _amount, _mintAmount);
+        emit Deposit(_from, _amount, _mintAmount);
 
         //mint iToken
-        _mint(msg.sender, _mintAmount);
+        _mint(_from, _mintAmount);
     }
 
     /**
-     * @notice Provider request withdrawal of collateral
-     * @param _amount amount of iToken to burn
+     * @notice A liquidity provider request withdrawal of collateral
+     * @param _amount amount of iTokens to burn
      */
     function requestWithdraw(uint256 _amount) external {
-        uint256 _balance = balanceOf(msg.sender);
-        require(_balance >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
-        require(_amount > 0, "ERROR: REQUEST_ZERO");
-        withdrawalReq[msg.sender].timestamp = block.timestamp;
+        require(_amount != 0, "ERROR: REQUEST_ZERO");
+        require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
+        
+        uint256 _unlocksAt = block.timestamp + parameters.getLockup(address(this));
+
+        withdrawalReq[msg.sender].timestamp = _unlocksAt;
         withdrawalReq[msg.sender].amount = _amount;
-        emit WithdrawRequested(msg.sender, _amount, block.timestamp);
+        emit WithdrawRequested(msg.sender, _amount, _unlocksAt);
     }
 
     /**
-     * @notice Provider burns iToken and receives collatral from the pool
-     * @param _amount amount of iToken to burn
-     * @return _retVal the amount underlying token returned
+     * @notice A liquidity provider burns iTokens and receives collateral from the pool
+     * @param _amount amount of iTokens to burn
+     * @return _retVal the amount underlying tokens returned
      */
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
-        uint256 _supply = totalSupply();
-
-        uint256 _liquidity = vault.attributionValue(ownAttributions);
-        _retVal = _divMinus(_amount.mul(_liquidity), _supply);
-
         require(
             marketStatus == MarketStatus.Trading,
-            "ERROR: WITHDRAWAL_PENDING"
+            "ERROR: WITHDRAWAL_MARKET_PENDING"
         );
+
+        Withdrawal memory request = withdrawalReq[msg.sender];
+
         require(
-            withdrawalReq[msg.sender].timestamp.add(
-                parameters.getLockup(msg.sender)
-            ) < block.timestamp,
+            request.timestamp < block.timestamp,
             "ERROR: WITHDRAWAL_QUEUE"
         );
         require(
-            withdrawalReq[msg.sender]
-                .timestamp
-                .add(parameters.getLockup(msg.sender))
-                .add(parameters.getWithdrawable(msg.sender)) > block.timestamp,
-            "ERROR: WITHDRAWAL_NO_ACTIVE_REQUEST"
+            request.timestamp + parameters.getWithdrawable(address(this)) > block.timestamp,
+            "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(
-            withdrawalReq[msg.sender].amount >= _amount,
-            "ERROR: WITHDRAWAL_EXCEEDED_REQUEST"
+            request.amount >= _amount,
+            "WITHDRAWAL_EXCEEDED_REQUEST"
         );
-        require(_amount > 0, "ERROR: WITHDRAWAL_ZERO");
+        require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
+
+        uint256 _supply = totalSupply();
+        require(_supply != 0, "ERROR: NO_AVAILABLE_LIQUIDITY");
+
+        uint256 _liquidity = originalLiquidity();
+        _retVal = (_amount * _liquidity) / _supply;
+
         require(
-            _retVal <= availableBalance(),
-            "ERROR: WITHDRAW_INSUFFICIENT_LIQUIDITY"
+            _retVal <= _availableBalance(),
+            "WITHDRAW_INSUFFICIENT_LIQUIDITY"
         );
+
         //reduce requested amount
-        withdrawalReq[msg.sender].amount = withdrawalReq[msg.sender].amount.sub(
-            _amount
-        );
+        unchecked {
+            withdrawalReq[msg.sender].amount -= _amount;
+        }
 
         //Burn iToken
         _burn(msg.sender, _amount);
 
         //Withdraw liquidity
-        uint256 _deductAttribution = vault.withdrawValue(_retVal, msg.sender);
-        ownAttributions = ownAttributions.sub(_deductAttribution);
+        vault.withdrawValue(_retVal, msg.sender);
 
         emit Withdraw(msg.sender, _amount, _retVal);
     }
@@ -328,29 +334,40 @@ contract PoolTemplate is IERC20 {
      * @param _ids array of ids to unlock
      */
     function unlockBatch(uint256[] calldata _ids) external {
-        for (uint256 i = 0; i < _ids.length; i++) {
-            unlock(_ids[i]);
+        require(marketStatus == MarketStatus.Trading, "ERROR: UNLOCK_BAD_COINDITIONS");
+        uint256 idsLength = _ids.length;
+        for (uint256 i; i < idsLength;) {
+            _unlock(_ids[i]);
+            unchecked {
+                ++i;
+            }
         }
     }
 
     /**
-     * @notice Unlock funds locked in the expired insurance
-     * @param _id id of the insurance policy to unclock liquidity
+     * @param _id id of the insurance policy to unlock liquidity
      */
-    function unlock(uint256 _id) public {
-        Insurance storage insurance = insurances[_id];
+    function unlock(uint256 _id) external {
+        require(marketStatus == MarketStatus.Trading, "ERROR: UNLOCK_BAD_COINDITIONS");
+        _unlock(_id);
+    }
+
+    /**
+     * @notice Unlock funds locked in the expired insurance (for internal usage)
+     * @param _id id of the insurance policy to unlock liquidity
+     */
+    function _unlock(uint256 _id) internal {
         require(
-            insurance.status == true &&
-                marketStatus == MarketStatus.Trading &&
-                insurance.endTime.add(parameters.getGrace(msg.sender)) <
+            insurances[_id].status &&
+                insurances[_id].endTime + parameters.getGrace(address(this)) <
                 block.timestamp,
             "ERROR: UNLOCK_BAD_COINDITIONS"
         );
-        insurance.status == false;
+        insurances[_id].status = false;
 
-        lockedAmount = lockedAmount.sub(insurance.amount);
+        lockedAmount = lockedAmount - insurances[_id].amount;
 
-        emit Unlocked(_id, insurance.amount);
+        emit Unlocked(_id, insurances[_id].amount);
     }
 
     /**
@@ -358,43 +375,77 @@ contract PoolTemplate is IERC20 {
      */
 
     /**
-     * @notice Allocate credit from indexes. Allocated credits are treated as equivalent to deposited real token.
+     * @notice Register an index that can allocate credit to the pool
+     * @param _index index number of an index pool to get registered in the pool
+     */
+
+    function registerIndex(uint256 _index)external override{
+        require(
+            IRegistry(registry).isListed(msg.sender),
+            "ERROR: UNREGISTERED_INDEX"
+        );
+        require(
+            _index <= parameters.getMaxList(address(this)),
+            "ERROR: EXCEEEDED_MAX_LIST"
+        );
+        uint256 _length = indexList.length;
+        if (_length <= _index) {
+            require(_length == _index, "ERROR: BAD_INDEX");
+            indexList.push(msg.sender);
+            indices[msg.sender].exist = true;
+            indices[msg.sender].index = _index;
+        } else {
+            address _indexAddress = indexList[_index];
+            if (_indexAddress != address(0) && _indexAddress != msg.sender) {
+                require(indices[msg.sender].credit == 0,"ERROR: ALREADY_ALLOCATED");
+                require(indices[_indexAddress].credit == 0,"ERROR: WITHDRAW_CREDIT_FIRST");
+
+                indices[_indexAddress].index = 0;
+                indices[_indexAddress].exist = false;
+                indices[msg.sender].index = _index;
+                indices[msg.sender].exist = true;
+                indexList[_index] = msg.sender;
+            }
+        }
+    }
+
+    /**
+     * @notice Allocate credit from an index. Allocated credits are deemed as equivalent liquidity as real token deposits.
      * @param _credit credit (liquidity amount) to be added to this pool
      * @return _pending pending preium for the caller index
      */
 
     function allocateCredit(uint256 _credit)
         external
+        override
         returns (uint256 _pending)
     {
+        IndexInfo storage _index = indices[msg.sender];
         require(
-            IRegistry(registry).isListed(msg.sender),
-            "ERROR: ALLOCATE_CREDIT_BAD_CONDITIONS"
+            _index.exist,
+            "ALLOCATE_CREDIT_BAD_CONDITIONS"
         );
-        IndexInfo storage _index = indexes[msg.sender];
-        if (indexes[msg.sender].exist == false) {
-            indexes[msg.sender].exist = true;
-            indexList.push(msg.sender);
-        }
-        if (_index.credit > 0) {
+
+        uint256 _rewardPerCredit = rewardPerCredit;
+
+        if (_index.credit != 0){
             _pending = _sub(
-                _index.credit.mul(rewardPerCredit).div(REWARD_DECIMALS),
+                (_index.credit * _rewardPerCredit) / MAGIC_SCALE_1E6,
                 _index.rewardDebt
             );
-            if (_pending > 0) {
+            if (_pending != 0) {
                 vault.transferAttribution(_pending, msg.sender);
+                attributionDebt -= _pending;
             }
         }
-        if (_credit > 0) {
-            totalCredit = totalCredit.add(_credit);
-            indexes[msg.sender].credit = indexes[msg.sender].credit.add(
-                _credit
-            );
+        if (_credit != 0) {
+            totalCredit += _credit;
+            _index.credit += _credit;
             emit CreditIncrease(msg.sender, _credit);
         }
-        _index.rewardDebt = _index.credit.mul(rewardPerCredit).div(
-            REWARD_DECIMALS
-        );
+        _index.rewardDebt =
+            (_index.credit * _rewardPerCredit) /
+            MAGIC_SCALE_1E6;
     }
 
     /**
@@ -404,38 +455,49 @@ contract PoolTemplate is IERC20 {
      */
     function withdrawCredit(uint256 _credit)
         external
+        override
         returns (uint256 _pending)
     {
-        IndexInfo storage _index = indexes[msg.sender];
         require(
-            IRegistry(registry).isListed(msg.sender) &&
-                _index.credit >= _credit &&
-                _credit <= availableBalance(),
-            "ERROR: WITHDRAW_CREDIT_BAD_CONDITIONS"
+            marketStatus == MarketStatus.Trading,
+            "POOL_IS_IN_TRADING_STATUS"
         );
+
+        IndexInfo storage _index = indices[msg.sender];
+
+        require(
+            _index.exist &&
+            _index.credit >= _credit &&
+            _credit <= _availableBalance(),
+            "WITHDRAW_CREDIT_BAD_CONDITIONS"
+        );
+
+        uint256 _rewardPerCredit = rewardPerCredit;
 
         //calculate acrrued premium
         _pending = _sub(
-            _index.credit.mul(rewardPerCredit).div(REWARD_DECIMALS),
+            (_index.credit * _rewardPerCredit) / MAGIC_SCALE_1E6,
             _index.rewardDebt
         );
 
         //Withdraw liquidity
-        if (_credit > 0) {
-            totalCredit = totalCredit.sub(_credit);
-            indexes[msg.sender].credit = indexes[msg.sender].credit.sub(
-                _credit
-            );
+        if (_credit != 0) {
+            totalCredit -= _credit;
+            unchecked {
+                _index.credit -= _credit;
+            }
             emit CreditDecrease(msg.sender, _credit);
         }
 
         //withdraw acrrued premium
-        if (_pending > 0) {
+        if (_pending != 0) {
             vault.transferAttribution(_pending, msg.sender);
-            _index.rewardDebt = _index.credit.mul(rewardPerCredit).div(
-                REWARD_DECIMALS
-            );
+            attributionDebt -= _pending;
         }
+        
+        _index.rewardDebt =
+                (_index.credit * _rewardPerCredit) /
+                MAGIC_SCALE_1E6;
     }
 
     /**
@@ -445,75 +507,80 @@ contract PoolTemplate is IERC20 {
     /**
      * @notice Get insured for the specified amount for specified span
      * @param _amount target amount to get covered
-     * @param _maxCost maxmum cost to pay for the premium. revert if the premium is hifger
+     * @param _maxCost maximum cost to pay for the premium. revert if the premium is higher
      * @param _span length to get covered(e.g. 7 days)
-     * @param _target target id
+     * @param _target Insurance type id. eg Smart Contract Hacking Cover = 0x00..00
      * @return id of the insurance policy
      */
     function insure(
         uint256 _amount,
         uint256 _maxCost,
         uint256 _span,
-        bytes32 _target
+        bytes32 _target,
+        address _for,
+        address _agent
     ) external returns (uint256) {
-        //Distribute premium and fee
-        uint256 _endTime = _span.add(block.timestamp);
-        uint256 _premium = getPremium(_amount, _span);
-        uint256 _fee = parameters.getFee(_premium, msg.sender);
-        uint256 _deducted = _premium.sub(_fee);
-
-        require(
-            _amount <= availableBalance(),
-            "ERROR: INSURE_EXCEEDED_AVAILABLE_BALANCE"
-        );
-        require(_premium <= _maxCost, "ERROR: INSURE_EXCEEDED_MAX_COST");
-        require(_span <= 365 days, "ERROR: INSURE_EXCEEDED_MAX_SPAN");
-        require(
-            parameters.getMin(msg.sender) <= _span,
-            "ERROR: INSURE_SPAN_BELOW_MIN"
-        );
-
+        require(!paused, "ERROR: INSURE_MARKET_PAUSED");
+        require(_for != address(0), "ERROR: ZERO_ADDRESS");
+        require(_agent != address(0), "ERROR: ZERO_ADDRESS");
         require(
             marketStatus == MarketStatus.Trading,
             "ERROR: INSURE_MARKET_PENDING"
         );
-        require(paused == false, "ERROR: INSURE_MARKET_PAUSED");
+        require(
+            _amount <= _availableBalance(),
+            "INSURE_EXCEEDED_AVAIL_BALANCE"
+        );
 
-        //accrue fee
-        vault.addValue(_fee, msg.sender, parameters.getOwner());
-        //accrue premium
-        uint256 _newAttribution = vault.addValue(
-            _deducted,
+        require(_span <= 365 days, "ERROR: INSURE_EXCEEDED_MAX_SPAN");
+        require(
+            parameters.getMinDate(address(this)) <= _span,
+            "ERROR: INSURE_SPAN_BELOW_MIN"
+        );
+
+        //Distribute premium and fee
+        uint256 _premium = getPremium(_amount, _span);
+        require(_premium <= _maxCost, "ERROR: INSURE_EXCEEDED_MAX_COST");
+        
+        uint256 _endTime = _span + block.timestamp;
+        uint256 _fee = parameters.getFeeRate(address(this));
+        
+        //current liquidity
+        uint256 _liquidity = totalLiquidity();
+        uint256 _totalCredit = totalCredit;
+
+        //accrue premium/fee
+        uint256[2] memory _newAttribution = vault.addValueBatch(
+            _premium,
             msg.sender,
-            address(this)
+            [address(this), parameters.getOwner()],
+            [MAGIC_SCALE_1E6 - _fee, _fee]
         );
 
         //Lock covered amount
-        uint256 _id = insurances.length;
-        lockedAmount = lockedAmount.add(_amount);
-        Insurance memory _insurance = Insurance(
+        uint256 _id = allInsuranceCount;
+        lockedAmount += _amount;
+        insurances[_id] = Insurance(
             _id,
-            block.timestamp,
-            _endTime,
+            (uint48)(block.timestamp),
+            (uint48)(_endTime),
             _amount,
             _target,
-            msg.sender,
+            _for,
+            _agent,
             true
         );
-        insurances.push(_insurance);
-        insuranceHoldings[msg.sender].push(_id);
+        
+        unchecked {
+            ++allInsuranceCount;
+        }
 
-        //Calculate liquidity
-        uint256 _attributionForIndex = _newAttribution.mul(totalCredit).div(
-            totalLiquidity()
-        );
-        ownAttributions = ownAttributions.add(_newAttribution).sub(
-            _attributionForIndex
-        );
-        if (totalCredit > 0) {
-            rewardPerCredit = rewardPerCredit.add(
-                _attributionForIndex.mul(REWARD_DECIMALS).div(totalCredit)
-            );
+        //Calculate liquidity for index
+        if (_totalCredit != 0 && _liquidity != 0) {
+            uint256 _attributionForIndex = (_newAttribution[0] * _totalCredit) / _liquidity;
+            attributionDebt += _attributionForIndex;
+            rewardPerCredit += ((_attributionForIndex * MAGIC_SCALE_1E6) /
+                _totalCredit);
         }
 
         emit Insured(
@@ -522,7 +589,8 @@ contract PoolTemplate is IERC20 {
             _target,
             block.timestamp,
             _endTime,
-            msg.sender,
+            _for,
+            _agent,
             _premium
         );
 
@@ -535,106 +603,64 @@ contract PoolTemplate is IERC20 {
      * @param _merkleProof merkle proof (similar to "verify" function of MerkleProof.sol of OpenZeppelin
      * Ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/MerkleProof.sol
      */
-    function redeem(uint256 _id, bytes32[] calldata _merkleProof) external {
-        Insurance storage insurance = insurances[_id];
-        require(insurance.status == true, "ERROR: INSURANCE_NOT_ACTIVE");
-
-        uint256 _payoutNumerator = incident.payoutNumerator;
-        uint256 _payoutDenominator = incident.payoutDenominator;
-        uint256 _incidentTimestamp = incident.incidentTimestamp;
-        bytes32 _targets = incident.merkleRoot;
-        uint256 MAGIC_SCALE = 1e8; //1e8 to reduce truncation
-
+    function redeem(uint256 _id, uint256 _loss, bytes32[] calldata _merkleProof) external {
         require(
             marketStatus == MarketStatus.Payingout,
             "ERROR: NO_APPLICABLE_INCIDENT"
         );
-        require(insurance.insured == msg.sender, "ERROR: NOT_YOUR_INSURANCE");
+        
+        Insurance memory _insurance = insurances[_id];
+        require(_insurance.status, "ERROR: INSURANCE_NOT_ACTIVE");
+        require(_insurance.insured == msg.sender || _insurance.agent == msg.sender, "ERROR: NOT_YOUR_INSURANCE");
+        uint48 _incidentTimestamp = (uint48)(incident.incidentTimestamp);
         require(
-            marketStatus == MarketStatus.Payingout &&
-                insurance.startTime <= _incidentTimestamp &&
-                insurance.endTime >= _incidentTimestamp &&
+            _insurance.startTime <= _incidentTimestamp && _insurance.endTime >= _incidentTimestamp,
+            "ERROR: INSURANCE_NOT_APPLICABLE"
+        );
+
+        bytes32 _targets = incident.merkleRoot;
+        require(
+            MerkleProof.verify(
+                _merkleProof,
+                _targets,
+                keccak256(
+                    abi.encodePacked(_insurance.target, _insurance.insured, _loss)
+                )
+            ) ||
                 MerkleProof.verify(
                     _merkleProof,
                     _targets,
-                    keccak256(abi.encodePacked(insurance.target))
+                    keccak256(abi.encodePacked(_insurance.target, address(0), _loss))
                 ),
-            "ERROR: INSURANCE_NOT_APPLICABLE"
+            "ERROR: INSURANCE_EXEMPTED"
         );
-        insurance.status = false;
-        lockedAmount = lockedAmount.sub(insurance.amount);
+        insurances[_id].status = false;
+        lockedAmount -= _insurance.amount;
 
-        uint256 _payoutAmount = insurance.amount.mul(_payoutNumerator).div(
-            _payoutDenominator
-        );
-        uint256 _deductionFromIndex = _payoutAmount
-            .mul(totalCredit)
-            .mul(MAGIC_SCALE)
-            .div(totalLiquidity());
 
-        for (uint256 i = 0; i < indexList.length; i++) {
-            if (indexes[indexList[i]].credit > 0) {
-                uint256 _shareOfIndex = indexes[indexList[i]]
-                    .credit
-                    .mul(MAGIC_SCALE)
-                    .div(totalCredit);
-                uint256 _redeemAmount = _divCeil(
-                    _deductionFromIndex,
-                    _shareOfIndex
-                );
-                IIndexTemplate(indexList[i]).compensate(_redeemAmount);
-            }
-        }
+        _loss = _loss * incident.payoutNumerator / incident.payoutDenominator;
+        uint256 _payoutAmount = _insurance.amount > _loss ? _loss : _insurance.amount;
 
-        uint256 _paidAttribution = vault.withdrawValue(
-            _payoutAmount,
-            msg.sender
-        );
-        uint256 _indexAttribution = _paidAttribution
-            .mul(_deductionFromIndex)
-            .div(MAGIC_SCALE)
-            .div(_payoutAmount);
-        ownAttributions = ownAttributions.sub(
-            _paidAttribution.sub(_indexAttribution)
-        );
+        vault.borrowValue(_payoutAmount, _insurance.insured);
+
         emit Redeemed(
             _id,
-            msg.sender,
-            insurance.target,
-            insurance.amount,
+            _insurance.insured,
+            _insurance.target,
+            _insurance.amount,
             _payoutAmount
         );
     }
 
     /**
-     * @notice Transfers an active insurance
-     * @param _id id of the insurance policy
-     * @param _to receipient of of the policy
-     */
-    function transferInsurance(uint256 _id, address _to) external {
-        Insurance storage insurance = insurances[_id];
-
-        require(
-            _to != address(0) &&
-                insurance.insured == msg.sender &&
-                insurance.endTime >= block.timestamp &&
-                insurance.status == true,
-            "ERROR: INSURANCE_TRANSFER_BAD_CONDITIONS"
-        );
-
-        insurance.insured = _to;
-        emit TransferInsurance(_id, msg.sender, _to);
-    }
-
-    /**
-     * @notice Get how much premium for the specified amound and span
+     * @notice Get how much premium for the specified amount and span
      * @param _amount amount to get insured
      * @param _span span to get covered
      */
     function getPremium(uint256 _amount, uint256 _span)
         public
         view
-        returns (uint256 premium)
+        returns (uint256)
     {
         return
             parameters.getPremium(
@@ -642,7 +668,7 @@ contract PoolTemplate is IERC20 {
                 _span,
                 totalLiquidity(),
                 lockedAmount,
-                msg.sender
+                address(this)
             );
     }
 
@@ -652,15 +678,14 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Decision to make a payout
-     * @param _pending length to allow policy holders to redeem their policy
+     * @param _pending length of time to allow policyholders to redeem their policy
      * @param _payoutNumerator Numerator of the payout *See below
      * @param _payoutDenominator Denominator of the payout *See below
      * @param _incidentTimestamp Unixtimestamp of the incident
      * @param _merkleRoot Merkle root of the payout id list
-     * @param _rawdata raw data before the data set is coverted to merkle tree
-     * @param _memo additional note for the payout report
-     * payout ratio is determined by numerator/denominator
-     * e.g. 50/100 = 50% payout
+     * @param _rawdata raw data before the data set is coverted to merkle tree (to be emiｔted within event)
+     * @param _memo additional memo for the payout report (to be emmited within event)
+     * payout ratio is determined by numerator/denominator (e.g. 50/100 = 50% payout
      */
     function applyCover(
         uint256 _pending,
@@ -668,22 +693,25 @@ contract PoolTemplate is IERC20 {
         uint256 _payoutDenominator,
         uint256 _incidentTimestamp,
         bytes32 _merkleRoot,
-        bytes32[] calldata _rawdata,
+        string calldata _rawdata,
         string calldata _memo
-    ) external onlyOwner {
-        require(
-            marketStatus != MarketStatus.Payingout,
-            "ERROR: UNABLE_TO_APPLY"
-        );
+    ) external override onlyOwner {
+        require(_incidentTimestamp < block.timestamp, "ERROR: INCIDENT_DATE");
+
         incident.payoutNumerator = _payoutNumerator;
         incident.payoutDenominator = _payoutDenominator;
         incident.incidentTimestamp = _incidentTimestamp;
         incident.merkleRoot = _merkleRoot;
         marketStatus = MarketStatus.Payingout;
-        pendingEnd = block.timestamp.add(_pending);
-        for (uint256 i = 0; i < indexList.length; i++) {
-            if (indexes[indexList[i]].credit > 0) {
-                IIndexTemplate(indexList[i]).lock(_pending);
+        pendingEnd = block.timestamp + _pending;
+
+        uint256 indexLength = indexList.length;
+        for (uint256 i; i < indexLength;) {
+            if (indices[indexList[i]].credit != 0) {
+                IIndexTemplate(indexList[i]).lock();
+            }
+            unchecked {
+                ++i;
             }
         }
         emit CoverApplied(
@@ -695,7 +723,36 @@ contract PoolTemplate is IERC20 {
             _rawdata,
             _memo
         );
-        emit MarketStatusChanged(marketStatus);
+        emit MarketStatusChanged(MarketStatus.Payingout);
+    }
+
+    function applyBounty(
+        uint256 _amount,
+        address _contributor,
+        uint256[] calldata _ids
+    )external override onlyOwner {
+        require(marketStatus == MarketStatus.Trading, "ERROR: NOT_TRADING_STATUS");
+
+        //borrow value just like redeem()
+        vault.borrowValue(_amount, _contributor);
+
+        _liquidation();
+
+        //unlock policies
+        uint256 totalAmountToUnlock;
+        for (uint256 i; i < _ids.length; ++i) {
+            uint _id = _ids[i];
+            require(insurances[_id].status);
+
+            uint unlockAmount = insurances[_id].amount;
+
+            insurances[_id].status = false;
+            totalAmountToUnlock += unlockAmount;
+            emit Unlocked(_id, unlockAmount);
+        }
+        lockedAmount -= totalAmountToUnlock;
+
+        emit BountyPaid(_amount, _contributor, _ids) ;
     }
 
     /**
@@ -707,176 +764,61 @@ contract PoolTemplate is IERC20 {
                 pendingEnd < block.timestamp,
             "ERROR: UNABLE_TO_RESUME"
         );
+
+        _liquidation();
+
         marketStatus = MarketStatus.Trading;
-        emit MarketStatusChanged(marketStatus);
+
+        uint256 indexLength = indexList.length;
+        for (uint256 i; i < indexLength;) {
+            IIndexTemplate(indexList[i]).adjustAlloc();
+            unchecked {
+                ++i;
+            }
+        }
+
+        emit MarketStatusChanged(MarketStatus.Trading);
     }
 
-    /**
-     * iToken functions
-     */
+    function _liquidation()internal{
+        uint256 _totalLiquidity = totalLiquidity();
+        uint256 _totalCredit = totalCredit;
+        uint256 _debt = vault.debts(address(this));
+        uint256 _deductionFromIndex;
+        
+        if (_totalLiquidity != 0) {
+            _deductionFromIndex = _debt * _totalCredit / _totalLiquidity;
+        }
+        
+        uint256 _actualDeduction;
+        uint256 indexLength = indexList.length;
+        for (uint256 i; i < indexLength;) {
+            address _index = indexList[i];
+            uint256 _credit = indices[_index].credit;
 
-    /**
-     * @notice See `IERC20.totalSupply`.
-     */
-    function totalSupply() public view override returns (uint256) {
-        return _totalSupply;
-    }
+            if (_credit != 0) {
+                uint256 _shareOfIndex = (_credit * MAGIC_SCALE_1E6) /
+                    _totalCredit;
+                uint256 _redeemAmount = _deductionFromIndex * _shareOfIndex / MAGIC_SCALE_1E6;
+                _actualDeduction += IIndexTemplate(_index).compensate(
+                    _redeemAmount
+                );
+            }
+            unchecked {
+                ++i;
+            }
+        }
 
-    /**
-     * @notice See `IERC20.balanceOf`.
-     */
-    function balanceOf(address account) public view override returns (uint256) {
-        return _balances[account];
-    }
+        uint256 _deductionFromPool = _debt -
+            _deductionFromIndex;
+        uint256 _shortage = _deductionFromIndex  -
+            _actualDeduction;
+            
+        if (_deductionFromPool != 0) {
+            vault.offsetDebt(_deductionFromPool, address(this));
+        }
 
-    /**
-     * @notice See `IERC20.transfer`.
-     */
-    function transfer(address recipient, uint256 amount)
-        public
-        override
-        returns (bool)
-    {
-        _transfer(msg.sender, recipient, amount);
-        return true;
-    }
-
-    /**
-     * @notice See `IERC20.allowance`.
-     */
-    function allowance(address _owner, address spender)
-        public
-        view
-        override
-        returns (uint256)
-    {
-        return _allowances[_owner][spender];
-    }
-
-    /**
-     * @notice See `IERC20.approve`.
-     */
-    function approve(address spender, uint256 value)
-        public
-        override
-        returns (bool)
-    {
-        _approve(msg.sender, spender, value);
-        return true;
-    }
-
-    /**
-     * @notice See `IERC20.transferFrom`.
-     */
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) public override returns (bool) {
-        _transfer(sender, recipient, amount);
-        _approve(
-            sender,
-            msg.sender,
-            _allowances[sender][msg.sender].sub(amount)
-        );
-        return true;
-    }
-
-    /**
-     * @notice Atomically increases the allowance granted to `spender` by the caller.
-     */
-    function increaseAllowance(address spender, uint256 addedValue)
-        public
-        returns (bool)
-    {
-        _approve(
-            msg.sender,
-            spender,
-            _allowances[msg.sender][spender].add(addedValue)
-        );
-        return true;
-    }
-
-    /**
-     * @notice Atomically decreases the allowance granted to `spender` by the caller.
-     */
-    function decreaseAllowance(address spender, uint256 subtractedValue)
-        public
-        returns (bool)
-    {
-        require(
-            _allowances[msg.sender][spender] >= subtractedValue,
-            "ERC20: decreased allowance below zero"
-        );
-        _approve(
-            msg.sender,
-            spender,
-            _allowances[msg.sender][spender].sub(subtractedValue)
-        );
-        return true;
-    }
-
-    /**
-     * @notice Moves tokens `amount` from `sender` to `recipient`.
-     */
-    function _transfer(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) internal {
-        require(
-            sender != address(0) && recipient != address(0),
-            "ERC20: TRANSFER_BAD_CONDITIONS"
-        );
-        require(
-            _balances[sender] >= amount,
-            "ERC20: transfer amount exceeds balance"
-        );
-
-        _beforeTokenTransfer(sender, amount);
-
-        _balances[sender] = _balances[sender].sub(amount);
-        _balances[recipient] = _balances[recipient].add(amount);
-        emit Transfer(sender, recipient, amount);
-    }
-
-    /**
-     * @notice Creates `amount` tokens and assigns them to `account`, increasing
-     */
-    function _mint(address account, uint256 amount) internal {
-        require(account != address(0), "ERC20: mint to the zero address");
-
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
-        emit Transfer(address(0), account, amount);
-    }
-
-    /**
-     * @notice Destoys `amount` tokens from `account`, reducing the
-     */
-    function _burn(address account, uint256 value) internal {
-        require(account != address(0), "ERC20: burn from the zero address");
-
-        _totalSupply = _totalSupply.sub(value);
-        _balances[account] = _balances[account].sub(value);
-        emit Transfer(account, address(0), value);
-    }
-
-    /**
-     * @notice Sets `amount` as the allowance of `spender` over the `owner`s tokens.
-     */
-    function _approve(
-        address _owner,
-        address _spender,
-        uint256 _value
-    ) internal {
-        require(
-            _owner != address(0) && _spender != address(0),
-            "ERC20: APPROVE_BAD_CONDITIONS"
-        );
-
-        _allowances[_owner][_spender] = _value;
-        emit Approval(_owner, _spender, _value);
+        vault.transferDebt(_shortage);
     }
 
     /**
@@ -884,15 +826,15 @@ contract PoolTemplate is IERC20 {
      */
 
     /**
-     * @notice Get the exchange rate of LP token against underlying asset(scaled by 1e18)
-     * @return The value against the underlying token balance.
+     * @notice Get the exchange rate of LP tokens against underlying asset(scaled by MAGIC_SCALE_1E6)
+     * @return The value against the underlying tokens balance.
      */
     function rate() external view returns (uint256) {
-        if (_totalSupply > 0) {
-            return
-                vault.attributionValue(ownAttributions).mul(1e18).div(
-                    _totalSupply
-                );
+        uint256 _supply = totalSupply();
+        uint256 originalLiquidity = originalLiquidity();
+        
+        if (originalLiquidity != 0 && _supply != 0) {
+            return (originalLiquidity * MAGIC_SCALE_1E6) / _supply;
         } else {
             return 0;
         }
@@ -901,17 +843,19 @@ contract PoolTemplate is IERC20 {
     /**
      * @notice Get the underlying balance of the `owner`
      * @param _owner the target address to look up value
-     * @return The balance of underlying token for the specified address
+     * @return The balance of underlying tokens for the specified address
      */
-    function valueOfUnderlying(address _owner) public view returns (uint256) {
+    function valueOfUnderlying(address _owner)
+        external
+        view
+        override
+        returns (uint256)
+    {
         uint256 _balance = balanceOf(_owner);
-        if (_balance == 0) {
-            return 0;
-        } else {
-            return
-                _balance.mul(vault.attributionValue(ownAttributions)).div(
-                    totalSupply()
-                );
+        uint256 _totalSupply = totalSupply();
+        
+        if (_balance != 0 || _totalSupply != 0) {
+            return (_balance * originalLiquidity()) / _totalSupply;
         }
     }
 
@@ -920,94 +864,107 @@ contract PoolTemplate is IERC20 {
      * @param _index the address of index
      * @return The pending premium for the specified index
      */
-    function pendingPremium(address _index) external view returns (uint256) {
-        uint256 _credit = indexes[_index].credit;
-        if (_credit == 0) {
-            return 0;
-        } else {
+    function pendingPremium(address _index)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        uint256 _credit = indices[_index].credit;
+        if (_credit != 0) {
             return
                 _sub(
-                    _credit.mul(rewardPerCredit).div(REWARD_DECIMALS),
-                    indexes[_index].rewardDebt
+                    (_credit * rewardPerCredit) / MAGIC_SCALE_1E6,
+                    indices[_index].rewardDebt
                 );
         }
     }
 
     /**
      * @notice Get token number for the specified underlying value
-     * @param _value amount of iToken
-     * @return _amount The balance of underlying token for the specified amount
+     * @param _value the amount of the underlying
+     * @return _amount the number of the iTokens corresponding to _value
      */
     function worth(uint256 _value) public view returns (uint256 _amount) {
+    
         uint256 _supply = totalSupply();
-        if (_supply > 0 && ownAttributions > 0) {
-            _amount = _value.mul(_supply).div(
-                vault.attributionValue(ownAttributions)
-            );
-        } else if (_supply > 0 && ownAttributions == 0) {
-            _amount = _value.div(_supply);
+        uint256 _originalLiquidity = originalLiquidity();
+        if (_supply != 0 && _originalLiquidity != 0) {
+            _amount = (_value * _supply) / _originalLiquidity;
+        } else if (_supply != 0 && _originalLiquidity == 0) {
+            _amount = _value * _supply;
         } else {
             _amount = _value;
         }
     }
 
     /**
-     * @notice Get allocated credit
+     * @notice Get allocated credit & available balance
      * @param _index address of an index
      * @return The balance of credit allocated by the specified index
      */
-    function allocatedCredit(address _index) public view returns (uint256) {
-        return indexes[_index].credit;
+    function pairValues(address _index)
+        external
+        view
+        override
+        returns (uint256, uint256)
+    {
+        return (indices[_index].credit, _availableBalance());
     }
 
     /**
-     * @notice Get the number of total insurances
-     * @return Number of insurance policies to date
+     * @notice Returns the amount of underlying tokens available for withdrawals
+     * @return available liquidity of this pool
      */
-    function allInsuranceCount() public view returns (uint256) {
-        return insurances.length;
+    function availableBalance()
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return _availableBalance();
     }
 
-    /**
-     * @notice Get the underlying balance of the `owner`
-     * @param _user account address
-     * @return Number of insurance policies to date for the specified user
-     */
-    function getInsuranceCount(address _user) public view returns (uint256) {
-        return insuranceHoldings[_user].length;
-    }
-
-    /**
-     * @notice Returns the amount of underlying token available for withdrawals
-     * @return _balance available liquidity of this pool
-     */
-    function availableBalance() public view returns (uint256 _balance) {
-        if (totalLiquidity() > 0) {
-            return totalLiquidity().sub(lockedAmount);
-        } else {
-            return 0;
+    function _availableBalance()
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 _totalLiquidity = totalLiquidity();
+        if (_totalLiquidity != 0) {
+            return _totalLiquidity - lockedAmount;
         }
     }
 
     /**
-     * @notice Returns the utilization rate for this pool. Scaled by 1e8 (100% = 1e8)
-     * @return _rate utilization rate
+     * @notice Returns the utilization rate for this pool. Scaled by 1e6 (100% = 1e6)
+     * @return utilization rate
      */
-    function utilizationRate() public view returns (uint256 _rate) {
-        if (lockedAmount > 0) {
-            return
-                lockedAmount.mul(UTILIZATION_RATE_LENGTH).div(totalLiquidity());
-        } else {
-            return 0;
+    function utilizationRate() external view override returns (uint256) {
+        uint256 _lockedAmount = lockedAmount;
+        uint256 _totalLiquidity = totalLiquidity();
+        
+        if (_lockedAmount != 0 && _totalLiquidity != 0) {
+            return (_lockedAmount * MAGIC_SCALE_1E6) / _totalLiquidity;
         }
     }
 
     /**
-     * @notice total Liquidity of the pool (how much can the pool sell cover)
-     * @return _balance total liquidity of this pool
+     * @notice Pool's Liquidity + Liquidity from Index (how much can the pool sell cover)
+     * @return total liquidity of this pool
      */
-    function totalLiquidity() public view returns (uint256 _balance) {
-        return vault.attributionValue(ownAttributions).add(totalCredit);
+    function totalLiquidity() public view override returns (uint256) {
+        return originalLiquidity() + totalCredit;
+    }
+
+    /**
+     * @notice Pool's Liquidity
+     * @return total liquidity of this pool
+     */
+    function originalLiquidity() public view returns (uint256) {
+        return
+            vault.underlyingValue(address(this)) -
+            vault.attributionValue(attributionDebt);
     }
 
     /**
@@ -1018,7 +975,7 @@ contract PoolTemplate is IERC20 {
      * @notice Used for changing settlementFeeRecipient
      * @param _state true to set paused and vice versa
      */
-    function setPaused(bool _state) external onlyOwner {
+    function setPaused(bool _state) external override onlyOwner {
         if (paused != _state) {
             paused = _state;
             emit Paused(_state);
@@ -1029,7 +986,11 @@ contract PoolTemplate is IERC20 {
      * @notice Change metadata string
      * @param _metadata new metadata string
      */
-    function changeMetadata(string calldata _metadata) external onlyOwner {
+    function changeMetadata(string calldata _metadata)
+        external
+        override
+        onlyOwner
+    {
         metadata = _metadata;
         emit MetadataChanged(_metadata);
     }
@@ -1040,34 +1001,35 @@ contract PoolTemplate is IERC20 {
 
     /**
      * @notice Internal function to offset withdraw request and latest balance
-     * @param _from the account who send
-     * @param _amount the amount of token to offset
+     * @param from the account who send
+     * @param to a
+     * @param amount the amount of tokens to offset
      */
-    function _beforeTokenTransfer(address _from, uint256 _amount) internal {
-        //withdraw request operation
-        uint256 _after = balanceOf(_from).sub(_amount);
-        if (_after < withdrawalReq[_from].amount) {
-            withdrawalReq[_from].amount = _after;
-        }
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override {
+        super._beforeTokenTransfer(from, to, amount);
+
+        if (from != address(0)) {
+            uint256 reqAmount = withdrawalReq[from].amount;
+            if (reqAmount != 0){
+                uint256 _after = balanceOf(from) - amount;
+                if (_after < reqAmount) {
+                    withdrawalReq[from].amount = _after;
+                }
+            } 
+        }  
     }
 
     /**
      * @notice Internal function for safe division
      */
     function _divCeil(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b > 0);
+        require(b != 0);
         uint256 c = a / b;
-        if (a % b != 0) c = c + 1;
-        return c;
-    }
-
-    /**
-     * @notice Internal function to prevent liquidity to go zero
-     */
-    function _divMinus(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b > 0);
-        uint256 c = a / b;
-        if (a % b != 0 && c != 0) c = c - 1;
+        if (a % b != 0) ++c;
         return c;
     }
 
@@ -1075,10 +1037,8 @@ contract PoolTemplate is IERC20 {
      * @notice Internal function for overflow free subtraction
      */
     function _sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (a < b) {
-            return 0;
-        } else {
-            return a - b;
+        if (a >= b) {
+            unchecked {return a - b;}
         }
     }
 }

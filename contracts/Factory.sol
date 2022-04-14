@@ -5,18 +5,14 @@
  * SPDX-License-Identifier: GPL-3.0
  */
 
-pragma solidity 0.8.7;
-pragma experimental ABIEncoderV2;
+pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import "./interfaces/IOwnership.sol";
 import "./interfaces/IUniversalMarket.sol";
 import "./interfaces/IRegistry.sol";
+import "./interfaces/IFactory.sol";
 
-contract Factory {
-    using SafeMath for uint256;
-    using Address for address;
-
+contract Factory is IFactory {
     event MarketCreated(
         address indexed market,
         address indexed template,
@@ -41,14 +37,10 @@ contract Factory {
         uint256 indexed slot,
         uint256 target
     );
-    event CommitNewAdmin(uint256 deadline, address future_admin);
-    event NewAdmin(address admin);
-
-    address[] public markets;
 
     struct Template {
+        bool approval; //true if the template exists
         bool isOpen; //true if the market allows anyone to create a market
-        bool approval; //true if the market exists
         bool allowDuplicate; //true if the market with same ID is allowed
     }
     mapping(address => Template) public templates;
@@ -70,29 +62,25 @@ contract Factory {
     //Each template has different set of conditions
     //true if that address is authorized within the template
     // Example condition list for pool template v1
-    // conditions[0] = target id
-    // conditions[1] = minimim deposit amount
+    // conditions[0] = minimim deposit amount
 
-    address public registry;
-    address public owner;
-    address public future_owner;
-    uint256 public transfer_ownership_deadline;
-    uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
+    address public immutable registry;
+    IOwnership public immutable ownership;
 
-    /**
-     * @notice Throws if called by any account other than the owner.
-     */
     modifier onlyOwner() {
         require(
-            msg.sender == owner,
-            "Restricted: caller is not allowed to operate"
+            ownership.owner() == msg.sender,
+            "Caller is not allowed to operate"
         );
         _;
     }
 
-    constructor(address _registry) public {
-        owner = msg.sender;
+    constructor(address _registry, address _ownership) {
+        require(_registry != address(0), "ERROR: ZERO_ADDRESS");
+        require(_ownership != address(0), "ERROR: ZERO_ADDRESS");
+        
         registry = _registry;
+        ownership = IOwnership(_ownership);
     }
 
     /**
@@ -108,11 +96,10 @@ contract Factory {
         bool _approval,
         bool _isOpen,
         bool _duplicate
-    ) external onlyOwner {
-        require(address(_template) != address(0));
-        templates[address(_template)].approval = _approval;
-        templates[address(_template)].isOpen = _approval;
-        templates[address(_template)].allowDuplicate = _duplicate;
+    ) external override onlyOwner {
+        require(address(_template) != address(0), "ERROR_ZERO_ADDRESS");
+        Template memory approvedTemplate = Template(_approval, _isOpen, _duplicate);
+        templates[address(_template)] = approvedTemplate;
         emit TemplateApproval(_template, _approval, _isOpen, _duplicate);
     }
 
@@ -129,9 +116,11 @@ contract Factory {
         uint256 _slot,
         address _target,
         bool _approval
-    ) external onlyOwner {
-        require(msg.sender == owner, "dev: only owner");
-        require(templates[address(_template)].approval == true);
+    ) external override onlyOwner {
+        require(
+            templates[address(_template)].approval,
+            "ERROR: UNAUTHORIZED_TEMPLATE"
+        );
         reflist[address(_template)][_slot][_target] = _approval;
         emit ReferenceApproval(_template, _slot, _target, _approval);
     }
@@ -147,8 +136,11 @@ contract Factory {
         IUniversalMarket _template,
         uint256 _slot,
         uint256 _target
-    ) external onlyOwner {
-        require(templates[address(_template)].approval == true);
+    ) external override onlyOwner {
+        require(
+            templates[address(_template)].approval,
+            "ERROR: UNAUTHORIZED_TEMPLATE"
+        );
         conditionlist[address(_template)][_slot] = _target;
         emit ConditionApproval(_template, _slot, _target);
     }
@@ -164,40 +156,67 @@ contract Factory {
      */
     function createMarket(
         IUniversalMarket _template,
-        string memory _metaData,
+        string calldata _metaData,
         uint256[] memory _conditions,
-        address[] memory _references
-    ) public returns (address) {
+        address[] calldata _references
+    ) external override returns (address) {
+        //check eligibility
         require(
-            templates[address(_template)].approval == true,
-            "UNAUTHORIZED_TEMPLATE"
+            templates[address(_template)].approval,
+            "ERROR: UNAUTHORIZED_TEMPLATE"
         );
-        if (templates[address(_template)].isOpen == false) {
-            require(owner == msg.sender, "UNAUTHORIZED_SENDER");
+        if (!templates[address(_template)].isOpen) {
+            require(
+                ownership.owner() == msg.sender,
+                "ERROR: UNAUTHORIZED_SENDER"
+            );
         }
-        if (_references.length > 0) {
-            for (uint256 i = 0; i < _references.length; i++) {
-                require(
-                    reflist[address(_template)][i][_references[i]] == true ||
-                        reflist[address(_template)][i][address(0)] == true,
-                    "UNAUTHORIZED_REFERENCE"
-                );
+
+        uint256 refLength = _references.length;
+        for (uint256 i; i < refLength;) {
+            require(
+                reflist[address(_template)][i][_references[i]] || reflist[address(_template)][i][address(0)],
+                "ERROR: UNAUTHORIZED_REFERENCE"
+            );
+            unchecked {
+                ++i;
             }
         }
 
-        if (_conditions.length > 0) {
-            for (uint256 i = 0; i < _conditions.length; i++) {
-                if (conditionlist[address(_template)][i] > 0) {
-                    _conditions[i] = conditionlist[address(_template)][i];
-                }
+        uint256 conLength = _conditions.length;
+        for (uint256 i; i < conLength;) {
+            if (conditionlist[address(_template)][i] != 0) {
+                _conditions[i] = conditionlist[address(_template)][i];
+            }
+            unchecked {
+                ++i;
             }
         }
 
+        address _registry = registry;
+        if (
+            !IRegistry(_registry).confirmExistence(
+                address(_template),
+                _references[0]
+            )
+        ) {
+            IRegistry(_registry).setExistence(
+                address(_template),
+                _references[0]
+            );
+        } else if (!templates[address(_template)].allowDuplicate) {
+            revert("ERROR: DUPLICATE_MARKET");
+        }
+
+        //create market
         IUniversalMarket market = IUniversalMarket(
             _createClone(address(_template))
         );
+        
+        IRegistry(_registry).supportMarket(address(market));
 
-        market.initialize(_metaData, _conditions, _references);
+        //initialize
+        market.initialize(msg.sender, _metaData, _conditions, _references);
 
         emit MarketCreated(
             address(market),
@@ -206,21 +225,6 @@ contract Factory {
             _conditions,
             _references
         );
-        markets.push(address(market));
-        IRegistry(registry).supportMarket(address(market));
-
-        if (
-            IRegistry(registry).confirmExistence(
-                _references[0],
-                _conditions[0]
-            ) == false
-        ) {
-            IRegistry(registry).setExistence(_references[0], _conditions[0]);
-        } else {
-            if (templates[address(_template)].allowDuplicate == false) {
-                revert("DUPLICATE_MARKET");
-            }
-        }
 
         return address(market);
     }
@@ -250,40 +254,6 @@ contract Factory {
             // create the actual delegate contract reference and return its address
             result := create(0, clone, 0x37)
         }
-    }
-
-    //----- ownership -----//
-    /**
-     * @notice commit new owner address.
-     * actutal change occurs after ADMIN_ACTIONS_DELAY passed.
-     * @param _owner new owner address
-     */
-    function commitTransferOwnership(address _owner) external onlyOwner {
-        require(transfer_ownership_deadline == 0, "dev: active transfer");
-        require(_owner != address(0), "dev: address zero");
-
-        uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
-        transfer_ownership_deadline = _deadline;
-        future_owner = _owner;
-
-        emit CommitNewAdmin(_deadline, _owner);
-    }
-
-    /**
-     * @notice apply transfer of ownership.
-     */
-    function applyTransferOwnership() external onlyOwner {
-        require(
-            block.timestamp >= transfer_ownership_deadline,
-            "dev: insufficient time"
-        );
-        require(transfer_ownership_deadline != 0, "dev: no active transfer");
-
-        transfer_ownership_deadline = 0;
-        address _owner = future_owner;
-
-        owner = _owner;
-
-        emit NewAdmin(owner);
+        require(result != address(0), "ERROR: ZERO_ADDRESS");
     }
 }

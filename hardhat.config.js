@@ -2,26 +2,61 @@ require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-web3");
 require("solidity-coverage");
 require("hardhat-contract-sizer");
+require("@nomiclabs/hardhat-etherscan");
+require('dotenv').config()
 
-/**
- * @type import('hardhat/config').HardhatUserConfig
- */
-const fs = require("fs");
-const key = fs.readFileSync(".key").toString().trim();
-const infuraKey = fs.readFileSync(".infuraKey").toString().trim();
+const { 
+  ETHERSCAN_API,
+  KEY,
+  PRODUCTION_KEY,
+  INFURA_KEY
+ } = process.env
 
 module.exports = {
-  solidity: "0.8.7",
+  solidity: "0.8.10",
   defaultNetwork: "hardhat",
+  solidity: {
+    version: "0.8.10",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200000,
+      },
+    },
+  },
   networks: {
-    hardhat: {},
+    hardhat: {
+      initialBaseFeePerGas: 0,
+      //forking: {url: "https://eth-mainnet.alchemyapi.io/v2/-vmufhhPyGeTxZH6ep9q2PuHjaPp4l0u",} //remove comment when testing mainnet fork
+    },
+    mainnet: {
+      url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
+      accounts: [`0x${PRODUCTION_KEY}`],
+      gas: 6e6,
+      gasPrice: 8e10,//80Gwei
+      timeout: 2000000000,
+    },
     rinkeby: {
-      url: `https://rinkeby.infura.io/v3/${infuraKey}`,
-      accounts: [`0x${key}`],
+      url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
+      accounts: [`0x${KEY}`],
+      gas: 6e6,
+      gasPrice: 5e10, //50GWei
+      timeout: 2000000000,
+    },
+    ropsten: {
+      url: `https://ropsten.infura.io/v3/${INFURA_KEY}`,
+      accounts: [`0x${KEY}`],
+      gas: 6e6,
+      gasPrice: 1e10,//10Gwei
+      timeout: 2000000000,
+    },
+    rinkarbitrum: {
+      url: 'https://rinkeby.arbitrum.io/rpc',
+      accounts: [`0x${KEY}`]
     },
   },
   solidity: {
-    version: "0.8.7",
+    version: "0.8.10",
     settings: {
       optimizer: {
         enabled: true,
@@ -31,7 +66,7 @@ module.exports = {
   },
   paths: {
     sources: "./contracts",
-    tests: "./test",
+    tests: "./test/unitary",
     cache: "./cache",
     artifacts: "./artifacts",
   },
@@ -39,6 +74,11 @@ module.exports = {
     alphaSort: true,
     runOnCompile: true,
     disambiguatePaths: false,
+  },
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://etherscan.io/
+    apiKey: `${ETHERSCAN_API}`,
   },
   mocha: {
     timeout: 20000000,

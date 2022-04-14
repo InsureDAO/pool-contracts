@@ -1,9 +1,6 @@
 node_modules/
 bin/
 migrations/2_deploy_contracts.js
-.infuraKey
-.mnemonic
-.key
 .soliumignore
 .soliumrc.json
 .DS_Store
@@ -19,3 +16,10 @@ cache
 hooks
 description
 ./Flatten
+coverage/
+.env
+yarn.lock
+yarn-error.log
+package-lock.json
+/.idea/
+scripts

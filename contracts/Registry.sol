@@ -1,57 +1,44 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.7;
+pragma solidity 0.8.10;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import "./interfaces/IOwnership.sol";
+import "./interfaces/IRegistry.sol";
 
-contract Registry {
-    using SafeMath for uint256;
-    using Address for address;
-
-    event CommitNewAdmin(uint256 deadline, address future_admin);
-    event NewAdmin(address admin);
-    event ExistenceSet(
-        address indexed target,
-        uint256 indexed typeId,
-        bytes32 indexed hashId
-    );
+contract Registry is IRegistry {
+    event ExistenceSet(address indexed template, address indexed target);
     event NewMarketRegistered(address market);
     event FactorySet(address factory);
     event CDSSet(address indexed target, address cds);
 
     address public factory;
-    address public owner;
-    address public future_owner;
-    uint256 public transfer_ownership_deadline;
-    uint256 public constant ADMIN_ACTIONS_DELAY = 3 * 86400;
 
     mapping(address => address) cds; //index => cds
     mapping(address => bool) markets; //true if the market is registered
-    mapping(bytes32 => bool) existence; //true if the certain id is already registered in market
+    mapping(address => mapping(address => bool)) existence; //true if the certain id is already registered in market
     address[] allMarkets;
 
-    /**
-     * @notice Throws if called by any account other than the owner.
-     */
+    IOwnership public immutable ownership;
+
     modifier onlyOwner() {
         require(
-            msg.sender == owner,
-            "Restricted: caller is not allowed to operate"
+            ownership.owner() == msg.sender,
+            "Caller is not allowed to operate"
         );
         _;
     }
 
-    constructor() public {
-        owner = msg.sender;
+    constructor(address _ownership) {
+        require(_ownership != address(0), "ERROR: ZERO_ADDRESS");
+        ownership = IOwnership(_ownership);
     }
 
     /**
      * @notice Set the factory address and allow it to regiser a new market
      * @param _factory factory address
      */
-    function setFactory(address _factory) external {
-        require(msg.sender == owner);
-        require(_factory != address(0), "dev: zero address");
+    function setFactory(address _factory) external override onlyOwner {
+        require(_factory != address(0), "ERROR: ZERO_ADDRESS");
+
         factory = _factory;
         emit FactorySet(_factory);
     }
@@ -60,25 +47,35 @@ contract Registry {
      * @notice Register a new market.
      * @param _market market address to register
      */
-    function supportMarket(address _market) external {
-        require(!markets[_market]);
-        require(msg.sender == factory || msg.sender == owner);
-        require(_market != address(0), "dev: zero address");
+    function supportMarket(address _market) external override {
+        require(!markets[_market], "ERROR: ALREADY_REGISTERED");
+        require(
+            msg.sender == factory || msg.sender == ownership.owner(),
+            "ERROR: UNAUTHORIZED_CALLER"
+        );
+        require(_market != address(0), "ERROR: ZERO_ADDRESS");
+
         allMarkets.push(_market);
         markets[_market] = true;
         emit NewMarketRegistered(_market);
     }
 
     /**
-     * @notice Register a new bytes32 id and address set.
+     * @notice Register a new target address id and template address set.
+     * @param _template template address
      * @param _target target address
-     * @param _typeId id
      */
-    function setExistence(address _target, uint256 _typeId) external {
-        require(msg.sender == factory || msg.sender == owner);
-        bytes32 _hashId = keccak256(abi.encodePacked(_target, _typeId));
-        existence[_hashId] = true;
-        emit ExistenceSet(_target, _typeId, _hashId);
+    function setExistence(address _template, address _target)
+        external
+        override
+    {
+        require(
+            msg.sender == factory || msg.sender == ownership.owner(),
+            "ERROR: UNAUTHORIZED_CALLER"
+        );
+
+        existence[_template][_target] = true;
+        emit ExistenceSet(_template, _target);
     }
 
     /**
@@ -86,8 +83,13 @@ contract Registry {
      * @param _address address to set CDS
      * @param _cds CDS contract address
      */
-    function setCDS(address _address, address _cds) external onlyOwner {
-        require(_cds != address(0), "dev: zero address");
+    function setCDS(address _address, address _cds)
+        external
+        override
+        onlyOwner
+    {
+        require(_cds != address(0), "ERROR: ZERO_ADDRESS");
+
         cds[_address] = _cds;
         emit CDSSet(_address, _cds);
     }
@@ -95,28 +97,30 @@ contract Registry {
     /**
      * @notice Get the cds address for a particular address
      * @param _address address covered by CDS
-     * @return true if the id within the market already exists
+     * @return CDS contract address
      */
-    function getCDS(address _address) external view returns (address) {
-        if (cds[_address] == address(0)) {
+    function getCDS(address _address) external view override returns (address) {
+        address _addr = cds[_address];
+        if (_addr == address(0)) {
             return cds[address(0)];
         } else {
-            return cds[_address];
+            return _addr;
         }
     }
 
     /**
      * @notice Get whether the target address and id set exists
+     * @param _template template address
      * @param _target target address
-     * @param _typeId id
      * @return true if the id within the market already exists
      */
-    function confirmExistence(address _target, uint256 _typeId)
+    function confirmExistence(address _template, address _target)
         external
         view
+        override
         returns (bool)
     {
-        return existence[keccak256(abi.encodePacked(_target, _typeId))];
+        return existence[_template][_target];
     }
 
     /**
@@ -124,7 +128,7 @@ contract Registry {
      * @param _market market address to inquire
      * @return true if listed
      */
-    function isListed(address _market) external view returns (bool) {
+    function isListed(address _market) external view override returns (bool) {
         return markets[_market];
     }
 
@@ -134,41 +138,5 @@ contract Registry {
      */
     function getAllMarkets() external view returns (address[] memory) {
         return allMarkets;
-    }
-
-    //----- ownership -----//
-
-    /**
-     * @notice commit new owner address.
-     * actutal change occurs after ADMIN_ACTIONS_DELAY passed.
-     * @param _owner new owner address
-     */
-    function commitTransferOwnership(address _owner) external onlyOwner {
-        require(transfer_ownership_deadline == 0, "dev: active transfer");
-        require(_owner != address(0), "dev: address zero");
-
-        uint256 _deadline = block.timestamp.add(ADMIN_ACTIONS_DELAY);
-        transfer_ownership_deadline = _deadline;
-        future_owner = _owner;
-
-        emit CommitNewAdmin(_deadline, _owner);
-    }
-
-    /**
-     * @notice apply transfer of ownership.
-     */
-    function applyTransferOwnership() external onlyOwner {
-        require(
-            block.timestamp >= transfer_ownership_deadline,
-            "dev: insufficient time"
-        );
-        require(transfer_ownership_deadline != 0, "dev: no active transfer");
-
-        transfer_ownership_deadline = 0;
-        address _owner = future_owner;
-
-        owner = _owner;
-
-        emit NewAdmin(owner);
     }
 }
