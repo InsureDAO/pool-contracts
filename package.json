@@ -1,11 +1,24 @@
 {
-  "name": "insuredao-contract",
+  "name": "@insuredao/pool-contracts",
   "version": "1.0.0",
-  "description": "",
+  "description": "Core smart contracts of InsureDAO",
   "main": "hardhat.config.js",
   "directories": {
     "test": "test"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/InsureDAO/pool-contracts.git"
+  },
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/insureDAO/pool-contracts/issues"
+  },
+  "homepage": "https://www.insuredao.fi/",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+
   "dependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.0",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
@@ -17,8 +30,7 @@
     "ethers": "^5.3.1",
     "solidity-coverage": "^0.7.16"
   },
-  "author": "@kohshiba",
-  "license": "GPL-3.0",
+
   "devDependencies": {
     "@nomiclabs/hardhat-etherscan": "^2.1.8",
     "@openzeppelin/test-helpers": "^0.5.6",
@@ -35,9 +47,5 @@
   "scripts": {
     "compile": "npx hardhat compile",
     "test": "npx hardhat test"
-  },
-  "bugs": {
-    "url": "https://github.com/insureDAO/pool-contracts/issues"
-  },
-  "homepage": "https://github.com/insureDAO/pool-contracts#readme"
+  }
 }
