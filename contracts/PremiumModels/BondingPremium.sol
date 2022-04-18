@@ -141,7 +141,8 @@ contract BondingPremium is IPremiumModel {
         uint256 u2;
         unchecked {
             u1 = _BASE - ((_lockedAmount * _BASE) / _totalLiquidity); //util rate before. 1000000 = 100.000%
-            u2 = _BASE -
+            u2 =
+                _BASE -
                 (((_lockedAmount + _amount) * _BASE) / _totalLiquidity); //util rate after. 1000000 = 100.000%
         }
 
@@ -161,12 +162,15 @@ contract BondingPremium is IPremiumModel {
 
         //calc 0=>u1 area
         temp.u = u1.fromUInt();
-//        int128 ln_u1 = (temp.u).add(temp.a).ln();
-//        uint256 ln_res_u1 = ln_u1.mulu(_k); //k*ln(x+a) //very percise.
+        //        int128 ln_u1 = (temp.u).add(temp.a).ln();
+        //        uint256 ln_res_u1 = ln_u1.mulu(_k); //k*ln(x+a) //very percise.
         uint256 _c = c;
         uint256 _b = b;
 
-        uint256 _premium_u1 = (365 * T_0 * ((temp.u).add(temp.a).ln()).mulu(_k) * _BASE) +
+        uint256 _premium_u1 = (365 *
+            T_0 *
+            ((temp.u).add(temp.a).ln()).mulu(_k) *
+            _BASE) +
             u1 *
             ((_T_1 - T_0) * _c * _BASE + T_0 * _b * _BASE) -
             _T_1 *
@@ -176,10 +180,13 @@ contract BondingPremium is IPremiumModel {
 
         //calc 0=>u2 area
         temp.u = u2.fromUInt();
-//        int128 ln_u2 = (temp.u).add(temp.a).ln();
-//        uint256 ln_res_u2 = ln_u2.mulu(k); //k*ln(x+a) //very percise.
+        //        int128 ln_u2 = (temp.u).add(temp.a).ln();
+        //        uint256 ln_res_u2 = ln_u2.mulu(k); //k*ln(x+a) //very percise.
 
-        uint256 _premium_u2 = (365 * T_0 * ((temp.u).add(temp.a).ln()).mulu(k) * _BASE) +
+        uint256 _premium_u2 = (365 *
+            T_0 *
+            ((temp.u).add(temp.a).ln()).mulu(k) *
+            _BASE) +
             u2 *
             ((_T_1 - T_0) * _c * _BASE + T_0 * _b * BASE) -
             _T_1 *

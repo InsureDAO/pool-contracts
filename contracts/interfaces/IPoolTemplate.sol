@@ -1,49 +1,41 @@
 pragma solidity 0.8.10;
 
-abstract contract IPoolTemplate {
-
+interface IPoolTemplate {
     enum MarketStatus {
         Trading,
         Payingout
     }
-    function registerIndex(uint256 _index)external virtual;
+
+    function registerIndex(uint256 _index) external;
+
     function allocateCredit(uint256 _credit)
         external
-        virtual
         returns (uint256 _mintAmount);
 
     function pairValues(address _index)
         external
         view
-        virtual
         returns (uint256, uint256);
 
-    function withdrawCredit(uint256 _credit)
-        external
-        virtual
-        returns (uint256 _retVal);
+    function withdrawCredit(uint256 _credit) external returns (uint256 _retVal);
 
-    function marketStatus() external view virtual returns(MarketStatus);
-    function availableBalance() external view virtual returns (uint256 _balance);
+    function marketStatus() external view returns (MarketStatus);
 
-    function utilizationRate() external view virtual returns (uint256 _rate);
-    function totalLiquidity() public view virtual returns (uint256 _balance);
-    function totalCredit() external view virtual returns (uint256);
-    function lockedAmount() external view virtual returns (uint256);
+    function availableBalance() external view returns (uint256 _balance);
 
-    function valueOfUnderlying(address _owner)
-        external
-        view
-        virtual
-        returns (uint256);
+    function utilizationRate() external view returns (uint256 _rate);
 
-    function pendingPremium(address _index)
-        external
-        view
-        virtual
-        returns (uint256);
+    function totalLiquidity() external view returns (uint256 _balance);
 
-    function paused() external view virtual returns (bool);
+    function totalCredit() external view returns (uint256);
+
+    function lockedAmount() external view returns (uint256);
+
+    function valueOfUnderlying(address _owner) external view returns (uint256);
+
+    function pendingPremium(address _index) external view returns (uint256);
+
+    function paused() external view returns (bool);
 
     //onlyOwner
     function applyCover(
@@ -54,11 +46,11 @@ abstract contract IPoolTemplate {
         bytes32 _merkleRoot,
         string calldata _rawdata,
         string calldata _memo
-    ) external virtual;
+    ) external;
 
     function applyBounty(
         uint256 _amount,
         address _contributor,
         uint256[] calldata _ids
-    )external virtual;
+    ) external;
 }

@@ -39,7 +39,11 @@ abstract contract IParameters {
         address _target
     ) external view virtual returns (uint256);
 
-    function getFeeRate(address _target) external view virtual returns (uint256);
+    function getFeeRate(address _target)
+        external
+        view
+        virtual
+        returns (uint256);
 
     function getUpperSlack(address _target)
         external
@@ -63,7 +67,11 @@ abstract contract IParameters {
 
     function getGrace(address _target) external view virtual returns (uint256);
 
-    function getMinDate(address _target) external view virtual returns (uint256);
+    function getMinDate(address _target)
+        external
+        view
+        virtual
+        returns (uint256);
 
     function getMaxList(address _target)
         external

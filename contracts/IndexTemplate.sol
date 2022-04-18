@@ -176,7 +176,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         } else {
             _mintAmount = (_amount * _supply) / _totalLiquidity;
         }
-        
+
         emit Deposit(msg.sender, _amount, _mintAmount);
         //mint iToken
         _mint(msg.sender, _mintAmount);
@@ -195,13 +195,18 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      */
     function requestWithdraw(uint256 _amount) external {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
-        require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
-        
-        uint64 _unlocksAt = (uint64)(block.timestamp + parameters.getLockup(address(this)));
+        require(
+            balanceOf(msg.sender) >= _amount,
+            "ERROR: REQUEST_EXCEED_BALANCE"
+        );
+
+        uint64 _unlocksAt = (uint64)(
+            block.timestamp + parameters.getLockup(address(this))
+        );
 
         withdrawalReq[msg.sender].timestamp = _unlocksAt;
         withdrawalReq[msg.sender].amount = (uint192)(_amount);
-        
+
         emit WithdrawRequested(msg.sender, _amount, _unlocksAt);
     }
 
@@ -215,28 +220,19 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         require(!locked, "ERROR: WITHDRAWAL_MARKET_PAUSED");
 
         Withdrawal memory request = withdrawalReq[msg.sender];
-        
-        require(
-            request.timestamp < block.timestamp,
-            "ERROR: WITHDRAWAL_QUEUE"
-        );
+
+        require(request.timestamp < block.timestamp, "ERROR: WITHDRAWAL_QUEUE");
         require(
             request.timestamp + parameters.getWithdrawable(address(this)) >
                 block.timestamp,
             "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
-        require(
-            request.amount >= _amount,
-            "WITHDRAWAL_EXCEEDED_REQUEST"
-        );
+        require(request.amount >= _amount, "WITHDRAWAL_EXCEEDED_REQUEST");
 
         //Calculate underlying value
         uint256 _liquidty = totalLiquidity();
         _retVal = (_liquidty * _amount) / totalSupply();
-        require(
-            _retVal <= withdrawable(),
-            "WITHDRAW_INSUFFICIENT_LIQUIDITY"
-        );
+        require(_retVal <= withdrawable(), "WITHDRAW_INSUFFICIENT_LIQUIDITY");
 
         //reduce requested amount
         withdrawalReq[msg.sender].amount -= (uint192)(_amount);
@@ -283,9 +279,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _maxLockedCredits;
 
         for (uint256 i; i < _length; ++i) {
-            (uint256 _allocated, uint256 _available) = IPoolTemplate(poolList[i]).pairValues(address(this));
+            (uint256 _allocated, uint256 _available) = IPoolTemplate(
+                poolList[i]
+            ).pairValues(address(this));
             if (_allocated > _available) {
-                uint _locked = _allocated - _available;
+                uint256 _locked = _allocated - _available;
                 _totalLockedCredits += _locked;
                 if (_locked > _maxLockedCredits) {
                     _maxLockedCredits = _locked;
@@ -295,9 +293,10 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         if (_totalLockedCredits == 0) {
             return _totalLiquidity;
-        } 
+        }
 
-        uint256 _necessaryAmount = _totalLockedCredits * MAGIC_SCALE_1E6 / targetLev;
+        uint256 _necessaryAmount = (_totalLockedCredits * MAGIC_SCALE_1E6) /
+            targetLev;
         if (_maxLockedCredits > _necessaryAmount) {
             _necessaryAmount = _maxLockedCredits;
         }
@@ -315,18 +314,19 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         _adjustAlloc(totalLiquidity());
     }
 
-     /**
-     * @notice adjust credit allocation 
+    /**
+     * @notice adjust credit allocation
      * @param _liquidity available liquidity of the index.
      * @dev credit adjustment is done based on _liquidity and targetLeverage
-     * 
+     *
      * 1) calculate goal amount of totalCredits
      * 2) perform calculation for un-usual pools (get _totalFreeableCredits)
      * 3) if _targetTotalCredits <= (_totalAllocatedCredit - _totalFreeableCredits), go with withdraw-only mode
      * 4) else allocate the allocatable credits to the pools proportionally to the shortage of each pool
      */
     function _adjustAlloc(uint256 _liquidity) internal {
-        uint256 _targetTotalCredits = (targetLev * _liquidity) / MAGIC_SCALE_1E6; //ゴール
+        uint256 _targetTotalCredits = (targetLev * _liquidity) /
+            MAGIC_SCALE_1E6; //ゴール
 
         uint256 _allocatablePoints = totalAllocPoint;
         uint256 _totalAllocatedCredit = totalAllocatedCredit;
@@ -337,16 +337,21 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         PoolStatus[] memory _pools = new PoolStatus[](_poolLength);
 
-        for (uint i; i < _poolLength; ++i) {
+        for (uint256 i; i < _poolLength; ++i) {
             address _poolAddr = poolList[i];
             uint256 _current;
             uint256 _available;
-            (_current, _available) = IPoolTemplate(_poolAddr).pairValues(address(this));
+            (_current, _available) = IPoolTemplate(_poolAddr).pairValues(
+                address(this)
+            );
             uint256 _allocation = allocPoints[_poolAddr];
 
-            uint256 _freeableCredits = (_available > _current ? _current: _available);
+            uint256 _freeableCredits = (
+                _available > _current ? _current : _available
+            );
             if (
-                IPoolTemplate(_poolAddr).marketStatus() == IPoolTemplate.MarketStatus.Payingout
+                IPoolTemplate(_poolAddr).marketStatus() ==
+                IPoolTemplate.MarketStatus.Payingout
             ) {
                 _allocatablePoints -= _allocation;
                 _allocation = 0;
@@ -361,7 +366,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 _freeableCredits = 0;
                 _totalFrozenCredits += _current;
             }
-            
+
             _totalFreeableCredits += _freeableCredits;
 
             _pools[i].addr = _poolAddr;
@@ -376,25 +381,36 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         } else {
             _targetTotalCredits -= _totalFrozenCredits;
         }
-        uint256 _totalFixedCredits = _totalAllocatedCredit - _totalFreeableCredits - _totalFrozenCredits;
+        uint256 _totalFixedCredits = _totalAllocatedCredit -
+            _totalFreeableCredits -
+            _totalFrozenCredits;
         // if target credit is less than _totalFixedCredits, we go withdraw-only mode
         if (_totalFixedCredits >= _targetTotalCredits) {
-            for (uint i; i < _poolLength; ++i) {
+            for (uint256 i; i < _poolLength; ++i) {
                 if (_pools[i]._freeableCredits > 0) {
-                    IPoolTemplate(_pools[i].addr).withdrawCredit(_pools[i]._freeableCredits);
+                    IPoolTemplate(_pools[i].addr).withdrawCredit(
+                        _pools[i]._freeableCredits
+                    );
                 }
             }
-            totalAllocatedCredit = _totalAllocatedCredit - _totalFreeableCredits;
+            totalAllocatedCredit =
+                _totalAllocatedCredit -
+                _totalFreeableCredits;
         } else {
-            uint256 _totalAllocatableCredits = _targetTotalCredits - _totalFixedCredits;
-            uint _totalShortage;
-            for (uint i; i < _poolLength; ++i) {
+            uint256 _totalAllocatableCredits = _targetTotalCredits -
+                _totalFixedCredits;
+            uint256 _totalShortage;
+            for (uint256 i; i < _poolLength; ++i) {
                 if (_pools[i].allocation == 0) continue;
-                uint256 _target = (_targetTotalCredits * _pools[i].allocation) / _allocatablePoints;
-                uint256 _fixedCredits = _pools[i].current - _pools[i]._freeableCredits;
+                uint256 _target = (_targetTotalCredits * _pools[i].allocation) /
+                    _allocatablePoints;
+                uint256 _fixedCredits = _pools[i].current -
+                    _pools[i]._freeableCredits;
                 // when _fixedCredits > target, we should withdraw all freeable credits
                 if (_fixedCredits > _target) {
-                    IPoolTemplate(_pools[i].addr).withdrawCredit(_pools[i]._freeableCredits);
+                    IPoolTemplate(_pools[i].addr).withdrawCredit(
+                        _pools[i]._freeableCredits
+                    );
                     _totalAllocatedCredit -= _pools[i]._freeableCredits;
                 } else {
                     uint256 _shortage = _target - _fixedCredits;
@@ -402,17 +418,19 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                     _pools[i].shortage = _shortage;
                 }
             }
-            for (uint i; i < _poolLength; ++i) {
+            for (uint256 i; i < _poolLength; ++i) {
                 if (_pools[i].shortage == 0) continue;
-                uint256 _reallocate = _totalAllocatableCredits * _pools[i].shortage / _totalShortage;
+                uint256 _reallocate = (_totalAllocatableCredits *
+                    _pools[i].shortage) / _totalShortage;
                 // when _reallocate >= _freeableCredits, we deposit
                 if (_reallocate >= _pools[i]._freeableCredits) {
                     // _freeableCredits is part of the `_reallocate`
-                    uint _allocate = _reallocate - _pools[i]._freeableCredits;
+                    uint256 _allocate = _reallocate -
+                        _pools[i]._freeableCredits;
                     IPoolTemplate(_pools[i].addr).allocateCredit(_allocate);
                     _totalAllocatedCredit += _allocate;
                 } else {
-                    uint _removal = _pools[i]._freeableCredits - _reallocate;
+                    uint256 _removal = _pools[i]._freeableCredits - _reallocate;
                     IPoolTemplate(_pools[i].addr).withdrawCredit(_removal);
                     _totalAllocatedCredit -= _removal;
                 }
@@ -438,10 +456,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         override
         returns (uint256 _compensated)
     {
-        require(
-            allocPoints[msg.sender] != 0,
-            "COMPENSATE_UNAUTHORIZED_CALLER"
-        );
+        require(allocPoints[msg.sender] != 0, "COMPENSATE_UNAUTHORIZED_CALLER");
         uint256 _value = vault.underlyingValue(address(this));
         if (_value >= _amount) {
             //When the deposited value without earned premium is enough to cover
@@ -449,15 +464,17 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         } else {
             //Withdraw credit to cashout the earnings
             unchecked {
-                ICDSTemplate(registry.getCDS(address(this))).compensate(_amount - _value);
+                ICDSTemplate(registry.getCDS(address(this))).compensate(
+                    _amount - _value
+                );
             }
             _compensated = vault.underlyingValue(address(this));
         }
 
         vault.offsetDebt(_compensated, msg.sender);
-        
+
         // totalLiquity has been changed, adjustAlloc() will be called by the pool contract
-    
+
         emit Compensated(msg.sender, _compensated);
     }
 
@@ -472,9 +489,10 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         require(locked, "ERROR: MARKET_IS_NOT_LOCKED");
         uint256 _poolLength = poolList.length;
 
-        for (uint256 i; i < _poolLength;) {
+        for (uint256 i; i < _poolLength; ) {
             require(
-                IPoolTemplate(poolList[i]).marketStatus() == IPoolTemplate.MarketStatus.Trading,
+                IPoolTemplate(poolList[i]).marketStatus() ==
+                    IPoolTemplate.MarketStatus.Trading,
                 "ERROR: POOL_IS_PAYINGOUT"
             );
             unchecked {
@@ -623,11 +641,14 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             //action for existing slot
             address _poolAddress = poolList[_indexA];
             if (_poolAddress != address(0) && _poolAddress != _pool) {
-                (uint256 _current, uint256 _available) = IPoolTemplate(_poolAddress).pairValues(address(this));
-                
+                (uint256 _current, uint256 _available) = IPoolTemplate(
+                    _poolAddress
+                ).pairValues(address(this));
+
                 require(
-                    IPoolTemplate(_poolAddress).marketStatus() == IPoolTemplate.MarketStatus.Trading &&
-                    _available >= _current,
+                    IPoolTemplate(_poolAddress).marketStatus() ==
+                        IPoolTemplate.MarketStatus.Trading &&
+                        _available >= _current,
                     "ERROR: CANNOT_EXIT_POOL"
                 );
                 IPoolTemplate(_poolAddress).withdrawCredit(_current);
@@ -673,9 +694,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @return _totalValue accrued but yet claimed premium within underlying pools
      */
     function _accruedPremiums() internal view returns (uint256 _totalValue) {
-
         uint256 poolLength = poolList.length;
-        for (uint256 i; i < poolLength;) {
+        for (uint256 i; i < poolLength; ) {
             if (allocPoints[poolList[i]] != 0) {
                 _totalValue =
                     _totalValue +
@@ -691,12 +711,15 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice Overflow free minus function that returns zero
      * @return _result result of the subtraction operation
      */
-    function _safeMinus(uint256 _a, uint256 _b) internal pure returns (uint256 _result) {
-        if(_a >= _b){
+    function _safeMinus(uint256 _a, uint256 _b)
+        internal
+        pure
+        returns (uint256 _result)
+    {
+        if (_a >= _b) {
             _result = _a - _b;
-        }else{
+        } else {
             _result = 0;
         }
     }
-    
 }

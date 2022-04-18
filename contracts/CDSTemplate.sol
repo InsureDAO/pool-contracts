@@ -62,10 +62,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @notice Throws if called by any account other than the owner.
      */
     modifier onlyOwner() {
-        require(
-            msg.sender == parameters.getOwner(),
-            "ERROR: ONLY_OWNER"
-        );
+        require(msg.sender == parameters.getOwner(), "ERROR: ONLY_OWNER");
         _;
     }
 
@@ -92,7 +89,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external override{
+    ) external override {
         require(
             !initialized &&
                 bytes(_metaData).length != 0 &&
@@ -104,7 +101,11 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
 
         initialized = true;
 
-        initializeToken("InsureDAO-Reserve", "iReserve", IERC20Metadata(_references[0]).decimals());
+        initializeToken(
+            "InsureDAO-Reserve",
+            "iReserve",
+            IERC20Metadata(_references[0]).decimals()
+        );
 
         parameters = IParameters(_references[2]);
         vault = IVault(parameters.getVault(_references[0]));
@@ -132,7 +133,9 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         crowdPool += vault.addValue(_amount, msg.sender, address(this)); //increase attribution
 
         if (_supply != 0) {
-            _mintAmount = _liquidity == 0 ? _amount * _supply : (_amount * _supply) / _liquidity;
+            _mintAmount = _liquidity == 0
+                ? _amount * _supply
+                : (_amount * _supply) / _liquidity;
         } else {
             _mintAmount = _amount;
         }
@@ -177,9 +180,13 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      */
     function requestWithdraw(uint256 _amount) external {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
-        require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
+        require(
+            balanceOf(msg.sender) >= _amount,
+            "ERROR: REQUEST_EXCEED_BALANCE"
+        );
 
-        uint256 _unlocksAt = block.timestamp + parameters.getLockup(address(this));
+        uint256 _unlocksAt = block.timestamp +
+            parameters.getLockup(address(this));
 
         withdrawalReq[msg.sender].timestamp = _unlocksAt;
         withdrawalReq[msg.sender].amount = _amount;
@@ -195,31 +202,24 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     function withdraw(uint256 _amount) external returns (uint256 _retVal) {
         require(!paused, "ERROR: PAUSED");
         require(_amount != 0, "ERROR: WITHDRAWAL_ZERO");
-        
+
         Withdrawal memory request = withdrawalReq[msg.sender];
-        
+
+        require(request.timestamp < block.timestamp, "ERROR: WITHDRAWAL_QUEUE");
         require(
-            request.timestamp <
-                block.timestamp,
-            "ERROR: WITHDRAWAL_QUEUE"
-        );
-        require(
-            request.timestamp +
-                parameters.getWithdrawable(address(this)) >
+            request.timestamp + parameters.getWithdrawable(address(this)) >
                 block.timestamp,
             "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
-        require(
-            request.amount >= _amount,
-            "WITHDRAWAL_EXCEEDED_REQUEST"
-        );
+        require(request.amount >= _amount, "WITHDRAWAL_EXCEEDED_REQUEST");
 
         //Calculate underlying value
         uint256 _totalSupply = totalSupply();
         if (_totalSupply != 0) {
-            _retVal = (vault.attributionValue(crowdPool) * _amount) / _totalSupply;
+            _retVal =
+                (vault.attributionValue(crowdPool) * _amount) /
+                _totalSupply;
         }
-
 
         //reduce requested amount
         withdrawalReq[msg.sender].amount -= _amount;
@@ -246,7 +246,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         returns (uint256 _compensated)
     {
         require(registry.isListed(msg.sender), "ERROR:UNREGISTERED");
-        
+
         uint256 _available = vault.underlyingValue(address(this));
         uint256 _crowdAttribution = crowdPool;
         uint256 _attributionLoss;
@@ -256,8 +256,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         _attributionLoss = vault.transferValue(_compensated, msg.sender);
         emit Compensated(msg.sender, _compensated);
 
-        uint256 _crowdPoolLoss =
-            (_crowdAttribution * _attributionLoss) /
+        uint256 _crowdPoolLoss = (_crowdAttribution * _attributionLoss) /
             (_crowdAttribution + surplusPool);
 
         crowdPool -= _crowdPoolLoss;
@@ -284,7 +283,8 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         uint256 _totalSupply = totalSupply();
         if (_totalSupply != 0) {
             return
-                (vault.attributionValue(crowdPool) * MAGIC_SCALE_1E6) / _totalSupply;
+                (vault.attributionValue(crowdPool) * MAGIC_SCALE_1E6) /
+                _totalSupply;
         }
     }
 
@@ -296,9 +296,10 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     function valueOfUnderlying(address _owner) external view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
         uint256 _totalSupply = totalSupply();
-        
+
         if (_balance != 0 || _totalSupply != 0) {
-            return _balance * vault.attributionValue(crowdPool) / _totalSupply;
+            return
+                (_balance * vault.attributionValue(crowdPool)) / _totalSupply;
         }
     }
 

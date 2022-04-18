@@ -34,18 +34,12 @@ contract Ownership is IOwnership {
      * @dev Throws if called by any account other than the owner.
      */
     modifier onlyOwner() {
-        require(
-            _owner == msg.sender,
-            "Caller is not allowed to operate"
-        );
+        require(_owner == msg.sender, "Caller is not allowed to operate");
         _;
     }
 
     modifier onlyFutureOwner() {
-        require(
-            _futureOwner == msg.sender,
-            "Caller is not allowed to operate"
-        );
+        require(_futureOwner == msg.sender, "Caller is not allowed to operate");
         _;
     }
 

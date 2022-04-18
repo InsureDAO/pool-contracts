@@ -163,7 +163,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
                     _approve(sender, msg.sender, currentAllowance - amount);
                 }
             }
-            
+
             _transfer(sender, recipient, amount);
         }
 
@@ -255,10 +255,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
             _beforeTokenTransfer(sender, recipient, amount);
 
             uint256 senderBalance = _balances[sender];
-            require(
-                senderBalance >= amount,
-                "Transfer amount exceeds balance"
-            );
+            require(senderBalance >= amount, "Transfer amount exceeds balance");
 
             unchecked {
                 _balances[sender] = senderBalance - amount;

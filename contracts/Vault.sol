@@ -37,8 +37,6 @@ contract Vault is IVault {
 
     uint256 private constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
 
-
-
     event ControllerSet(address controller);
     event KeeperChanged(address keeper);
 
@@ -51,10 +49,7 @@ contract Vault is IVault {
     }
 
     modifier onlyMarket() {
-        require(
-            IRegistry(registry).isListed(msg.sender),
-            "ERROR_ONLY_MARKET"
-        );
+        require(IRegistry(registry).isListed(msg.sender), "ERROR_ONLY_MARKET");
         _;
     }
 
@@ -93,7 +88,6 @@ contract Vault is IVault {
         address[2] calldata _beneficiaries,
         uint256[2] calldata _shares
     ) external override onlyMarket returns (uint256[2] memory _allocations) {
-        
         require(_shares[0] + _shares[1] == 1000000, "ERROR_INCORRECT_SHARE");
 
         uint256 _attributions;
@@ -131,7 +125,6 @@ contract Vault is IVault {
         address _from,
         address _beneficiary
     ) external override onlyMarket returns (uint256 _attributions) {
-
         if (totalAttributions == 0) {
             _attributions = _amount;
         } else {
@@ -156,7 +149,7 @@ contract Vault is IVault {
         returns (uint256 _attributions)
     {
         require(_to != address(0), "ERROR_ZERO_ADDRESS");
-        
+
         uint256 _valueAll = valueAll();
         require(
             attributions[msg.sender] != 0 &&
@@ -202,9 +195,9 @@ contract Vault is IVault {
         returns (uint256 _attributions)
     {
         require(_destination != address(0), "ERROR_ZERO_ADDRESS");
-        
+
         uint256 _valueAll = valueAll();
-        
+
         require(
             attributions[msg.sender] != 0 &&
                 underlyingValue(msg.sender, _valueAll) >= _amount,
@@ -220,7 +213,11 @@ contract Vault is IVault {
      * @param _amount borrow amount
      * @param _to borrower's address
      */
-    function borrowValue(uint256 _amount, address _to) external onlyMarket override {
+    function borrowValue(uint256 _amount, address _to)
+        external
+        override
+        onlyMarket
+    {
         if (_amount != 0) {
             debts[msg.sender] += _amount;
             totalDebt += _amount;
@@ -246,7 +243,7 @@ contract Vault is IVault {
                 underlyingValue(msg.sender, _valueAll) >= _amount,
             "ERROR_REPAY_DEBT_BADCONDITIONS"
         );
-         _attributions = _divRoundUp(totalAttributions * _amount, valueAll());
+        _attributions = _divRoundUp(totalAttributions * _amount, valueAll());
         attributions[msg.sender] -= _attributions;
         totalAttributions -= _attributions;
         balance -= _amount;
@@ -259,9 +256,8 @@ contract Vault is IVault {
      * @param _amount debt amount to transfer
      * @dev will be called when CDS could not afford when resume the market.
      */
-    function transferDebt(uint256 _amount) external onlyMarket override {
-
-        if(_amount != 0){
+    function transferDebt(uint256 _amount) external override onlyMarket {
+        if (_amount != 0) {
             debts[msg.sender] -= _amount;
             debts[address(0)] += _amount;
         }
@@ -314,7 +310,7 @@ contract Vault is IVault {
         returns (uint256 _retVal)
     {
         require(_to != address(0), "ERROR_ZERO_ADDRESS");
-        
+
         _retVal = _withdrawAttribution(attributions[msg.sender], _to);
     }
 
@@ -380,7 +376,7 @@ contract Vault is IVault {
      */
     function utilize() external override returns (uint256) {
         require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
-        
+
         address _token = token;
         if (keeper != address(0)) {
             require(msg.sender == keeper, "ERROR_NOT_KEEPER");
@@ -457,7 +453,7 @@ contract Vault is IVault {
             return (_valueAll * attribution) / totalAttributions;
         }
     }
-    
+
     function underlyingValue(address _target, uint256 _valueAll)
         public
         view
@@ -490,7 +486,8 @@ contract Vault is IVault {
 
         uint256 beforeBalance = IERC20(token).balanceOf(address(this));
         controller.withdraw(address(this), _amount);
-        uint256 received = IERC20(token).balanceOf(address(this)) - beforeBalance;
+        uint256 received = IERC20(token).balanceOf(address(this)) -
+            beforeBalance;
         require(received >= _amount, "ERROR_INSUFFICIENT_RETURN_VALUE");
         balance += received;
     }
@@ -527,25 +524,20 @@ contract Vault is IVault {
     {
         uint256 _balance = balance;
         uint256 _tokenBalance = IERC20(_token).balanceOf(address(this));
-        if (
-            _token == token &&
-            _balance < _tokenBalance
-        ) {
+        if (_token == token && _balance < _tokenBalance) {
             uint256 _utilized = controller.valueAll();
-            uint256 _actualValue = IERC20(token).balanceOf(address(this)) + _utilized;
+            uint256 _actualValue = IERC20(token).balanceOf(address(this)) +
+                _utilized;
             uint256 _virtualValue = balance + _utilized;
-            if(_actualValue > _virtualValue){
+            if (_actualValue > _virtualValue) {
                 uint256 _redundant;
-                unchecked{
+                unchecked {
                     _redundant = _tokenBalance - _balance;
                 }
                 IERC20(token).safeTransfer(_to, _redundant);
             }
         } else if (_token != address(token) && _tokenBalance != 0) {
-            IERC20(_token).safeTransfer(
-                _to,
-                _tokenBalance
-            );
+            IERC20(_token).safeTransfer(_to, _tokenBalance);
         }
     }
 
@@ -559,7 +551,10 @@ contract Vault is IVault {
         if (address(controller) != address(0)) {
             uint256 beforeUnderlying = controller.valueAll();
             controller.migrate(address(_controller));
-            require(IController(_controller).valueAll() >= beforeUnderlying, "ERROR_VALUE_ALL_DECREASED");
+            require(
+                IController(_controller).valueAll() >= beforeUnderlying,
+                "ERROR_VALUE_ALL_DECREASED"
+            );
         }
         controller = IController(_controller);
 
@@ -583,10 +578,14 @@ contract Vault is IVault {
      * @param _a number to get divided by _b
      * @param _b number to divide _a
      */
-    function _divRoundUp(uint _a, uint _b) internal pure returns (uint256) {
+    function _divRoundUp(uint256 _a, uint256 _b)
+        internal
+        pure
+        returns (uint256)
+    {
         require(_a >= _b, "ERROR_NUMERATOR_TOO_SMALL");
-        uint _c = _a/ _b;
-        if(_c * _b != _a){
+        uint256 _c = _a / _b;
+        if (_c * _b != _a) {
             _c += 1;
         }
         return _c;

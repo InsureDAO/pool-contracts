@@ -78,7 +78,7 @@ contract Factory is IFactory {
     constructor(address _registry, address _ownership) {
         require(_registry != address(0), "ERROR: ZERO_ADDRESS");
         require(_ownership != address(0), "ERROR: ZERO_ADDRESS");
-        
+
         registry = _registry;
         ownership = IOwnership(_ownership);
     }
@@ -98,7 +98,11 @@ contract Factory is IFactory {
         bool _duplicate
     ) external override onlyOwner {
         require(address(_template) != address(0), "ERROR_ZERO_ADDRESS");
-        Template memory approvedTemplate = Template(_approval, _isOpen, _duplicate);
+        Template memory approvedTemplate = Template(
+            _approval,
+            _isOpen,
+            _duplicate
+        );
         templates[address(_template)] = approvedTemplate;
         emit TemplateApproval(_template, _approval, _isOpen, _duplicate);
     }
@@ -173,9 +177,10 @@ contract Factory is IFactory {
         }
 
         uint256 refLength = _references.length;
-        for (uint256 i; i < refLength;) {
+        for (uint256 i; i < refLength; ) {
             require(
-                reflist[address(_template)][i][_references[i]] || reflist[address(_template)][i][address(0)],
+                reflist[address(_template)][i][_references[i]] ||
+                    reflist[address(_template)][i][address(0)],
                 "ERROR: UNAUTHORIZED_REFERENCE"
             );
             unchecked {
@@ -184,7 +189,7 @@ contract Factory is IFactory {
         }
 
         uint256 conLength = _conditions.length;
-        for (uint256 i; i < conLength;) {
+        for (uint256 i; i < conLength; ) {
             if (conditionlist[address(_template)][i] != 0) {
                 _conditions[i] = conditionlist[address(_template)][i];
             }
@@ -212,7 +217,7 @@ contract Factory is IFactory {
         IUniversalMarket market = IUniversalMarket(
             _createClone(address(_template))
         );
-        
+
         IRegistry(_registry).supportMarket(address(market));
 
         //initialize

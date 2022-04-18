@@ -121,7 +121,7 @@ contract Parameters is IParameters {
         external
         override
         onlyOwner
-    {    
+    {
         _upperSlack[_address] = _target;
         emit UpperSlack(_address, _target);
     }
@@ -194,7 +194,7 @@ contract Parameters is IParameters {
         override
         onlyOwner
     {
-        require(_target > 1,"ERROR: MAX_LIST_UNDER_1");
+        require(_target > 1, "ERROR: MAX_LIST_UNDER_1");
         _maxList[_address] = _target;
         emit MaxListSet(_address, _target);
     }
