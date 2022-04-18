@@ -6,6 +6,36 @@ interface IPoolTemplate {
         Payingout
     }
 
+    function deposit(uint256 _amount) external returns (uint256 _mintAmount);
+
+    function requestWithdraw(uint256 _amount) external;
+
+    function withdraw(uint256 _amount) external returns (uint256 _retVal);
+
+    function insure(
+        uint256,
+        uint256,
+        uint256,
+        bytes32,
+        address,
+        address
+    ) external returns (uint256);
+
+    function redeem(
+        uint256 _id,
+        uint256 _loss,
+        bytes32[] calldata _merkleProof
+    ) external;
+
+    function getPremium(uint256 _amount, uint256 _span)
+        external
+        view
+        returns (uint256);
+
+    function unlockBatch(uint256[] calldata _ids) external;
+
+    function unlock(uint256 _id) external;
+
     function registerIndex(uint256 _index) external;
 
     function allocateCredit(uint256 _credit)
@@ -16,6 +46,10 @@ interface IPoolTemplate {
         external
         view
         returns (uint256, uint256);
+
+    function resume() external;
+
+    function rate() external view returns (uint256);
 
     function withdrawCredit(uint256 _credit) external returns (uint256 _retVal);
 
