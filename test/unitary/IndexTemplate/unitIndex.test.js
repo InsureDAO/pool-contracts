@@ -94,11 +94,8 @@ describe("Index", function () {
     const encoded = (target) => {
       const list = getLeaves(target);
 
-      return list.map(({ id, account, loss}) => {
-        return ethers.utils.solidityKeccak256(
-          ["bytes32", "address", "uint256"],
-          [id, account, loss]
-        );
+      return list.map(({ id, account, loss }) => {
+        return ethers.utils.solidityKeccak256(["bytes32", "address", "uint256"], [id, account, loss]);
       });
     };
 
@@ -111,15 +108,7 @@ describe("Index", function () {
     //console.log("proof", leaves, proof, root, leaf);
     //console.log("verify", tree.verify(proof, leaf, root)); // true
 
-    await pool.applyCover(
-      pending,
-      payoutNumerator,
-      payoutDenominator,
-      incidentTimestamp,
-      root,
-      "raw data",
-      "metadata"
-    );
+    await pool.applyCover(pending, payoutNumerator, payoutDenominator, incidentTimestamp, root, "raw data", "metadata");
 
     return proof;
   };
@@ -145,12 +134,7 @@ describe("Index", function () {
     registry = await Registry.deploy(ownership.address);
     factory = await Factory.deploy(registry.address, ownership.address);
     premium = await PremiumModel.deploy();
-    vault = await Vault.deploy(
-      usdc.address,
-      registry.address,
-      ZERO_ADDRESS,
-      ownership.address
-    );
+    vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
 
     poolTemplate = await PoolTemplate.deploy();
     cdsTemplate = await CDSTemplate.deploy();
@@ -174,54 +158,19 @@ describe("Index", function () {
 
     await factory.approveReference(poolTemplate.address, 0, usdc.address, true);
     await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
-    await factory.approveReference(
-      poolTemplate.address,
-      2,
-      registry.address,
-      true
-    );
-    await factory.approveReference(
-      poolTemplate.address,
-      3,
-      parameters.address,
-      true
-    );
+    await factory.approveReference(poolTemplate.address, 2, registry.address, true);
+    await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
 
     //initial depositor
     await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true);
 
-    await factory.approveReference(
-      indexTemplate.address,
-      0,
-      usdc.address,
-      true
-    );
-    await factory.approveReference(
-      indexTemplate.address,
-      1,
-      registry.address,
-      true
-    );
-    await factory.approveReference(
-      indexTemplate.address,
-      2,
-      parameters.address,
-      true
-    );
+    await factory.approveReference(indexTemplate.address, 0, usdc.address, true);
+    await factory.approveReference(indexTemplate.address, 1, registry.address, true);
+    await factory.approveReference(indexTemplate.address, 2, parameters.address, true);
 
     await factory.approveReference(cdsTemplate.address, 0, usdc.address, true);
-    await factory.approveReference(
-      cdsTemplate.address,
-      1,
-      registry.address,
-      true
-    );
-    await factory.approveReference(
-      cdsTemplate.address,
-      2,
-      parameters.address,
-      true
-    );
+    await factory.approveReference(cdsTemplate.address, 1, registry.address, true);
+    await factory.approveReference(cdsTemplate.address, 2, parameters.address, true);
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
@@ -238,12 +187,7 @@ describe("Index", function () {
       poolTemplate.address,
       "Here is metadata.",
       [0, 0],
-      [
-        usdc.address,
-        usdc.address,
-        registry.address,
-        parameters.address,
-      ]
+      [usdc.address, usdc.address, registry.address, parameters.address]
     );
     let receipt = await tx.wait();
     const marketAddress1 = receipt.events[2].args[0];
@@ -251,12 +195,7 @@ describe("Index", function () {
       poolTemplate.address,
       "Here is metadata.",
       [0, 0],
-      [
-        usdc.address,
-        usdc.address,
-        registry.address,
-        parameters.address,
-      ]
+      [usdc.address, usdc.address, registry.address, parameters.address]
     );
     receipt = await tx.wait();
     const marketAddress2 = receipt.events[1].args[0];
@@ -289,8 +228,8 @@ describe("Index", function () {
 
     await registry.setCDS(ZERO_ADDRESS, cds.address); //default CDS
 
-    await index.set("0", "0",market1.address, defaultLeverage); //set market1 to the Index
-    await index.set("1", "0",market2.address, defaultLeverage); //set market2 to the Index
+    await index.set("0", "0", market1.address, defaultLeverage); //set market1 to the Index
+    await index.set("1", "0", market2.address, defaultLeverage); //set market2 to the Index
 
     await index.setLeverage(targetLeverage); //2x
 
@@ -538,32 +477,12 @@ describe("Index", function () {
     });
 
     it("reverts when address is zero and/or metadata is empty", async function () {
-      await factory.approveReference(
-        indexTemplate.address,
-        0,
-        ZERO_ADDRESS,
-        true
-      );
-      await factory.approveReference(
-        indexTemplate.address,
-        1,
-        ZERO_ADDRESS,
-        true
-      );
-      await factory.approveReference(
-        indexTemplate.address,
-        2,
-        ZERO_ADDRESS,
-        true
-      );
+      await factory.approveReference(indexTemplate.address, 0, ZERO_ADDRESS, true);
+      await factory.approveReference(indexTemplate.address, 1, ZERO_ADDRESS, true);
+      await factory.approveReference(indexTemplate.address, 2, ZERO_ADDRESS, true);
 
       await expect(
-        factory.createMarket(
-          indexTemplate.address,
-          "",
-          [],
-          [usdc.address, registry.address, parameters.address]
-        )
+        factory.createMarket(indexTemplate.address, "", [], [usdc.address, registry.address, parameters.address])
       ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
 
       await expect(
@@ -839,9 +758,7 @@ describe("Index", function () {
           index: index,
           totalSupply: mintedAmount, //lp minted
           totalLiquidity: depositAmount, //deposited
-          totalAllocatedCredit: depositAmount
-            .mul(targetLeverage)
-            .div(defaultLeverage), //
+          totalAllocatedCredit: depositAmount.mul(targetLeverage).div(defaultLeverage), //
           totalAllocPoint: targetLeverage,
           targetLev: targetLeverage,
           leverage: targetLeverage, //actual leverage
@@ -893,19 +810,13 @@ describe("Index", function () {
             {
               pool: market1,
               indexAddress: index.address,
-              allocatedCredit: depositAmount
-                .mul(targetLeverage)
-                .div(2)
-                .div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
               pendingPremium: ZERO,
             },
             {
               pool: market2,
               indexAddress: index.address,
-              allocatedCredit: depositAmount
-                .mul(targetLeverage)
-                .div(2)
-                .div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
               pendingPremium: ZERO,
             },
           ],
@@ -1092,9 +1003,7 @@ describe("Index", function () {
 
       let mintedAmount = (await tx.wait()).events[3].args["value"];
 
-      expect(mintedAmount).to.equal(
-        depositAmount.mul(depositAmount).div(income)
-      ); //mintAmount = amount * totalSupply / totalLiquidity
+      expect(mintedAmount).to.equal(depositAmount.mul(depositAmount).div(income)); //mintAmount = amount * totalSupply / totalLiquidity
     });
 
     it("should incur adjust alloc when deposit amount is large enough", async function () {
@@ -1103,15 +1012,11 @@ describe("Index", function () {
 
     it("revert when the market is paused", async function () {
       await index.setPaused(true);
-      await expect(index.connect(alice).deposit(depositAmount)).to.revertedWith(
-        "ERROR: DEPOSIT_DISABLED"
-      );
+      await expect(index.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: DEPOSIT_DISABLED");
     });
 
     it("revert when the deposit amount is zero", async function () {
-      await expect(index.connect(alice).deposit(ZERO)).to.revertedWith(
-        "ERROR: DEPOSIT_ZERO"
-      );
+      await expect(index.connect(alice).deposit(ZERO)).to.revertedWith("ERROR: DEPOSIT_ZERO");
     });
   });
 
@@ -1149,9 +1054,7 @@ describe("Index", function () {
           index: index,
           totalSupply: depositAmount, //lp minted
           totalLiquidity: depositAmount, //deposited
-          totalAllocatedCredit: depositAmount
-            .mul(targetLeverage)
-            .div(defaultLeverage), //
+          totalAllocatedCredit: depositAmount.mul(targetLeverage).div(defaultLeverage), //
           totalAllocPoint: targetLeverage,
           targetLev: targetLeverage,
           leverage: targetLeverage, //actual leverage
@@ -1203,19 +1106,13 @@ describe("Index", function () {
             {
               pool: market1,
               indexAddress: index.address,
-              allocatedCredit: depositAmount
-                .mul(targetLeverage)
-                .div(2)
-                .div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
               pendingPremium: ZERO,
             },
             {
               pool: market2,
               indexAddress: index.address,
-              allocatedCredit: depositAmount
-                .mul(targetLeverage)
-                .div(2)
-                .div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
               pendingPremium: ZERO,
             },
           ],
@@ -1390,9 +1287,7 @@ describe("Index", function () {
           index: index,
           totalSupply: depositAmount,
           totalLiquidity: depositAmount,
-          totalAllocatedCredit: depositAmount
-            .mul(targetLeverage)
-            .div(defaultLeverage),
+          totalAllocatedCredit: depositAmount.mul(targetLeverage).div(defaultLeverage),
           totalAllocPoint: targetLeverage,
           targetLev: targetLeverage,
           leverage: targetLeverage,
@@ -1444,19 +1339,13 @@ describe("Index", function () {
             {
               pool: market1,
               indexAddress: index.address,
-              allocatedCredit: depositAmount
-                .mul(targetLeverage)
-                .div(2)
-                .div(defaultLeverage),
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage),
               pendingPremium: ZERO,
             },
             {
               pool: market2,
               indexAddress: index.address,
-              allocatedCredit: depositAmount
-                .mul(targetLeverage)
-                .div(2)
-                .div(defaultLeverage),
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage),
               pendingPremium: ZERO,
             },
           ],
@@ -1573,15 +1462,13 @@ describe("Index", function () {
     });
 
     it("revert when _amount exceed balance", async function () {
-      await expect(
-        index.connect(alice).requestWithdraw(depositAmount.add(1))
-      ).to.revertedWith("ERROR: REQUEST_EXCEED_BALANCE");
+      await expect(index.connect(alice).requestWithdraw(depositAmount.add(1))).to.revertedWith(
+        "ERROR: REQUEST_EXCEED_BALANCE"
+      );
     });
 
     it("revert when zero amount", async function () {
-      await expect(index.connect(alice).requestWithdraw(ZERO)).to.revertedWith(
-        "ERROR: REQUEST_ZERO"
-      );
+      await expect(index.connect(alice).requestWithdraw(ZERO)).to.revertedWith("ERROR: REQUEST_ZERO");
     });
   });
 
@@ -1619,9 +1506,7 @@ describe("Index", function () {
           index: index,
           totalSupply: depositAmount, //lp minted
           totalLiquidity: depositAmount, //deposited
-          totalAllocatedCredit: depositAmount
-            .mul(targetLeverage)
-            .div(defaultLeverage), //
+          totalAllocatedCredit: depositAmount.mul(targetLeverage).div(defaultLeverage), //
           totalAllocPoint: targetLeverage,
           targetLev: targetLeverage,
           leverage: targetLeverage, //actual leverage
@@ -1673,19 +1558,13 @@ describe("Index", function () {
             {
               pool: market1,
               indexAddress: index.address,
-              allocatedCredit: depositAmount
-                .mul(targetLeverage)
-                .div(2)
-                .div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
               pendingPremium: ZERO,
             },
             {
               pool: market2,
               indexAddress: index.address,
-              allocatedCredit: depositAmount
-                .mul(targetLeverage)
-                .div(2)
-                .div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
               pendingPremium: ZERO,
             },
           ],
@@ -1878,9 +1757,7 @@ describe("Index", function () {
           index: index,
           totalSupply: depositAmount, //lp minted
           totalLiquidity: depositAmount, //deposited
-          totalAllocatedCredit: depositAmount
-            .mul(targetLeverage)
-            .div(defaultLeverage), //
+          totalAllocatedCredit: depositAmount.mul(targetLeverage).div(defaultLeverage), //
           totalAllocPoint: targetLeverage,
           targetLev: targetLeverage,
           leverage: targetLeverage, //actual leverage
@@ -1932,19 +1809,13 @@ describe("Index", function () {
             {
               pool: market1,
               indexAddress: index.address,
-              allocatedCredit: depositAmount
-                .mul(targetLeverage)
-                .div(2)
-                .div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
               pendingPremium: ZERO,
             },
             {
               pool: market2,
               indexAddress: index.address,
-              allocatedCredit: depositAmount
-                .mul(targetLeverage)
-                .div(2)
-                .div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage), //div(2) because market1 and 2 have same allocPoint
               pendingPremium: ZERO,
             },
           ],
@@ -2080,9 +1951,7 @@ describe("Index", function () {
       );
 
       //income: 450. index earns 450. index has 100% share in market2
-      await market2
-        .connect(bob)
-        .insure(insureAmount, depositAmount, YEAR, target, bob.address, bob.address);
+      await market2.connect(bob).insure(insureAmount, depositAmount, YEAR, target, bob.address, bob.address);
 
       await index.adjustAlloc(); //index's earned premium get in effect on the markets.
 
@@ -2109,12 +1978,11 @@ describe("Index", function () {
     });
 
     it("should return zero when more than the leveraged amount is locked", async function () {
-
       await index.connect(alice).deposit(depositAmount);
 
       let insureAmount = depositAmount; //10000
 
-      //income: 900. 
+      //income: 900.
       await market1.connect(bob).insure(
         insureAmount, //insured amount
         depositAmount, //max-cost
@@ -2124,15 +1992,12 @@ describe("Index", function () {
         bob.address
       );
 
-      //income: 900. 
-      await market2
-        .connect(bob)
-        .insure(insureAmount, depositAmount, YEAR, target, bob.address, bob.address);
+      //income: 900.
+      await market2.connect(bob).insure(insureAmount, depositAmount, YEAR, target, bob.address, bob.address);
 
-      //Change the leverage rate to 1.5x. 
+      //Change the leverage rate to 1.5x.
       await index.setLeverage(1500000);
       expect(await index.leverage()).to.equal(1694915);
-
 
       //should return zero since over leveraged
       let withdrawable = await index.withdrawable();
@@ -2144,7 +2009,7 @@ describe("Index", function () {
       // market2: locked: 10000, available: 0
       withdrawable = await index.withdrawable();
       expect(withdrawable).to.equal(1800);
-      
+
       await market2.connect(alice).deposit(depositAmount);
       // pools status now is:
       // market1: locked: 10000, available: 10000
@@ -2154,16 +2019,13 @@ describe("Index", function () {
     });
 
     it("should return full amount when the locked amount is fully available", async function () {
-
       await index.connect(alice).deposit(depositAmount);
       await market2.connect(alice).deposit(depositAmount);
 
       let insureAmount = depositAmount.mul(1); //10000
 
-      //income: 900. 
-      await market2
-        .connect(bob)
-        .insure(insureAmount, depositAmount, YEAR, target, bob.address, bob.address);
+      //income: 900.
+      await market2.connect(bob).insure(insureAmount, depositAmount, YEAR, target, bob.address, bob.address);
 
       //should return zero since over leveraged
       let withdrawable = await index.withdrawable();
@@ -2209,9 +2071,7 @@ describe("Index", function () {
           index: index,
           totalSupply: depositAmount,
           totalLiquidity: depositAmount,
-          totalAllocatedCredit: depositAmount
-            .mul(targetLeverage)
-            .div(defaultLeverage),
+          totalAllocatedCredit: depositAmount.mul(targetLeverage).div(defaultLeverage),
           totalAllocPoint: targetLeverage,
           targetLev: targetLeverage,
           leverage: targetLeverage,
@@ -2263,19 +2123,13 @@ describe("Index", function () {
             {
               pool: market1,
               indexAddress: index.address,
-              allocatedCredit: depositAmount
-                .mul(targetLeverage)
-                .div(2)
-                .div(defaultLeverage),
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage),
               pendingPremium: ZERO,
             },
             {
               pool: market2,
               indexAddress: index.address,
-              allocatedCredit: depositAmount
-                .mul(targetLeverage)
-                .div(2)
-                .div(defaultLeverage),
+              allocatedCredit: depositAmount.mul(targetLeverage).div(2).div(defaultLeverage),
               pendingPremium: ZERO,
             },
           ],
@@ -2425,10 +2279,7 @@ describe("Index", function () {
           index: index,
           totalSupply: depositAmount.div(2),
           totalLiquidity: depositAmount.div(2),
-          totalAllocatedCredit: depositAmount
-            .div(2)
-            .mul(targetLeverage)
-            .div(defaultLeverage),
+          totalAllocatedCredit: depositAmount.div(2).mul(targetLeverage).div(defaultLeverage),
           totalAllocPoint: targetLeverage,
           targetLev: targetLeverage,
           leverage: targetLeverage,
@@ -2480,21 +2331,13 @@ describe("Index", function () {
             {
               pool: market1,
               indexAddress: index.address,
-              allocatedCredit: depositAmount
-                .div(2)
-                .mul(targetLeverage)
-                .div(2)
-                .div(defaultLeverage), //decrease
+              allocatedCredit: depositAmount.div(2).mul(targetLeverage).div(2).div(defaultLeverage), //decrease
               pendingPremium: ZERO,
             },
             {
               pool: market2,
               indexAddress: index.address,
-              allocatedCredit: depositAmount
-                .div(2)
-                .mul(targetLeverage)
-                .div(2)
-                .div(defaultLeverage), //decrease
+              allocatedCredit: depositAmount.div(2).mul(targetLeverage).div(2).div(defaultLeverage), //decrease
               pendingPremium: ZERO,
             },
           ],
@@ -2559,9 +2402,7 @@ describe("Index", function () {
             userBalances: {
               //EOA
               [gov.address]: ZERO,
-              [alice.address]: initialMint
-                .sub(depositAmount)
-                .add(depositAmount.div(2)),
+              [alice.address]: initialMint.sub(depositAmount).add(depositAmount.div(2)),
               [bob.address]: initialMint,
               [chad.address]: initialMint,
               //contracts
@@ -2704,10 +2545,7 @@ describe("Index", function () {
           index: index,
           totalSupply: depositAmount.div(2), //burnt
           totalLiquidity: depositAmount.div(2),
-          totalAllocatedCredit: depositAmount
-            .div(2)
-            .mul(targetLeverage)
-            .div(defaultLeverage),
+          totalAllocatedCredit: depositAmount.div(2).mul(targetLeverage).div(defaultLeverage),
           totalAllocPoint: targetLeverage,
           targetLev: targetLeverage,
           leverage: targetLeverage,
@@ -2765,32 +2603,24 @@ describe("Index", function () {
     it("reverts when lockup is not ends", async function () {
       await moveForwardPeriods(6);
 
-      await expect(
-        index.connect(alice).withdraw(depositAmount)
-      ).to.revertedWith("ERROR: WITHDRAWAL_QUEUE");
+      await expect(index.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: WITHDRAWAL_QUEUE");
     });
 
     it("reverts when withdrawable priod ends", async function () {
       await moveForwardPeriods(7);
       await moveForwardPeriods(14);
 
-      await expect(
-        index.connect(alice).withdraw(depositAmount)
-      ).to.revertedWith("WITHDRAWAL_NO_ACTIVE_REQUEST");
+      await expect(index.connect(alice).withdraw(depositAmount)).to.revertedWith("WITHDRAWAL_NO_ACTIVE_REQUEST");
     });
 
     it("reverts when the withdraw amount exceeded the request", async function () {
       await moveForwardPeriods(7);
-      await expect(
-        index.connect(alice).withdraw(depositAmount.add(1))
-      ).to.revertedWith("WITHDRAWAL_EXCEEDED_REQUEST");
+      await expect(index.connect(alice).withdraw(depositAmount.add(1))).to.revertedWith("WITHDRAWAL_EXCEEDED_REQUEST");
     });
 
     it("reverts when zero requests", async function () {
       await moveForwardPeriods(7);
-      await expect(index.connect(alice).withdraw(ZERO)).to.revertedWith(
-        "ERROR: WITHDRAWAL_ZERO"
-      );
+      await expect(index.connect(alice).withdraw(ZERO)).to.revertedWith("ERROR: WITHDRAWAL_ZERO");
     });
 
     it("reverts exceed withdrawable", async function () {
@@ -2818,9 +2648,7 @@ describe("Index", function () {
         index: index,
         totalSupply: depositAmount, //lp minted
         totalLiquidity: depositAmount.add(income),
-        totalAllocatedCredit: depositAmount
-          .mul(targetLeverage)
-          .div(defaultLeverage), //too small, so didn't trigger _adjustAlloc()
+        totalAllocatedCredit: depositAmount.mul(targetLeverage).div(defaultLeverage), //too small, so didn't trigger _adjustAlloc()
         totalAllocPoint: targetLeverage,
         targetLev: targetLeverage,
         leverage: defaultLeverage
@@ -2830,9 +2658,7 @@ describe("Index", function () {
         rate: defaultRate.mul(depositAmount.add(income)).div(depositAmount),
       });
 
-      await expect(
-        index.connect(alice).withdraw(depositAmount)
-      ).to.revertedWith("WITHDRAW_INSUFFICIENT_LIQUIDITY");
+      await expect(index.connect(alice).withdraw(depositAmount)).to.revertedWith("WITHDRAW_INSUFFICIENT_LIQUIDITY");
     });
 
     it("should incur adjust alloc when withdrawal amount is large enough", async function () {

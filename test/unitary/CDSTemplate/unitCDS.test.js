@@ -19,15 +19,7 @@ const {
   verifyVaultStatusOf,
 } = require("../test-utils");
 
-const {
-  ZERO_ADDRESS,
-  long,
-  short,
-  YEAR,
-  WEEK,
-  DAY,
-  ZERO,
-} = require("../constant-utils");
+const { ZERO_ADDRESS, long, short, YEAR, WEEK, DAY, ZERO } = require("../constant-utils");
 
 async function snapshot() {
   return network.provider.send("evm_snapshot", []);
@@ -80,12 +72,7 @@ describe("CDS", function () {
     factory = await Factory.deploy(registry.address, ownership.address);
     premium = await PremiumModel.deploy();
     controller = await Contorller.deploy(usdc.address, ownership.address);
-    vault = await Vault.deploy(
-      usdc.address,
-      registry.address,
-      controller.address,
-      ownership.address
-    );
+    vault = await Vault.deploy(usdc.address, registry.address, controller.address, ownership.address);
 
     poolTemplate = await PoolTemplate.deploy();
     cdsTemplate = await CDSTemplate.deploy();
@@ -107,33 +94,13 @@ describe("CDS", function () {
 
     await factory.approveReference(poolTemplate.address, 0, usdc.address, true);
     await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
-    await factory.approveReference(
-      poolTemplate.address,
-      2,
-      registry.address,
-      true
-    );
-    await factory.approveReference(
-      poolTemplate.address,
-      3,
-      parameters.address,
-      true
-    );
+    await factory.approveReference(poolTemplate.address, 2, registry.address, true);
+    await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
     await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true);
 
-    await factory.approveReference(
-      cdsTemplate.address,
-      2,
-      parameters.address,
-      true
-    );
+    await factory.approveReference(cdsTemplate.address, 2, parameters.address, true);
     await factory.approveReference(cdsTemplate.address, 0, usdc.address, true);
-    await factory.approveReference(
-      cdsTemplate.address,
-      1,
-      registry.address,
-      true
-    );
+    await factory.approveReference(cdsTemplate.address, 1, registry.address, true);
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
@@ -155,12 +122,7 @@ describe("CDS", function () {
       poolTemplate.address,
       "Here is metadata.",
       [0, 0],
-      [
-        usdc.address,
-        usdc.address,
-        registry.address,
-        parameters.address
-      ]
+      [usdc.address, usdc.address, registry.address, parameters.address]
     );
     let receipt = await tx.wait();
     const marketAddress1 = receipt.events[2].args[0];
@@ -268,12 +230,7 @@ describe("CDS", function () {
       });
 
       it("reverts when address is zero and/or metadata is empty 1", async () => {
-        await factory.approveReference(
-          cdsTemplate.address,
-          0,
-          ZERO_ADDRESS,
-          true
-        );
+        await factory.approveReference(cdsTemplate.address, 0, ZERO_ADDRESS, true);
 
         await expect(
           factory.createMarket(
@@ -283,15 +240,10 @@ describe("CDS", function () {
             [ZERO_ADDRESS, registry.address, parameters.address]
           )
         ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
-});
+      });
 
       it("reverts when address is zero and/or metadata is empty 2", async () => {
-        await factory.approveReference(
-          cdsTemplate.address,
-          1,
-          ZERO_ADDRESS,
-          true
-        );
+        await factory.approveReference(cdsTemplate.address, 1, ZERO_ADDRESS, true);
 
         await expect(
           factory.createMarket(
@@ -304,12 +256,7 @@ describe("CDS", function () {
       });
 
       it("reverts when address is zero and/or metadata is empty 3", async () => {
-        await factory.approveReference(
-          cdsTemplate.address,
-          2,
-          ZERO_ADDRESS,
-          true
-        );
+        await factory.approveReference(cdsTemplate.address, 2, ZERO_ADDRESS, true);
 
         await expect(
           factory.createMarket(
@@ -323,12 +270,7 @@ describe("CDS", function () {
 
       it("reverts when address is zero and/or metadata is empty 4", async () => {
         await expect(
-          factory.createMarket(
-            cdsTemplate.address,
-            "",
-            [0, 0],
-            [usdc.address, registry.address, parameters.address]
-          )
+          factory.createMarket(cdsTemplate.address, "", [0, 0], [usdc.address, registry.address, parameters.address])
         ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
     });
@@ -417,9 +359,7 @@ describe("CDS", function () {
             crowdPool: depositAmount.sub(compensate).add(depositAmount),
             totalSupply: depositAmount.add(mintAmount),
             totalLiquidity: depositAmount.sub(compensate).add(depositAmount),
-            rate: defaultRate
-              .mul(depositAmount.sub(compensate).add(depositAmount))
-              .div(depositAmount.add(mintAmount)),
+            rate: defaultRate.mul(depositAmount.sub(compensate).add(depositAmount)).div(depositAmount.add(mintAmount)),
           });
 
           await verifyCDSStatusOf({
@@ -517,9 +457,7 @@ describe("CDS", function () {
             crowdPool: depositAmount, //deposit goes into crowdPool
             totalSupply: depositAmount.add(mintedAmount),
             totalLiquidity: depositAmount,
-            rate: defaultRate
-              .mul(depositAmount)
-              .div(depositAmount.add(mintedAmount)),
+            rate: defaultRate.mul(depositAmount).div(depositAmount.add(mintedAmount)),
           });
 
           await verifyCDSStatusOf({
@@ -642,9 +580,7 @@ describe("CDS", function () {
         await cds.setPaused(true);
 
         //EXECUTE
-        await expect(cds.connect(alice).fund(depositAmount)).to.revertedWith(
-          "ERROR: PAUSED"
-        );
+        await expect(cds.connect(alice).fund(depositAmount)).to.revertedWith("ERROR: PAUSED");
       });
     });
 
@@ -708,7 +644,7 @@ describe("CDS", function () {
       });
 
       it("success", async () => {
-        await cds.defund(gov.address ,depositAmount);
+        await cds.defund(gov.address, depositAmount);
 
         {
           //sanity check
@@ -767,9 +703,7 @@ describe("CDS", function () {
       });
 
       it("revert onlyOwner", async () => {
-        await expect(cds.connect(alice).defund(alice.address, depositAmount)).to.revertedWith(
-          "ERROR: ONLY_OWNER"
-        );
+        await expect(cds.connect(alice).defund(alice.address, depositAmount)).to.revertedWith("ERROR: ONLY_OWNER");
       });
     });
 
@@ -899,15 +833,13 @@ describe("CDS", function () {
       });
 
       it("revert when _amount exceed balance", async () => {
-        await expect(
-          cds.connect(alice).requestWithdraw(depositAmount.add(1))
-        ).to.revertedWith("ERROR: REQUEST_EXCEED_BALANCE");
+        await expect(cds.connect(alice).requestWithdraw(depositAmount.add(1))).to.revertedWith(
+          "ERROR: REQUEST_EXCEED_BALANCE"
+        );
       });
 
       it("amount should not be zero", async () => {
-        await expect(cds.connect(alice).requestWithdraw(ZERO)).to.revertedWith(
-          "ERROR: REQUEST_ZERO"
-        );
+        await expect(cds.connect(alice).requestWithdraw(ZERO)).to.revertedWith("ERROR: REQUEST_ZERO");
       });
     });
 
@@ -1168,42 +1100,32 @@ describe("CDS", function () {
 
         await moveForwardPeriods(7);
 
-        await expect(
-          cds.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("ERROR: PAUSED");
+        await expect(cds.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: PAUSED");
       });
 
       it("reverts when lockup is not ends", async () => {
         await moveForwardPeriods(6);
 
-        await expect(
-          cds.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("ERROR: WITHDRAWAL_QUEUE");
+        await expect(cds.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: WITHDRAWAL_QUEUE");
       });
 
       it("reverts when withdrawable priod ends", async () => {
         await moveForwardPeriods(7);
         await moveForwardPeriods(14);
 
-        await expect(
-          cds.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("WITHDRAWAL_NO_ACTIVE_REQUEST");
+        await expect(cds.connect(alice).withdraw(depositAmount)).to.revertedWith("WITHDRAWAL_NO_ACTIVE_REQUEST");
       });
 
       it("reverts when the withdraw amount exceeded the request", async () => {
         await moveForwardPeriods(7);
 
-        await expect(
-          cds.connect(alice).withdraw(depositAmount.add(1))
-        ).to.revertedWith("WITHDRAWAL_EXCEEDED_REQUEST");
+        await expect(cds.connect(alice).withdraw(depositAmount.add(1))).to.revertedWith("WITHDRAWAL_EXCEEDED_REQUEST");
       });
 
       it("reverts when withdraw zero amount", async () => {
         await moveForwardPeriods(7);
 
-        await expect(cds.connect(alice).withdraw(ZERO)).to.revertedWith(
-          "ERROR: WITHDRAWAL_ZERO"
-        );
+        await expect(cds.connect(alice).withdraw(ZERO)).to.revertedWith("ERROR: WITHDRAWAL_ZERO");
       });
     });
 
@@ -1282,9 +1204,7 @@ describe("CDS", function () {
             crowdPool: depositAmount.sub(compensate.div(2)), //compensate evenly
             totalSupply: depositAmount,
             totalLiquidity: depositAmount.mul(2).sub(compensate),
-            rate: defaultRate
-              .mul(depositAmount.sub(compensate.div(2)))
-              .div(depositAmount), //defaultRate * deposited balance / totalSupply
+            rate: defaultRate.mul(depositAmount.sub(compensate.div(2))).div(depositAmount), //defaultRate * deposited balance / totalSupply
           });
 
           await verifyCDSStatusOf({
@@ -1441,9 +1361,7 @@ describe("CDS", function () {
       });
 
       it("revert when not admin", async () => {
-        await expect(
-          cds.connect(alice).changeMetadata("New metadata")
-        ).to.revertedWith("ERROR: ONLY_OWNER");
+        await expect(cds.connect(alice).changeMetadata("New metadata")).to.revertedWith("ERROR: ONLY_OWNER");
       });
     });
   });

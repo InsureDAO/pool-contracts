@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
-const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const decimals = BigNumber.from("1000000"); //6
 
 const GOV_TOKENS = [
@@ -24,24 +24,23 @@ const GOV_TOKENS = [
   "0xe24a720Ac142Dfc7625F231960e9CEB7aD3206cc",
   "0xF1B732302Bac54b8354e02AAED5D43B3A344d399",
   "0xDc335304979D378255015c33AbFf09B60c31EBAb",
-  "0x1730aDA73ADCCC1cBB33Bc89d626e97B90408f55"
-]
-
+  "0x1730aDA73ADCCC1cBB33Bc89d626e97B90408f55",
+];
 
 const INDEX_LIST = [
   [0, 1, 2, 4, 5, 6, 7, 8, 3, 9],
   [10, 11, 16, 3, 17],
-  [12, 13, 15, 14, 8]
-]
+  [12, 13, 15, 14, 8],
+];
 
 const slotB = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], //Genesis Index
   [0, 0, 0, 1, 0], //Curve wars Index
-  [0, 0, 0, 0, 1] //Quantstamp Index
-]
-const ALLOCATION_POINT = BigNumber.from("1000000")
+  [0, 0, 0, 0, 1], //Quantstamp Index
+];
+const ALLOCATION_POINT = BigNumber.from("1000000");
 
-const DAY = 60;//TEST
+const DAY = 60; //TEST
 const GovFeeRatio = 100000; //10%
 const GracePeriod = DAY * 14;
 const LockUpPeriod = DAY * 14;
@@ -50,10 +49,7 @@ const MinDate = DAY * 7;
 const WithdrawablePeriod = DAY * 7;
 const MAX_LIST = 10;
 
-const MinDeposit = (BigNumber.from("1000")).mul(decimals); //1000USDC
-
-
-
+const MinDeposit = BigNumber.from("1000").mul(decimals); //1000USDC
 
 Object.assign(exports, {
   ZERO_ADDRESS,
@@ -69,5 +65,5 @@ Object.assign(exports, {
   WithdrawablePeriod,
   MinDate,
   MAX_LIST,
-  MinDeposit
-})
+  MinDeposit,
+});

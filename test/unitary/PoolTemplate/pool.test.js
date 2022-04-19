@@ -22,16 +22,7 @@ const {
   verifyRate,
 } = require("../test-utils");
 
-const {
-  ZERO_ADDRESS,
-  TEST_ADDRESS,
-  NULL_ADDRESS,
-  short,
-  YEAR,
-  WEEK,
-  DAY,
-  ZERO,
-} = require("../constant-utils");
+const { ZERO_ADDRESS, TEST_ADDRESS, NULL_ADDRESS, short, YEAR, WEEK, DAY, ZERO } = require("../constant-utils");
 
 async function snapshot() {
   return network.provider.send("evm_snapshot", []);
@@ -106,19 +97,12 @@ describe("Pool", function () {
     //1. update user info => check
     let _mintAmount = (await tx.wait()).events[2].args["mint"].toString();
 
-    u[`${depositor.address}`].balance =
-      u[`${depositor.address}`].balance.sub(amount); //track user wallet
-    u[`${depositor.address}`].deposited =
-      u[`${depositor.address}`].deposited.add(amount); //track amount of deposited USDC
-    u[`${depositor.address}`].lp =
-      u[`${depositor.address}`].lp.add(_mintAmount); //track amount of LP token
+    u[`${depositor.address}`].balance = u[`${depositor.address}`].balance.sub(amount); //track user wallet
+    u[`${depositor.address}`].deposited = u[`${depositor.address}`].deposited.add(amount); //track amount of deposited USDC
+    u[`${depositor.address}`].lp = u[`${depositor.address}`].lp.add(_mintAmount); //track amount of LP token
 
-    expect(await token.balanceOf(depositor.address)).to.equal(
-      u[`${depositor.address}`].balance
-    ); //sanity check
-    expect(await target.balanceOf(depositor.address)).to.equal(
-      u[`${depositor.address}`].lp
-    ); //sanity check
+    expect(await token.balanceOf(depositor.address)).to.equal(u[`${depositor.address}`].balance); //sanity check
+    expect(await target.balanceOf(depositor.address)).to.equal(u[`${depositor.address}`].lp); //sanity check
 
     //2. update global and market status => check
     g.totalBalance = g.totalBalance.add(amount); //global balance of USDC increase
@@ -134,9 +118,7 @@ describe("Pool", function () {
     }
 
     if (!m1.utilizationRate.isZero()) {
-      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(
-        m1.marketBalance
-      ); //how much ratio is locked (=bought as insurance) among the pool.
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance); //how much ratio is locked (=bought as insurance) among the pool.
     } else {
       m1.utilizationRate = ZERO;
     }
@@ -166,18 +148,11 @@ describe("Pool", function () {
     await verifyValueOfUnderlying({
       template: target,
       valueOfUnderlyingOf: depositor.address,
-      valueOfUnderlying: u[`${depositor.address}`].lp
-        .mul(m1.rate)
-        .div(defaultRate),
+      valueOfUnderlying: u[`${depositor.address}`].lp.mul(m1.rate).div(defaultRate),
     });
   };
 
-  const approveDepositAndWithdrawRequest = async ({
-    token,
-    target,
-    depositor,
-    amount,
-  }) => {
+  const approveDepositAndWithdrawRequest = async ({ token, target, depositor, amount }) => {
     //execute
     await token.connect(depositor).approve(vault.address, amount);
     let tx = await target.connect(depositor).deposit(amount);
@@ -186,19 +161,12 @@ describe("Pool", function () {
     //update user info => check
     let _mintAmount = (await tx.wait()).events[2].args["mint"].toString();
 
-    u[`${depositor.address}`].balance =
-      u[`${depositor.address}`].balance.sub(amount);
-    u[`${depositor.address}`].deposited =
-      u[`${depositor.address}`].deposited.add(amount);
-    u[`${depositor.address}`].lp =
-      u[`${depositor.address}`].lp.add(_mintAmount);
+    u[`${depositor.address}`].balance = u[`${depositor.address}`].balance.sub(amount);
+    u[`${depositor.address}`].deposited = u[`${depositor.address}`].deposited.add(amount);
+    u[`${depositor.address}`].lp = u[`${depositor.address}`].lp.add(_mintAmount);
 
-    expect(await token.balanceOf(depositor.address)).to.equal(
-      u[`${depositor.address}`].balance
-    ); //sanity check
-    expect(await target.balanceOf(depositor.address)).to.equal(
-      u[`${depositor.address}`].lp
-    ); //sanity check
+    expect(await token.balanceOf(depositor.address)).to.equal(u[`${depositor.address}`].balance); //sanity check
+    expect(await target.balanceOf(depositor.address)).to.equal(u[`${depositor.address}`].lp); //sanity check
 
     //update global and market status => check
     g.totalBalance = g.totalBalance.add(amount);
@@ -214,9 +182,7 @@ describe("Pool", function () {
     }
 
     if (!m1.utilizationRate.isZero()) {
-      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(
-        m1.marketBalance
-      );
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance);
     } else {
       m1.utilizationRate = ZERO;
     }
@@ -246,9 +212,7 @@ describe("Pool", function () {
     await verifyValueOfUnderlying({
       template: target,
       valueOfUnderlyingOf: depositor.address,
-      valueOfUnderlying: u[`${depositor.address}`].lp
-        .mul(m1.rate)
-        .div(defaultRate),
+      valueOfUnderlying: u[`${depositor.address}`].lp.mul(m1.rate).div(defaultRate),
     });
   };
 
@@ -259,18 +223,12 @@ describe("Pool", function () {
     let withdrawAmount = (await tx.wait()).events[2].args["retVal"].toString();
 
     //update user info => check
-    u[`${withdrawer.address}`].balance =
-      u[`${withdrawer.address}`].balance.add(withdrawAmount);
-    u[`${withdrawer.address}`].deposited =
-      u[`${withdrawer.address}`].deposited.sub(withdrawAmount);
+    u[`${withdrawer.address}`].balance = u[`${withdrawer.address}`].balance.add(withdrawAmount);
+    u[`${withdrawer.address}`].deposited = u[`${withdrawer.address}`].deposited.sub(withdrawAmount);
     u[`${withdrawer.address}`].lp = u[`${withdrawer.address}`].lp.sub(amount);
 
-    expect(await usdc.balanceOf(withdrawer.address)).to.equal(
-      u[`${withdrawer.address}`].balance
-    );
-    expect(await target.balanceOf(withdrawer.address)).to.equal(
-      u[`${withdrawer.address}`].lp
-    );
+    expect(await usdc.balanceOf(withdrawer.address)).to.equal(u[`${withdrawer.address}`].balance);
+    expect(await target.balanceOf(withdrawer.address)).to.equal(u[`${withdrawer.address}`].lp);
 
     //update global and market status => check
     g.totalBalance = g.totalBalance.sub(withdrawAmount);
@@ -286,9 +244,7 @@ describe("Pool", function () {
     }
 
     if (!m1.utilizationRate.isZero()) {
-      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(
-        m1.marketBalance
-      );
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance);
     } else {
       m1.utilizationRate = ZERO;
     }
@@ -316,9 +272,7 @@ describe("Pool", function () {
     await verifyValueOfUnderlying({
       template: target,
       valueOfUnderlyingOf: withdrawer.address,
-      valueOfUnderlying: u[`${withdrawer.address}`].lp
-        .mul(m1.rate)
-        .div(defaultRate),
+      valueOfUnderlying: u[`${withdrawer.address}`].lp.mul(m1.rate).div(defaultRate),
     });
   };
 
@@ -333,11 +287,8 @@ describe("Pool", function () {
     let fee = premium.sub(govFee);
 
     //update global and market status => check
-    u[`${insurer.address}`].balance =
-      u[`${insurer.address}`].balance.sub(premium);
-    expect(await usdc.balanceOf(insurer.address)).to.equal(
-      u[`${insurer.address}`].balance
-    );
+    u[`${insurer.address}`].balance = u[`${insurer.address}`].balance.sub(premium);
+    expect(await usdc.balanceOf(insurer.address)).to.equal(u[`${insurer.address}`].balance);
 
     //update global and market status => check
     m1.insured = m1.insured.add(amount);
@@ -346,9 +297,7 @@ describe("Pool", function () {
     g.totalBalance = g.totalBalance.add(premium);
 
     if (!m1.marketBalance.isZero()) {
-      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(
-        m1.marketBalance
-      );
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance);
     } else {
       m1.utilizationRate = ZERO;
     }
@@ -400,20 +349,15 @@ describe("Pool", function () {
     let payoutAmount = receipt.events[1].args["payout"];
 
     //update global and market status => check
-    u[`${redeemer.address}`].balance =
-      u[`${redeemer.address}`].balance.add(payoutAmount);
-    expect(await usdc.balanceOf(redeemer.address)).to.equal(
-      u[`${redeemer.address}`].balance
-    );
+    u[`${redeemer.address}`].balance = u[`${redeemer.address}`].balance.add(payoutAmount);
+    expect(await usdc.balanceOf(redeemer.address)).to.equal(u[`${redeemer.address}`].balance);
 
     //update global and market status => check
     m1.insured = m1.insured.sub(insuredAmount);
     m1.debt = m1.debt.add(payoutAmount);
 
     if (!m1.marketBalance.isZero()) {
-      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(
-        m1.marketBalance
-      );
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance);
     } else {
       m1.utilizationRate = ZERO;
     }
@@ -463,9 +407,7 @@ describe("Pool", function () {
     g.totalBalance = g.totalBalance.sub(amount);
 
     if (!m1.marketBalance.isZero()) {
-      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(
-        m1.marketBalance
-      );
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance);
     } else {
       m1.utilizationRate = ZERO;
     }
@@ -497,9 +439,7 @@ describe("Pool", function () {
       }
 
       if (!m1.utilizationRate.isZero()) {
-        m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(
-          m1.marketBalance
-        );
+        m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance);
       } else {
         m1.utilizationRate = ZERO;
       }
@@ -537,9 +477,7 @@ describe("Pool", function () {
     }
 
     if (!m1.utilizationRate.isZero()) {
-      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(
-        m1.marketBalance
-      );
+      m1.utilizationRate = UTILIZATION_RATE_LENGTH_1E6.mul(m1.insured).div(m1.marketBalance);
     } else {
       m1.utilizationRate = ZERO;
     }
@@ -586,10 +524,7 @@ describe("Pool", function () {
       const list = getLeaves(target);
 
       return list.map(({ id, account, loss }) => {
-        return ethers.utils.solidityKeccak256(
-          ["bytes32", "address", "uint256"],
-          [id, account, loss]
-        );
+        return ethers.utils.solidityKeccak256(["bytes32", "address", "uint256"], [id, account, loss]);
       });
     };
 
@@ -602,15 +537,7 @@ describe("Pool", function () {
     //console.log("proof", leaves, proof, root, leaf);
     //console.log("verify", tree.verify(proof, leaf, root)); // true
 
-    await pool.applyCover(
-      pending,
-      payoutNumerator,
-      payoutDenominator,
-      incidentTimestamp,
-      root,
-      "raw data",
-      "metadata"
-    );
+    await pool.applyCover(pending, payoutNumerator, payoutDenominator, incidentTimestamp, root, "raw data", "metadata");
 
     return proof;
   };
@@ -622,12 +549,9 @@ describe("Pool", function () {
 
     //update user info => check
     u[`${from.address}`].lp = u[`${from.address}`].lp.sub(amount);
-    u[`${from.address}`].deposited =
-      u[`${from.address}`].deposited.sub(balance);
+    u[`${from.address}`].deposited = u[`${from.address}`].deposited.sub(balance);
 
-    expect(await market.balanceOf(from.address)).to.equal(
-      u[`${from.address}`].lp
-    );
+    expect(await market.balanceOf(from.address)).to.equal(u[`${from.address}`].lp);
     await verifyValueOfUnderlying({
       template: market,
       valueOfUnderlyingOf: from.address,
@@ -659,8 +583,7 @@ describe("Pool", function () {
     let createdMarketAddress = receipt.events[5].args["market"];
 
     //update vault
-    u[`${depositor.address}`].balance =
-      u[`${depositor.address}`].balance.sub(depositAmount);
+    u[`${depositor.address}`].balance = u[`${depositor.address}`].balance.sub(depositAmount);
     g.totalBalance = g.totalBalance.add(depositAmount);
 
     return createdMarketAddress;
@@ -696,12 +619,7 @@ describe("Pool", function () {
     factory = await Factory.deploy(registry.address, ownership.address);
     premium = await PremiumModel.deploy();
     controller = await Contorller.deploy(usdc.address, ownership.address);
-    vault = await Vault.deploy(
-      usdc.address,
-      registry.address,
-      controller.address,
-      ownership.address
-    );
+    vault = await Vault.deploy(usdc.address, registry.address, controller.address, ownership.address);
     poolTemplate = await PoolTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
 
@@ -717,18 +635,8 @@ describe("Pool", function () {
     await factory.approveTemplate(poolTemplate.address, true, false, true);
     await factory.approveReference(poolTemplate.address, 0, usdc.address, true);
     await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
-    await factory.approveReference(
-      poolTemplate.address,
-      2,
-      registry.address,
-      true
-    );
-    await factory.approveReference(
-      poolTemplate.address,
-      3,
-      parameters.address,
-      true
-    );
+    await factory.approveReference(poolTemplate.address, 2, registry.address, true);
+    await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
     await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true); //everyone can be initialDepositor
 
     //set default parameters
@@ -744,12 +652,7 @@ describe("Pool", function () {
       poolTemplate.address,
       "Here is metadata.",
       [0, 0], //deposit 0 USDC
-      [
-        usdc.address,
-        usdc.address,
-        registry.address,
-        parameters.address,
-      ]
+      [usdc.address, usdc.address, registry.address, parameters.address]
     );
     let receipt = await tx.wait();
     const marketAddress = receipt.events[2].args[0];
@@ -855,13 +758,7 @@ describe("Pool", function () {
 
         let market2Address = await createMarket({
           depositAmount: depositAmount,
-          references: [
-            usdc.address,
-            usdc.address,
-            registry.address,
-            parameters.address,
-            gov.address,
-          ],
+          references: [usdc.address, usdc.address, registry.address, parameters.address, gov.address],
           depositor: gov,
         });
 
@@ -873,12 +770,7 @@ describe("Pool", function () {
 
       it("fail when _references[0] is zero address", async () => {
         //approve whatever an address can be in _references[0].
-        await factory.approveReference(
-          poolTemplate.address,
-          0,
-          ZERO_ADDRESS,
-          true
-        );
+        await factory.approveReference(poolTemplate.address, 0, ZERO_ADDRESS, true);
 
         //but this PoolTemplate doesn't want address(0)
         await expect(
@@ -886,24 +778,14 @@ describe("Pool", function () {
             poolTemplate.address,
             "Here is metadata.",
             [0, 0], //deposit 0 USDC
-            [
-              ZERO_ADDRESS,
-              usdc.address,
-              registry.address,
-              parameters.address,
-            ]
+            [ZERO_ADDRESS, usdc.address, registry.address, parameters.address]
           )
         ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
 
       it("fail when _references[1] is zero address", async () => {
         //approve whatever an address can be in _references[1].
-        await factory.approveReference(
-          poolTemplate.address,
-          1,
-          ZERO_ADDRESS,
-          true
-        );
+        await factory.approveReference(poolTemplate.address, 1, ZERO_ADDRESS, true);
 
         //but this PoolTemplate doesn't want address(0)
         await expect(
@@ -911,24 +793,14 @@ describe("Pool", function () {
             poolTemplate.address,
             "Here is metadata.",
             [0, 0], //deposit 0 USDC
-            [
-              usdc.address,
-              ZERO_ADDRESS,
-              registry.address,
-              parameters.address,
-            ]
+            [usdc.address, ZERO_ADDRESS, registry.address, parameters.address]
           )
         ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
 
       it("fail when _references[2] is zero address", async () => {
         //approve whatever an address can be in _references[1].
-        await factory.approveReference(
-          poolTemplate.address,
-          2,
-          ZERO_ADDRESS,
-          true
-        );
+        await factory.approveReference(poolTemplate.address, 2, ZERO_ADDRESS, true);
 
         //but this PoolTemplate doesn't want address(0)
         await expect(
@@ -936,24 +808,14 @@ describe("Pool", function () {
             poolTemplate.address,
             "Here is metadata.",
             [0, 0], //deposit 0 USDC
-            [
-              usdc.address,
-              usdc.address,
-              ZERO_ADDRESS,
-              parameters.address
-            ]
+            [usdc.address, usdc.address, ZERO_ADDRESS, parameters.address]
           )
         ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
 
       it("fail when _references[3] is zero address", async () => {
         //approve whatever an address can be in _references[1].
-        await factory.approveReference(
-          poolTemplate.address,
-          3,
-          ZERO_ADDRESS,
-          true
-        );
+        await factory.approveReference(poolTemplate.address, 3, ZERO_ADDRESS, true);
 
         //but this PoolTemplate doesn't want address(0)
         await expect(
@@ -961,12 +823,7 @@ describe("Pool", function () {
             poolTemplate.address,
             "Here is metadata.",
             [0, 0], //deposit 0 USDC
-            [
-              usdc.address,
-              usdc.address,
-              registry.address,
-              ZERO_ADDRESS,
-            ]
+            [usdc.address, usdc.address, registry.address, ZERO_ADDRESS]
           )
         ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
@@ -977,12 +834,7 @@ describe("Pool", function () {
             poolTemplate.address,
             "",
             [0, 0], //deposit 0 USDC
-            [
-              usdc.address,
-              usdc.address,
-              registry.address,
-              parameters.address,
-            ]
+            [usdc.address, usdc.address, registry.address, parameters.address]
           )
         ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
@@ -1016,23 +868,17 @@ describe("Pool", function () {
           incidentTimestamp: incident,
         });
 
-        await expect(
-          market.connect(alice).deposit(depositAmount)
-        ).to.revertedWith("ERROR: DEPOSIT_DISABLED");
+        await expect(market.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: DEPOSIT_DISABLED");
       });
 
       it("fail when amount is not more than zero", async () => {
-        await expect(market.connect(alice).deposit(ZERO)).to.revertedWith(
-          "ERROR: DEPOSIT_ZERO"
-        );
+        await expect(market.connect(alice).deposit(ZERO)).to.revertedWith("ERROR: DEPOSIT_ZERO");
       });
     });
 
     describe("requestWithdraw", function () {
       it("fail when amount is not more than zero", async () => {
-        await expect(market.requestWithdraw(ZERO)).to.revertedWith(
-          "ERROR: REQUEST_ZERO"
-        );
+        await expect(market.requestWithdraw(ZERO)).to.revertedWith("ERROR: REQUEST_ZERO");
       });
     });
 
@@ -1077,9 +923,7 @@ describe("Pool", function () {
           incidentTimestamp: incident,
         });
 
-        await expect(
-          market.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("ERROR: WITHDRAWAL_MARKET_PENDING");
+        await expect(market.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: WITHDRAWAL_MARKET_PENDING");
       });
 
       it("revert withdraw when earlier than withdrawable timestamp", async () => {
@@ -1090,9 +934,7 @@ describe("Pool", function () {
           amount: depositAmount,
         });
 
-        await expect(
-          market.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("ERROR: WITHDRAWAL_QUEUE");
+        await expect(market.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: WITHDRAWAL_QUEUE");
       });
 
       it("revert withdraw when not requested", async function () {
@@ -1106,9 +948,7 @@ describe("Pool", function () {
         await moveForwardPeriods(8);
 
         //withdraw without request
-        await expect(
-          market.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("WITHDRAWAL_NO_ACTIVE_REQUEST");
+        await expect(market.connect(alice).withdraw(depositAmount)).to.revertedWith("WITHDRAWAL_NO_ACTIVE_REQUEST");
       });
 
       it("revert withdraw when amount > requested", async function () {
@@ -1121,9 +961,9 @@ describe("Pool", function () {
 
         await moveForwardPeriods(8);
 
-        await expect(
-          market.connect(alice).withdraw(depositAmount.add(1))
-        ).to.revertedWith("WITHDRAWAL_EXCEEDED_REQUEST");
+        await expect(market.connect(alice).withdraw(depositAmount.add(1))).to.revertedWith(
+          "WITHDRAWAL_EXCEEDED_REQUEST"
+        );
       });
 
       it("revert withdraw when withdrawable span is over", async function () {
@@ -1137,9 +977,7 @@ describe("Pool", function () {
         //withdraw span is 30days(2592000)
         await moveForwardPeriods(40);
 
-        await expect(
-          market.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("WITHDRAWAL_NO_ACTIVE_REQUEST");
+        await expect(market.connect(alice).withdraw(depositAmount)).to.revertedWith("WITHDRAWAL_NO_ACTIVE_REQUEST");
       });
 
       it("revert withdraw request more than balance", async function () {
@@ -1150,9 +988,9 @@ describe("Pool", function () {
           amount: depositAmount,
         });
 
-        await expect(
-          market.connect(alice).requestWithdraw(depositAmount.add(1))
-        ).to.revertedWith("ERROR: REQUEST_EXCEED_BALANCE");
+        await expect(market.connect(alice).requestWithdraw(depositAmount.add(1))).to.revertedWith(
+          "ERROR: REQUEST_EXCEED_BALANCE"
+        );
       });
 
       it("revert withdraw with zero balance", async function () {
@@ -1164,9 +1002,7 @@ describe("Pool", function () {
         });
 
         await moveForwardPeriods(8);
-        await expect(market.connect(alice).withdraw("0")).to.revertedWith(
-          "ERROR: WITHDRAWAL_ZERO"
-        );
+        await expect(market.connect(alice).withdraw("0")).to.revertedWith("ERROR: WITHDRAWAL_ZERO");
       });
 
       it("revert withdraw when liquidity is locked for insurance", async function () {
@@ -1187,14 +1023,12 @@ describe("Pool", function () {
           span: WEEK,
           target: padded1,
           insured: bob.address,
-          agent: bob.address
+          agent: bob.address,
         });
 
         await moveForwardPeriods(8);
 
-        await expect(
-          market.connect(alice).withdraw(depositAmount)
-        ).to.revertedWith("WITHDRAW_INSUFFICIENT_LIQUIDITY");
+        await expect(market.connect(alice).withdraw(depositAmount)).to.revertedWith("WITHDRAW_INSUFFICIENT_LIQUIDITY");
       });
     });
 
@@ -1215,7 +1049,7 @@ describe("Pool", function () {
           span: WEEK,
           target: padded1,
           insured: bob.address,
-          agent: bob.address
+          agent: bob.address,
         });
 
         await insure({
@@ -1226,7 +1060,7 @@ describe("Pool", function () {
           span: WEEK,
           target: padded1,
           insured: bob.address,
-          agent: bob.address
+          agent: bob.address,
         });
 
         await moveForwardPeriods(10);
@@ -1240,9 +1074,7 @@ describe("Pool", function () {
 
     describe("allocateCredit", function () {
       it("reverts when trying to allocate zero", async () => {
-        await expect(market.allocateCredit(ZERO)).to.revertedWith(
-          "ALLOCATE_CREDIT_BAD_CONDITIONS"
-        );
+        await expect(market.allocateCredit(ZERO)).to.revertedWith("ALLOCATE_CREDIT_BAD_CONDITIONS");
       });
 
       it("accrue stored premium", async () => {});
@@ -1354,9 +1186,7 @@ describe("Pool", function () {
         });
 
         await expect(
-          market
-            .connect(bob)
-            .insure(depositAmount, depositAmount, WEEK, padded1, bob.address, bob.address)
+          market.connect(bob).insure(depositAmount, depositAmount, WEEK, padded1, bob.address, bob.address)
         ).to.revertedWith("ERROR: INSURE_MARKET_PENDING");
       });
 
@@ -1401,12 +1231,10 @@ describe("Pool", function () {
         span: WEEK,
         target: padded1,
         insured: bob.address,
-        agent: bob.address
+        agent: bob.address,
       });
 
-      await expect(market.unlock("0")).to.revertedWith(
-        "ERROR: UNLOCK_BAD_COINDITIONS"
-      );
+      await expect(market.unlock("0")).to.revertedWith("ERROR: UNLOCK_BAD_COINDITIONS");
 
       await moveForwardPeriods(10);
 
@@ -1439,9 +1267,9 @@ describe("Pool", function () {
         amount: depositAmount.div(2),
       });
 
-      await expect(
-        market.connect(alice).withdraw(depositAmount.div(2).add(1))
-      ).to.revertedWith("WITHDRAWAL_EXCEEDED_REQUEST");
+      await expect(market.connect(alice).withdraw(depositAmount.div(2).add(1))).to.revertedWith(
+        "WITHDRAWAL_EXCEEDED_REQUEST"
+      );
 
       await withdraw({
         target: market,
@@ -1467,7 +1295,7 @@ describe("Pool", function () {
         span: YEAR,
         target: padded1,
         insured: bob.address,
-        agent: bob.address
+        agent: bob.address,
       });
 
       //the premium paid second time should be allocated to both Alice and Chad
@@ -1488,7 +1316,7 @@ describe("Pool", function () {
         span: YEAR,
         target: padded1,
         insured: bob.address,
-        agent: bob.address
+        agent: bob.address,
       });
 
       //withdrawal also harvest accrued premium
@@ -1526,9 +1354,7 @@ describe("Pool", function () {
       await market.setPaused(true);
 
       await usdc.connect(alice).approve(vault.address, depositAmount);
-      await expect(
-        market.connect(alice).deposit(depositAmount)
-      ).to.revertedWith("ERROR: DEPOSIT_DISABLED");
+      await expect(market.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: DEPOSIT_DISABLED");
 
       await moveForwardPeriods(8);
 
@@ -1564,7 +1390,7 @@ describe("Pool", function () {
         span: WEEK,
         target: padded1,
         insured: bob.address,
-        agent: bob.address
+        agent: bob.address,
       });
 
       let incident = await now();
@@ -1586,9 +1412,7 @@ describe("Pool", function () {
         proof: proof,
       });
 
-      await expect(market.unlock("0")).to.revertedWith(
-        "ERROR: UNLOCK_BAD_COINDITIONS"
-      );
+      await expect(market.unlock("0")).to.revertedWith("ERROR: UNLOCK_BAD_COINDITIONS");
 
       await moveForwardPeriods(11);
 
@@ -1619,7 +1443,7 @@ describe("Pool", function () {
         span: WEEK,
         target: padded1,
         insured: bob.address,
-        agent: bob.address
+        agent: bob.address,
       });
 
       incident = await now();
@@ -1640,9 +1464,7 @@ describe("Pool", function () {
         proof: proof,
       });
 
-      expect(await market.valueOfUnderlying(alice.address)).to.equal(
-        u[alice.address].lp.mul(m1.rate).div(defaultRate)
-      );
+      expect(await market.valueOfUnderlying(alice.address)).to.equal(u[alice.address].lp.mul(m1.rate).div(defaultRate));
 
       await moveForwardPeriods(11);
 
@@ -1675,7 +1497,7 @@ describe("Pool", function () {
         span: WEEK,
         target: padded1,
         insured: bob.address,
-        agent: bob.address
+        agent: bob.address,
       });
 
       let incident = await now();
@@ -1701,9 +1523,7 @@ describe("Pool", function () {
         market: market,
       });
 
-      await expect(market.unlock("0")).to.revertedWith(
-        "ERROR: UNLOCK_BAD_COINDITIONS"
-      );
+      await expect(market.unlock("0")).to.revertedWith("ERROR: UNLOCK_BAD_COINDITIONS");
 
       await withdraw({
         target: market,
@@ -1728,7 +1548,7 @@ describe("Pool", function () {
         span: WEEK,
         target: padded1,
         insured: bob.address,
-        agent: bob.address
+        agent: bob.address,
       });
 
       let incident = await now();
@@ -1747,9 +1567,7 @@ describe("Pool", function () {
         market: market,
       });
 
-      await expect(market.connect(bob).redeem("0", _loss, proof)).to.revertedWith(
-        "ERROR: NO_APPLICABLE_INCIDENT"
-      );
+      await expect(market.connect(bob).redeem("0", _loss, proof)).to.revertedWith("ERROR: NO_APPLICABLE_INCIDENT");
 
       await unlock({
         target: market,
@@ -1778,9 +1596,7 @@ describe("Pool", function () {
       });
 
       await expect(
-        market
-          .connect(bob)
-          .insure(depositAmount.add(1), depositAmount, WEEK, padded1, bob.address, bob.address)
+        market.connect(bob).insure(depositAmount.add(1), depositAmount, WEEK, padded1, bob.address, bob.address)
       ).to.revertedWith("INSURE_EXCEEDED_AVAIL_BALANCE");
 
       await moveForwardPeriods(8);
@@ -1815,7 +1631,7 @@ describe("Pool", function () {
         span: WEEK,
         target: padded1,
         insured: bob.address,
-        agent: bob.address
+        agent: bob.address,
       });
 
       let incident = await now();
@@ -1834,9 +1650,7 @@ describe("Pool", function () {
         market: market,
       });
 
-      await expect(market.connect(bob).redeem("0", _loss, proof)).to.revertedWith(
-        "ERROR: NO_APPLICABLE_INCIDENT"
-      );
+      await expect(market.connect(bob).redeem("0", _loss, proof)).to.revertedWith("ERROR: NO_APPLICABLE_INCIDENT");
 
       await unlock({
         target: market,
@@ -1876,7 +1690,7 @@ describe("Pool", function () {
         span: WEEK,
         target: padded1,
         insured: bob.address,
-        agent: bob.address
+        agent: bob.address,
       });
 
       //Cannot get insured when payingout
@@ -1904,7 +1718,7 @@ describe("Pool", function () {
         span: WEEK,
         target: padded1,
         insured: bob.address,
-        agent: bob.address
+        agent: bob.address,
       });
 
       //Cannot get insured when paused
@@ -1923,7 +1737,7 @@ describe("Pool", function () {
         span: WEEK,
         target: padded1,
         insured: bob.address,
-        agent: bob.address
+        agent: bob.address,
       });
     });
 
@@ -1945,13 +1759,11 @@ describe("Pool", function () {
         span: YEAR,
         target: padded1,
         insured: bob.address,
-        agent: bob.address
+        agent: bob.address,
       });
       //Cannot get insured for more than 365 days
       await expect(
-        market
-          .connect(bob)
-          .insure(insureAmount, insureAmount, YEAR.add(DAY), padded1, bob.address, bob.address)
+        market.connect(bob).insure(insureAmount, insureAmount, YEAR.add(DAY), padded1, bob.address, bob.address)
       ).to.revertedWith("ERROR: INSURE_EXCEEDED_MAX_SPAN");
     });
   });
@@ -1975,7 +1787,7 @@ describe("Pool", function () {
         span: YEAR,
         target: padded1,
         insured: bob.address,
-        agent: bob.address
+        agent: bob.address,
       });
 
       await insure({
@@ -1986,7 +1798,7 @@ describe("Pool", function () {
         span: YEAR,
         target: padded1,
         insured: chad.address,
-        agent: chad.address
+        agent: chad.address,
       });
 
       expect(await market.allInsuranceCount()).to.equal("2");

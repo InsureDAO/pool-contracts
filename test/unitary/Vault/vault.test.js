@@ -2,7 +2,6 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
-
 const {
   verifyBalances,
   verifyAllowance,
@@ -18,23 +17,20 @@ const {
   verifyVaultStatusOf_legacy,
   verifyDebtOf,
 
-  verifyRate
-} = require('../test-utils')
+  verifyRate,
+} = require("../test-utils");
 
-const{ 
-  NULL_ADDRESS
-} = require('../constant-utils');
+const { NULL_ADDRESS } = require("../constant-utils");
 
-async function snapshot () {
-  return network.provider.send('evm_snapshot', [])
+async function snapshot() {
+  return network.provider.send("evm_snapshot", []);
 }
 
-async function restore (snapshotId) {
-  return network.provider.send('evm_revert', [snapshotId])
+async function restore(snapshotId) {
+  return network.provider.send("evm_revert", [snapshotId]);
 }
 
 describe("Vault", function () {
-
   const initialMint = BigNumber.from("100000"); //initial token amount for users
 
   const depositAmount = BigNumber.from("10000"); //default deposit amount for test
@@ -46,7 +42,6 @@ describe("Vault", function () {
   const RATE_DIVIDER = BigNumber.from("1000000"); //1e6
   const UTILIZATION_RATE_LENGTH_1E8 = BigNumber.from("1000000"); //1e6
   const padded1 = ethers.utils.hexZeroPad("0x1", 32);
-
 
   before(async () => {
     //import
@@ -64,12 +59,7 @@ describe("Vault", function () {
     tokenA = await DAI.deploy();
     registry = await Registry.deploy(ownership.address);
     controller = await Contorller.deploy(dai.address, ownership.address);
-    vault = await Vault.deploy(
-      dai.address,
-      registry.address,
-      controller.address,
-      ownership.address
-    );
+    vault = await Vault.deploy(dai.address, registry.address, controller.address, ownership.address);
 
     //set up
     await dai.mint(alice.address, (100000).toString());
@@ -80,13 +70,13 @@ describe("Vault", function () {
   });
 
   beforeEach(async () => {
-    snapshotId = await snapshot()
+    snapshotId = await snapshot();
   });
 
   afterEach(async () => {
-    await restore(snapshotId)
-  })
-  
+    await restore(snapshotId);
+  });
+
   describe("Condition", function () {
     it("Should contracts be deployed", async () => {
       expect(dai.address).to.exist;
@@ -105,9 +95,7 @@ describe("Vault", function () {
       await controller.yield();
 
       expect(await vault["underlyingValue(address)"](alice.address)).to.equal(17500);
-      expect(await vault.getPricePerFullShare()).to.equal(
-        "1750000"
-      );
+      expect(await vault.getPricePerFullShare()).to.equal("1750000");
 
       await vault.connect(alice).withdrawAllAttribution(alice.address);
 

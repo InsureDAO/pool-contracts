@@ -98,11 +98,8 @@ describe("multiIndex", function () {
     const encoded = (target) => {
       const list = getLeaves(target);
 
-      return list.map(({ id, account, loss}) => {
-        return ethers.utils.solidityKeccak256(
-          ["bytes32", "address", "uint256"],
-          [id, account, loss]
-        );
+      return list.map(({ id, account, loss }) => {
+        return ethers.utils.solidityKeccak256(["bytes32", "address", "uint256"], [id, account, loss]);
       });
     };
 
@@ -115,15 +112,7 @@ describe("multiIndex", function () {
     //console.log("proof", leaves, proof, root, leaf);
     //console.log("verify", tree.verify(proof, leaf, root)); // true
 
-    await pool.applyCover(
-      pending,
-      payoutNumerator,
-      payoutDenominator,
-      incidentTimestamp,
-      root,
-      "raw data",
-      "metadata"
-    );
+    await pool.applyCover(pending, payoutNumerator, payoutDenominator, incidentTimestamp, root, "raw data", "metadata");
 
     return proof;
   };
@@ -149,12 +138,7 @@ describe("multiIndex", function () {
     registry = await Registry.deploy(ownership.address);
     factory = await Factory.deploy(registry.address, ownership.address);
     premium = await PremiumModel.deploy();
-    vault = await Vault.deploy(
-      usdc.address,
-      registry.address,
-      ZERO_ADDRESS,
-      ownership.address
-    );
+    vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
 
     poolTemplate = await PoolTemplate.deploy();
     cdsTemplate = await CDSTemplate.deploy();
@@ -180,51 +164,16 @@ describe("multiIndex", function () {
 
     await factory.approveReference(poolTemplate.address, 0, usdc.address, true);
     await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
-    await factory.approveReference(
-      poolTemplate.address,
-      2,
-      registry.address,
-      true
-    );
-    await factory.approveReference(
-      poolTemplate.address,
-      3,
-      parameters.address,
-      true
-    );
+    await factory.approveReference(poolTemplate.address, 2, registry.address, true);
+    await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
 
-    await factory.approveReference(
-      indexTemplate.address,
-      0,
-      usdc.address,
-      true
-    );
-    await factory.approveReference(
-      indexTemplate.address,
-      1,
-      registry.address,
-      true
-    );
-    await factory.approveReference(
-      indexTemplate.address,
-      2,
-      parameters.address,
-      true
-    );
+    await factory.approveReference(indexTemplate.address, 0, usdc.address, true);
+    await factory.approveReference(indexTemplate.address, 1, registry.address, true);
+    await factory.approveReference(indexTemplate.address, 2, parameters.address, true);
 
     await factory.approveReference(cdsTemplate.address, 0, usdc.address, true);
-    await factory.approveReference(
-      cdsTemplate.address,
-      1,
-      registry.address,
-      true
-    );
-    await factory.approveReference(
-      cdsTemplate.address,
-      2,
-      parameters.address,
-      true
-    );
+    await factory.approveReference(cdsTemplate.address, 1, registry.address, true);
+    await factory.approveReference(cdsTemplate.address, 2, parameters.address, true);
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
@@ -236,36 +185,30 @@ describe("multiIndex", function () {
     await parameters.setVault(usdc.address, vault.address);
     await parameters.setMaxList(ZERO_ADDRESS, "10");
 
-    console.log(1)
+    console.log(1);
 
     //create Single Pools
     await usdc.connect(alice).approve(vault.address, INITIAL_DEPOSIT);
-    let tx = await factory.connect(alice).createMarket(
-      poolTemplate.address,
-      "Here is metadata.",
-      [0, INITIAL_DEPOSIT],
-      [
-        usdc.address,
-        usdc.address,
-        registry.address,
-        parameters.address,
-      ]
-    );
-    
+    let tx = await factory
+      .connect(alice)
+      .createMarket(
+        poolTemplate.address,
+        "Here is metadata.",
+        [0, INITIAL_DEPOSIT],
+        [usdc.address, usdc.address, registry.address, parameters.address]
+      );
+
     let receipt = await tx.wait();
 
     await usdc.connect(alice).approve(vault.address, INITIAL_DEPOSIT);
-    tx = await factory.connect(alice).createMarket(
-      poolTemplate.address,
-      "Here is metadata.",
-      [0, INITIAL_DEPOSIT],
-      [
-        usdc.address,
-        usdc.address,
-        registry.address,
-        parameters.address,
-      ]
-    );
+    tx = await factory
+      .connect(alice)
+      .createMarket(
+        poolTemplate.address,
+        "Here is metadata.",
+        [0, INITIAL_DEPOSIT],
+        [usdc.address, usdc.address, registry.address, parameters.address]
+      );
     receipt = await tx.wait();
 
     //create CDS
@@ -293,7 +236,7 @@ describe("multiIndex", function () {
     );
     receipt = await tx.wait();
 
-    let markets = await registry.getAllMarkets()
+    let markets = await registry.getAllMarkets();
 
     market1 = await PoolTemplate.attach(markets[0]);
     market2 = await PoolTemplate.attach(markets[1]);
@@ -327,9 +270,10 @@ describe("multiIndex", function () {
   describe("over write indexList", function () {
     beforeEach(async () => {
       await usdc.connect(alice).approve(vault.address, depositAmount);
-      await index1.connect(alice).deposit(depositAmount)
+      await index1.connect(alice).deposit(depositAmount);
 
-      {//sanity check
+      {
+        //sanity check
         await verifyPoolsStatus({
           pools: [
             {
@@ -352,13 +296,13 @@ describe("multiIndex", function () {
             },
           ],
         });
-
       }
 
       await usdc.connect(alice).approve(vault.address, depositAmountLarge);
       await index2.connect(alice).deposit(depositAmountLarge);
 
-      {//sanity check
+      {
+        //sanity check
         await verifyPoolsStatus({
           pools: [
             {
@@ -381,11 +325,10 @@ describe("multiIndex", function () {
             },
           ],
         });
-
       }
 
       //create Index
-      let count = (await registry.getAllMarkets()).length
+      let count = (await registry.getAllMarkets()).length;
 
       tx = await factory.createMarket(
         indexTemplate.address,
@@ -395,39 +338,39 @@ describe("multiIndex", function () {
       );
       await tx.wait();
 
-      let markets = await registry.getAllMarkets()
+      let markets = await registry.getAllMarkets();
 
       index3 = await IndexTemplate.attach(markets[count]);
     });
     it("revert before withdrawCredit", async function () {
       //should be reverted before withdrawCredit
-      await expect(index3.set(0, 0, market1.address, ten_to_the_18)).to.revertedWith(
-        "ERROR: WITHDRAW_CREDIT_FIRST"
-      );
+      await expect(index3.set(0, 0, market1.address, ten_to_the_18)).to.revertedWith("ERROR: WITHDRAW_CREDIT_FIRST");
     });
 
     it("should set new index address", async function () {
-      await index1.set(0, 0, market1.address, ZERO) //withdrawCredit
-      await index3.set(0, 0, market1.address, ten_to_the_18)
+      await index1.set(0, 0, market1.address, ZERO); //withdrawCredit
+      await index3.set(0, 0, market1.address, ten_to_the_18);
 
-      expect(await market1.indexList(0)).to.equal(index3.address)
+      expect(await market1.indexList(0)).to.equal(index3.address);
     });
 
     it("when index1 has rewardDebt", async function () {
-      await index1.set(0, 0, market1.address, ZERO) //withdrawCredit
+      await index1.set(0, 0, market1.address, ZERO); //withdrawCredit
 
       await usdc.connect(alice).approve(vault.address, initialMint);
-      await market1.connect(alice).insure(insureAmount, insureAmount, YEAR, SmartContractHackingCover, alice.address, alice.address);
+      await market1
+        .connect(alice)
+        .insure(insureAmount, insureAmount, YEAR, SmartContractHackingCover, alice.address, alice.address);
 
       await index1.set(0, 0, market1.address, ten_to_the_18);
-      expect((await market1.indices(index1.address)).rewardDebt).to.not.equal(ZERO)
+      expect((await market1.indices(index1.address)).rewardDebt).to.not.equal(ZERO);
 
       await index1.set(0, 0, market1.address, ZERO); //this makes rewardDebt zero
-      expect((await market1.indices(index1.address)).rewardDebt).to.equal(ZERO)
+      expect((await market1.indices(index1.address)).rewardDebt).to.equal(ZERO);
 
       //success
-      await index3.set(0, 0, market1.address, ten_to_the_18)
-      expect(await market1.indexList(0)).to.equal(index3.address)
+      await index3.set(0, 0, market1.address, ten_to_the_18);
+      expect(await market1.indexList(0)).to.equal(index3.address);
     });
   });
 });
