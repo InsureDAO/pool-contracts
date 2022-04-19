@@ -3,14 +3,9 @@ require("@nomiclabs/hardhat-web3");
 require("solidity-coverage");
 require("hardhat-contract-sizer");
 require("@nomiclabs/hardhat-etherscan");
-require('dotenv').config()
+require("dotenv").config();
 
-const { 
-  ETHERSCAN_API,
-  KEY,
-  PRODUCTION_KEY,
-  INFURA_KEY
- } = process.env
+const { ETHERSCAN_API, KEY, PRODUCTION_KEY, INFURA_KEY } = process.env;
 
 module.exports = {
   solidity: "0.8.10",
@@ -33,7 +28,7 @@ module.exports = {
       url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${PRODUCTION_KEY}`],
       gas: 6e6,
-      gasPrice: 8e10,//80Gwei
+      gasPrice: 8e10, //80Gwei
       timeout: 2000000000,
     },
     rinkeby: {
@@ -47,12 +42,12 @@ module.exports = {
       url: `https://ropsten.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${KEY}`],
       gas: 6e6,
-      gasPrice: 1e10,//10Gwei
+      gasPrice: 1e10, //10Gwei
       timeout: 2000000000,
     },
     rinkarbitrum: {
-      url: 'https://rinkeby.arbitrum.io/rpc',
-      accounts: [`0x${KEY}`]
+      url: "https://rinkeby.arbitrum.io/rpc",
+      accounts: [`0x${KEY}`],
     },
   },
   solidity: {
@@ -66,7 +61,7 @@ module.exports = {
   },
   paths: {
     sources: "./contracts",
-    tests: "./test/unitary",
+    tests: "./test/unitary/FlatPremium",
     cache: "./cache",
     artifacts: "./artifacts",
   },
