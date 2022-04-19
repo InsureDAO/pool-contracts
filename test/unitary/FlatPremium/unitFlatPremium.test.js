@@ -23,7 +23,7 @@ const {
   verifyRate,
 } = require("../test-utils");
 
-const { ZERO_ADDRESS, TEST_ADDRESS, NULL_ADDRESS, short, YEAR, WEEK, DAY, ZERO } = require("../constant-utils");
+const { ZERO_ADDRESS, TEST_ADDRESS, NULL_ADDRESS, short, YEAR, WEEK, DAY, ZERO, ONE } = require("../constant-utils");
 
 async function snapshot() {
   return network.provider.send("evm_snapshot", []);
@@ -57,7 +57,7 @@ describe("FlatPremium", function () {
     //deploy
     ownership = await Ownership.deploy();
     premium = await FlatPremium.deploy(ownership.address);
-    await premium.connect(gov).setPremiumParameters(defaultRate, ZERO, ZERO, ZERO);
+    await premium.setPremiumParameters(defaultRate, ZERO, ZERO, ZERO);
   });
 
   beforeEach(async () => {
@@ -69,8 +69,82 @@ describe("FlatPremium", function () {
   });
 
   describe("FlatPremium", function () {
-    describe("", function () {
-      it("", async () => {});
+    describe("constructor", function () {
+      it("set successfully", async () => {
+        expect(await premium.ownership()).to.equal(ownership.address);
+      });
+
+      it("revert when zero address", async () => {
+        const FlatPremium = await ethers.getContractFactory("FlatPremium");
+        await expect(FlatPremium.deploy(ZERO_ADDRESS)).to.revertedWith("zero address");
+      });
+    });
+
+    describe("setPremiumParameters", function () {
+      it("set successfully", async () => {
+        const newRate = defaultRate.mul(2);
+
+        expect(await premium.rate()).to.equal(defaultRate);
+        await premium.setPremiumParameters(newRate, ZERO, ZERO, ZERO);
+        expect(await premium.rate()).to.equal(newRate);
+      });
+
+      it("revert when invalid parameter", async () => {
+        await expect(premium.setPremiumParameters(RATE_DENOMINATOR.add(1), ZERO, ZERO, ZERO)).to.revertedWith(
+          "input invalid number"
+        );
+
+        await expect(premium.setPremiumParameters(defaultRate, ONE, ZERO, ZERO)).to.revertedWith(
+          "input invalid number"
+        );
+
+        await expect(premium.setPremiumParameters(defaultRate, ZERO, ONE, ZERO)).to.revertedWith(
+          "input invalid number"
+        );
+
+        await expect(premium.setPremiumParameters(defaultRate, ZERO, ZERO, ONE)).to.revertedWith(
+          "input invalid number"
+        );
+      });
+    });
+
+    describe("getCurrentPremiumRate", function () {
+      it("return correct value", async () => {
+        const currentRate = await premium.rate();
+        expect(await premium.getCurrentPremiumRate(ZERO, ZERO)).to.equal(currentRate);
+      });
+    });
+
+    describe("getPremiumRate", function () {
+      it("return correct value", async () => {
+        const currentRate = await premium.rate();
+        expect(await premium.getPremiumRate(ZERO, ZERO, ZERO)).to.equal(currentRate);
+      });
+    });
+
+    describe("getPremium", function () {
+      it("return correct value", async () => {
+        const amount = BigNumber.from("100000");
+        const term = YEAR;
+        const totalLiquidity = BigNumber.from("1000000");
+        const lockedAmount = BigNumber.from("100000");
+        const currentRate = await premium.rate();
+
+        const expectPremium = amount.mul(term).mul(currentRate).div(YEAR).div(RATE_DENOMINATOR);
+
+        expect(await premium.getPremium(amount, term, totalLiquidity, lockedAmount)).to.equal(expectPremium);
+      });
+
+      it("revert when exceed totalLiquidity", async () => {
+        const amount = BigNumber.from("900001");
+        const term = YEAR;
+        const totalLiquidity = BigNumber.from("1000000");
+        const lockedAmount = BigNumber.from("100000");
+
+        await expect(premium.getPremium(amount, term, totalLiquidity, lockedAmount)).to.revertedWith(
+          "Amount exceeds total liquidity"
+        );
+      });
     });
   });
 });

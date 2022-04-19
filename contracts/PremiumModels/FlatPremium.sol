@@ -26,6 +26,7 @@ contract FlatPremium is IPremiumModel {
     }
 
     constructor(address _ownership) {
+        require(_ownership != address(0), "zero address");
         ownership = IOwnership(_ownership);
     }
 
@@ -50,8 +51,10 @@ contract FlatPremium is IPremiumModel {
         uint256 _totalLiquidity,
         uint256 _lockedAmount
     ) external view override returns (uint256) {
-        require(_amount + _lockedAmount <= _totalLiquidity, "Amount exceeds.");
-        require(_totalLiquidity != 0, "_totalLiquidity cannnot be 0");
+        require(
+            _amount + _lockedAmount <= _totalLiquidity,
+            "Amount exceeds total liquidity"
+        );
 
         if (_amount == 0) {
             return 0;
