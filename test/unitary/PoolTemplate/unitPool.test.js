@@ -448,5 +448,31 @@ describe("Pool", function () {
         await expect(market.applyBounty(payout, tom.address, [0])).to.revertedWith("ERROR: NOT_TRADING_STATUS");
       });
     });
+
+    describe("openDeposit", function () {
+      it("set correctly", async () => {
+        expect(await market.openDeposit()).to.equal(true);
+        await market.setOpenDeposit(false);
+        expect(await market.openDeposit()).to.equal(false);
+
+        //if branch test
+        await market.setOpenDeposit(false);
+        expect(await market.openDeposit()).to.equal(false);
+      });
+      it("revert when not owner", async () => {
+        await expect(market.connect(alice).setOpenDeposit(false)).to.revertedWith("Caller is not allowed to operate");
+      });
+    });
+
+    describe("deposit", function () {
+      it("only owner can deposit when openDeposit is false", async () => {
+        await market.setOpenDeposit(false);
+
+        await expect(market.connect(alice).deposit(depositAmount)).to.revertedWith("deposit prohibit");
+
+        await usdc.connect(gov).approve(vault.address, depositAmount);
+        await market.connect(gov).deposit(depositAmount);
+      });
+    });
   });
 });

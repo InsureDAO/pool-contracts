@@ -60,6 +60,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     event CreditDecrease(address indexed withdrawer, uint256 credit);
     event MarketStatusChanged(MarketStatus statusValue);
     event Paused(bool paused);
+    event SetOpenDeposit(bool openDeposit);
     event MetadataChanged(string metadata);
 
     /**
@@ -68,6 +69,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     /// @notice Market setting
     bool public initialized;
     bool public override paused;
+    bool public openDeposit;
     string public metadata;
 
     /// @notice External contract call addresses
@@ -188,6 +190,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             "INITIALIZATION_BAD_CONDITIONS"
         );
         initialized = true;
+        openDeposit = true;
 
         string memory _name = "InsureDAO Insurance LP";
         string memory _symbol = "iNsure";
@@ -244,6 +247,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @return _mintAmount the amount of iTokens minted from the transaction
      */
     function deposit(uint256 _amount) external returns (uint256 _mintAmount) {
+        require(
+            openDeposit == true || msg.sender == parameters.getOwner(),
+            "deposit prohibit"
+        );
         _mintAmount = _depositFrom(_amount, msg.sender);
     }
 
@@ -1007,6 +1014,13 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         if (paused != _state) {
             paused = _state;
             emit Paused(_state);
+        }
+    }
+
+    function setOpenDeposit(bool _state) external onlyOwner {
+        if (openDeposit != _state) {
+            openDeposit = _state;
+            emit SetOpenDeposit(_state);
         }
     }
 
