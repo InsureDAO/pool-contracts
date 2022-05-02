@@ -7,6 +7,8 @@ interface IParameters {
 
     function setGrace(address _address, uint256 _target) external;
 
+    function setMaxDate(address _address, uint256 _target) external;
+
     function setMinDate(address _address, uint256 _target) external;
 
     function setUpperSlack(address _address, uint256 _target) external;
@@ -46,6 +48,8 @@ interface IParameters {
     function getWithdrawable(address _target) external view returns (uint256);
 
     function getGrace(address _target) external view returns (uint256);
+
+    function getMaxDate(address _target) external view returns (uint256);
 
     function getMinDate(address _target) external view returns (uint256);
 

@@ -559,7 +559,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             "INSURE_EXCEEDED_AVAIL_BALANCE"
         );
 
-        require(_span <= 365 days, "ERROR: INSURE_EXCEEDED_MAX_SPAN");
+        require(
+            _span <= parameters.getMaxDate(address(this)),
+            "ERROR: INSURE_EXCEEDED_MAX_SPAN"
+        );
         require(
             parameters.getMinDate(address(this)) <= _span,
             "ERROR: INSURE_SPAN_BELOW_MIN"

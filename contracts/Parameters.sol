@@ -19,6 +19,7 @@ contract Parameters is IParameters {
     event LowerSlack(address indexed target, uint256 rate);
     event LockupSet(address indexed target, uint256 span);
     event GraceSet(address indexed target, uint256 span);
+    event MaxDateSet(address indexed target, uint256 span);
     event MinDateSet(address indexed target, uint256 span);
     event WithdrawableSet(address indexed target, uint256 span);
     event ConditionSet(bytes32 indexed ref, bytes32 condition);
@@ -33,6 +34,7 @@ contract Parameters is IParameters {
     mapping(address => uint256) private _upperSlack; //upper slack range before adjustAlloc for index
     mapping(address => uint256) private _grace; //grace before an insurance policy expires
     mapping(address => uint256) private _lockup; //funds lock up period after user requested to withdraw liquidity
+    mapping(address => uint256) private _max; //maximum period to purchase an insurance policy
     mapping(address => uint256) private _min; //minimum period to purchase an insurance policy
     mapping(address => uint256) private _maxList; //maximum number of pools one index can allocate
     mapping(address => uint256) private _withdrawable; //a certain period a user can withdraw after lock up ends
@@ -99,6 +101,21 @@ contract Parameters is IParameters {
     }
 
     /**
+     * @notice set max length in unix timestamp length (1 day = 86400)
+     * @param _address address to set the parameter
+     * @param _target parameter
+     */
+    function setMaxDate(address _address, uint256 _target)
+        external
+        override
+        onlyOwner
+    {
+        require(_min[_address] <= _target, "smaller than MinDate");
+        _max[_address] = _target;
+        emit MaxDateSet(_address, _target);
+    }
+
+    /**
      * @notice set min length in unix timestamp length (1 day = 86400)
      * @param _address address to set the parameter
      * @param _target parameter
@@ -108,6 +125,7 @@ contract Parameters is IParameters {
         override
         onlyOwner
     {
+        require(_target <= _max[_address], "greater than MaxDate");
         _min[_address] = _target;
         emit MinDateSet(_address, _target);
     }
@@ -377,6 +395,25 @@ contract Parameters is IParameters {
             return _grace[address(0)];
         } else {
             return _targetGrace;
+        }
+    }
+
+    /**
+     * @notice get max period length for an insurance policy
+     * @param _target target contract's address
+     * @return minimum lenght of policy
+     */
+    function getMaxDate(address _target)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        uint256 _maxDate = _max[_target];
+        if (_maxDate == 0) {
+            return _max[address(0)];
+        } else {
+            return _maxDate;
         }
     }
 

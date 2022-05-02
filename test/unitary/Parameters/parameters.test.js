@@ -149,29 +149,60 @@ describe("Parameters", function () {
       });
     });
 
+    describe("setMaxDate", function () {
+      it("should allow setting by the admin address", async () => {
+        await parameters.setMaxDate(ZERO_ADDRESS, 604800);
+        expect(await parameters.getMaxDate(TEST_ADDRESS)).to.equal(604800);
+      });
+
+      it("should only allow setting attempt by the admin", async () => {
+        await expect(parameters.connect(alice).setMaxDate(TEST_ADDRESS, 604800)).to.revertedWith(
+          "Caller is not allowed to operate"
+        );
+      });
+
+      it("should return the dafault value if the address not registered", async () => {
+        await parameters.setMaxDate(ZERO_ADDRESS, 604800);
+        expect(await parameters.getMaxDate(TEST_ADDRESS)).to.equal(604800);
+      });
+
+      it("should return the value if registered", async () => {
+        await parameters.setMaxDate(NULL_ADDRESS, 604800);
+        expect(await parameters.getMaxDate(NULL_ADDRESS)).to.equal(604800);
+      });
+
+      it("should emit the event", async () => {
+        await expect(parameters.setMaxDate(TEST_ADDRESS, 604800)).to.emit(parameters, "MaxDateSet");
+      });
+    });
     describe("setMinDate", function () {
       it("should allow setting by the admin address", async () => {
+        await parameters.setMaxDate(TEST_ADDRESS, 604801);
         await parameters.setMinDate(TEST_ADDRESS, 604800);
         expect(await parameters.getMinDate(TEST_ADDRESS)).to.equal(604800);
       });
 
       it("should only allow setting attempt by the admin", async () => {
+        await parameters.setMaxDate(TEST_ADDRESS, 604801);
         await expect(parameters.connect(alice).setMinDate(TEST_ADDRESS, 604800)).to.revertedWith(
           "Caller is not allowed to operate"
         );
       });
 
       it("should return the dafault value if the address not registered", async () => {
+        await parameters.setMaxDate(ZERO_ADDRESS, 604801);
         await parameters.setMinDate(ZERO_ADDRESS, 604800);
         expect(await parameters.getMinDate(TEST_ADDRESS)).to.equal(604800);
       });
 
       it("should return the value if registered", async () => {
+        await parameters.setMaxDate(NULL_ADDRESS, 604801);
         await parameters.setMinDate(NULL_ADDRESS, 604800);
         expect(await parameters.getMinDate(NULL_ADDRESS)).to.equal(604800);
       });
 
       it("should emit the event", async () => {
+        await parameters.setMaxDate(TEST_ADDRESS, 604801);
         await expect(parameters.setMinDate(TEST_ADDRESS, 604800)).to.emit(parameters, "MinDateSet");
       });
     });

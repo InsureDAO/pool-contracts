@@ -5,7 +5,7 @@ require("hardhat-contract-sizer");
 require("@nomiclabs/hardhat-etherscan");
 require("dotenv").config();
 
-const { ETHERSCAN_API, KEY, PRODUCTION_KEY, INFURA_KEY } = process.env;
+const { ETHERSCAN_API, KEY, PRODUCTION_KEY, INFURA_KEY, SHIBUYA_URL } = process.env;
 
 module.exports = {
   solidity: "0.8.10",
@@ -47,6 +47,10 @@ module.exports = {
     },
     rinkarbitrum: {
       url: "https://rinkeby.arbitrum.io/rpc",
+      accounts: [`0x${KEY}`],
+    },
+    shibuya: {
+      url: SHIBUYA_URL,
       accounts: [`0x${KEY}`],
     },
   },

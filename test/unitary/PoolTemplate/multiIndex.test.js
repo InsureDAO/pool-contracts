@@ -180,6 +180,7 @@ describe("multiIndex", function () {
     await parameters.setGrace(ZERO_ADDRESS, WEEK.mul(2));
     await parameters.setLockup(ZERO_ADDRESS, WEEK);
     await parameters.setWithdrawable(ZERO_ADDRESS, WEEK.mul(2));
+    await parameters.setMaxDate(ZERO_ADDRESS, YEAR);
     await parameters.setMinDate(ZERO_ADDRESS, WEEK);
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
     await parameters.setVault(usdc.address, vault.address);

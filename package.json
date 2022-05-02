@@ -1,6 +1,6 @@
 {
   "name": "@insuredao/pool-contracts",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Core smart contracts of InsureDAO",
   "main": "hardhat.config.js",
   "directories": {
