@@ -5,7 +5,7 @@ require("hardhat-contract-sizer");
 require("@nomiclabs/hardhat-etherscan");
 require("dotenv").config();
 
-const { ETHERSCAN_API, KEY, PRODUCTION_KEY, INFURA_KEY, SHIBUYA_URL } = process.env;
+const { ETHERSCAN_API, KEY, PRODUCTION_KEY, INFURA_KEY, SHIBUYA_URL, ASTAR_URL } = process.env;
 
 module.exports = {
   solidity: "0.8.10",
@@ -30,6 +30,11 @@ module.exports = {
       gas: 6e6,
       gasPrice: 8e10, //80Gwei
       timeout: 2000000000,
+    },
+    astar: {
+      url: ASTAR_URL,
+      accounts: [`0x${PRODUCTION_KEY}`],
+      gasPrice: 3e9, //3Gwei
     },
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
