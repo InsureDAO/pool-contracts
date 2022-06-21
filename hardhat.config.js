@@ -5,7 +5,7 @@ require("hardhat-contract-sizer");
 require("@nomiclabs/hardhat-etherscan");
 require("dotenv").config();
 
-const { ETHERSCAN_API, KEY, PRODUCTION_KEY, INFURA_KEY, SHIBUYA_URL, ASTAR_URL } = process.env;
+const { ETHERSCAN_API, KEY, PRODUCTION_KEY, INFURA_KEY, SHIBUYA_URL, ASTAR_URL, MUMBAI_URL, GOERI_URL } = process.env;
 
 module.exports = {
   solidity: "0.8.10",
@@ -36,6 +36,10 @@ module.exports = {
       accounts: [`0x${PRODUCTION_KEY}`],
       gasPrice: 3e9, //3Gwei
     },
+    optmain: {
+      url: `https://optimism-kovan.infura.io/v3/${INFURA_KEY}`,
+      accounts: [`0x${PRODUCTION_KEY}`],
+    },
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${KEY}`],
@@ -56,6 +60,18 @@ module.exports = {
     },
     shibuya: {
       url: SHIBUYA_URL,
+      accounts: [`0x${KEY}`],
+    },
+    goerli: {
+      url: GOERI_URL,
+      accounts: [`0x${KEY}`],
+    },
+    mumbai: {
+      url: MUMBAI_URL,
+      accounts: [`0x${KEY}`],
+    },
+    optkovan: {
+      url: `https://optimism-kovan.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${KEY}`],
     },
   },
