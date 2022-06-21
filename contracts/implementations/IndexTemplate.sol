@@ -6,14 +6,14 @@ pragma solidity 0.8.10;
  */
 
 import "./InsureDAOERC20.sol";
-import "./interfaces/IIndexTemplate.sol";
-import "./interfaces/IUniversalMarket.sol";
+import "../interfaces/IIndexTemplate.sol";
+import "../interfaces/IUniversalMarket.sol";
 
-import "./interfaces/IVault.sol";
-import "./interfaces/IRegistry.sol";
-import "./interfaces/IParameters.sol";
-import "./interfaces/IPoolTemplate.sol";
-import "./interfaces/ICDSTemplate.sol";
+import "../interfaces/IVault.sol";
+import "../interfaces/IRegistry.sol";
+import "../interfaces/IParameters.sol";
+import "../interfaces/IPoolTemplate.sol";
+import "../interfaces/ICDSTemplate.sol";
 
 /**
  * An index pool can index a certain number of pools with leverage.

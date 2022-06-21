@@ -160,7 +160,10 @@ contract ERC20 is IERC20 {
         returns (bool)
     {
         uint256 currentAllowance = _allowances[msg.sender][spender];
-        require(currentAllowance >= subtractedValue, "Decreased allowance below zero");
+        require(
+            currentAllowance >= subtractedValue,
+            "Decreased allowance below zero"
+        );
         unchecked {
             _approve(msg.sender, spender, currentAllowance - subtractedValue);
         }
@@ -272,7 +275,10 @@ contract ERC20 is IERC20 {
     function _burnFrom(address account, uint256 amount) internal {
         _burn(account, amount);
         uint256 currentAllowance = _allowances[account][msg.sender];
-        require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
+        require(
+            currentAllowance >= amount,
+            "ERC20: burn amount exceeds allowance"
+        );
         unchecked {
             _approve(account, msg.sender, currentAllowance - amount);
         }

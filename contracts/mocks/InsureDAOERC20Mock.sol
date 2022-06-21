@@ -1,6 +1,6 @@
 pragma solidity 0.8.10;
 
-import "../InsureDAOERC20.sol";
+import "../implementations/InsureDAOERC20.sol";
 
 contract InsureDAOERC20Mock is InsureDAOERC20 {
     constructor() {}

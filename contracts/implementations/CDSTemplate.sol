@@ -6,12 +6,12 @@ pragma solidity 0.8.10;
  * SPDX-License-Identifier: GPL-3.0
  */
 
-import "./interfaces/IUniversalMarket.sol";
+import "../interfaces/IUniversalMarket.sol";
 import "./InsureDAOERC20.sol";
-import "./interfaces/IVault.sol";
-import "./interfaces/IRegistry.sol";
-import "./interfaces/IParameters.sol";
-import "./interfaces/ICDSTemplate.sol";
+import "../interfaces/IVault.sol";
+import "../interfaces/IRegistry.sol";
+import "../interfaces/IParameters.sol";
+import "../interfaces/ICDSTemplate.sol";
 
 contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     /**

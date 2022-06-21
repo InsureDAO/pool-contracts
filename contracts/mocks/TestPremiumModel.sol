@@ -5,8 +5,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 contract TestPremiumModel {
     using Address for address;
 
-    constructor() {
-    }
+    constructor() {}
 
     function getPremium(
         uint256 _amount,

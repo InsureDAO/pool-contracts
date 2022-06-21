@@ -7,11 +7,11 @@ pragma solidity 0.8.10;
  * SPDX-License-Identifier: GPL-3.0
  */
 
-import "./interfaces/IOwnership.sol";
-import "./interfaces/IParameters.sol";
-import "./interfaces/IPremiumModel.sol";
+import "../interfaces/IOwnership.sol";
+import "../interfaces/IParametersV2.sol";
+import "../interfaces/IPremiumModel.sol";
 
-contract Parameters is IParameters {
+contract ParametersV2 is IParametersV2 {
     event VaultSet(address indexed token, address vault);
     event FeeRateSet(address indexed target, uint256 rate);
     event PremiumSet(address indexed target, address model);
@@ -246,6 +246,15 @@ contract Parameters is IParameters {
      */
     function getVault(address _token) external view override returns (address) {
         return _vaults[_token];
+    }
+
+    function getPremiumModel(address _market)
+        external
+        view
+        override
+        returns (address)
+    {
+        return _premium[_market];
     }
 
     /**
