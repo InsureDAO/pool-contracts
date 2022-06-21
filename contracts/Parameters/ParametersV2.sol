@@ -9,7 +9,7 @@ pragma solidity 0.8.10;
 
 import "../interfaces/IOwnership.sol";
 import "../interfaces/IParametersV2.sol";
-import "../interfaces/IPremiumModel.sol";
+import "../interfaces/IPremiumModelV2.sol";
 
 contract ParametersV2 is IParametersV2 {
     event VaultSet(address indexed token, address vault);
@@ -276,7 +276,8 @@ contract ParametersV2 is IParametersV2 {
         address _targetPremium = _premium[_target];
         if (_targetPremium == address(0)) {
             return
-                IPremiumModel(_premium[address(0)]).getPremium(
+                IPremiumModelV2(_premium[address(0)]).getPremium(
+                    _target,
                     _amount,
                     _term,
                     _totalLiquidity,
@@ -284,7 +285,8 @@ contract ParametersV2 is IParametersV2 {
                 );
         } else {
             return
-                IPremiumModel(_targetPremium).getPremium(
+                IPremiumModelV2(_targetPremium).getPremium(
+                    _target,
                     _amount,
                     _term,
                     _totalLiquidity,
