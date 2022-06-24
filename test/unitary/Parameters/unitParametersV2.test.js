@@ -73,6 +73,8 @@ describe("ParametersV2", function () {
       //detailed tests for the premium model, please see ../PremiumModels
       it("should allow setting by the admin address", async () => {
         await parameters.setPremiumModel(TEST_ADDRESS, premiumModel.address);
+
+        expect(await parameters.getPremiumModel(TEST_ADDRESS)).to.equal(premiumModel.address);
       });
 
       it("should only allow setting attempt by the admin", async () => {
@@ -82,6 +84,8 @@ describe("ParametersV2", function () {
       });
       it("should return the dafault value if the address not registered", async () => {
         await parameters.setPremiumModel(ZERO_ADDRESS, premiumModel.address);
+
+        expect(await parameters.getPremiumModel(TEST_ADDRESS)).to.equal(premiumModel.address);
         expect(await parameters.getPremium(10000, 100, 100, 100, TEST_ADDRESS)).to.equal(1000);
       });
 

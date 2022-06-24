@@ -254,7 +254,12 @@ contract ParametersV2 is IParametersV2 {
         override
         returns (address)
     {
-        return _premium[_market];
+        address _model = _premium[_market];
+        if (_model == address(0)) {
+            return _premium[address(0)];
+        } else {
+            return _model;
+        }
     }
 
     /**
