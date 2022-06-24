@@ -1,3 +1,3 @@
 module.exports = {
-    skipFiles: ['mocks', 'interfaces', 'PremiumModels/legacy']
-  };
+  skipFiles: ["mocks", "interfaces", "PremiumModels/legacy"],
+};

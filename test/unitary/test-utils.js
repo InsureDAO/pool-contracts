@@ -19,7 +19,11 @@ const verifyBalance = async ({ token, address, expectedBalance }) => {
 const verifyBalances = async ({ token, userBalances }) => {
   const users = Object.keys(userBalances);
   for (i = 0; i < users.length; i++) {
-    await verifyBalance({ token: token, address: users[i], expectedBalance: userBalances[users[i]] });
+    await verifyBalance({
+      token: token,
+      address: users[i],
+      expectedBalance: userBalances[users[i]],
+    });
   }
 };
 const verifyAllowance = async ({ token, owner, spender, expectedAllowance }) => {
