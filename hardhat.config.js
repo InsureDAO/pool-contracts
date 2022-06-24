@@ -5,7 +5,17 @@ require("hardhat-contract-sizer");
 require("@nomiclabs/hardhat-etherscan");
 require("dotenv").config();
 
-const { ETHERSCAN_API, KEY, PRODUCTION_KEY, INFURA_KEY, SHIBUYA_URL, ASTAR_URL, MUMBAI_URL, GOERI_URL } = process.env;
+const {
+  ETHERSCAN_API,
+  KEY,
+  PRODUCTION_KEY,
+  INFURA_KEY,
+  SHIBUYA_URL,
+  ASTAR_URL,
+  MUMBAI_URL,
+  GOERI_URL,
+  OPT_KOVAN_ETHERSCAN_API,
+} = process.env;
 
 module.exports = {
   solidity: "0.8.10",
@@ -98,7 +108,10 @@ module.exports = {
   etherscan: {
     // Your API key for Etherscan
     // Obtain one at https://etherscan.io/
-    apiKey: `${ETHERSCAN_API}`,
+    apiKey: {
+      mainnet: `${ETHERSCAN_API}`,
+      optimisticKovan: `${OPT_KOVAN_ETHERSCAN_API}`,
+    },
   },
   mocha: {
     timeout: 20000000,
