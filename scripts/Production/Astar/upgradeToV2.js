@@ -26,7 +26,16 @@ async function main() {
     MinDate,
 
     defaultRate,
-  } = require("./config.js");
+  } = require("./config");
+
+  const {
+    OwnershipAddress,
+    RegistryAddress,
+    FactoryAddress,
+    VaultAddress,
+    ParametersAddress,
+    PoolTemplateAddress,
+  } = require("./deployments");
 
   const USDC = await ethers.getContractFactory("ERC20Mock");
   const Ownership = await ethers.getContractFactory("Ownership");
@@ -39,21 +48,18 @@ async function main() {
   const FlatPremiumV2 = await ethers.getContractFactory("FlatPremiumV2"); //V2
   const ParametersV2 = await ethers.getContractFactory("ParametersV2"); //V2
 
-  const usdc = await USDC.attach(USDC_ADDRESS);
-  console.log("usdc attached to:", usdc.address);
-
   //----- DEPLOY -----//
-  const ownership = await Ownership.deploy();
-  await ownership.deployed();
-  console.log("ownership deployed to:", ownership.address);
+  const ownership = await Ownership.attach(OwnershipAddress);
+  console.log("ownership attached to:", ownership.address);
 
-  const registry = await Registry.deploy(ownership.address);
-  await registry.deployed();
-  console.log("registry deployed to:", registry.address);
+  const registry = await Registry.attach(RegistryAddress);
+  console.log("registry attached to:", registry.address);
 
-  const factory = await Factory.deploy(registry.address, ownership.address);
-  await factory.deployed();
-  console.log("factory deployed to:", factory.address);
+  const factory = await Factory.attach(FactoryAddress);
+  console.log("factory attached to:", factory.address);
+
+  const vault = await Vault.attach(VaultAddress);
+  console.log("vault attached to:", vault.address);
 
   const premiumV2 = await FlatPremiumV2.deploy(ownership.address, defaultRate);
   await premiumV2.deployed();
@@ -63,61 +69,21 @@ async function main() {
   await parametersV2.deployed();
   console.log("parametersV2 deployed to:", parametersV2.address);
 
-  const vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
-  await vault.deployed();
-  console.log("vault deployed to:", vault.address);
-
   //Pools Template
   const poolTemplate = await PoolTemplate.deploy();
   await poolTemplate.deployed();
   console.log("poolTemplate deployed to:", poolTemplate.address);
 
-  const indexTemplate = await IndexTemplate.deploy();
-  await indexTemplate.deployed();
-  console.log("indexTemplate deployed to:", indexTemplate.address);
-
-  const cdsTemplate = await CDSTemplate.deploy();
-  await cdsTemplate.deployed();
-  console.log("cdsTemplate deployed to:", cdsTemplate.address);
-
   //----- SETUP -----//
-  let tx = await registry.setFactory(factory.address);
+  //Turn Off the old parameters
+  tx = await factory.approveReference(poolTemplate.address, 3, ParametersAddress, false);
   await tx.wait();
 
-  tx = await factory.approveTemplate(poolTemplate.address, true, false, false); //creation not public
-  await tx.wait();
-  tx = await factory.approveTemplate(indexTemplate.address, true, false, false); //creation not public
-  await tx.wait();
-  tx = await factory.approveTemplate(cdsTemplate.address, true, false, false); //creation not public
-  await tx.wait();
-
-  //pool setup
-  tx = await factory.approveReference(poolTemplate.address, 0, ZERO_ADDRESS, true);
-  await tx.wait();
-  tx = await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
-  await tx.wait();
-  tx = await factory.approveReference(poolTemplate.address, 2, registry.address, true);
-  await tx.wait();
+  //Turn On the new parameters
   tx = await factory.approveReference(poolTemplate.address, 3, parametersV2.address, true);
   await tx.wait();
 
-  //index setup
-  tx = await factory.approveReference(indexTemplate.address, 0, usdc.address, true);
-  await tx.wait();
-  tx = await factory.approveReference(indexTemplate.address, 1, registry.address, true);
-  await tx.wait();
-  tx = await factory.approveReference(indexTemplate.address, 2, parametersV2.address, true);
-  await tx.wait();
-
-  //cds setup
-  tx = await factory.approveReference(cdsTemplate.address, 0, usdc.address, true);
-  await tx.wait();
-  tx = await factory.approveReference(cdsTemplate.address, 1, registry.address, true);
-  await tx.wait();
-  tx = await factory.approveReference(cdsTemplate.address, 2, parametersV2.address, true);
-  await tx.wait();
-
-  //set parametersV2
+  //set parameters
   tx = await parametersV2.setFeeRate(ZERO_ADDRESS, GovFeeRatio);
   await tx.wait();
 
@@ -140,8 +106,6 @@ async function main() {
   await tx.wait();
 
   tx = await parametersV2.setPremiumModel(ZERO_ADDRESS, premiumV2.address);
-
-  //skip pool deployment for this time
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -140,6 +140,7 @@ async function main() {
   await tx.wait();
 
   tx = await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
+  await tx.wait();
 
   //PoolTemplate
   for (const addr of GOV_TOKENS) {
