@@ -2,8 +2,8 @@ const hre = require("hardhat");
 const ethers = hre.ethers;
 const fs = require("fs");
 
-/***
- * attach Underlying asset. Then, deploy all contracts
+/**
+ * two pools, no index/cds, FlatPremiumV2, ParameterV2, openDeposit=false
  */
 
 async function main() {
@@ -25,8 +25,7 @@ async function main() {
     MaxDate,
     MinDate,
 
-    PremiumRate1,
-    PremiumRate2,
+    defaultRate,
   } = require("./config.js");
 
   const USDC = await ethers.getContractFactory("ERC20Mock");
@@ -37,8 +36,8 @@ async function main() {
   const Factory = await ethers.getContractFactory("Factory");
   const Vault = await ethers.getContractFactory("Vault");
   const Registry = await ethers.getContractFactory("Registry");
-  const PremiumModel = await ethers.getContractFactory("FlatPremium");
-  const Parameters = await ethers.getContractFactory("Parameters");
+  const PremiumModel = await ethers.getContractFactory("FlatPremiumV2"); //V2
+  const Parameters = await ethers.getContractFactory("ParametersV2"); //V2
 
   const usdc = await USDC.attach(USDC_ADDRESS);
   console.log("usdc attached to:", usdc.address);
@@ -56,13 +55,9 @@ async function main() {
   await factory.deployed();
   console.log("factory deployed to:", factory.address);
 
-  const premium1 = await PremiumModel.deploy(ownership.address);
-  await premium1.deployed();
-  console.log("premium1 deployed to:", premium1.address);
-
-  const premium2 = await PremiumModel.deploy(ownership.address);
-  await premium2.deployed();
-  console.log("premium2 deployed to:", premium2.address);
+  const premium = await PremiumModel.deploy(ownership.address, defaultRate);
+  await premium.deployed();
+  console.log("premium deployed to:", premium.address);
 
   const parameters = await Parameters.deploy(ownership.address);
   await parameters.deployed();
@@ -89,7 +84,11 @@ async function main() {
   let tx = await registry.setFactory(factory.address);
   await tx.wait();
 
-  tx = await factory.approveTemplate(poolTemplate.address, true, true, false); //anyone can create pool.
+  tx = await factory.approveTemplate(poolTemplate.address, true, false, false); //creation not public
+  await tx.wait();
+  tx = await factory.approveTemplate(indexTemplate.address, true, false, false); //creation not public
+  await tx.wait();
+  tx = await factory.approveTemplate(cdsTemplate.address, true, false, false); //creation not public
   await tx.wait();
 
   //pool setup
@@ -100,6 +99,22 @@ async function main() {
   tx = await factory.approveReference(poolTemplate.address, 2, registry.address, true);
   await tx.wait();
   tx = await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
+  await tx.wait();
+
+  //index setup
+  tx = await factory.approveReference(indexTemplate.address, 0, usdc.address, true);
+  await tx.wait();
+  tx = await factory.approveReference(indexTemplate.address, 1, registry.address, true);
+  await tx.wait();
+  tx = await factory.approveReference(indexTemplate.address, 2, parameters.address, true);
+  await tx.wait();
+
+  //cds setup
+  tx = await factory.approveReference(cdsTemplate.address, 0, usdc.address, true);
+  await tx.wait();
+  tx = await factory.approveReference(cdsTemplate.address, 1, registry.address, true);
+  await tx.wait();
+  tx = await factory.approveReference(cdsTemplate.address, 2, parameters.address, true);
   await tx.wait();
 
   //set parameters
@@ -124,6 +139,8 @@ async function main() {
   tx = await parameters.setVault(usdc.address, vault.address);
   await tx.wait();
 
+  tx = await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
+
   //PoolTemplate
   for (const addr of GOV_TOKENS) {
     console.log("creating pool for: ", addr);
@@ -144,14 +161,6 @@ async function main() {
 
   tx = await market1.setOpenDeposit(false);
   tx = await market2.setOpenDeposit(false);
-  await tx.wait();
-
-  tx = await parameters.setPremiumModel(market1.address, premium1.address);
-  tx = await parameters.setPremiumModel(market2.address, premium2.address);
-  await tx.wait();
-
-  tx = await premium1.setPremiumParameters(PremiumRate1, 0, 0, 0);
-  tx = await premium2.setPremiumParameters(PremiumRate2, 0, 0, 0);
   await tx.wait();
 }
 
