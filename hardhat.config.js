@@ -14,7 +14,7 @@ const {
   ASTAR_URL,
   MUMBAI_URL,
   GOERI_URL,
-  OPT_KOVAN_ETHERSCAN_API,
+  OPT_ETHERSCAN_API,
 } = process.env;
 
 module.exports = {
@@ -46,8 +46,8 @@ module.exports = {
       accounts: [`0x${PRODUCTION_KEY}`],
       gasPrice: 3e9, //3Gwei
     },
-    optmain: {
-      url: `https://optimism-kovan.infura.io/v3/${INFURA_KEY}`,
+    optimisticEthereum: {
+      url: `https://optimism-mainnet.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${PRODUCTION_KEY}`],
     },
     rinkeby: {
@@ -71,6 +71,7 @@ module.exports = {
     shibuya: {
       url: SHIBUYA_URL,
       accounts: [`0x${KEY}`],
+      timeout: 2000000000,
     },
     goerli: {
       url: GOERI_URL,
@@ -110,7 +111,8 @@ module.exports = {
     // Obtain one at https://etherscan.io/
     apiKey: {
       mainnet: `${ETHERSCAN_API}`,
-      optimisticKovan: `${OPT_KOVAN_ETHERSCAN_API}`,
+      optimisticKovan: `${OPT_ETHERSCAN_API}`,
+      optimisticEthereum: `${OPT_ETHERSCAN_API}`,
     },
   },
   mocha: {
