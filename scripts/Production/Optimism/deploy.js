@@ -142,6 +142,26 @@ async function main() {
   tx = await parametersV2.setPremiumModel(ZERO_ADDRESS, premiumV2.address);
 
   //skip pool deployment for this time
+  //PoolTemplate
+  for (const addr of GOV_TOKENS) {
+    console.log("creating pool for: ", addr);
+    tx = await factory.createMarket(
+      poolTemplate.address,
+      "0x",
+      [0, 0], //initial deposit 0
+      [addr, usdc.address, registry.address, parametersV2.address]
+    );
+    await tx.wait();
+  }
+  let markets = await registry.getAllMarkets();
+
+  let market1 = await PoolTemplate.attach(markets[0]);
+  let market2 = await PoolTemplate.attach(markets[1]);
+  console.log("market1 deployed to: ", market1.address);
+  console.log("market2 deployed to: ", market2.address);
+
+  await market1.setOpenDeposit(false);
+  await market2.setOpenDeposit(false);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

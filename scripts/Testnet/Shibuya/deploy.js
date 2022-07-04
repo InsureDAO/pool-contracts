@@ -27,6 +27,7 @@ async function main() {
 
     PremiumRate1,
     PremiumRate2,
+    defaultRate
   } = require("./config.js");
 
   const USDC = await ethers.getContractFactory("ERC20Mock");
@@ -37,8 +38,8 @@ async function main() {
   const Factory = await ethers.getContractFactory("Factory");
   const Vault = await ethers.getContractFactory("Vault");
   const Registry = await ethers.getContractFactory("Registry");
-  const PremiumModel = await ethers.getContractFactory("FlatPremium");
-  const Parameters = await ethers.getContractFactory("Parameters");
+  const PremiumModel = await ethers.getContractFactory("FlatPremiumV2");
+  const Parameters = await ethers.getContractFactory("ParametersV2");
 
   const usdc = await USDC.deploy(creator.address);
   console.log("usdc deployed to:", usdc.address);
@@ -53,11 +54,16 @@ async function main() {
   const factory = await Factory.deploy(registry.address, ownership.address);
   console.log("factory deployed to:", factory.address);
 
+  const premium = await PremiumModel.deploy(ownership.address,defaultRate);
+  console.log("premium deployed to:", premium.address);
+
+  /*
   const premium1 = await PremiumModel.deploy(ownership.address);
   console.log("premium1 deployed to:", premium1.address);
 
   const premium2 = await PremiumModel.deploy(ownership.address);
   console.log("premium2 deployed to:", premium2.address);
+  */
 
   const parameters = await Parameters.deploy(ownership.address);
   console.log("parameters deployed to:", parameters.address);
@@ -124,11 +130,11 @@ async function main() {
   await market1.setOpenDeposit(false);
   await market2.setOpenDeposit(false);
 
-  tx = await parameters.setPremiumModel(market1.address, premium1.address);
-  tx = await parameters.setPremiumModel(market2.address, premium2.address);
+  //tx = await parameters.setPremiumModel(market1.address, premium1.address);
+  //tx = await parameters.setPremiumModel(market2.address, premium2.address);
 
-  tx = await premium1.setPremiumParameters(PremiumRate1, 0, 0, 0);
-  tx = await premium2.setPremiumParameters(PremiumRate2, 0, 0, 0);
+  //tx = await premium1.setPremiumParameters(PremiumRate1, 0, 0, 0);
+  //tx = await premium2.setPremiumParameters(PremiumRate2, 0, 0, 0);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

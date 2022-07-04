@@ -100,7 +100,7 @@ async function main() {
   tx = await parametersV2.setWithdrawable(ZERO_ADDRESS, WithdrawablePeriod);
   await tx.wait();
 
-  tx = await parametersV2.setVault(usdc.address, vault.address);
+  tx = await parametersV2.setVault(USDC_ADDRESS, vault.address);
   await tx.wait();
 
   tx = await parametersV2.setPremiumModel(ZERO_ADDRESS, premiumV2.address);
@@ -112,14 +112,14 @@ async function main() {
       poolTemplate.address,
       "0x",
       [0, 0], //initial deposit 0
-      [addr, usdc.address, registry.address, parameters.address]
+      [addr, USDC_ADDRESS, RegistryAddress, parametersV2.address]
     );
     await tx.wait();
   }
   let markets = await registry.getAllMarkets();
 
-  let market1 = await PoolTemplate.attach(markets[0]);
-  let market2 = await PoolTemplate.attach(markets[1]);
+  let market1 = await PoolTemplate.attach(markets[2]);
+  let market2 = await PoolTemplate.attach(markets[3]);
   console.log("market1 deployed to: ", market1.address);
   console.log("market2 deployed to: ", market2.address);
 
