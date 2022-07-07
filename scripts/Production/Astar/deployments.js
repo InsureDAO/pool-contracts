@@ -9,6 +9,7 @@ const IndexTemplateAddress = "0x734afd33dFB5100Ee91EFE690526DfFdEdBE0cF4";
 const CDSTemplateAddress = "0xf4dB9926aE02469D730A25AD7422764BBD45d36F";
 
 const Pools = ["0x9789dc4B4bb39566592B3761be42A9eB23EA5d34", "0x4C1800E02532ed0fC60183454B9bffdf96B134F0"];
+const Premiums = ["0xDB9b9797319e9458D4d3B6eaa86c4f15EdDb989C", "0xf29571145B421f660775fa3dEb16D9FF6085D0e6"];
 
 const Indicies = [];
 
@@ -24,6 +25,7 @@ Object.assign(exports, {
   IndexTemplateAddress,
   CDSTemplateAddress,
   Pools,
+  Premiums,
   Indicies,
   CDS,
 });
