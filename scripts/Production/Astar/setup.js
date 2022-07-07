@@ -11,7 +11,7 @@ const { BigNumber } = require("ethers");
 
 async function main() {
   //----- IMPORT -----//
-  [signer] = await ethers.getSigners();
+  [creator, signer] = await ethers.getSigners();
 
   const { USDC_ADDRESS, ZERO_ADDRESS } = require("./config");
 

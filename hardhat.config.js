@@ -6,15 +6,19 @@ require("@nomiclabs/hardhat-etherscan");
 require("dotenv").config();
 
 const {
-  ETHERSCAN_API,
-  KEY,
-  PRODUCTION_KEY,
-  INFURA_KEY,
+  TEST_KEY,
+  DEPLOY_KEY,
+  CONTROLL_KEY,
+
   SHIBUYA_URL,
   ASTAR_URL,
   MUMBAI_URL,
   GOERI_URL,
+
+  INFURA_KEY,
+  ETHERSCAN_API,
   OPT_ETHERSCAN_API,
+  FORK_URL,
 } = process.env;
 
 module.exports = {
@@ -32,58 +36,58 @@ module.exports = {
   networks: {
     hardhat: {
       initialBaseFeePerGas: 0,
-      //forking: {url: "https://eth-mainnet.alchemyapi.io/v2/-vmufhhPyGeTxZH6ep9q2PuHjaPp4l0u",} //remove comment when testing mainnet fork
+      //forking: { url: `${FORK_URL}` }, //remove comment when preform fork environment
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
-      accounts: [`0x${PRODUCTION_KEY}`],
+      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROLL_KEY}`],
       gas: 6e6,
       gasPrice: 8e10, //80Gwei
       timeout: 2000000000,
     },
     astar: {
       url: ASTAR_URL,
-      accounts: [`0x${PRODUCTION_KEY}`],
+      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROLL_KEY}`],
       gasPrice: 3e9, //3Gwei
     },
     optimisticEthereum: {
       url: `https://optimism-mainnet.infura.io/v3/${INFURA_KEY}`,
-      accounts: [`0x${PRODUCTION_KEY}`],
+      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROLL_KEY}`],
     },
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
-      accounts: [`0x${KEY}`],
+      accounts: [`0x${TEST_KEY}`],
       gas: 6e6,
       gasPrice: 5e10, //50GWei
       timeout: 2000000000,
     },
     ropsten: {
       url: `https://ropsten.infura.io/v3/${INFURA_KEY}`,
-      accounts: [`0x${KEY}`],
+      accounts: [`0x${TEST_KEY}`],
       gas: 6e6,
       gasPrice: 1e10, //10Gwei
       timeout: 2000000000,
     },
     rinkarbitrum: {
       url: "https://rinkeby.arbitrum.io/rpc",
-      accounts: [`0x${KEY}`],
+      accounts: [`0x${TEST_KEY}`],
     },
     shibuya: {
       url: SHIBUYA_URL,
-      accounts: [`0x${KEY}`],
+      accounts: [`0x${TEST_KEY}`],
       timeout: 2000000000,
     },
     goerli: {
       url: GOERI_URL,
-      accounts: [`0x${KEY}`],
+      accounts: [`0x${TEST_KEY}`],
     },
     mumbai: {
       url: MUMBAI_URL,
-      accounts: [`0x${KEY}`],
+      accounts: [`0x${TEST_KEY}`],
     },
     optkovan: {
       url: `https://optimism-kovan.infura.io/v3/${INFURA_KEY}`,
-      accounts: [`0x${KEY}`],
+      accounts: [`0x${TEST_KEY}`],
     },
   },
   solidity: {
