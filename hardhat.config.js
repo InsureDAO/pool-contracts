@@ -36,7 +36,7 @@ module.exports = {
   networks: {
     hardhat: {
       initialBaseFeePerGas: 0,
-      //forking: { url: `${FORK_URL}` }, //remove comment when preform fork environment
+      //forking: { url: "https://docs.astar.network/integration/network-details" }, //remove comment when preform fork environment
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
