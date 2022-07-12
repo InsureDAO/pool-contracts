@@ -19,17 +19,9 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      */
     event Deposit(address indexed depositor, uint256 amount, uint256 mint);
     event Fund(address indexed depositor, uint256 amount, uint256 attribution);
-    event Defund(
-        address indexed depositor,
-        uint256 amount,
-        uint256 attribution
-    );
+    event Defund(address indexed depositor, uint256 amount, uint256 attribution);
 
-    event WithdrawRequested(
-        address indexed withdrawer,
-        uint256 amount,
-        uint256 unlockTime
-    );
+    event WithdrawRequested(address indexed withdrawer, uint256 amount, uint256 unlockTime);
     event Withdraw(address indexed withdrawer, uint256 amount, uint256 retVal);
     event Compensated(address indexed index, uint256 amount);
     event Paused(bool paused);
@@ -101,11 +93,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
 
         initialized = true;
 
-        initializeToken(
-            "InsureDAO-Reserve",
-            "iReserve",
-            IERC20Metadata(_references[0]).decimals()
-        );
+        initializeToken("InsureDAO-Reserve", "iReserve", IERC20Metadata(_references[0]).decimals());
 
         parameters = IParameters(_references[2]);
         vault = IVault(parameters.getVault(_references[0]));
@@ -133,9 +121,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         crowdPool += vault.addValue(_amount, msg.sender, address(this)); //increase attribution
 
         if (_supply != 0) {
-            _mintAmount = _liquidity == 0
-                ? _amount * _supply
-                : (_amount * _supply) / _liquidity;
+            _mintAmount = _liquidity == 0 ? _amount * _supply : (_amount * _supply) / _liquidity;
         } else {
             _mintAmount = _amount;
         }
@@ -154,11 +140,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         require(!paused, "ERROR: PAUSED");
 
         //deposit and pay fees
-        uint256 _attribution = vault.addValue(
-            _amount,
-            msg.sender,
-            address(this)
-        );
+        uint256 _attribution = vault.addValue(_amount, msg.sender, address(this));
 
         surplusPool += _attribution;
 
@@ -180,13 +162,9 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      */
     function requestWithdraw(uint256 _amount) external {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
-        require(
-            balanceOf(msg.sender) >= _amount,
-            "ERROR: REQUEST_EXCEED_BALANCE"
-        );
+        require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
 
-        uint256 _unlocksAt = block.timestamp +
-            parameters.getLockup(address(this));
+        uint256 _unlocksAt = block.timestamp + parameters.getLockup(address(this));
 
         withdrawalReq[msg.sender].timestamp = _unlocksAt;
         withdrawalReq[msg.sender].amount = _amount;
@@ -207,8 +185,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
 
         require(request.timestamp < block.timestamp, "ERROR: WITHDRAWAL_QUEUE");
         require(
-            request.timestamp + parameters.getWithdrawable(address(this)) >
-                block.timestamp,
+            request.timestamp + parameters.getWithdrawable(address(this)) > block.timestamp,
             "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(request.amount >= _amount, "WITHDRAWAL_EXCEEDED_REQUEST");
@@ -216,9 +193,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         //Calculate underlying value
         uint256 _totalSupply = totalSupply();
         if (_totalSupply != 0) {
-            _retVal =
-                (vault.attributionValue(crowdPool) * _amount) /
-                _totalSupply;
+            _retVal = (vault.attributionValue(crowdPool) * _amount) / _totalSupply;
         }
 
         //reduce requested amount
@@ -240,11 +215,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @notice Compensate the shortage if an index is insolvent
      * @param _amount amount of underlier token to compensate shortage within index
      */
-    function compensate(uint256 _amount)
-        external
-        override
-        returns (uint256 _compensated)
-    {
+    function compensate(uint256 _amount) external override returns (uint256 _compensated) {
         require(registry.isListed(msg.sender), "ERROR:UNREGISTERED");
 
         uint256 _available = vault.underlyingValue(address(this));
@@ -256,8 +227,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         _attributionLoss = vault.transferValue(_compensated, msg.sender);
         emit Compensated(msg.sender, _compensated);
 
-        uint256 _crowdPoolLoss = (_crowdAttribution * _attributionLoss) /
-            (_crowdAttribution + surplusPool);
+        uint256 _crowdPoolLoss = (_crowdAttribution * _attributionLoss) / (_crowdAttribution + surplusPool);
 
         crowdPool -= _crowdPoolLoss;
         surplusPool -= (_attributionLoss - _crowdPoolLoss);
@@ -282,9 +252,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
     function rate() external view returns (uint256) {
         uint256 _totalSupply = totalSupply();
         if (_totalSupply != 0) {
-            return
-                (vault.attributionValue(crowdPool) * MAGIC_SCALE_1E6) /
-                _totalSupply;
+            return (vault.attributionValue(crowdPool) * MAGIC_SCALE_1E6) / _totalSupply;
         }
     }
 
@@ -298,8 +266,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         uint256 _totalSupply = totalSupply();
 
         if (_balance != 0 || _totalSupply != 0) {
-            return
-                (_balance * vault.attributionValue(crowdPool)) / _totalSupply;
+            return (_balance * vault.attributionValue(crowdPool)) / _totalSupply;
         }
     }
 
@@ -311,11 +278,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
      * @notice Change metadata string
      * @param _metadata new metadata string
      */
-    function changeMetadata(string calldata _metadata)
-        external
-        override
-        onlyOwner
-    {
+    function changeMetadata(string calldata _metadata) external override onlyOwner {
         metadata = _metadata;
         emit MetadataChanged(_metadata);
     }

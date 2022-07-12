@@ -38,10 +38,7 @@ const list = [
 
 async function hashed(list) {
   return list.map(({ id, account, loss }) => {
-    return ethers.utils.solidityKeccak256(
-      ["bytes32", "address", "uint256"],
-      [id, account, loss]
-    );
+    return ethers.utils.solidityKeccak256(["bytes32", "address", "uint256"], [id, account, loss]);
   });
 }
 

@@ -19,10 +19,7 @@ contract FlatPremiumV2 is IPremiumModelV2 {
     uint256 private constant RATE_DENOMINATOR = 1e6;
 
     modifier onlyOwner() {
-        require(
-            ownership.owner() == msg.sender,
-            "Caller is not allowed to operate"
-        );
+        require(ownership.owner() == msg.sender, "Caller is not allowed to operate");
         _;
     }
 
@@ -58,27 +55,18 @@ contract FlatPremiumV2 is IPremiumModelV2 {
         uint256 _totalLiquidity,
         uint256 _lockedAmount
     ) external view override returns (uint256) {
-        require(
-            _amount + _lockedAmount <= _totalLiquidity,
-            "Amount exceeds total liquidity"
-        );
+        require(_amount + _lockedAmount <= _totalLiquidity, "Amount exceeds total liquidity");
 
         if (_amount == 0) {
             return 0;
         }
 
-        uint256 premium = (_amount * _getRate(_market) * _term) /
-            365 days /
-            RATE_DENOMINATOR;
+        uint256 premium = (_amount * _getRate(_market) * _term) / 365 days / RATE_DENOMINATOR;
 
         return premium;
     }
 
-    function setRate(address _market, uint256 _rate)
-        external
-        override
-        onlyOwner
-    {
+    function setRate(address _market, uint256 _rate) external override onlyOwner {
         rates[_market] = _rate;
     }
 

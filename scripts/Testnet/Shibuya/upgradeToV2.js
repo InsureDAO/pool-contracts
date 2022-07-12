@@ -126,7 +126,6 @@ async function main() {
   tx = await market1.setOpenDeposit(false);
   tx = await market2.setOpenDeposit(false);
   await tx.wait();
-  
 }
 
 // We recommend this pattern to be able to use async/await everywhere

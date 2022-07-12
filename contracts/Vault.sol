@@ -41,10 +41,7 @@ contract Vault is IVault {
     event KeeperChanged(address keeper);
 
     modifier onlyOwner() {
-        require(
-            ownership.owner() == msg.sender,
-            "Caller is not allowed to operate"
-        );
+        require(ownership.owner() == msg.sender, "Caller is not allowed to operate");
         _;
     }
 
@@ -143,27 +140,19 @@ contract Vault is IVault {
      * @param _to address to get underlying tokens
      * @return _attributions amount of attributions burnet
      */
-    function withdrawValue(uint256 _amount, address _to)
-        external
-        override
-        returns (uint256 _attributions)
-    {
+    function withdrawValue(uint256 _amount, address _to) external override returns (uint256 _attributions) {
         require(_to != address(0), "ERROR_ZERO_ADDRESS");
 
         uint256 _valueAll = valueAll();
         require(
-            attributions[msg.sender] != 0 &&
-                underlyingValue(msg.sender, _valueAll) >= _amount,
+            attributions[msg.sender] != 0 && underlyingValue(msg.sender, _valueAll) >= _amount,
             "WITHDRAW-VALUE_BADCONDITIONS"
         );
 
         _attributions = _divRoundUp(totalAttributions * _amount, valueAll());
         uint256 _available = available();
 
-        require(
-            attributions[msg.sender] >= _attributions,
-            "WITHDRAW-VALUE_BADCONDITIONS"
-        );
+        require(attributions[msg.sender] >= _attributions, "WITHDRAW-VALUE_BADCONDITIONS");
         attributions[msg.sender] -= _attributions;
 
         totalAttributions -= _attributions;
@@ -189,18 +178,13 @@ contract Vault is IVault {
      * @param _destination reciepient of value
      */
 
-    function transferValue(uint256 _amount, address _destination)
-        external
-        override
-        returns (uint256 _attributions)
-    {
+    function transferValue(uint256 _amount, address _destination) external override returns (uint256 _attributions) {
         require(_destination != address(0), "ERROR_ZERO_ADDRESS");
 
         uint256 _valueAll = valueAll();
 
         require(
-            attributions[msg.sender] != 0 &&
-                underlyingValue(msg.sender, _valueAll) >= _amount,
+            attributions[msg.sender] != 0 && underlyingValue(msg.sender, _valueAll) >= _amount,
             "TRANSFER-VALUE_BADCONDITIONS"
         );
         _attributions = _divRoundUp(totalAttributions * _amount, valueAll());
@@ -213,11 +197,7 @@ contract Vault is IVault {
      * @param _amount borrow amount
      * @param _to borrower's address
      */
-    function borrowValue(uint256 _amount, address _to)
-        external
-        override
-        onlyMarket
-    {
+    function borrowValue(uint256 _amount, address _to) external override onlyMarket {
         if (_amount != 0) {
             debts[msg.sender] += _amount;
             totalDebt += _amount;
@@ -232,15 +212,10 @@ contract Vault is IVault {
      * @param _target borrower's address
      */
 
-    function offsetDebt(uint256 _amount, address _target)
-        external
-        override
-        returns (uint256 _attributions)
-    {
+    function offsetDebt(uint256 _amount, address _target) external override returns (uint256 _attributions) {
         uint256 _valueAll = valueAll();
         require(
-            attributions[msg.sender] != 0 &&
-                underlyingValue(msg.sender, _valueAll) >= _amount,
+            attributions[msg.sender] != 0 && underlyingValue(msg.sender, _valueAll) >= _amount,
             "ERROR_REPAY_DEBT_BADCONDITIONS"
         );
         _attributions = _divRoundUp(totalAttributions * _amount, valueAll());
@@ -289,11 +264,7 @@ contract Vault is IVault {
      * @param _to beneficiary's address
      * @return _retVal number of tokens withdrawn from the transaction
      */
-    function withdrawAttribution(uint256 _attribution, address _to)
-        external
-        override
-        returns (uint256 _retVal)
-    {
+    function withdrawAttribution(uint256 _attribution, address _to) external override returns (uint256 _retVal) {
         require(_to != address(0), "ERROR_ZERO_ADDRESS");
 
         _retVal = _withdrawAttribution(_attribution, _to);
@@ -304,11 +275,7 @@ contract Vault is IVault {
      * @param _to beneficiary's address
      * @return _retVal number of tokens withdrawn from the transaction
      */
-    function withdrawAllAttribution(address _to)
-        external
-        override
-        returns (uint256 _retVal)
-    {
+    function withdrawAllAttribution(address _to) external override returns (uint256 _retVal) {
         require(_to != address(0), "ERROR_ZERO_ADDRESS");
 
         _retVal = _withdrawAttribution(attributions[msg.sender], _to);
@@ -320,14 +287,8 @@ contract Vault is IVault {
      * @param _to beneficiary's address
      * @return _retVal number of tokens withdrawn from the transaction
      */
-    function _withdrawAttribution(uint256 _attribution, address _to)
-        internal
-        returns (uint256 _retVal)
-    {
-        require(
-            attributions[msg.sender] >= _attribution,
-            "WITHDRAW-ATTRIBUTION_BADCONS"
-        );
+    function _withdrawAttribution(uint256 _attribution, address _to) internal returns (uint256 _retVal) {
+        require(attributions[msg.sender] >= _attribution, "WITHDRAW-ATTRIBUTION_BADCONS");
         uint256 _available = available();
         _retVal = (_attribution * valueAll()) / totalAttributions;
 
@@ -353,16 +314,10 @@ contract Vault is IVault {
      * @param _amount amount of attribution to transfer
      * @param _destination reciepient of attribution
      */
-    function transferAttribution(uint256 _amount, address _destination)
-        external
-        override
-    {
+    function transferAttribution(uint256 _amount, address _destination) external override {
         require(_destination != address(0), "ERROR_ZERO_ADDRESS");
 
-        require(
-            _amount != 0 && attributions[msg.sender] >= _amount,
-            "TRANSFER-ATTRIBUTION_BADCONS"
-        );
+        require(_amount != 0 && attributions[msg.sender] >= _amount, "TRANSFER-ATTRIBUTION_BADCONS");
 
         unchecked {
             attributions[msg.sender] -= _amount;
@@ -400,12 +355,7 @@ contract Vault is IVault {
      * @return amount of attritbution
      */
 
-    function attributionOf(address _target)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function attributionOf(address _target) external view override returns (uint256) {
         return attributions[_target];
     }
 
@@ -422,12 +372,7 @@ contract Vault is IVault {
      * @param _attribution amount of attribution
      * @return token value of input attribution
      */
-    function attributionValue(uint256 _attribution)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function attributionValue(uint256 _attribution) external view override returns (uint256) {
         uint256 _totalAttributions = totalAttributions;
 
         if (_totalAttributions != 0 && _attribution != 0) {
@@ -440,12 +385,7 @@ contract Vault is IVault {
      * @param _target target address
      * @return token value of target address
      */
-    function underlyingValue(address _target)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function underlyingValue(address _target) public view override returns (uint256) {
         uint256 _valueAll = valueAll();
         uint256 attribution = attributions[_target];
 
@@ -454,11 +394,7 @@ contract Vault is IVault {
         }
     }
 
-    function underlyingValue(address _target, uint256 _valueAll)
-        public
-        view
-        returns (uint256)
-    {
+    function underlyingValue(address _target, uint256 _valueAll) public view returns (uint256) {
         uint256 attribution = attributions[_target];
         if (_valueAll != 0 && attribution != 0) {
             return (_valueAll * attribution) / totalAttributions;
@@ -486,8 +422,7 @@ contract Vault is IVault {
 
         uint256 beforeBalance = IERC20(token).balanceOf(address(this));
         controller.withdraw(address(this), _amount);
-        uint256 received = IERC20(token).balanceOf(address(this)) -
-            beforeBalance;
+        uint256 received = IERC20(token).balanceOf(address(this)) - beforeBalance;
         require(received >= _amount, "ERROR_INSUFFICIENT_RETURN_VALUE");
         balance += received;
     }
@@ -517,17 +452,12 @@ contract Vault is IVault {
      * @param _token token address
      * @param _to beneficiary's address
      */
-    function withdrawRedundant(address _token, address _to)
-        external
-        override
-        onlyOwner
-    {
+    function withdrawRedundant(address _token, address _to) external override onlyOwner {
         uint256 _balance = balance;
         uint256 _tokenBalance = IERC20(_token).balanceOf(address(this));
         if (_token == token && _balance < _tokenBalance) {
             uint256 _utilized = controller.valueAll();
-            uint256 _actualValue = IERC20(token).balanceOf(address(this)) +
-                _utilized;
+            uint256 _actualValue = IERC20(token).balanceOf(address(this)) + _utilized;
             uint256 _virtualValue = balance + _utilized;
             if (_actualValue > _virtualValue) {
                 uint256 _redundant;
@@ -551,10 +481,7 @@ contract Vault is IVault {
         if (address(controller) != address(0)) {
             uint256 beforeUnderlying = controller.valueAll();
             controller.migrate(address(_controller));
-            require(
-                IController(_controller).valueAll() >= beforeUnderlying,
-                "ERROR_VALUE_ALL_DECREASED"
-            );
+            require(IController(_controller).valueAll() >= beforeUnderlying, "ERROR_VALUE_ALL_DECREASED");
         }
         controller = IController(_controller);
 
@@ -578,11 +505,7 @@ contract Vault is IVault {
      * @param _a number to get divided by _b
      * @param _b number to divide _a
      */
-    function _divRoundUp(uint256 _a, uint256 _b)
-        internal
-        pure
-        returns (uint256)
-    {
+    function _divRoundUp(uint256 _a, uint256 _b) internal pure returns (uint256) {
         require(_a >= _b, "ERROR_NUMERATOR_TOO_SMALL");
         uint256 _c = _a / _b;
         if (_c * _b != _a) {

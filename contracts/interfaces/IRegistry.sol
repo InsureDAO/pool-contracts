@@ -5,10 +5,7 @@ interface IRegistry {
 
     function getCDS(address _address) external view returns (address);
 
-    function confirmExistence(address _template, address _target)
-        external
-        view
-        returns (bool);
+    function confirmExistence(address _template, address _target) external view returns (bool);
 
     //onlyOwner
     function setFactory(address _factory) external;

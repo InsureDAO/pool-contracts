@@ -23,7 +23,7 @@ async function main() {
     WithdrawablePeriod,
     MinDeposit,
     MAX_LIST,
-    ALLOCATION_POINT
+    ALLOCATION_POINT,
   } = require("./config.js");
 
   const USDC = await ethers.getContractFactory("ERC20Mock");
@@ -40,7 +40,6 @@ async function main() {
   const usdc = await USDC.deploy(creator.address);
   console.log("usdc deployed to:", usdc.address);
 
-
   //----- DEPLOY -----//
   const ownership = await Ownership.deploy();
   console.log("ownership deployed to:", ownership.address);
@@ -56,13 +55,8 @@ async function main() {
 
   const parameters = await Parameters.deploy(ownership.address);
   console.log("parameters deployed to:", parameters.address);
-  
-  const vault = await Vault.deploy(
-    usdc.address,
-    registry.address,
-    ZERO_ADDRESS,
-    ownership.address
-  );
+
+  const vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
   console.log("vault deployed to:", vault.address);
 
   //Pools Template
@@ -75,7 +69,6 @@ async function main() {
   const cdsTemplate = await CDSTemplate.deploy();
   console.log("cdsTemplate deployed to:", cdsTemplate.address);
 
-
   //----- SETUP -----//
   let tx = await registry.setFactory(factory.address);
 
@@ -87,8 +80,7 @@ async function main() {
 
   await tx.wait();
 
-  console.log(1)
-
+  console.log(1);
 
   //pool setup
   tx = await factory.approveReference(
@@ -122,57 +114,26 @@ async function main() {
   tx = await factory.setCondition(
     poolTemplate.address,
     0, //initial deposit
-    MinDeposit,
+    MinDeposit
   );
 
-
-  console.log(2)
+  console.log(2);
   //index setup
-  tx = await factory.approveReference(
-    indexTemplate.address,
-    0,
-    usdc.address,
-    true
-  );
+  tx = await factory.approveReference(indexTemplate.address, 0, usdc.address, true);
 
-  tx = await factory.approveReference(
-    indexTemplate.address,
-    1,
-    registry.address,
-    true
-  );
+  tx = await factory.approveReference(indexTemplate.address, 1, registry.address, true);
 
-  tx = await factory.approveReference(
-    indexTemplate.address,
-    2,
-    parameters.address,
-    true
-  );
+  tx = await factory.approveReference(indexTemplate.address, 2, parameters.address, true);
 
-  console.log(3)
+  console.log(3);
   //cds setup
-  tx = await factory.approveReference(
-    cdsTemplate.address,
-    0,
-    usdc.address,
-    true
-  );
+  tx = await factory.approveReference(cdsTemplate.address, 0, usdc.address, true);
 
-  tx = await factory.approveReference(
-    cdsTemplate.address,
-    1,
-    registry.address,
-    true
-  );
+  tx = await factory.approveReference(cdsTemplate.address, 1, registry.address, true);
 
-  await factory.approveReference(
-    cdsTemplate.address,
-    2,
-    parameters.address,
-    true
-  );
+  await factory.approveReference(cdsTemplate.address, 2, parameters.address, true);
 
-  console.log(4)
+  console.log(4);
   //set parameters
   tx = await parameters.setFeeRate(ZERO_ADDRESS, GovFeeRatio);
 
@@ -192,35 +153,33 @@ async function main() {
 
   await tx.wait();
 
+  console.log(5);
 
-  console.log(5)
-
-  tx = await usdc.approve(vault.address, APPROVE_AMOUNT)
-  await tx.wait()
+  tx = await usdc.approve(vault.address, APPROVE_AMOUNT);
+  await tx.wait();
 
   //PoolTemplate
-  for(const addr of GOV_TOKENS){
-    console.log("creating pool for: ", addr)
+  for (const addr of GOV_TOKENS) {
+    console.log("creating pool for: ", addr);
     tx = await factory.createMarket(
       poolTemplate.address,
       "meta dataaaaaaaa",
       [0, 0], //initial deposit
       [addr, usdc.address, registry.address, parameters.address]
     );
-    await tx.wait()
+    await tx.wait();
   }
 
   //INDEX
-  for(let i=0; i<INDEX_LIST.length; i++){
+  for (let i = 0; i < INDEX_LIST.length; i++) {
     tx = await factory.createMarket(
       indexTemplate.address,
       "Here is metadata.",
       [0],
       [usdc.address, registry.address, parameters.address]
     );
-    await tx.wait()
+    await tx.wait();
   }
-  
 
   //CDS
   tx = await factory.createMarket(
@@ -229,59 +188,54 @@ async function main() {
     [0],
     [usdc.address, registry.address, parameters.address]
   );
-  await tx.wait()
+  await tx.wait();
 
-  
   //set Index
   let markets = await registry.getAllMarkets();
-  let pools = []
-  let indicies = []
-  let cds = []
-  for(let i=0; i<markets.length; i++){
-    let addr = markets[i]
+  let pools = [];
+  let indicies = [];
+  let cds = [];
+  for (let i = 0; i < markets.length; i++) {
+    let addr = markets[i];
 
-    if(i < GOV_TOKENS.length){
-      pools.push(addr)
-    }else if(i < INDEX_LIST.length + GOV_TOKENS.length){
-      indicies.push(addr)
-    }else{
-      cds.push(addr)
+    if (i < GOV_TOKENS.length) {
+      pools.push(addr);
+    } else if (i < INDEX_LIST.length + GOV_TOKENS.length) {
+      indicies.push(addr);
+    } else {
+      cds.push(addr);
     }
   }
 
-
-  for(let i=0; i<INDEX_LIST.length; i++){
+  for (let i = 0; i < INDEX_LIST.length; i++) {
     let index = await IndexTemplate.attach(indicies[i]);
-    console.log()
-    for(let t=0; t<INDEX_LIST[i].length; t++){
-      await index.set(t, slotB[i][t], pools[INDEX_LIST[i][t]], ALLOCATION_POINT)
-      console.log("set")
+    console.log();
+    for (let t = 0; t < INDEX_LIST[i].length; t++) {
+      await index.set(t, slotB[i][t], pools[INDEX_LIST[i][t]], ALLOCATION_POINT);
+      console.log("set");
     }
   }
-
-
 
   //----- WRITE -----//
   let markets_text = await registry.getAllMarkets();
 
-  let pools_text = []
-  let indicies_text = []
-  let cds_text = []
+  let pools_text = [];
+  let indicies_text = [];
+  let cds_text = [];
 
-  for(let i=0; i<markets_text.length; i++){
-    let text = `\n       "` + markets_text[i] + `"`
+  for (let i = 0; i < markets_text.length; i++) {
+    let text = `\n       "` + markets_text[i] + `"`;
 
-    if(i < GOV_TOKENS.length){
-      pools_text.push(text)
-    }else if(i < INDEX_LIST.length + GOV_TOKENS.length){
-      indicies_text.push(text)
-    }else{
-      cds_text.push(text)
+    if (i < GOV_TOKENS.length) {
+      pools_text.push(text);
+    } else if (i < INDEX_LIST.length + GOV_TOKENS.length) {
+      indicies_text.push(text);
+    } else {
+      cds_text.push(text);
     }
   }
 
-  let text = 
-    `
+  let text = `
     const USDCAddress = "${usdc.address}" 
     const OwnershipAddress = "${ownership.address}"  
     const RegistryAddress = "${registry.address}"  
@@ -311,14 +265,13 @@ async function main() {
       Indicies,
       CDS
     })
-    `
+    `;
   try {
     fs.writeFileSync("./scripts/Rinkeby/deployments.js", text);
-    console.log('write end');
-  }catch(e){
+    console.log("write end");
+  } catch (e) {
     console.log(e);
   }
-
 }
 
 // We recommend this pattern to be able to use async/await everywhere

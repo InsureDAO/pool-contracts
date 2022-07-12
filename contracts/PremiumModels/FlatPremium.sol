@@ -18,10 +18,7 @@ contract FlatPremium is IPremiumModel {
     uint256 private constant RATE_DENOMINATOR = 1e6;
 
     modifier onlyOwner() {
-        require(
-            ownership.owner() == msg.sender,
-            "Caller is not allowed to operate"
-        );
+        require(ownership.owner() == msg.sender, "Caller is not allowed to operate");
         _;
     }
 
@@ -30,10 +27,12 @@ contract FlatPremium is IPremiumModel {
         ownership = IOwnership(_ownership);
     }
 
-    function getCurrentPremiumRate(
-        uint256 _totalLiquidity,
-        uint256 _lockedAmount
-    ) external view override returns (uint256) {
+    function getCurrentPremiumRate(uint256 _totalLiquidity, uint256 _lockedAmount)
+        external
+        view
+        override
+        returns (uint256)
+    {
         return rate;
     }
 
@@ -51,18 +50,13 @@ contract FlatPremium is IPremiumModel {
         uint256 _totalLiquidity,
         uint256 _lockedAmount
     ) external view override returns (uint256) {
-        require(
-            _amount + _lockedAmount <= _totalLiquidity,
-            "Amount exceeds total liquidity"
-        );
+        require(_amount + _lockedAmount <= _totalLiquidity, "Amount exceeds total liquidity");
 
         if (_amount == 0) {
             return 0;
         }
 
-        uint256 premium = (_amount * rate * _term) /
-            365 days /
-            RATE_DENOMINATOR;
+        uint256 premium = (_amount * rate * _term) / 365 days / RATE_DENOMINATOR;
 
         return premium;
     }
@@ -77,10 +71,7 @@ contract FlatPremium is IPremiumModel {
         uint256 _b_zero,
         uint256 _c_zero
     ) external override onlyOwner {
-        require(
-            _rate < MAX_RATE && _a_zero == 0 && _b_zero == 0 && _c_zero == 0,
-            "input invalid number"
-        );
+        require(_rate < MAX_RATE && _a_zero == 0 && _b_zero == 0 && _c_zero == 0, "input invalid number");
 
         rate = _rate;
     }

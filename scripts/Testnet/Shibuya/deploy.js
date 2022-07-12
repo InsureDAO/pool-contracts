@@ -27,7 +27,7 @@ async function main() {
 
     PremiumRate1,
     PremiumRate2,
-    defaultRate
+    defaultRate,
   } = require("./config.js");
 
   const USDC = await ethers.getContractFactory("ERC20Mock");
@@ -54,7 +54,7 @@ async function main() {
   const factory = await Factory.deploy(registry.address, ownership.address);
   console.log("factory deployed to:", factory.address);
 
-  const premium = await PremiumModel.deploy(ownership.address,defaultRate);
+  const premium = await PremiumModel.deploy(ownership.address, defaultRate);
   console.log("premium deployed to:", premium.address);
 
   /*

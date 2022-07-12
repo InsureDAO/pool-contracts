@@ -43,11 +43,7 @@ contract Ownership is IOwnership {
         _;
     }
 
-    function commitTransferOwnership(address newOwner)
-        external
-        override
-        onlyOwner
-    {
+    function commitTransferOwnership(address newOwner) external override onlyOwner {
         /***
          *@notice Transfer ownership of GaugeController to `newOwner`
          *@param newOwner Address to have ownership transferred to

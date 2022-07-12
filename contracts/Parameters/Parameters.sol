@@ -49,10 +49,7 @@ contract Parameters is IParameters {
      * @notice Throws if called by any account other than the owner.
      */
     modifier onlyOwner() {
-        require(
-            IOwnership(ownership).owner() == msg.sender,
-            "Caller is not allowed to operate"
-        );
+        require(IOwnership(ownership).owner() == msg.sender, "Caller is not allowed to operate");
         _;
     }
 
@@ -61,11 +58,7 @@ contract Parameters is IParameters {
      * @param _token address of token
      * @param _vault vault for token
      */
-    function setVault(address _token, address _vault)
-        external
-        override
-        onlyOwner
-    {
+    function setVault(address _token, address _vault) external override onlyOwner {
         require(_vaults[_token] == address(0), "dev: already initialized");
         require(_vault != address(0), "dev: zero address");
         _vaults[_token] = _vault;
@@ -77,11 +70,7 @@ contract Parameters is IParameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setLockup(address _address, uint256 _target)
-        external
-        override
-        onlyOwner
-    {
+    function setLockup(address _address, uint256 _target) external override onlyOwner {
         _lockup[_address] = _target;
         emit LockupSet(_address, _target);
     }
@@ -91,11 +80,7 @@ contract Parameters is IParameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setGrace(address _address, uint256 _target)
-        external
-        override
-        onlyOwner
-    {
+    function setGrace(address _address, uint256 _target) external override onlyOwner {
         _grace[_address] = _target;
         emit GraceSet(_address, _target);
     }
@@ -105,11 +90,7 @@ contract Parameters is IParameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setMaxDate(address _address, uint256 _target)
-        external
-        override
-        onlyOwner
-    {
+    function setMaxDate(address _address, uint256 _target) external override onlyOwner {
         require(_min[_address] <= _target, "smaller than MinDate");
         _max[_address] = _target;
         emit MaxDateSet(_address, _target);
@@ -120,11 +101,7 @@ contract Parameters is IParameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setMinDate(address _address, uint256 _target)
-        external
-        override
-        onlyOwner
-    {
+    function setMinDate(address _address, uint256 _target) external override onlyOwner {
         require(_target <= _max[_address], "greater than MaxDate");
         _min[_address] = _target;
         emit MinDateSet(_address, _target);
@@ -135,11 +112,7 @@ contract Parameters is IParameters {
      * @param _address address to set the parameter
      * @param _target parameter (slack rate 100% = 1e6
      */
-    function setUpperSlack(address _address, uint256 _target)
-        external
-        override
-        onlyOwner
-    {
+    function setUpperSlack(address _address, uint256 _target) external override onlyOwner {
         _upperSlack[_address] = _target;
         emit UpperSlack(_address, _target);
     }
@@ -149,11 +122,7 @@ contract Parameters is IParameters {
      * @param _address address to set the parameter
      * @param _target parameter (slack rate 100% = 1000
      */
-    function setLowerSlack(address _address, uint256 _target)
-        external
-        override
-        onlyOwner
-    {
+    function setLowerSlack(address _address, uint256 _target) external override onlyOwner {
         _lowerSlack[_address] = _target;
         emit LowerSlack(_address, _target);
     }
@@ -163,11 +132,7 @@ contract Parameters is IParameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setWithdrawable(address _address, uint256 _target)
-        external
-        override
-        onlyOwner
-    {
+    function setWithdrawable(address _address, uint256 _target) external override onlyOwner {
         _withdrawable[_address] = _target;
         emit WithdrawableSet(_address, _target);
     }
@@ -177,11 +142,7 @@ contract Parameters is IParameters {
      * @param _address address to set the premium model
      * @param _target premium model contract address
      */
-    function setPremiumModel(address _address, address _target)
-        external
-        override
-        onlyOwner
-    {
+    function setPremiumModel(address _address, address _target) external override onlyOwner {
         require(_target != address(0), "dev: zero address");
         _premium[_address] = _target;
         emit PremiumSet(_address, _target);
@@ -192,11 +153,7 @@ contract Parameters is IParameters {
      * @param _address address to set the fee model
      * @param _target fee rate
      */
-    function setFeeRate(address _address, uint256 _target)
-        external
-        override
-        onlyOwner
-    {
+    function setFeeRate(address _address, uint256 _target) external override onlyOwner {
         require(_target <= 1000000, "ERROR: EXCEED_MAX_FEE_RATE");
         _fee[_address] = _target;
         emit FeeRateSet(_address, _target);
@@ -207,11 +164,7 @@ contract Parameters is IParameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setMaxList(address _address, uint256 _target)
-        external
-        override
-        onlyOwner
-    {
+    function setMaxList(address _address, uint256 _target) external override onlyOwner {
         require(_target > 1, "ERROR: MAX_LIST_UNDER_1");
         _maxList[_address] = _target;
         emit MaxListSet(_address, _target);
@@ -222,11 +175,7 @@ contract Parameters is IParameters {
      * @param _reference bytes32 value to refer the parameter
      * @param _target parameter
      */
-    function setCondition(bytes32 _reference, bytes32 _target)
-        external
-        override
-        onlyOwner
-    {
+    function setCondition(bytes32 _reference, bytes32 _target) external override onlyOwner {
         _conditions[_reference] = _target;
         emit ConditionSet(_reference, _target);
     }
@@ -266,21 +215,9 @@ contract Parameters is IParameters {
     ) external view override returns (uint256) {
         address _targetPremium = _premium[_target];
         if (_targetPremium == address(0)) {
-            return
-                IPremiumModel(_premium[address(0)]).getPremium(
-                    _amount,
-                    _term,
-                    _totalLiquidity,
-                    _lockedAmount
-                );
+            return IPremiumModel(_premium[address(0)]).getPremium(_amount, _term, _totalLiquidity, _lockedAmount);
         } else {
-            return
-                IPremiumModel(_targetPremium).getPremium(
-                    _amount,
-                    _term,
-                    _totalLiquidity,
-                    _lockedAmount
-                );
+            return IPremiumModel(_targetPremium).getPremium(_amount, _term, _totalLiquidity, _lockedAmount);
         }
     }
 
@@ -289,12 +226,7 @@ contract Parameters is IParameters {
      * @param _target address of insurance market
      * @return fee rate
      */
-    function getFeeRate(address _target)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getFeeRate(address _target) external view override returns (uint256) {
         uint256 _targetFee = _fee[_target];
         if (_targetFee == 0) {
             return _fee[address(0)];
@@ -308,12 +240,7 @@ contract Parameters is IParameters {
      * @param _target target contract's address
      * @return upper slack(slack above target)
      */
-    function getUpperSlack(address _target)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getUpperSlack(address _target) external view override returns (uint256) {
         uint256 _targetUpperSlack = _upperSlack[_target];
         if (_targetUpperSlack == 0) {
             return _upperSlack[address(0)];
@@ -327,12 +254,7 @@ contract Parameters is IParameters {
      * @param _target target contract's address
      * @return lower slack(slack below target)
      */
-    function getLowerSlack(address _target)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getLowerSlack(address _target) external view override returns (uint256) {
         uint256 _targetLowerSlack = _lowerSlack[_target];
         if (_targetLowerSlack == 0) {
             return _lowerSlack[address(0)];
@@ -346,12 +268,7 @@ contract Parameters is IParameters {
      * @param _target target contract's address
      * @return lock up period
      */
-    function getLockup(address _target)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getLockup(address _target) external view override returns (uint256) {
         uint256 _targetLockup = _lockup[_target];
         if (_targetLockup == 0) {
             return _lockup[address(0)];
@@ -365,12 +282,7 @@ contract Parameters is IParameters {
      * @param _target target contract's address
      * @return withdrawable period
      */
-    function getWithdrawable(address _target)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getWithdrawable(address _target) external view override returns (uint256) {
         uint256 _targetWithdrawable = _withdrawable[_target];
         if (_targetWithdrawable == 0) {
             return _withdrawable[address(0)];
@@ -384,12 +296,7 @@ contract Parameters is IParameters {
      * @param _target target contract's address
      * @return grace period
      */
-    function getGrace(address _target)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getGrace(address _target) external view override returns (uint256) {
         uint256 _targetGrace = _grace[_target];
         if (_targetGrace == 0) {
             return _grace[address(0)];
@@ -403,12 +310,7 @@ contract Parameters is IParameters {
      * @param _target target contract's address
      * @return minimum lenght of policy
      */
-    function getMaxDate(address _target)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getMaxDate(address _target) external view override returns (uint256) {
         uint256 _maxDate = _max[_target];
         if (_maxDate == 0) {
             return _max[address(0)];
@@ -422,12 +324,7 @@ contract Parameters is IParameters {
      * @param _target target contract's address
      * @return minimum lenght of policy
      */
-    function getMinDate(address _target)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getMinDate(address _target) external view override returns (uint256) {
         uint256 _minDate = _min[_target];
         if (_minDate == 0) {
             return _min[address(0)];
@@ -441,12 +338,7 @@ contract Parameters is IParameters {
      * @param _target target contract's address
      * @return maximum number of pools
      */
-    function getMaxList(address _target)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function getMaxList(address _target) external view override returns (uint256) {
         uint256 _targetMaxList = _maxList[_target];
         if (_targetMaxList == 0) {
             return _maxList[address(0)];
@@ -460,12 +352,7 @@ contract Parameters is IParameters {
      * @param _reference reference address
      * @return condition parameter
      */
-    function getCondition(bytes32 _reference)
-        external
-        view
-        override
-        returns (bytes32)
-    {
+    function getCondition(bytes32 _reference) external view override returns (bytes32) {
         return _conditions[_reference];
     }
 }

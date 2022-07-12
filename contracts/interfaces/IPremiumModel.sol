@@ -1,10 +1,7 @@
 pragma solidity 0.8.10;
 
 interface IPremiumModel {
-    function getCurrentPremiumRate(
-        uint256 _totalLiquidity,
-        uint256 _lockedAmount
-    ) external view returns (uint256);
+    function getCurrentPremiumRate(uint256 _totalLiquidity, uint256 _lockedAmount) external view returns (uint256);
 
     function getPremiumRate(
         uint256 _amount,

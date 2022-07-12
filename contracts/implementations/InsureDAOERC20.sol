@@ -76,13 +76,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
     /**
      * @dev See {IERC20-balanceOf}.
      */
-    function balanceOf(address account)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+    function balanceOf(address account) public view virtual override returns (uint256) {
         return _balances[account];
     }
 
@@ -94,12 +88,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount)
-        external
-        virtual
-        override
-        returns (bool)
-    {
+    function transfer(address recipient, uint256 amount) external virtual override returns (bool) {
         _transfer(msg.sender, recipient, amount);
         return true;
     }
@@ -107,13 +96,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
     /**
      * @dev See {IERC20-allowance}.
      */
-    function allowance(address owner, address spender)
-        external
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+    function allowance(address owner, address spender) external view virtual override returns (uint256) {
         return _allowances[owner][spender];
     }
 
@@ -124,12 +107,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      *
      * - `spender` cannot be the zero address.
      */
-    function approve(address spender, uint256 amount)
-        external
-        virtual
-        override
-        returns (bool)
-    {
+    function approve(address spender, uint256 amount) external virtual override returns (bool) {
         _approve(msg.sender, spender, amount);
         return true;
     }
@@ -155,10 +133,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
         if (amount != 0) {
             uint256 currentAllowance = _allowances[sender][msg.sender];
             if (currentAllowance != type(uint256).max) {
-                require(
-                    currentAllowance >= amount,
-                    "Transfer amount > allowance"
-                );
+                require(currentAllowance >= amount, "Transfer amount > allowance");
                 unchecked {
                     _approve(sender, msg.sender, currentAllowance - amount);
                 }
@@ -182,17 +157,9 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      *
      * - `spender` cannot be the zero address.
      */
-    function increaseAllowance(address spender, uint256 addedValue)
-        external
-        virtual
-        returns (bool)
-    {
+    function increaseAllowance(address spender, uint256 addedValue) external virtual returns (bool) {
         if (addedValue != 0) {
-            _approve(
-                msg.sender,
-                spender,
-                _allowances[msg.sender][spender] + addedValue
-            );
+            _approve(msg.sender, spender, _allowances[msg.sender][spender] + addedValue);
         }
         return true;
     }
@@ -211,17 +178,10 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue)
-        external
-        virtual
-        returns (bool)
-    {
+    function decreaseAllowance(address spender, uint256 subtractedValue) external virtual returns (bool) {
         if (subtractedValue != 0) {
             uint256 currentAllowance = _allowances[msg.sender][spender];
-            require(
-                currentAllowance >= subtractedValue,
-                "Decreased allowance below zero"
-            );
+            require(currentAllowance >= subtractedValue, "Decreased allowance below zero");
 
             _approve(msg.sender, spender, currentAllowance - subtractedValue);
         }
