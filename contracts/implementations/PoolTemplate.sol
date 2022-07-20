@@ -1,16 +1,15 @@
-pragma solidity 0.8.10;
+pragma solidity 0.8.12;
 
 /**
  * @author InsureDAO
  * @title InsureDAO pool template contract
  * SPDX-License-Identifier: GPL-3.0
  */
-import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "./InsureDAOERC20.sol";
 import "../interfaces/IPoolTemplate.sol";
 import "../interfaces/IUniversalMarket.sol";
-
 import "../interfaces/IParameters.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IRegistry.sol";
@@ -101,7 +100,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     //
 
     ///@notice Market status transition management
-    MarketStatus public override marketStatus;
+    MarketStatus public marketStatus;
 
     ///@notice user's withdrawal status management
     struct Withdrawal {

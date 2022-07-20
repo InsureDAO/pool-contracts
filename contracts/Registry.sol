@@ -1,5 +1,11 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.10;
+pragma solidity 0.8.12;
+
+/**
+ * @title Registry
+ * @author @InsureDAO
+ * @notice Pool Registry
+ * SPDX-License-Identifier: GPL-3.0
+ */
 
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IRegistry.sol";

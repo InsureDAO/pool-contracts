@@ -1,11 +1,11 @@
+pragma solidity 0.8.12;
+
 /**
  * @title Factory
  * @author @InsureDAO
  * @notice This contract is the functory contract that manages functions related to market creation activities.
  * SPDX-License-Identifier: GPL-3.0
  */
-
-pragma solidity 0.8.10;
 
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IUniversalMarket.sol";
@@ -188,7 +188,7 @@ contract Factory is IFactory {
      * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1167.md
      */
     function _createClone(address target) internal returns (address result) {
-        // convert address to bytes20 for assembly use
+        //convert address to bytes20 for assembly use
         bytes20 targetBytes = bytes20(target);
         assembly {
             // allocate clone memory

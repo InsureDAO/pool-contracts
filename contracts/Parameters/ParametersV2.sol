@@ -1,7 +1,7 @@
-pragma solidity 0.8.10;
+pragma solidity 0.8.12;
 
 /**
- * @title Parameters
+ * @title ParametersV2
  * @author @InsureDAO
  * @notice This contract manages parameters of markets.
  * SPDX-License-Identifier: GPL-3.0

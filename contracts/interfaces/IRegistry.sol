@@ -1,4 +1,4 @@
-pragma solidity 0.8.10;
+pragma solidity 0.8.12;
 
 interface IRegistry {
     function isListed(address _market) external view returns (bool);

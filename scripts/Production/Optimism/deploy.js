@@ -141,7 +141,6 @@ async function main() {
 
   tx = await parametersV2.setPremiumModel(ZERO_ADDRESS, premiumV2.address);
 
-  //skip pool deployment for this time
   //PoolTemplate
   for (const addr of GOV_TOKENS) {
     console.log("creating pool for: ", addr);

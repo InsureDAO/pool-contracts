@@ -22,19 +22,19 @@ const {
 } = process.env;
 
 module.exports = {
-  solidity: "0.8.10",
   defaultNetwork: "hardhat",
   solidity: {
-    version: "0.8.10",
+    version: "0.8.12",
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200000,
+        runs: 200,
       },
     },
   },
   networks: {
     hardhat: {
+      zksync: true,
       initialBaseFeePerGas: 0,
       //forking: { url: "https://docs.astar.network/integration/network-details" }, //remove comment when preform fork environment
     },
@@ -88,15 +88,6 @@ module.exports = {
     optkovan: {
       url: `https://optimism-kovan.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${TEST_KEY}`],
-    },
-  },
-  solidity: {
-    version: "0.8.10",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200,
-      },
     },
   },
   paths: {

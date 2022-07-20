@@ -1,4 +1,5 @@
-pragma solidity 0.8.10;
+pragma solidity 0.8.12;
+
 /**
  * @author InsureDAO
  * @title InsureDAO market template contract
@@ -8,7 +9,6 @@ pragma solidity 0.8.10;
 import "./InsureDAOERC20.sol";
 import "../interfaces/IIndexTemplate.sol";
 import "../interfaces/IUniversalMarket.sol";
-
 import "../interfaces/IVault.sol";
 import "../interfaces/IRegistry.sol";
 import "../interfaces/IParameters.sol";

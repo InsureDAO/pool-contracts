@@ -1,6 +1,11 @@
-// SPDX-License-Identifier: MIT
+pragma solidity 0.8.12;
 
-pragma solidity 0.8.10;
+/**
+ * @title Ownership
+ * @author @InsureDAO
+ * @notice Ownership management contract
+ * SPDX-License-Identifier: GPL-3.0
+ */
 
 import "./interfaces/IOwnership.sol";
 

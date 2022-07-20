@@ -1,8 +1,8 @@
-pragma solidity 0.8.10;
+pragma solidity 0.8.12;
 /**
- * @title FlatPremium v2
+ * @title FlatPremium
  * @author @InsureDAO
- * @notice Insurance Premium Calclator
+ * @notice Flat Premium Calculator for single pool
  * SPDX-License-Identifier: GPL-3.0
  */
 
