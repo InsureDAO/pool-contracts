@@ -188,20 +188,40 @@ contract Factory is IFactory {
      * https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1167.md
      */
     function _createClone(address target) internal returns (address result) {
-        //convert address to bytes20 for assembly use
-        bytes20 targetBytes = bytes20(target);
-        assembly {
-            // allocate clone memory
-            let clone := mload(0x40)
-            // store initial portion of the delegation contract code in bytes form
-            mstore(clone, 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000)
-            // store the provided address
-            mstore(add(clone, 0x14), targetBytes)
-            // store the remaining delegation contract code
-            mstore(add(clone, 0x28), 0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000)
-            // create the actual delegate contract reference and return its address
-            result := create(0, clone, 0x37)
-        }
+        Proxy market = new Proxy(target);
+        result = address(market);
+
         require(result != address(0), "ERROR: ZERO_ADDRESS");
+    }
+}
+
+contract Proxy {
+    address public immutable implementation;
+
+    event Received(uint256 indexed value, address indexed sender, bytes data);
+
+    constructor(address _implementation) {
+        implementation = _implementation;
+    }
+
+    fallback() external payable {
+        address target = implementation;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            calldatacopy(0, 0, calldatasize())
+            let result := delegatecall(gas(), target, 0, calldatasize(), 0, 0)
+            returndatacopy(0, 0, returndatasize())
+            switch result
+            case 0 {
+                revert(0, returndatasize())
+            }
+            default {
+                return(0, returndatasize())
+            }
+        }
+    }
+
+    receive() external payable {
+        emit Received(msg.value, msg.sender, "");
     }
 }
