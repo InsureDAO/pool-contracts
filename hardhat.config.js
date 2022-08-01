@@ -34,9 +34,14 @@ module.exports = {
   },
   networks: {
     hardhat: {
-      zksync: true,
       initialBaseFeePerGas: 0,
-      //forking: { url: "https://docs.astar.network/integration/network-details" }, //remove comment when preform fork environment
+      /**
+      accounts: [
+        { privateKey: `0x${DEPLOY_KEY}`, balance: "2903004000000000000000000000000000000" },
+        { privateKey: `0x${CONTROLL_KEY}`, balance: "2903004000000000000000000000000000000" },
+      ],
+      forking: { url: "https://opt-mainnet.g.alchemy.com/v2/W2z_CprfdFhEiOus8WYvqY3aVY73hhh5" }, //remove comment when preform fork environment
+       */
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
