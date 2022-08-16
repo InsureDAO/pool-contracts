@@ -1,4 +1,4 @@
-pragma solidity 0.8.10;
+pragma solidity 0.8.12;
 
 interface IPoolTemplate {
     enum MarketStatus {
@@ -27,10 +27,7 @@ interface IPoolTemplate {
         bytes32[] calldata _merkleProof
     ) external;
 
-    function getPremium(uint256 _amount, uint256 _span)
-        external
-        view
-        returns (uint256);
+    function getPremium(uint256 _amount, uint256 _span) external view returns (uint256);
 
     function unlockBatch(uint256[] calldata _ids) external;
 
@@ -38,14 +35,9 @@ interface IPoolTemplate {
 
     function registerIndex(uint256 _index) external;
 
-    function allocateCredit(uint256 _credit)
-        external
-        returns (uint256 _mintAmount);
+    function allocateCredit(uint256 _credit) external returns (uint256 _mintAmount);
 
-    function pairValues(address _index)
-        external
-        view
-        returns (uint256, uint256);
+    function pairValues(address _index) external view returns (uint256, uint256);
 
     function resume() external;
 

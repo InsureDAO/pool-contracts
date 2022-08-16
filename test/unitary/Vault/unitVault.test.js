@@ -40,12 +40,7 @@ describe("Vault", function () {
     usdc = await USDC.deploy();
     otherToken = await USDC.deploy();
     registry = await Registry.deploy(ownership.address);
-    vault = await Vault.deploy(
-      usdc.address,
-      registry.address,
-      ZERO_ADDRESS,
-      ownership.address
-    );
+    vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
 
     //set up
     await usdc.mint(alice.address, initialMint);
@@ -163,22 +158,15 @@ describe("Vault", function () {
 
     it("revert when market is not registered", async () => {
       //setup
-      await expect(
-        vault
-          .connect(chad)
-          .addValue(depositAmount, alice.address, alice.address)
-      ).to.revertedWith("ERROR_ONLY_MARKET");
+      await expect(vault.connect(chad).addValue(depositAmount, alice.address, alice.address)).to.revertedWith(
+        "ERROR_ONLY_MARKET"
+      );
     });
   });
 
   describe("addValueBatch", function () {
     it("should succeed when totalAttributions == 0: all for alice", async () => {
-      await vault.addValueBatch(
-        depositAmount,
-        alice.address,
-        [alice.address, bob.address],
-        [1000000, 0]
-      );
+      await vault.addValueBatch(depositAmount, alice.address, [alice.address, bob.address], [1000000, 0]);
 
       //sanity check after
       await verifyVaultStatus({
@@ -217,12 +205,7 @@ describe("Vault", function () {
     });
 
     it("should succeed  when totalAttributions == 0: half and half", async () => {
-      await vault.addValueBatch(
-        depositAmount,
-        alice.address,
-        [alice.address, bob.address],
-        [500000, 500000]
-      );
+      await vault.addValueBatch(depositAmount, alice.address, [alice.address, bob.address], [500000, 500000]);
 
       //sanity check after
       await verifyVaultStatus({
@@ -265,12 +248,7 @@ describe("Vault", function () {
       await vault.addValue(depositAmount, alice.address, alice.address);
 
       //EXECUTE
-      await vault.addValueBatch(
-        depositAmount,
-        alice.address,
-        [alice.address, bob.address],
-        [1000000, 0]
-      );
+      await vault.addValueBatch(depositAmount, alice.address, [alice.address, bob.address], [1000000, 0]);
 
       //sanity check
       await verifyVaultStatus({
@@ -302,14 +280,7 @@ describe("Vault", function () {
     it("revert when market is not registered", async () => {
       //setup
       await expect(
-        vault
-          .connect(chad)
-          .addValueBatch(
-            depositAmount,
-            alice.address,
-            [alice.address, alice.address],
-            [1000000, 0]
-          )
+        vault.connect(chad).addValueBatch(depositAmount, alice.address, [alice.address, alice.address], [1000000, 0])
       ).to.revertedWith("ERROR_ONLY_MARKET");
     });
   });
@@ -360,15 +331,15 @@ describe("Vault", function () {
     it("revert when attributions[msg.sender] == 0", async () => {
       await vault.connect(alice).withdrawValue(depositAmount, alice.address);
 
-      await expect(
-        vault.connect(alice).withdrawValue(depositAmount, alice.address)
-      ).to.revertedWith("WITHDRAW-VALUE_BADCONDITIONS");
+      await expect(vault.connect(alice).withdrawValue(depositAmount, alice.address)).to.revertedWith(
+        "WITHDRAW-VALUE_BADCONDITIONS"
+      );
     });
 
     it("revert when underlyingValue(msg.sender) < _amount", async () => {
-      await expect(
-        vault.connect(alice).withdrawValue(depositAmount.add(1), alice.address)
-      ).to.revertedWith("WITHDRAW-VALUE_BADCONDITIONS");
+      await expect(vault.connect(alice).withdrawValue(depositAmount.add(1), alice.address)).to.revertedWith(
+        "WITHDRAW-VALUE_BADCONDITIONS"
+      );
     });
   });
 
@@ -424,15 +395,15 @@ describe("Vault", function () {
     });
 
     it("revert when he has no attribution", async () => {
-      await expect(
-        vault.connect(bob).transferValue(depositAmount, alice.address)
-      ).to.revertedWith("TRANSFER-VALUE_BADCONDITIONS");
+      await expect(vault.connect(bob).transferValue(depositAmount, alice.address)).to.revertedWith(
+        "TRANSFER-VALUE_BADCONDITIONS"
+      );
     });
 
     it("revert when he try to transfer more than he has", async () => {
-      await expect(
-        vault.connect(alice).transferValue(depositAmount.add(1), bob.address)
-      ).to.revertedWith("TRANSFER-VALUE_BADCONDITIONS");
+      await expect(vault.connect(alice).transferValue(depositAmount.add(1), bob.address)).to.revertedWith(
+        "TRANSFER-VALUE_BADCONDITIONS"
+      );
     });
   });
 
@@ -554,9 +525,7 @@ describe("Vault", function () {
 
     it("revert when address is not registered", async () => {
       //transfer alice's debt to the system's debt.
-      await expect(
-        vault.connect(chad).transferDebt(depositAmount)
-      ).to.revertedWith("ERROR_ONLY_MARKET");
+      await expect(vault.connect(chad).transferDebt(depositAmount)).to.revertedWith("ERROR_ONLY_MARKET");
     });
   });
 
@@ -626,9 +595,7 @@ describe("Vault", function () {
 
     it("revert when address is not registered", async () => {
       //transfer alice's debt to the system's debt.
-      await expect(
-        vault.connect(chad).transferDebt(depositAmount)
-      ).to.revertedWith("ERROR_ONLY_MARKET");
+      await expect(vault.connect(chad).transferDebt(depositAmount)).to.revertedWith("ERROR_ONLY_MARKET");
     });
   });
 
@@ -950,9 +917,7 @@ describe("Vault", function () {
       });
 
       //use own attribution to pay for half the debt
-      await vault
-        .connect(alice)
-        .offsetDebt(depositAmount.div(2), alice.address);
+      await vault.connect(alice).offsetDebt(depositAmount.div(2), alice.address);
 
       //sanity check
       await verifyVaultStatus({
@@ -1137,9 +1102,7 @@ describe("Vault", function () {
     });
 
     it("should succeed to withdraw attribution", async () => {
-      await vault
-        .connect(alice)
-        .withdrawAttribution(depositAmount, alice.address);
+      await vault.connect(alice).withdrawAttribution(depositAmount, alice.address);
 
       //sanity check
       await verifyVaultStatus({
@@ -1169,11 +1132,9 @@ describe("Vault", function () {
     });
 
     it("revert when he doesn't have enough attribution", async () => {
-      await expect(
-        vault
-          .connect(alice)
-          .withdrawAttribution(depositAmount.add(1), alice.address)
-      ).to.revertedWith("WITHDRAW-ATTRIBUTION_BADCONS");
+      await expect(vault.connect(alice).withdrawAttribution(depositAmount.add(1), alice.address)).to.revertedWith(
+        "WITHDRAW-ATTRIBUTION_BADCONS"
+      );
     });
   });
 
@@ -1200,9 +1161,7 @@ describe("Vault", function () {
     });
 
     it("should allow transfer attribution", async () => {
-      await vault
-        .connect(alice)
-        .transferAttribution(depositAmount, bob.address);
+      await vault.connect(alice).transferAttribution(depositAmount, bob.address);
 
       //sanity check
       await verifyVaultStatus({
@@ -1241,17 +1200,15 @@ describe("Vault", function () {
     });
 
     it("revert when transferring to zero address", async () => {
-      await expect(
-        vault.connect(alice).transferAttribution(depositAmount, ZERO_ADDRESS)
-      ).to.revertedWith("ERROR_ZERO_ADDRESS");
+      await expect(vault.connect(alice).transferAttribution(depositAmount, ZERO_ADDRESS)).to.revertedWith(
+        "ERROR_ZERO_ADDRESS"
+      );
     });
 
     it("revert when transferring more than he has", async () => {
-      await expect(
-        vault
-          .connect(alice)
-          .transferAttribution(depositAmount.add(1), bob.address)
-      ).to.revertedWith("TRANSFER-ATTRIBUTION_BADCONS");
+      await expect(vault.connect(alice).transferAttribution(depositAmount.add(1), bob.address)).to.revertedWith(
+        "TRANSFER-ATTRIBUTION_BADCONS"
+      );
     });
   });
 
@@ -1270,22 +1227,18 @@ describe("Vault", function () {
 
   describe("seKeeper", function () {
     it("revert when the sender is not owner", async () => {
-      await expect(
-        vault
-          .connect(alice)
-          .setKeeper(alice.address)
-        ).to.revertedWith("Caller is not allowed to operate");
-    }) 
+      await expect(vault.connect(alice).setKeeper(alice.address)).to.revertedWith("Caller is not allowed to operate");
+    });
 
     it("should succeed to set keeper", async () => {
-        await vault.connect(creator).setKeeper(alice.address);
-        expect(await vault.keeper()).to.equal(alice.address);
-    })
+      await vault.connect(creator).setKeeper(alice.address);
+      expect(await vault.keeper()).to.equal(alice.address);
+    });
 
     it("should emit the event", async () => {
-      await expect(
-        vault.connect(creator).setKeeper(alice.address)
-      ).to.emit(vault, "KeeperChanged").withArgs(alice.address);
-    })
-  })
+      await expect(vault.connect(creator).setKeeper(alice.address))
+        .to.emit(vault, "KeeperChanged")
+        .withArgs(alice.address);
+    });
+  });
 });

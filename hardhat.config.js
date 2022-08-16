@@ -3,65 +3,96 @@ require("@nomiclabs/hardhat-web3");
 require("solidity-coverage");
 require("hardhat-contract-sizer");
 require("@nomiclabs/hardhat-etherscan");
-require('dotenv').config()
+require("dotenv").config();
 
-const { 
+const {
+  TEST_KEY,
+  DEPLOY_KEY,
+  CONTROLL_KEY,
+
+  SHIBUYA_URL,
+  ASTAR_URL,
+  MUMBAI_URL,
+  GOERI_URL,
+
+  INFURA_KEY,
   ETHERSCAN_API,
-  KEY,
-  PRODUCTION_KEY,
-  INFURA_KEY
- } = process.env
+  OPT_ETHERSCAN_API,
+  FORK_URL,
+} = process.env;
 
 module.exports = {
-  solidity: "0.8.10",
   defaultNetwork: "hardhat",
   solidity: {
-    version: "0.8.10",
+    version: "0.8.12",
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200000,
+        runs: 200,
       },
     },
   },
   networks: {
     hardhat: {
       initialBaseFeePerGas: 0,
-      //forking: {url: "https://eth-mainnet.alchemyapi.io/v2/-vmufhhPyGeTxZH6ep9q2PuHjaPp4l0u",} //remove comment when testing mainnet fork
+      /**
+      accounts: [
+        { privateKey: `0x${DEPLOY_KEY}`, balance: "2903004000000000000000000000000000000" },
+        { privateKey: `0x${CONTROLL_KEY}`, balance: "2903004000000000000000000000000000000" },
+      ],
+      forking: { url: "https://opt-mainnet.g.alchemy.com/v2/W2z_CprfdFhEiOus8WYvqY3aVY73hhh5" }, //remove comment when preform fork environment
+       */
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
-      accounts: [`0x${PRODUCTION_KEY}`],
+      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROLL_KEY}`],
       gas: 6e6,
-      gasPrice: 8e10,//80Gwei
+      gasPrice: 8e10, //80Gwei
       timeout: 2000000000,
+    },
+    astar: {
+      url: ASTAR_URL,
+      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROLL_KEY}`],
+      gasPrice: 3e9, //3Gwei
+    },
+    optimisticEthereum: {
+      url: `https://optimism-mainnet.infura.io/v3/${INFURA_KEY}`,
+      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROLL_KEY}`],
     },
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
-      accounts: [`0x${KEY}`],
+      accounts: [`0x${TEST_KEY}`],
       gas: 6e6,
       gasPrice: 5e10, //50GWei
       timeout: 2000000000,
     },
     ropsten: {
       url: `https://ropsten.infura.io/v3/${INFURA_KEY}`,
-      accounts: [`0x${KEY}`],
+      accounts: [`0x${TEST_KEY}`],
       gas: 6e6,
-      gasPrice: 1e10,//10Gwei
+      gasPrice: 1e10, //10Gwei
       timeout: 2000000000,
     },
     rinkarbitrum: {
-      url: 'https://rinkeby.arbitrum.io/rpc',
-      accounts: [`0x${KEY}`]
+      url: "https://rinkeby.arbitrum.io/rpc",
+      accounts: [`0x${TEST_KEY}`],
     },
-  },
-  solidity: {
-    version: "0.8.10",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200,
-      },
+    shibuya: {
+      url: SHIBUYA_URL,
+      accounts: [`0x${TEST_KEY}`],
+      timeout: 2000000000,
+    },
+    goerli: {
+      url: GOERI_URL,
+      accounts: [`0x${TEST_KEY}`],
+    },
+    mumbai: {
+      url: MUMBAI_URL,
+      accounts: [`0x${TEST_KEY}`],
+    },
+    optkovan: {
+      url: `https://optimism-kovan.infura.io/v3/${INFURA_KEY}`,
+      accounts: [`0x${TEST_KEY}`],
     },
   },
   paths: {
@@ -78,7 +109,11 @@ module.exports = {
   etherscan: {
     // Your API key for Etherscan
     // Obtain one at https://etherscan.io/
-    apiKey: `${ETHERSCAN_API}`,
+    apiKey: {
+      mainnet: `${ETHERSCAN_API}`,
+      optimisticKovan: `${OPT_ETHERSCAN_API}`,
+      optimisticEthereum: `${OPT_ETHERSCAN_API}`,
+    },
   },
   mocha: {
     timeout: 20000000,

@@ -35,12 +35,7 @@ describe("Factory", function () {
     factory = await Factory.deploy(registry.address, ownership.address);
     premium = await PremiumModel.deploy();
     controller = await Contorller.deploy(dai.address, ownership.address);
-    vault = await Vault.deploy(
-      dai.address,
-      registry.address,
-      controller.address,
-      ownership.address
-    );
+    vault = await Vault.deploy(dai.address, registry.address, controller.address, ownership.address);
     poolTemplate = await PoolTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
     await registry.setFactory(factory.address);
@@ -106,125 +101,55 @@ describe("Factory", function () {
 
   describe("approveTemplate", function () {
     it("Reverts transaction not from the admin", async () => {
-      await expect(
-        factory
-          .connect(alice)
-          .approveTemplate(poolTemplate.address, true, true, true)
-      ).to.revertedWith("Caller is not allowed to operate");
+      await expect(factory.connect(alice).approveTemplate(poolTemplate.address, true, true, true)).to.revertedWith(
+        "Caller is not allowed to operate"
+      );
     });
     it("Should register a template address", async () => {
       await factory.approveTemplate(poolTemplate.address, true, true, true);
-      expect(await factory.templates(poolTemplate.address)).to.deep.equal([
-        true,
-        true,
-        true,
-      ]);
+      expect(await factory.templates(poolTemplate.address)).to.deep.equal([true, true, true]);
     });
     it("Should allow creating a market based on approved templates only", async () => {
       await factory.approveTemplate(poolTemplate.address, true, true, true);
-      await factory.approveReference(
-        poolTemplate.address,
-        0,
-        dai.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        1,
-        dai.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        2,
-        registry.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        3,
-        parameters.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        4,
-        ZERO_ADDRESS,
-        true
-      );
+      await factory.approveReference(poolTemplate.address, 0, dai.address, true);
+      await factory.approveReference(poolTemplate.address, 1, dai.address, true);
+      await factory.approveReference(poolTemplate.address, 2, registry.address, true);
+      await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
+      await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true);
       let market = await factory.createMarket(
         poolTemplate.address,
         "Here is metadata.",
         [0, 0],
-        [
-          dai.address,
-          dai.address,
-          registry.address,
-          parameters.address
-        ]
+        [dai.address, dai.address, registry.address, parameters.address]
       );
       expect(market).to.exist;
     });
     it("Reverts when creating a market if the specified template is not registered", async () => {
       await factory.approveTemplate(fake.address, true, true, true);
       await expect(
-        factory
-          .connect(alice)
-          .createMarket(poolTemplate.address, "Here is metadata.", [], [])
+        factory.connect(alice).createMarket(poolTemplate.address, "Here is metadata.", [], [])
       ).to.revertedWith("ERROR: UNAUTHORIZED_TEMPLATE");
     });
     it("Reverts when creating a market by non-admin if the template does not allow open market creation", async () => {
       await factory.approveTemplate(fake.address, true, false, true);
-      await expect(
-        factory
-          .connect(alice)
-          .createMarket(fake.address, "Here is metadata.", [], [])
-      ).to.revertedWith("ERROR: UNAUTHORIZED_SENDER");
+      await expect(factory.connect(alice).createMarket(fake.address, "Here is metadata.", [], [])).to.revertedWith(
+        "ERROR: UNAUTHORIZED_SENDER"
+      );
     });
     it("Reverts when creating a market with the same target token if the template does not allowed duplicate market creation", async () => {
       await factory.approveTemplate(poolTemplate.address, true, true, false);
-      await factory.approveReference(
-        poolTemplate.address,
-        0,
-        dai.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        1,
-        dai.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        2,
-        registry.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        3,
-        parameters.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        4,
-        ZERO_ADDRESS,
-        true
-      );
+      await factory.approveReference(poolTemplate.address, 0, dai.address, true);
+      await factory.approveReference(poolTemplate.address, 1, dai.address, true);
+      await factory.approveReference(poolTemplate.address, 2, registry.address, true);
+      await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
+      await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true);
       await factory
         .connect(alice)
         .createMarket(
           poolTemplate.address,
           "Here is metadata.",
           [0, 0],
-          [
-            dai.address,
-            dai.address,
-            registry.address,
-            parameters.address,
-          ]
+          [dai.address, dai.address, registry.address, parameters.address]
         );
       await expect(
         factory
@@ -233,12 +158,7 @@ describe("Factory", function () {
             poolTemplate.address,
             "Here is metadata.",
             [0, 0],
-            [
-              dai.address,
-              dai.address,
-              registry.address,
-              parameters.address,
-            ]
+            [dai.address, dai.address, registry.address, parameters.address]
           )
       ).to.revertedWith("ERROR: DUPLICATE_MARKET");
     });
@@ -247,103 +167,44 @@ describe("Factory", function () {
   describe("approveReference", function () {
     it("Should register a reference address", async () => {
       await factory.approveTemplate(poolTemplate.address, true, true, true);
-      await factory.approveReference(
-        poolTemplate.address,
-        0,
-        dai.address,
-        true
-      );
-      expect(
-        await factory.reflist(poolTemplate.address, 0, dai.address)
-      ).to.equal(true);
+      await factory.approveReference(poolTemplate.address, 0, dai.address, true);
+      expect(await factory.reflist(poolTemplate.address, 0, dai.address)).to.equal(true);
     });
 
     it("Reverts when the template is not registered", async () => {
-      await expect(
-        factory.approveReference(poolTemplate.address, 0, dai.address, true)
-      ).to.revertedWith("ERROR: UNAUTHORIZED_TEMPLATE");
+      await expect(factory.approveReference(poolTemplate.address, 0, dai.address, true)).to.revertedWith(
+        "ERROR: UNAUTHORIZED_TEMPLATE"
+      );
     });
 
     it("Reverts transaction not from the admin", async () => {
-      await expect(
-        factory
-          .connect(alice)
-          .approveReference(poolTemplate.address, 0, dai.address, true)
-      ).to.revertedWith("Caller is not allowed to operate");
+      await expect(factory.connect(alice).approveReference(poolTemplate.address, 0, dai.address, true)).to.revertedWith(
+        "Caller is not allowed to operate"
+      );
     });
 
     it("Should allow creating market based on the registered reference if it is defined", async () => {
       await factory.approveTemplate(poolTemplate.address, true, true, true);
-      await factory.approveReference(
-        poolTemplate.address,
-        0,
-        dai.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        1,
-        dai.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        2,
-        registry.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        3,
-        parameters.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        4,
-        ZERO_ADDRESS,
-        true
-      );
+      await factory.approveReference(poolTemplate.address, 0, dai.address, true);
+      await factory.approveReference(poolTemplate.address, 1, dai.address, true);
+      await factory.approveReference(poolTemplate.address, 2, registry.address, true);
+      await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
+      await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true);
       let market = await factory.createMarket(
         poolTemplate.address,
         "Here is metadata.",
         [0, 0],
-        [
-          dai.address,
-          dai.address,
-          registry.address,
-          parameters.address,
-        ]
+        [dai.address, dai.address, registry.address, parameters.address]
       );
       expect(market).to.exist;
     });
 
     it("Reverts when creating market with an arbitrary reference if it is defined", async () => {
       await factory.approveTemplate(poolTemplate.address, true, true, true);
-      await factory.approveReference(
-        poolTemplate.address,
-        0,
-        dai.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        1,
-        dai.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        2,
-        registry.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        3,
-        parameters.address,
-        true
-      );
+      await factory.approveReference(poolTemplate.address, 0, dai.address, true);
+      await factory.approveReference(poolTemplate.address, 1, dai.address, true);
+      await factory.approveReference(poolTemplate.address, 2, registry.address, true);
+      await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
       await expect(
         factory.createMarket(
           poolTemplate.address,
@@ -356,46 +217,16 @@ describe("Factory", function () {
 
     it("Should allow creating market based on the any arbitrary reference if address zero is set", async () => {
       await factory.approveTemplate(poolTemplate.address, true, true, true);
-      await factory.approveReference(
-        poolTemplate.address,
-        0,
-        ZERO_ADDRESS,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        1,
-        ZERO_ADDRESS,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        2,
-        ZERO_ADDRESS,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        3,
-        ZERO_ADDRESS,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        4,
-        ZERO_ADDRESS,
-        true
-      );
+      await factory.approveReference(poolTemplate.address, 0, ZERO_ADDRESS, true);
+      await factory.approveReference(poolTemplate.address, 1, ZERO_ADDRESS, true);
+      await factory.approveReference(poolTemplate.address, 2, ZERO_ADDRESS, true);
+      await factory.approveReference(poolTemplate.address, 3, ZERO_ADDRESS, true);
+      await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true);
       let market = await factory.createMarket(
         poolTemplate.address,
         "Here is metadata.",
         [0, 0],
-        [
-          dai.address,
-          dai.address,
-          registry.address,
-          parameters.address
-        ]
+        [dai.address, dai.address, registry.address, parameters.address]
       );
       expect(market).to.exist;
     });
@@ -405,52 +236,23 @@ describe("Factory", function () {
     it("Should register a condition number", async () => {
       await factory.approveTemplate(poolTemplate.address, true, true, true);
       await factory.setCondition(poolTemplate.address, 0, 100);
-      expect(await factory.conditionlist(poolTemplate.address, 0)).to.equal(
-        100
-      );
+      expect(await factory.conditionlist(poolTemplate.address, 0)).to.equal(100);
     });
     it("Reverts transaction not from the admin", async () => {
-      await expect(
-        factory.connect(alice).setCondition(poolTemplate.address, 0, 100)
-      ).to.revertedWith("Caller is not allowed to operate");
+      await expect(factory.connect(alice).setCondition(poolTemplate.address, 0, 100)).to.revertedWith(
+        "Caller is not allowed to operate"
+      );
     });
     it("Reverts when the template is not registered", async () => {
-      await expect(
-        factory.setCondition(poolTemplate.address, 0, 100)
-      ).to.revertedWith("ERROR: UNAUTHORIZED_TEMPLATE");
+      await expect(factory.setCondition(poolTemplate.address, 0, 100)).to.revertedWith("ERROR: UNAUTHORIZED_TEMPLATE");
     });
     it("Should allow creating market based on the registered condition", async () => {
       await factory.approveTemplate(poolTemplate.address, true, true, true);
-      await factory.approveReference(
-        poolTemplate.address,
-        0,
-        dai.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        1,
-        dai.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        2,
-        registry.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        3,
-        parameters.address,
-        true
-      );
-      await factory.approveReference(
-        poolTemplate.address,
-        4,
-        ZERO_ADDRESS,
-        true
-      );
+      await factory.approveReference(poolTemplate.address, 0, dai.address, true);
+      await factory.approveReference(poolTemplate.address, 1, dai.address, true);
+      await factory.approveReference(poolTemplate.address, 2, registry.address, true);
+      await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
+      await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true);
       await factory.setCondition(poolTemplate.address, 0, 0);
       let market = await factory
         .connect(alice)
@@ -458,12 +260,7 @@ describe("Factory", function () {
           poolTemplate.address,
           "Here is metadata.",
           [0, 0],
-          [
-            dai.address,
-            dai.address,
-            registry.address,
-            parameters.address
-          ]
+          [dai.address, dai.address, registry.address, parameters.address]
         );
       expect(market).to.exist;
     });

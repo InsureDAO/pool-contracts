@@ -1,5 +1,11 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity 0.8.10;
+pragma solidity 0.8.12;
+
+/**
+ * @title Registry
+ * @author @InsureDAO
+ * @notice Pool Registry
+ * SPDX-License-Identifier: GPL-3.0
+ */
 
 import "./interfaces/IOwnership.sol";
 import "./interfaces/IRegistry.sol";
@@ -20,10 +26,7 @@ contract Registry is IRegistry {
     IOwnership public immutable ownership;
 
     modifier onlyOwner() {
-        require(
-            ownership.owner() == msg.sender,
-            "Caller is not allowed to operate"
-        );
+        require(ownership.owner() == msg.sender, "Caller is not allowed to operate");
         _;
     }
 
@@ -49,10 +52,7 @@ contract Registry is IRegistry {
      */
     function supportMarket(address _market) external override {
         require(!markets[_market], "ERROR: ALREADY_REGISTERED");
-        require(
-            msg.sender == factory || msg.sender == ownership.owner(),
-            "ERROR: UNAUTHORIZED_CALLER"
-        );
+        require(msg.sender == factory || msg.sender == ownership.owner(), "ERROR: UNAUTHORIZED_CALLER");
         require(_market != address(0), "ERROR: ZERO_ADDRESS");
 
         allMarkets.push(_market);
@@ -65,14 +65,8 @@ contract Registry is IRegistry {
      * @param _template template address
      * @param _target target address
      */
-    function setExistence(address _template, address _target)
-        external
-        override
-    {
-        require(
-            msg.sender == factory || msg.sender == ownership.owner(),
-            "ERROR: UNAUTHORIZED_CALLER"
-        );
+    function setExistence(address _template, address _target) external override {
+        require(msg.sender == factory || msg.sender == ownership.owner(), "ERROR: UNAUTHORIZED_CALLER");
 
         existence[_template][_target] = true;
         emit ExistenceSet(_template, _target);
@@ -83,11 +77,7 @@ contract Registry is IRegistry {
      * @param _address address to set CDS
      * @param _cds CDS contract address
      */
-    function setCDS(address _address, address _cds)
-        external
-        override
-        onlyOwner
-    {
+    function setCDS(address _address, address _cds) external override onlyOwner {
         require(_cds != address(0), "ERROR: ZERO_ADDRESS");
 
         cds[_address] = _cds;
@@ -114,12 +104,7 @@ contract Registry is IRegistry {
      * @param _target target address
      * @return true if the id within the market already exists
      */
-    function confirmExistence(address _template, address _target)
-        external
-        view
-        override
-        returns (bool)
-    {
+    function confirmExistence(address _template, address _target) external view override returns (bool) {
         return existence[_template][_target];
     }
 

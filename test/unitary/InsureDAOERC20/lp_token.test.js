@@ -19,10 +19,8 @@ describe("InsuerDAOERC20", function () {
   });
 
   it("Double initialize", async function () {
-    await expect(
-      token.initialize(name, symbol, 18)
-    ).to.revertedWith("Token is already initialized");
-  })
+    await expect(token.initialize(name, symbol, 18)).to.revertedWith("Token is already initialized");
+  });
 
   describe("ERC20", function () {
     beforeEach(async () => {
@@ -49,21 +47,17 @@ describe("InsuerDAOERC20", function () {
       });
       it("approve/ increases/ decrease change allowance", async function () {
         await token.connect(alice).approve(tom.address, 5000);
-        expect(await token.allowance(alice.address, tom.address)).to.equal(
-          "5000"
-        );
+        expect(await token.allowance(alice.address, tom.address)).to.equal("5000");
         await token.connect(alice).decreaseAllowance(tom.address, "5000");
         expect(await token.allowance(alice.address, tom.address)).to.equal("0");
         await token.connect(alice).increaseAllowance(tom.address, "10000");
-        expect(await token.allowance(alice.address, tom.address)).to.equal(
-          "10000"
-        );
+        expect(await token.allowance(alice.address, tom.address)).to.equal("10000");
       });
       it("declines to decrease allowance more than approval", async function () {
         await token.connect(alice).approve(tom.address, 5000);
-        await expect(
-          token.connect(alice).decreaseAllowance(tom.address, "10000")
-        ).to.revertedWith("Decreased allowance below zero");
+        await expect(token.connect(alice).decreaseAllowance(tom.address, "10000")).to.revertedWith(
+          "Decreased allowance below zero"
+        );
       });
     });
     describe("total supply", function () {
@@ -88,9 +82,7 @@ describe("InsuerDAOERC20", function () {
       context("when the recipient is not the zero address", function () {
         context("when the sender does not have enough balance", function () {
           it("reverts", async function () {
-            await expect(
-              token.connect(alice).transfer(tom.address, "10001")
-            ).to.reverted;
+            await expect(token.connect(alice).transfer(tom.address, "10001")).to.reverted;
           });
         });
 
@@ -105,9 +97,9 @@ describe("InsuerDAOERC20", function () {
 
       context("when the recipient is the zero address", function () {
         it("reverts", async function () {
-          await expect(
-            token.connect(tom).transfer(ZERO_ADDRESS, 10000)
-          ).to.revertedWith("Transfer to the zero address");
+          await expect(token.connect(tom).transfer(ZERO_ADDRESS, 10000)).to.revertedWith(
+            "Transfer to the zero address"
+          );
         });
       });
     });
@@ -116,39 +108,29 @@ describe("InsuerDAOERC20", function () {
         context("when the sender does not have enough balance", function () {
           it("reverts", async function () {
             await token.connect(alice).approve(tom.address, 10000);
-            await expect(
-              token
-                .connect(alice)
-                .transferFrom(alice.address, tom.address, "10001")
-            ).to.reverted;
+            await expect(token.connect(alice).transferFrom(alice.address, tom.address, "10001")).to.reverted;
           });
         });
         context("when the transfer amount exceeds allowance", function () {
           it("reverts", async function () {
             await token.connect(alice).approve(tom.address, 5000);
-            await expect(
-              token
-                .connect(tom)
-                .transferFrom(alice.address, tom.address, "6000")
-            ).to.revertedWith("Transfer amount > allowance");
+            await expect(token.connect(tom).transferFrom(alice.address, tom.address, "6000")).to.revertedWith(
+              "Transfer amount > allowance"
+            );
           });
         });
         context("when the transfer amount exceeds balance", function () {
           it("reverts", async function () {
             await token.connect(alice).approve(tom.address, 20000);
-            await expect(
-              token
-                .connect(tom)
-                .transferFrom(alice.address, tom.address, "10001")
-            ).to.revertedWith("Transfer amount exceeds balance");
+            await expect(token.connect(tom).transferFrom(alice.address, tom.address, "10001")).to.revertedWith(
+              "Transfer amount exceeds balance"
+            );
           });
         });
         context("when the sender has enough balance", function () {
           it("transfers the requested amount", async function () {
             await token.connect(alice).approve(tom.address, 10000);
-            await token
-              .connect(tom)
-              .transferFrom(alice.address, tom.address, "10000");
+            await token.connect(tom).transferFrom(alice.address, tom.address, "10000");
             expect(await token.balanceOf(alice.address)).to.equal("0");
             expect(await token.balanceOf(tom.address)).to.equal("10000");
           });
@@ -157,18 +139,16 @@ describe("InsuerDAOERC20", function () {
       context("when the recipient is the zero address", function () {
         it("reverts", async function () {
           await token.connect(alice).approve(tom.address, 10000);
-          await expect(
-            token.connect(tom).transferFrom(alice.address, ZERO_ADDRESS, 10000)
-          ).to.revertedWith("Transfer to the zero address");
+          await expect(token.connect(tom).transferFrom(alice.address, ZERO_ADDRESS, 10000)).to.revertedWith(
+            "Transfer to the zero address"
+          );
         });
       });
     });
     describe("mint", function () {
       context("trying to mint to zero address", function () {
         it("reverts", async function () {
-          await expect(token.mint(ZERO_ADDRESS, "10001")).to.revertedWith(
-            "Mint to the zero address"
-          );
+          await expect(token.mint(ZERO_ADDRESS, "10001")).to.revertedWith("Mint to the zero address");
         });
       });
     });
@@ -183,9 +163,7 @@ describe("InsuerDAOERC20", function () {
 
       context("when the requested account has not enough tokens", function () {
         it("reverts", async function () {
-          await expect(token.connect(alice).burn("10001")).to.revertedWith(
-            "Burn amount exceeds balance"
-          );
+          await expect(token.connect(alice).burn("10001")).to.revertedWith("Burn amount exceeds balance");
         });
       });
     });

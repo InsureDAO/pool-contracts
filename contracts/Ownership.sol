@@ -1,6 +1,11 @@
-// SPDX-License-Identifier: MIT
+pragma solidity 0.8.12;
 
-pragma solidity 0.8.10;
+/**
+ * @title Ownership
+ * @author @InsureDAO
+ * @notice Ownership management contract
+ * SPDX-License-Identifier: GPL-3.0
+ */
 
 import "./interfaces/IOwnership.sol";
 
@@ -43,11 +48,7 @@ contract Ownership is IOwnership {
         _;
     }
 
-    function commitTransferOwnership(address newOwner)
-        external
-        override
-        onlyOwner
-    {
+    function commitTransferOwnership(address newOwner) external override onlyOwner {
         /***
          *@notice Transfer ownership of GaugeController to `newOwner`
          *@param newOwner Address to have ownership transferred to

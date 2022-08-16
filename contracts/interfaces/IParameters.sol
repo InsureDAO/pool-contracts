@@ -1,4 +1,4 @@
-pragma solidity 0.8.10;
+pragma solidity 0.8.12;
 
 interface IParameters {
     function setVault(address _token, address _vault) external;
@@ -6,6 +6,8 @@ interface IParameters {
     function setLockup(address _address, uint256 _target) external;
 
     function setGrace(address _address, uint256 _target) external;
+
+    function setMaxDate(address _address, uint256 _target) external;
 
     function setMinDate(address _address, uint256 _target) external;
 
@@ -46,6 +48,8 @@ interface IParameters {
     function getWithdrawable(address _target) external view returns (uint256);
 
     function getGrace(address _target) external view returns (uint256);
+
+    function getMaxDate(address _target) external view returns (uint256);
 
     function getMinDate(address _target) external view returns (uint256);
 
