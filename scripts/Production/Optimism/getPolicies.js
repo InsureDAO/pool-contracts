@@ -20,13 +20,12 @@ async function main() {
 
   //unlock-able pools
   let markets = await registry.getAllMarkets();
-  console.log("markets:", markets);
-  for (let i = 0; i < markets.length; i++) {
-    let market = await PoolTemplate.attach(markets[i]);
 
-    markets[i].ids = [];
+  for (let i = 2; i < markets.length; i++) {
+    let market = await PoolTemplate.attach(markets[i]);
     let count = await market.allInsuranceCount();
-    console.log("market:", market.address, ", totalPolicyCount:", count);
+    console.log("==================================================================");
+    console.log("market:", market.address, ", totalPolicyCount:", count.toString());
 
     for (let id = 0; id < count; id++) {
       //check if unlockable
@@ -34,13 +33,18 @@ async function main() {
       let gracePeriod = new BigNumber.from(await parameters.getGrace(market.address));
       let endtime = new BigNumber.from(policy.endTime);
 
+      console.log("id:", id);
+      console.log("$" + policy.amount.div("1000000"));
+      console.log("period:", (policy.endTime - policy.startTime) / 86400, "days");
+      console.log("bought by " + policy.insured);
+
       //insurances[_id].status && insurances[_id].endTime + parameters.getGrace(address(this)) < block.timestamp,
       if (policy.status == true && endtime.add(gracePeriod).lt(now)) {
-        console.log("id", id, "is unlockable");
-        markets[i].ids.push(id);
+        console.log("unlockable");
       } else {
-        console.log("id", id, "is NOT unlockable");
+        console.log("NOT unlockable");
       }
+      console.log("---------------");
     }
   }
 
