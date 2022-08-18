@@ -1,5 +1,4 @@
 const { ethers } = require("hardhat");
-const fs = require("fs");
 const { BigNumber } = require("ethers");
 
 const { USDC_ADDRESS } = require("./config");
@@ -7,7 +6,6 @@ const { USDC_ADDRESS } = require("./config");
 const { RegistryAddress, FactoryAddress, ParametersAddress, PoolTemplateAddress } = require("./deployments");
 
 const PREMIUM_RATE_BASE = BigNumber.from("1000000");
-const ALLOCATION_POINT = BigNumber.from("1000000");
 
 /**
  * @typedef PoolConfig
