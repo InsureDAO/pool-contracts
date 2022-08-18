@@ -73,15 +73,25 @@ async function main() {
     await premium.deployed();
 
     // setting premium rate
-    const rate = (PREMIUM_RATE_BASE * pool.rate) / 100;
+    const rate = BigNumber.from((PREMIUM_RATE_BASE * pool.rate) / 100);
     const setParameter = await parameters.connect(manager).setPremiumModel(marketAddress, premium.address);
     await setParameter.wait();
 
-    const setPremium = await premium.connect(manager).setPremiumParameters(rate, 0, 0, 0);
+    console.log("rate", rate.toString());
+
+    const owner = await premium.ownership();
+    const _rate = await premium.rate();
+    console.debug("owner", owner);
+    console.debug("manager", manager.address);
+    console.debug("rate", _rate.toString());
+
+    const setPremium = await premium.connect(manager).setPremiumParameters(rate.toString(), "0", "0", "0");
     await setPremium.wait();
 
     console.log(
-      `new pool for ${pool.tokenAddress} successfully deployed: \nmarketAddress: ${marketAddress} \nrate: ${rate}`
+      `new pool for ${
+        pool.tokenAddress
+      } successfully deployed: \nmarketAddress: ${marketAddress} \nrate: ${rate.toString()}`
     );
     console.log(`new premium model for ${marketAddress} deployed: ${premium.address}`);
   });
