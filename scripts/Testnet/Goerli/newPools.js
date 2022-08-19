@@ -3,7 +3,13 @@ const { BigNumber } = require("ethers");
 
 const { USDC_ADDRESS } = require("./config");
 
-const { RegistryAddress, FactoryAddress, ParametersAddress, PoolTemplateAddress } = require("./deployments");
+const {
+  RegistryAddress,
+  FactoryAddress,
+  ParametersAddress,
+  PoolTemplateAddress,
+  OwnershipAddress,
+} = require("./deployments");
 
 const PREMIUM_RATE_BASE = BigNumber.from("1000000");
 
@@ -25,12 +31,14 @@ const NEW_POOLS = [
 ];
 
 async function main() {
+  const start = process.hrtime();
+
   const [, manager] = await ethers.getSigners();
   console.log("manager address: ", manager.address);
 
   const Registry = await ethers.getContractFactory("Registry");
   const Factory = await ethers.getContractFactory("Factory");
-  const Parameters = await ethers.getContractFactory("Parameters");
+  const Parameters = await ethers.getContractFactory("ParametersV2");
   const PremiumV1 = await ethers.getContractFactory("FlatPremium");
 
   const registry = Registry.attach(RegistryAddress);
@@ -69,31 +77,28 @@ async function main() {
     if (!marketAddress) throw new Error(`An error occurred while deploying the token address: ${pool.tokenAddress}`);
 
     // deploy premium model for pool
-    const premium = await PremiumV1.deploy(manager.address);
+    const premium = await PremiumV1.connect(manager).deploy(OwnershipAddress);
     await premium.deployed();
 
     // setting premium rate
-    const rate = BigNumber.from((PREMIUM_RATE_BASE * pool.rate) / 100);
     const setParameter = await parameters.connect(manager).setPremiumModel(marketAddress, premium.address);
     await setParameter.wait();
 
-    console.log("rate", rate.toString());
-
-    const owner = await premium.ownership();
-    const _rate = await premium.rate();
-    console.debug("owner", owner);
-    console.debug("manager", manager.address);
-    console.debug("rate", _rate.toString());
-
-    const setPremium = await premium.connect(manager).setPremiumParameters(rate.toString(), "0", "0", "0");
+    const rate = BigNumber.from((PREMIUM_RATE_BASE * pool.rate) / 100);
+    const setPremium = await premium.setPremiumParameters(rate.toString(), "0", "0", "0");
     await setPremium.wait();
 
     console.log(
       `new pool for ${
         pool.tokenAddress
-      } successfully deployed: \nmarketAddress: ${marketAddress} \nrate: ${rate.toString()}`
+      } successfully deployed \u001b[32m\n\nmarketAddress: ${marketAddress} \nrate: ${rate.toString()} \npremium model: ${
+        premium.address
+      }\u001b[0m\n\n`
     );
-    console.log(`new premium model for ${marketAddress} deployed: ${premium.address}`);
+
+    const end = process.hrtime(start);
+
+    console.log("✨ success (%ds %dms)", end[0], end[1] / 10000);
   });
 
   // wait until all deployment succeed
