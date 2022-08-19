@@ -8,6 +8,8 @@ const GOV_TOKENS = ["0x1000000000000000000000000000000000000000", "0x20000000000
 
 const ALLOCATION_POINT = BigNumber.from("1000000");
 
+const PREMIUM_RATE_BASE = BigNumber.from("1000000");
+
 //parameters
 const DAY = 86400;
 const GovFeeRatio = 100000; //10%
@@ -25,6 +27,7 @@ Object.assign(exports, {
   USDC_ADDRESS,
   GOV_TOKENS,
   ALLOCATION_POINT,
+  PREMIUM_RATE_BASE,
 
   GovFeeRatio,
   GracePeriod,
