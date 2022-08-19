@@ -14,49 +14,7 @@ const { ALLOCATION_POINT } = require("./config");
 /**
  * @type {IndexConnection[]}
  */
-const NEW_CONNECTIONS = [
-  // TODO: DELETE these params (just for test)
-  /* AstridDAO */
-  {
-    poolAddress: "0x66737C9Dfe7ad301f3b4B173E2BFB85146c79Ed1",
-    indexAddresses: ["0xbFaeEFB4a081577E3eb2b752C2E344ecbc54D752"],
-  },
-  {
-    /* Avault */
-    poolAddress: "0x39FD418d4E36066e7eE18CB83aBdA0F6E3892Dbc",
-    indexAddresses: ["0xcbC4647bDe178640b2321072461295BA298E4de8"],
-  },
-  /* Sirius-finance */
-  {
-    poolAddress: "0xb4b379D945736f4AFFD093411C6C482D9770AFD8",
-    indexAddresses: ["0xcbC4647bDe178640b2321072461295BA298E4de8"],
-  },
-  // /* SiO2 Finance */
-  // {
-  //   poolAddress: "",
-  //   indexAddresses: [""],
-  // },
-  // /* Zenlink */
-  // {
-  //   poolAddress: "",
-  //   indexAddresses: [""],
-  // },
-  // /* AstarFarm */
-  // {
-  //   poolAddress: "",
-  //   indexAddresses: [""],
-  // },
-  // /* Muuu */
-  // {
-  //   poolAddress: "",
-  //   indexAddresses: [""],
-  // },
-  // /* KAGLA Finance */
-  // {
-  //   poolAddress: "",
-  //   indexAddresses: [""],
-  // },
-];
+const NEW_CONNECTIONS = [];
 
 async function main() {
   const start = process.hrtime();
