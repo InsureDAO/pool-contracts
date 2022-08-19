@@ -104,6 +104,8 @@ async function main() {
       const pools = await index.getAllPools();
       const newPoolPositionForIndex = pools.length;
 
+      console.log("index position", newPoolPositionForIndex);
+
       // get target index number index should be set
       const newIndexPositionForPool = await (async () => {
         let i = 0;
@@ -121,7 +123,11 @@ async function main() {
         return i;
       })();
 
-      await index.connect(manager).set(newPoolPositionForIndex, newIndexPositionForPool, poolAddress, ALLOCATION_POINT);
+      const setConnection = await index
+        .connect(manager)
+        .set(newPoolPositionForIndex, newIndexPositionForPool, poolAddress, ALLOCATION_POINT);
+
+      await setConnection.wait();
 
       console.log(
         `pool successfully connected to index: \n\n\u001b[32m pool: ${poolAddress} \nindex: ${indexAddress}\n\n\u001b[0m`
