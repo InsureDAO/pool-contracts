@@ -1,13 +1,8 @@
 const { ethers } = require("hardhat");
 
-const { BigNumber } = require("ethers");
-
 const { RegistryAddress } = require("./deployments");
 
-/**
- * @note currently use fixed value, but may change in the future
- */
-const ALLOCATION_POINT = BigNumber.from("1000000");
+const { ALLOCATION_POINT } = require("./config");
 
 /**
  * @typedef IndexConnection
@@ -24,17 +19,17 @@ const NEW_CONNECTIONS = [
   /* AstridDAO */
   {
     poolAddress: "0x66737C9Dfe7ad301f3b4B173E2BFB85146c79Ed1",
-    indexAddresses: ["0xF22C823a02424609c91869e176A0A8eFE2dC2400"],
+    indexAddresses: ["0xbFaeEFB4a081577E3eb2b752C2E344ecbc54D752"],
   },
   {
     /* Avault */
     poolAddress: "0x39FD418d4E36066e7eE18CB83aBdA0F6E3892Dbc",
-    indexAddresses: ["0xe0BE53C7D9bE11E99957bde717BeF89db9fF754f"],
+    indexAddresses: ["0xcbC4647bDe178640b2321072461295BA298E4de8"],
   },
   /* Sirius-finance */
   {
     poolAddress: "0xb4b379D945736f4AFFD093411C6C482D9770AFD8",
-    indexAddresses: ["0xe0BE53C7D9bE11E99957bde717BeF89db9fF754f"],
+    indexAddresses: ["0xcbC4647bDe178640b2321072461295BA298E4de8"],
   },
   // /* SiO2 Finance */
   // {
@@ -75,12 +70,12 @@ async function main() {
 
   const registry = Registry.attach(RegistryAddress);
 
-  const indicesConnectingPromises = NEW_CONNECTIONS.map(async ({ poolAddress, indexAddresses }) => {
+  for (const { poolAddress, indexAddresses } of NEW_CONNECTIONS) {
     const poolExist = await registry.isListed(poolAddress);
     if (!poolExist) throw new Error(`Pool is not listed: ${poolAddress}`);
 
     // connecting to indices
-    const indexConnectingPromises = indexAddresses.map(async (indexAddress) => {
+    for (const indexAddress of indexAddresses) {
       const indexExist = await registry.isListed(indexAddress);
       if (!indexExist) throw new Error(`Index is not listed: ${indexAddress}`);
 
@@ -89,10 +84,12 @@ async function main() {
 
       // check if connection already established
       const indexConnection = await pool.indices(indexAddress);
-      if (indexConnection.exist)
-        return console.log(
+      if (indexConnection.exist) {
+        console.log(
           `\n\u001b[33m ${indexAddress} already connected to pool ${poolAddress}. skip to connect. \u001b[0m\n`
         );
+        break;
+      }
 
       const pools = await index.getAllPools();
       const newPoolPositionForIndex = pools.length;
@@ -119,12 +116,8 @@ async function main() {
       console.log(
         `pool successfully connected to index: \n\n\u001b[32m pool: ${poolAddress} \nindex: ${indexAddress}\n\n\u001b[0m`
       );
-    });
-    // wait until all indices connected
-    await Promise.all(indexConnectingPromises);
-  });
-
-  await Promise.all(indicesConnectingPromises);
+    }
+  }
 
   const end = process.hrtime(start);
 
