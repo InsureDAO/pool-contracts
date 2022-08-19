@@ -88,7 +88,8 @@ async function main() {
         console.log(
           `\n\u001b[33m ${indexAddress} already connected to pool ${poolAddress}. skip to connect. \u001b[0m\n`
         );
-        break;
+
+        continue;
       }
 
       const pools = await index.getAllPools();

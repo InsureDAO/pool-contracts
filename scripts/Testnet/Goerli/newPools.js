@@ -89,8 +89,11 @@ async function main() {
     const existence = await registry.connect(manager).confirmExistence(PoolTemplateAddress, pool.tokenAddress);
 
     // skip deployment if the pool is already exist
-    if (existence)
-      return console.log(`\n\u001b[33m pool for ${pool.tokenAddress} already exist. skip deployment \u001b[0m\n`);
+    if (existence) {
+      console.log(`\n\u001b[33m pool for ${pool.tokenAddress} already exist. skip deployment \u001b[0m\n`);
+
+      continue;
+    }
 
     // deploying pool
     const marketAddress = await (async () => {
