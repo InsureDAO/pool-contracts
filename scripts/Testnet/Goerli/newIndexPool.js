@@ -1,14 +1,16 @@
 const { ethers } = require("hardhat");
 
-const { USDC_ADDRESS, ZERO_ADDRESS } = require("./config");
+const { USDC_ADDRESS } = require("./config");
 const { RegistryAddress, FactoryAddress, ParametersAddress, IndexTemplateAddress } = require("./deployments");
 
 async function main() {
+  const start = process.hrtime();
+
   const [, manager] = await ethers.getSigners();
 
   const Registry = await ethers.getContractFactory("Registry");
   const Factory = await ethers.getContractFactory("Factory");
-  const Parameters = await ethers.getContractFactory("Parameters");
+  const Parameters = await ethers.getContractFactory("ParametersV2");
 
   const registry = Registry.attach(RegistryAddress);
   const factory = Factory.attach(FactoryAddress);
@@ -18,14 +20,16 @@ async function main() {
     try {
       tx = await factory
         .connect(manager)
-        // .createMarket(IndexTemplateAddress, "0x", [0], [USDC_ADDRESS, registry.address, parameters.address]);
-        // FIXME: use actual address
-        .createMarket(ZERO_ADDRESS, "0x", [0], [USDC_ADDRESS, registry.address, parameters.address]);
+        .createMarket(IndexTemplateAddress, "0x", [0], [USDC_ADDRESS, registry.address, parameters.address]);
 
       const receipt = await tx.wait();
-      console.log(receipt);
 
-      return receipt.events[1].args[0];
+      const marketCreated = receipt.events[2];
+      const address = marketCreated.args[0];
+
+      console.debug(address);
+
+      return address;
     } catch (err) {
       console.error(err);
       return null;
@@ -34,7 +38,11 @@ async function main() {
 
   if (!marketAddress) throw new Error(`An error occurred while deploying the new index pool`);
 
-  console.log(`new index pool deployed to the address: ${marketAddress}`);
+  console.log(`new index pool deployed \n\n\u001b[32m address: ${marketAddress} \u001b[0m \n\n`);
+
+  const end = process.hrtime(start);
+
+  console.log("✨ success (%ds %dms)", end[0], end[1] / 10000);
 }
 
 main()
