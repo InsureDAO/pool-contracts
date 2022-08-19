@@ -24,9 +24,46 @@ const PREMIUM_RATE_BASE = BigNumber.from("1000000");
  * @type {PoolConfig[]}
  */
 const NEW_POOLS = [
+  // TODO: DELETE these params (just for test)
+  /* AstridDAO */
   {
     tokenAddress: "0x5271D85CE4241b310C0B34b7C2f1f036686A6d7C",
     rate: 12,
+  },
+  /* Avault */
+  {
+    tokenAddress: "0x03065E84748a9e4a1AEbef15AC89da1Cdf18B202",
+    rate: 12,
+  },
+  /* Sirius-finance */
+  {
+    tokenAddress: "0x9448610696659de8F72e1831d392214aE1ca4838",
+    rate: 12,
+  },
+  /* SiO2 Finance */
+  {
+    tokenAddress: "0xcCA488aEEf7A1D5C633f877453784F025e7cF160",
+    rate: 12,
+  },
+  /* Zenlink */
+  {
+    tokenAddress: "0x998082C488e548820F970Df5173bD2061Ce90635",
+    rate: 12,
+  },
+  /* AstarFarm */
+  {
+    tokenAddress: "0x992bad137Fc8a50a486B5C6375f581964b4A15FC",
+    rate: 5,
+  },
+  /* Muuu */
+  {
+    tokenAddress: "0xc5BcAC31cf55806646017395AD119aF2441Aee37",
+    rate: 12,
+  },
+  /* KAGLA Finance */
+  {
+    tokenAddress: "0x257f1a047948f73158DaDd03eB84b34498bCDc60",
+    rate: 10,
   },
 ];
 
@@ -49,7 +86,8 @@ async function main() {
     const existence = await registry.connect(manager).confirmExistence(PoolTemplateAddress, pool.tokenAddress);
 
     // skip deployment if the pool is already exist
-    if (existence) return console.log(`pool for ${pool.tokenAddress} already exist. skip deployment`);
+    if (existence)
+      return console.log(`\n\u001b[33m pool for ${pool.tokenAddress} already exist. skip deployment \u001b[0m\n`);
 
     // deploying pool
     const marketAddress = await (async () => {
@@ -95,14 +133,14 @@ async function main() {
         premium.address
       }\u001b[0m\n\n`
     );
-
-    const end = process.hrtime(start);
-
-    console.log("✨ success (%ds %dms)", end[0], end[1] / 10000);
   });
 
   // wait until all deployment succeed
   await Promise.all(poolDeployPromises);
+
+  const end = process.hrtime(start);
+
+  console.log("✨ finished (%ds %dms)", end[0], end[1] / 10000);
 }
 
 main()
