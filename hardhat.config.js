@@ -40,12 +40,13 @@ module.exports = {
       initialBaseFeePerGas: 0,
       accounts: [
         { privateKey: `0x${DEPLOY_KEY}`, balance: "2903004000000000000000000000000000000" },
-        // { privateKey: `0x${CONTROL_KEY}`, balance: "2903004000000000000000000000000000000" },
-        { privateKey: `0x${TEST_KEY}`, balance: "2903004000000000000000000000000000000" },
+        { privateKey: `0x${CONTROL_KEY}`, balance: "2903004000000000000000000000000000000" },
+        // { privateKey: `0x${TEST_KEY}`, balance: "2903004000000000000000000000000000000" },
       ],
       forking: {
-        url: "https://eth-goerli.g.alchemy.com/v2/mFzImcYlqSuQyfJ4vNcIjn6ieOGEobyv",
-      }, //remove comment when preform fork environment
+        url: GOERLI_URL,
+        enabled: false, // set true when perform fork environment
+      },
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
