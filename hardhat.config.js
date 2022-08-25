@@ -8,12 +8,12 @@ require("dotenv").config();
 const {
   TEST_KEY,
   DEPLOY_KEY,
-  CONTROLL_KEY,
+  CONTROL_KEY,
 
   SHIBUYA_URL,
   ASTAR_URL,
   MUMBAI_URL,
-  GOERI_URL,
+  GOERLI_URL,
 
   INFURA_KEY,
   ETHERSCAN_API,
@@ -38,26 +38,26 @@ module.exports = {
       /**
       accounts: [
         { privateKey: `0x${DEPLOY_KEY}`, balance: "2903004000000000000000000000000000000" },
-        { privateKey: `0x${CONTROLL_KEY}`, balance: "2903004000000000000000000000000000000" },
+        { privateKey: `0x${CONTROL_KEY}`, balance: "2903004000000000000000000000000000000" },
       ],
       forking: { url: "https://opt-mainnet.g.alchemy.com/v2/W2z_CprfdFhEiOus8WYvqY3aVY73hhh5" }, //remove comment when preform fork environment
        */
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
-      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROLL_KEY}`],
+      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROL_KEY}`],
       gas: 6e6,
       gasPrice: 8e10, //80Gwei
       timeout: 2000000000,
     },
     astar: {
       url: ASTAR_URL,
-      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROLL_KEY}`],
+      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROL_KEY}`],
       gasPrice: 3e9, //3Gwei
     },
     optimisticEthereum: {
       url: `https://optimism-mainnet.infura.io/v3/${INFURA_KEY}`,
-      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROLL_KEY}`],
+      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROL_KEY}`],
     },
     rinkeby: {
       url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
@@ -83,7 +83,7 @@ module.exports = {
       timeout: 2000000000,
     },
     goerli: {
-      url: GOERI_URL,
+      url: GOERLI_URL,
       accounts: [`0x${TEST_KEY}`],
     },
     mumbai: {
