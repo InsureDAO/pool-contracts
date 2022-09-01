@@ -2,37 +2,47 @@
 pragma solidity 0.8.12;
 
 interface IController {
-    function earn(address _token, uint256 _amount) external;
+    function utilize(address _token, uint256 _amount) external;
 
-    function lend(address _strategy, uint256 _amount) external;
+    function unutilize(address _token, uint256 _amount) external;
 
-    function report(
-        uint256 _profit,
-        uint256 _loss,
-        uint256 _debtPayment
-    ) external;
+    function adjustUtilization() external;
 
-    function withdraw(address _to, uint256 _amount) external;
+    function migrate(address _to) external;
 
     function valueAll() external view returns (uint256);
 
-    function utilizeAmount() external returns (uint256);
+    function setMaxUtilizationRatio(uint256 _ratio) external;
 
-    function migrate(address) external;
+    function getCurrentUtilizationRatio() external view returns (uint256);
 
-    function addStrategy(address _strategy) external;
+    // function lend(address _strategy, uint256 _amount) external;
 
-    function activateStrategy(address _strategy) external;
+    // function report(
+    //     uint256 _profit,
+    //     uint256 _loss,
+    //     uint256 _debtPayment
+    // ) external;
 
-    function setDebtLimitRatio(address _strategy, uint256 _debtLimitRatio) external;
+    // function withdraw(address _to, uint256 _amount) external;
 
-    function setWithdrawalQueue(address[] calldata _withdrawlQueue) external;
+    // function utilizeAmount() external returns (uint256);
 
-    function debtOutstanding(address _strategy) external view returns (uint256);
+    // function addStrategy(address _strategy) external;
 
-    function debtOutstanding() external view returns (uint256);
+    // function activateStrategy(address _strategy) external;
 
-    function creditAvailable(address _strategy) external view returns (uint256);
+    // function setDebtLimitRatio(address _strategy, uint256 _debtLimitRatio) external;
 
-    function creditAvailable() external view returns (uint256);
+    // function setWithdrawalQueue(address[] calldata _withdrawlQueue) external;
+
+    // function debtOutstanding(address _strategy) external view returns (uint256);
+
+    // function debtOutstanding() external view returns (uint256);
+
+    // function creditAvailable(address _strategy) external view returns (uint256);
+
+    // function creditAvailable() external view returns (uint256);
+
+    // function earn(address _token, uint256 _amount) external;
 }

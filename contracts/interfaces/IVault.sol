@@ -58,4 +58,6 @@ interface IVault {
     function setController(address _controller) external;
 
     function setKeeper(address _keeper) external;
+
+    function getBalance() external view returns (uint256);
 }
