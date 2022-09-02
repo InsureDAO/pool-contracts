@@ -28,6 +28,8 @@ contract AaveV3Strategy is IController {
     uint256 originalSupply;
     uint256 utilizedAmount;
 
+    bool locked;
+
     /**
     @notice internal multiplication scale 1e6 to reduce decimal truncation
     */
@@ -36,6 +38,13 @@ contract AaveV3Strategy is IController {
     modifier onlyOwner() {
         require(ownership.owner() == msg.sender, "Caller is not allowed to operate");
         _;
+    }
+
+    modifier noReentrant() {
+        require(!locked, "No re-entrancy");
+        locked = true;
+        _;
+        locked = false;
     }
 
     modifier validUtilizeAttempt(address _utilizedToken) {
@@ -88,7 +97,7 @@ contract AaveV3Strategy is IController {
         _unutilize(_amount);
     }
 
-    function _unutilize(uint256 _amount) internal {
+    function _unutilize(uint256 _amount) internal noReentrant {
         uint256 _available = usdc.balanceOf(address(this));
         uint256 _expectedRatio = _calcSuppliedAssetsRatio(_available - _amount);
 
@@ -145,7 +154,7 @@ contract AaveV3Strategy is IController {
         originalSupply += _amount;
     }
 
-    function withdraw(uint256 _amount) external {
+    function withdraw(uint256 _amount) external noReentrant {
         require(ausdc.balanceOf(address(this)) >= _amount, "Insufficient supply for withdraw");
 
         aave.withdraw(address(usdc), _amount, address(this));
@@ -153,7 +162,7 @@ contract AaveV3Strategy is IController {
         originalSupply -= _amount;
     }
 
-    function withdrawReward(uint256 _amount, address _to) external onlyOwner {
+    function withdrawReward(uint256 _amount, address _to) external onlyOwner noReentrant {
         require(_to != address(0), "Zero address specified");
         require(_amount != 0, "No amount specified");
         require(_amount > getAccruedReward(), "Insufficient reward to withdraw");
