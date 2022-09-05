@@ -39,13 +39,6 @@ contract AaveV3Strategy is IController {
         _;
     }
 
-    modifier noReentrant() {
-        require(!locked, "No re-entrancy");
-        locked = true;
-        _;
-        locked = false;
-    }
-
     modifier onlyVault() {
         require(msg.sender == address(vault), "Vault can only utilize the balance");
         _;
@@ -100,8 +93,7 @@ contract AaveV3Strategy is IController {
         _unutilize(_amount);
     }
 
-    // TODO: reentrancyいらない、必要なケース調べておく
-    function _unutilize(uint256 _amount) internal noReentrant {
+    function _unutilize(uint256 _amount) internal {
         uint256 _available = usdc.balanceOf(address(this));
         uint256 _coverAmount = _amount - _available;
 
@@ -111,9 +103,9 @@ contract AaveV3Strategy is IController {
             aave.withdraw(address(usdc), _coverAmount, address(this));
         }
 
-        usdc.safeTransfer(address(vault), _amount);
-
         utilizedAmount -= _amount;
+
+        usdc.safeTransfer(address(vault), _amount);
     }
 
     function adjustUtilization() external {
@@ -165,18 +157,25 @@ contract AaveV3Strategy is IController {
         aave.supply(address(usdc), _amount, address(this), 0);
     }
 
-    function withdraw(uint256 _amount) external noReentrant {
+    function withdraw(uint256 _amount) external {
         require(ausdc.balanceOf(address(this)) >= _amount, "Insufficient supply for withdraw");
 
         aave.withdraw(address(usdc), _amount, address(this));
     }
 
-    function withdrawReward(uint256 _amount, address _to) external onlyOwner noReentrant {
+    function withdrawReward(uint256 _amount, address _to) external onlyOwner {
         require(_to != address(0), "Zero address specified");
         require(_amount != 0, "No amount specified");
         require(_amount > getAccruedReward(), "Insufficient reward to withdraw");
 
         aaveReward.claimRewards(supplyingAssets, _amount, _to, aaveRewardToken);
+    }
+
+    function withdrawAllReward(address _to) external onlyOwner {
+        require(_to != address(0), "Zero address specified");
+        require(getAccruedReward() > 0, "No reward claimable");
+
+        aaveReward.claimAllRewards(supplyingAssets, _to);
     }
 
     function getAccruedReward() public view returns (uint256) {
