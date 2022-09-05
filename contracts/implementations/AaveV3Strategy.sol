@@ -99,10 +99,13 @@ contract AaveV3Strategy is IController {
     // TODO: reentrancyいらない、必要なケース調べておく
     function _unutilize(uint256 _amount) internal noReentrant {
         uint256 _available = usdc.balanceOf(address(this));
-        uint256 _expectedRatio = _calcSuppliedAssetsRatio(_available - _amount);
+        uint256 _coverAmount = _amount - _available;
 
-        // TODO: 不足分をwithdrawして補填
-        require(_expectedRatio < maxSupplyRatio, "Insufficient balance in the controller");
+        if (_coverAmount > 0) {
+            require(ausdc.balanceOf(address(this)) >= _coverAmount, "Cannot cover the requested amount");
+
+            aave.withdraw(address(usdc), _coverAmount, address(this));
+        }
 
         usdc.safeTransfer(msg.sender, _amount);
 
