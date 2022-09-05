@@ -74,7 +74,7 @@ contract AaveV3Strategy is IController {
         maxSupplyRatio = MAGIC_SCALE_1E6;
     }
 
-    function utilize(address _token, uint256 _amount) external validUtilizeToken(_token) {
+    function utilize(address _token, uint256 _amount) external override validUtilizeToken(_token) {
         _utilize(_amount);
     }
 
@@ -89,7 +89,7 @@ contract AaveV3Strategy is IController {
         utilizedAmount += _amount;
     }
 
-    function unutilize(address _token, uint256 _amount) external validUtilizeToken(_token) {
+    function unutilize(address _token, uint256 _amount) external override validUtilizeToken(_token) {
         _unutilize(_amount);
     }
 
@@ -108,7 +108,7 @@ contract AaveV3Strategy is IController {
         usdc.safeTransfer(address(vault), _amount);
     }
 
-    function adjustUtilization() external {
+    function adjustUtilization() external override {
         int256 _shouldUtilizedRatio = int256(maxUtilizationRatio) - int256(_calcUtilizationRatio());
         uint256 _diffAmount = (vault.getBalance() * _abs(_shouldUtilizedRatio)) / MAGIC_SCALE_1E6;
 
@@ -121,16 +121,24 @@ contract AaveV3Strategy is IController {
         }
     }
 
-    function migrate(address _to) external onlyVault {
-        // withdraw all assets in aave
+    function emigrate(address _to) external override onlyOwner {
+        // liquidate all positions
         aave.withdraw(address(usdc), ausdc.balanceOf(address(this)), address(this));
-        // claim all rewards of supplying assets then send them to new controller
-        aaveReward.claimAllRewards(supplyingAssets, _to);
 
-        usdc.safeTransfer(_to, usdc.balanceOf(address(this)));
+        usdc.safeApprove(_to, type(uint256).max);
+
+        IController(_to).immigrate(address(this));
+
+        utilizedAmount = 0;
     }
 
-    function valueAll() public view returns (uint256) {
+    function immigrate(address _from) external override {
+        usdc.safeTransferFrom(_from, address(this), usdc.balanceOf(_from));
+
+        utilizedAmount = IController(_from).getUtlizedAmount();
+    }
+
+    function valueAll() public view override returns (uint256) {
         uint256 _usdc = usdc.balanceOf(address(this));
         uint256 _ausdc = ausdc.balanceOf(address(this));
         uint256 _pendingReward = getAccruedReward();
@@ -138,11 +146,15 @@ contract AaveV3Strategy is IController {
         return _usdc + _ausdc + _pendingReward;
     }
 
-    function getCurrentUtilizationRatio() external view returns (uint256) {
+    function getUtlizedAmount() public view override returns (uint256) {
+        return utilizedAmount;
+    }
+
+    function getCurrentUtilizationRatio() external view override returns (uint256) {
         return _calcUtilizationRatio(valueAll());
     }
 
-    function setMaxUtilizationRatio(uint256 _ratio) external onlyOwner withinValidRatio(_ratio) {
+    function setMaxUtilizationRatio(uint256 _ratio) external override onlyOwner withinValidRatio(_ratio) {
         maxUtilizationRatio = _ratio;
     }
 
