@@ -46,8 +46,12 @@ contract AaveV3Strategy is IController {
         locked = false;
     }
 
-    modifier validUtilizeAttempt(address _utilizedToken) {
+    modifier onlyVault() {
         require(msg.sender == address(vault), "Vault can only utilize the balance");
+        _;
+    }
+
+    modifier validUtilizeToken(address _utilizedToken) {
         require(_utilizedToken == address(usdc), "Unsupported token address");
         _;
     }
@@ -77,7 +81,7 @@ contract AaveV3Strategy is IController {
         maxSupplyRatio = MAGIC_SCALE_1E6;
     }
 
-    function utilize(address _token, uint256 _amount) external validUtilizeAttempt(_token) {
+    function utilize(address _token, uint256 _amount) external validUtilizeToken(_token) {
         _utilize(_amount);
     }
 
@@ -87,12 +91,12 @@ contract AaveV3Strategy is IController {
 
         require(_newRatio <= maxUtilizationRatio, "Exceeded max utilization ratio");
 
-        usdc.safeTransferFrom(msg.sender, address(this), _amount);
+        usdc.safeTransferFrom(address(vault), address(this), _amount);
 
         utilizedAmount += _amount;
     }
 
-    function unutilize(address _token, uint256 _amount) external validUtilizeAttempt(_token) {
+    function unutilize(address _token, uint256 _amount) external validUtilizeToken(_token) {
         _unutilize(_amount);
     }
 
@@ -107,7 +111,7 @@ contract AaveV3Strategy is IController {
             aave.withdraw(address(usdc), _coverAmount, address(this));
         }
 
-        usdc.safeTransfer(msg.sender, _amount);
+        usdc.safeTransfer(address(vault), _amount);
 
         utilizedAmount -= _amount;
     }
@@ -125,9 +129,12 @@ contract AaveV3Strategy is IController {
         }
     }
 
-    // TODO: vault以外が呼び出せないように
-    function migrate(address _to) external {
-        // TODO: aaveの資産のwithdrawをやる
+    function migrate(address _to) external onlyVault {
+        // withdraw all assets in aave
+        aave.withdraw(address(usdc), ausdc.balanceOf(address(this)), address(this));
+        // claim all rewards of supplying assets then send them to new controller
+        aaveReward.claimAllRewards(supplyingAssets, _to);
+
         usdc.safeTransfer(_to, usdc.balanceOf(address(this)));
     }
 
