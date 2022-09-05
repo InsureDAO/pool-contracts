@@ -25,7 +25,6 @@ contract AaveV3Strategy is IController {
 
     uint256 maxSupplyRatio;
     uint256 maxUtilizationRatio;
-    uint256 originalSupply;
     uint256 utilizedAmount;
 
     bool locked;
@@ -97,10 +96,12 @@ contract AaveV3Strategy is IController {
         _unutilize(_amount);
     }
 
+    // TODO: reentrancyいらない、必要なケース調べておく
     function _unutilize(uint256 _amount) internal noReentrant {
         uint256 _available = usdc.balanceOf(address(this));
         uint256 _expectedRatio = _calcSuppliedAssetsRatio(_available - _amount);
 
+        // TODO: 不足分をwithdrawして補填
         require(_expectedRatio < maxSupplyRatio, "Insufficient balance in the controller");
 
         usdc.safeTransfer(msg.sender, _amount);
@@ -121,7 +122,9 @@ contract AaveV3Strategy is IController {
         }
     }
 
+    // TODO: vault以外が呼び出せないように
     function migrate(address _to) external {
+        // TODO: aaveの資産のwithdrawをやる
         usdc.safeTransfer(_to, usdc.balanceOf(address(this)));
     }
 
@@ -146,20 +149,16 @@ contract AaveV3Strategy is IController {
     }
 
     function supply(uint256 _amount) external {
-        uint256 _expectedSupply = originalSupply + _amount;
+        uint256 _expectedSupply = ausdc.balanceOf(address(this)) + _amount;
         require(_calcSuppliedAssetsRatio(_expectedSupply) <= maxSupplyRatio, "Exceeded supply limit of the controller");
 
         aave.supply(address(usdc), _amount, address(this), 0);
-
-        originalSupply += _amount;
     }
 
     function withdraw(uint256 _amount) external noReentrant {
         require(ausdc.balanceOf(address(this)) >= _amount, "Insufficient supply for withdraw");
 
         aave.withdraw(address(usdc), _amount, address(this));
-
-        originalSupply -= _amount;
     }
 
     function withdrawReward(uint256 _amount, address _to) external onlyOwner noReentrant {
@@ -195,7 +194,7 @@ contract AaveV3Strategy is IController {
     function _calcSuppliedAssetsRatio() internal view returns (uint256) {
         uint256 _utilizedAssets = _calcUtilizationRatio() * vault.getBalance();
 
-        return (originalSupply / _utilizedAssets) * MAGIC_SCALE_1E6;
+        return (ausdc.balanceOf(address(this)) / _utilizedAssets) * MAGIC_SCALE_1E6;
     }
 
     function _abs(int256 _number) internal pure returns (uint256) {
