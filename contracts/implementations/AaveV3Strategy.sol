@@ -27,8 +27,6 @@ contract AaveV3Strategy is IController {
     uint256 maxUtilizationRatio;
     uint256 utilizedAmount;
 
-    bool locked;
-
     /**
     @notice internal multiplication scale 1e6 to reduce decimal truncation
     */
