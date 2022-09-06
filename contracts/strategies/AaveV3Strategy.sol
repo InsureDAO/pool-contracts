@@ -92,6 +92,7 @@ contract AaveV3Strategy is IController {
     }
 
     function _unutilize(uint256 _amount) internal {
+        require(_amount != 0, "Amount cannot be zero");
         require(_amount <= utilizedAmount, "Insufficient assets to unutilize");
 
         aave.withdraw(address(usdc), _amount, address(vault));
@@ -109,6 +110,8 @@ contract AaveV3Strategy is IController {
     }
 
     function emigrate(address _to) external override onlyOwner {
+        require(_to != address(0), "Zero address cannot be accepted");
+
         // liquidate all positions
         aave.withdraw(address(usdc), ausdc.balanceOf(address(this)), address(this));
 
@@ -121,6 +124,7 @@ contract AaveV3Strategy is IController {
     }
 
     function immigrate(address _from) external override {
+        require(_from != address(0), "Zero address cannot be accepted");
         require(utilizedAmount == 0, "Already in use");
 
         uint256 _amount = IController(_from).utilizedAmount();
