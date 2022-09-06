@@ -42,11 +42,6 @@ contract AaveV3Strategy is IController {
         _;
     }
 
-    modifier validUtilizeToken(address _utilizedToken) {
-        require(_utilizedToken == address(usdc), "Unsupported token address");
-        _;
-    }
-
     modifier withinValidRatio(uint256 _ratio) {
         require(_ratio <= MAGIC_SCALE_1E6, "Exceeded limit for ratio");
         _;
@@ -74,7 +69,7 @@ contract AaveV3Strategy is IController {
         maxSupplyRatio = MAGIC_SCALE_1E6;
     }
 
-    function utilize(address _token, uint256 _amount) external override validUtilizeToken(_token) {
+    function utilize(uint256 _amount) external override {
         _utilize(_amount);
     }
 
@@ -92,7 +87,7 @@ contract AaveV3Strategy is IController {
         aave.supply(address(usdc), _amount, address(this), 0);
     }
 
-    function unutilize(address _token, uint256 _amount) external override validUtilizeToken(_token) {
+    function unutilize(uint256 _amount) external override {
         _unutilize(_amount);
     }
 

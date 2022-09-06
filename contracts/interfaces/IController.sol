@@ -2,9 +2,9 @@
 pragma solidity 0.8.12;
 
 interface IController {
-    function utilize(address _token, uint256 _amount) external;
+    function utilize(uint256 _amount) external;
 
-    function unutilize(address _token, uint256 _amount) external;
+    function unutilize(uint256 _amount) external;
 
     function adjustUtilization() external;
 
