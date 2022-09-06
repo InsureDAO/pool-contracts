@@ -84,7 +84,11 @@ contract AaveV3Strategy is IController {
             "Exceeded max utilization ratio"
         );
 
+        // receive usdc from the vault
         usdc.safeTransferFrom(address(vault), address(this), _amount);
+
+        // supply utilized assets into aave pool
+        _supply(_amount);
 
         utilizedAmount += _amount;
     }
@@ -94,21 +98,11 @@ contract AaveV3Strategy is IController {
     }
 
     function _unutilize(uint256 _amount) internal {
-        uint256 _available = usdc.balanceOf(address(this));
+        require(_amount <= ausdc.balanceOf(address(this)), "Insufficient assets to unutilize");
 
-        if (_amount > _available) {
-            uint256 _coverAmount;
-            unchecked {
-                _coverAmount = _amount - _available;
-            }
-            require(ausdc.balanceOf(address(this)) >= _coverAmount, "Cannot cover the requested amount");
-
-            aave.withdraw(address(usdc), _coverAmount, address(this));
-        }
+        _withdraw(_amount);
 
         utilizedAmount -= _amount;
-
-        usdc.safeTransfer(address(vault), _amount);
     }
 
     function adjustUtilization() external override {
@@ -124,6 +118,7 @@ contract AaveV3Strategy is IController {
         // liquidate all positions
         aave.withdraw(address(usdc), ausdc.balanceOf(address(this)), address(this));
 
+        // approve to pull all assets
         usdc.safeApprove(_to, type(uint256).max);
 
         IController(_to).immigrate(address(this));
@@ -134,16 +129,17 @@ contract AaveV3Strategy is IController {
     function immigrate(address _from) external override {
         require(utilizedAmount == 0, "Already in use");
 
-        usdc.safeTransferFrom(_from, address(this), usdc.balanceOf(_from));
-        utilizedAmount = IController(_from).utilizedAmount();
+        uint256 _amount = IController(_from).utilizedAmount();
+
+        usdc.safeTransferFrom(_from, address(this), _amount);
+
+        _utilize(_amount);
+
+        utilizedAmount = _amount;
     }
 
     function valueAll() public view override returns (uint256) {
-        uint256 _usdc = usdc.balanceOf(address(this));
-        uint256 _ausdc = ausdc.balanceOf(address(this));
-        uint256 _pendingReward = getAccruedReward();
-
-        return _usdc + _ausdc + _pendingReward;
+        return ausdc.balanceOf(address(this));
     }
 
     function setMaxUtilizationRatio(uint256 _ratio) external override onlyOwner withinValidRatio(_ratio) {
@@ -154,17 +150,16 @@ contract AaveV3Strategy is IController {
         maxSupplyRatio = _ratio;
     }
 
-    function supply(uint256 _amount) external {
-        uint256 _expectedSupply = ausdc.balanceOf(address(this)) + _amount;
-        require(_calcSuppliedAssetsRatio(_expectedSupply) <= maxSupplyRatio, "Exceeded supply limit of the controller");
+    function _supply(uint256 _amount) internal {
+        require(_amount != 0, "Amount must be greater than zero");
 
         aave.supply(address(usdc), _amount, address(this), 0);
     }
 
-    function withdraw(uint256 _amount) external {
+    function _withdraw(uint256 _amount) internal {
         require(ausdc.balanceOf(address(this)) >= _amount, "Insufficient supply for withdraw");
 
-        aave.withdraw(address(usdc), _amount, address(this));
+        aave.withdraw(address(usdc), _amount, address(vault));
     }
 
     function withdrawReward(uint256 _amount, address _to) external onlyOwner {
