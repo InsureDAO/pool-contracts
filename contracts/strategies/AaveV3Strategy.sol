@@ -23,7 +23,6 @@ contract AaveV3Strategy is IController {
     address public immutable aaveRewardToken;
     address[] public supplyingAssets;
 
-    uint256 public maxSupplyRatio;
     uint256 public maxUtilizationRatio;
     uint256 public utilizedAmount;
 
@@ -66,7 +65,6 @@ contract AaveV3Strategy is IController {
         supplyingAssets.push(_usdc);
 
         maxUtilizationRatio = MAGIC_SCALE_1E6;
-        maxSupplyRatio = MAGIC_SCALE_1E6;
     }
 
     function utilize(uint256 _amount) external override {
@@ -142,10 +140,6 @@ contract AaveV3Strategy is IController {
 
     function setMaxUtilizationRatio(uint256 _ratio) external override onlyOwner withinValidRatio(_ratio) {
         maxUtilizationRatio = _ratio;
-    }
-
-    function setMaxSupplyRatio(uint256 _ratio) external onlyOwner withinValidRatio(_ratio) {
-        maxSupplyRatio = _ratio;
     }
 
     function withdrawReward(uint256 _amount, address _to) external onlyOwner {
