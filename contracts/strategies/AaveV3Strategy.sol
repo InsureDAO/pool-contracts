@@ -81,10 +81,10 @@ contract AaveV3Strategy is IController {
     }
 
     function _utilize(uint256 _amount) internal {
-        uint256 _expectedTokenAmount = utilizedAmount + _amount;
-        uint256 _newRatio = _calcUtilizationRatio(_expectedTokenAmount);
-
-        require(_newRatio <= maxUtilizationRatio, "Exceeded max utilization ratio");
+        require(
+            _calcUtilizationRatio(utilizedAmount + _amount) <= maxUtilizationRatio,
+            "Exceeded max utilization ratio"
+        );
 
         usdc.safeTransferFrom(address(vault), address(this), _amount);
 
@@ -97,9 +97,12 @@ contract AaveV3Strategy is IController {
 
     function _unutilize(uint256 _amount) internal {
         uint256 _available = usdc.balanceOf(address(this));
-        uint256 _coverAmount = _amount - _available;
 
-        if (_coverAmount > 0) {
+        if (_amount > _available) {
+            uint256 _coverAmount;
+            unchecked {
+                _coverAmount = _amount - _available;
+            }
             require(ausdc.balanceOf(address(this)) >= _coverAmount, "Cannot cover the requested amount");
 
             aave.withdraw(address(usdc), _coverAmount, address(this));
@@ -111,15 +114,11 @@ contract AaveV3Strategy is IController {
     }
 
     function adjustUtilization() external override {
-        int256 _shouldUtilizedRatio = int256(maxUtilizationRatio) - int256(_calcUtilizationRatio());
-        uint256 _diffAmount = (vault.balance() * _abs(_shouldUtilizedRatio)) / MAGIC_SCALE_1E6;
+        int256 _shouldUtilizedRatio = int256(maxUtilizationRatio) - int256(currentUtilizationRatio());
+        uint256 _diffAmount = (vault.available() * _abs(_shouldUtilizedRatio)) / MAGIC_SCALE_1E6;
 
-        if (_shouldUtilizedRatio > 0) {
-            _utilize(_diffAmount);
-        }
-
-        if (_shouldUtilizedRatio < 0) {
-            _unutilize(_diffAmount);
+        if (_shouldUtilizedRatio != 0) {
+            _shouldUtilizedRatio > 0 ? _utilize(_diffAmount) : _unutilize(_diffAmount);
         }
     }
 
@@ -135,9 +134,10 @@ contract AaveV3Strategy is IController {
     }
 
     function immigrate(address _from) external override {
-        usdc.safeTransferFrom(_from, address(this), usdc.balanceOf(_from));
+        require(utilizedAmount == 0, "Already in use");
 
-        utilizedAmount = IController(_from).getUtlizedAmount();
+        usdc.safeTransferFrom(_from, address(this), usdc.balanceOf(_from));
+        utilizedAmount = IController(_from).utilizedAmount();
     }
 
     function valueAll() public view override returns (uint256) {
@@ -146,14 +146,6 @@ contract AaveV3Strategy is IController {
         uint256 _pendingReward = getAccruedReward();
 
         return _usdc + _ausdc + _pendingReward;
-    }
-
-    function getUtlizedAmount() public view override returns (uint256) {
-        return utilizedAmount;
-    }
-
-    function getCurrentUtilizationRatio() external view override returns (uint256) {
-        return _calcUtilizationRatio(valueAll());
     }
 
     function setMaxUtilizationRatio(uint256 _ratio) external override onlyOwner withinValidRatio(_ratio) {
@@ -196,26 +188,24 @@ contract AaveV3Strategy is IController {
         return aaveReward.getUserAccruedRewards(address(this), aaveRewardToken);
     }
 
-    function _calcUtilizationRatio(uint256 _amount) internal view returns (uint256) {
-        uint256 _vaultBalance = vault.balance();
-
-        return (_amount * MAGIC_SCALE_1E6) / _vaultBalance;
+    function currentUtilizationRatio() public view returns (uint256) {
+        return _calcUtilizationRatio(valueAll());
     }
 
-    function _calcUtilizationRatio() internal view returns (uint256) {
-        uint256 _vaultBalance = vault.balance();
+    function _calcUtilizationRatio(uint256 _amount) internal view returns (uint256) {
+        uint256 _totalBalance = vault.available() + valueAll();
 
-        return (valueAll() * MAGIC_SCALE_1E6) / _vaultBalance;
+        return (_amount * MAGIC_SCALE_1E6) / _totalBalance;
     }
 
     function _calcSuppliedAssetsRatio(uint256 _amount) internal view returns (uint256) {
-        uint256 _utilizedAssets = _calcUtilizationRatio() * vault.balance();
+        uint256 _utilizedAssets = currentUtilizationRatio() * vault.available();
 
         return (_amount / _utilizedAssets) * MAGIC_SCALE_1E6;
     }
 
     function _calcSuppliedAssetsRatio() internal view returns (uint256) {
-        uint256 _utilizedAssets = _calcUtilizationRatio() * vault.balance();
+        uint256 _utilizedAssets = currentUtilizationRatio() * vault.available();
 
         return (ausdc.balanceOf(address(this)) / _utilizedAssets) * MAGIC_SCALE_1E6;
     }

@@ -29,7 +29,7 @@ contract ControllerMock is IController {
         return token.balanceOf(address(this));
     }
 
-    function getUtlizedAmount() external view returns (uint256) {
+    function utilizedAmount() external view returns (uint256) {
         return vault.valueAll() / 2; //for test
     }
 

@@ -336,7 +336,7 @@ contract Vault is IVault {
             require(msg.sender == keeper, "ERROR_NOT_KEEPER");
         }
 
-        uint256 _amount = controller.getUtlizedAmount(); //balance
+        uint256 _amount = controller.utilizedAmount(); //balance
         require(_amount <= available(), "EXCEED_AVAILABLE");
 
         if (_amount != 0) {

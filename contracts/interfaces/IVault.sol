@@ -38,6 +38,8 @@ interface IVault {
 
     function balance() external view returns (uint256);
 
+    function available() external view returns (uint256);
+
     function borrowValue(uint256 _amount, address _to) external;
 
     /*
