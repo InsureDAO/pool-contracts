@@ -36,6 +36,10 @@ interface IVault {
 
     function token() external returns (address);
 
+    function balance() external view returns (uint256);
+
+    function available() external view returns (uint256);
+
     function borrowValue(uint256 _amount, address _to) external;
 
     /*
@@ -58,6 +62,4 @@ interface IVault {
     function setController(address _controller) external;
 
     function setKeeper(address _keeper) external;
-
-    function getBalance() external view returns (uint256);
 }

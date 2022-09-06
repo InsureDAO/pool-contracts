@@ -31,7 +31,7 @@ contract Vault is IVault {
     uint256 public totalAttributions;
 
     address public keeper; //keeper can operate utilize(), if address zero, anyone can operate.
-    uint256 public balance; //balance of underlying token
+    uint256 public override balance; //balance of underlying token
     uint256 public totalDebt; //total debt balance. 1debt:1token
 
     uint256 private constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
@@ -336,13 +336,13 @@ contract Vault is IVault {
             require(msg.sender == keeper, "ERROR_NOT_KEEPER");
         }
 
-        uint256 _amount = controller.utilizeAmount(); //balance
+        uint256 _amount = controller.utilizedAmount(); //balance
         require(_amount <= available(), "EXCEED_AVAILABLE");
 
         if (_amount != 0) {
             IERC20(_token).safeTransfer(address(controller), _amount);
             balance -= _amount;
-            controller.earn(_token, _amount);
+            controller.utilize(_token, _amount);
         }
 
         return _amount;
@@ -420,7 +420,7 @@ contract Vault is IVault {
         require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
 
         uint256 beforeBalance = IERC20(token).balanceOf(address(this));
-        controller.withdraw(address(this), _amount);
+        controller.unutilize(address(this), _amount);
         uint256 received = IERC20(token).balanceOf(address(this)) - beforeBalance;
         require(received >= _amount, "ERROR_INSUFFICIENT_RETURN_VALUE");
         balance += received;
@@ -479,7 +479,7 @@ contract Vault is IVault {
 
         if (address(controller) != address(0)) {
             uint256 beforeUnderlying = controller.valueAll();
-            controller.migrate(address(_controller));
+            controller.emigrate(address(_controller));
             require(IController(_controller).valueAll() >= beforeUnderlying, "ERROR_VALUE_ALL_DECREASED");
         }
         controller = IController(_controller);
