@@ -110,7 +110,7 @@ contract AaveV3Strategy is IController {
 
     function adjustUtilization() external override {
         int256 _shouldUtilizedRatio = int256(maxUtilizationRatio) - int256(_calcUtilizationRatio());
-        uint256 _diffAmount = (vault.getBalance() * _abs(_shouldUtilizedRatio)) / MAGIC_SCALE_1E6;
+        uint256 _diffAmount = (vault.balance() * _abs(_shouldUtilizedRatio)) / MAGIC_SCALE_1E6;
 
         if (_shouldUtilizedRatio > 0) {
             _utilize(_diffAmount);
@@ -195,25 +195,25 @@ contract AaveV3Strategy is IController {
     }
 
     function _calcUtilizationRatio(uint256 _amount) internal view returns (uint256) {
-        uint256 _vaultBalance = vault.getBalance();
+        uint256 _vaultBalance = vault.balance();
 
         return (_amount * MAGIC_SCALE_1E6) / _vaultBalance;
     }
 
     function _calcUtilizationRatio() internal view returns (uint256) {
-        uint256 _vaultBalance = vault.getBalance();
+        uint256 _vaultBalance = vault.balance();
 
         return (valueAll() * MAGIC_SCALE_1E6) / _vaultBalance;
     }
 
     function _calcSuppliedAssetsRatio(uint256 _amount) internal view returns (uint256) {
-        uint256 _utilizedAssets = _calcUtilizationRatio() * vault.getBalance();
+        uint256 _utilizedAssets = _calcUtilizationRatio() * vault.balance();
 
         return (_amount / _utilizedAssets) * MAGIC_SCALE_1E6;
     }
 
     function _calcSuppliedAssetsRatio() internal view returns (uint256) {
-        uint256 _utilizedAssets = _calcUtilizationRatio() * vault.getBalance();
+        uint256 _utilizedAssets = _calcUtilizationRatio() * vault.balance();
 
         return (ausdc.balanceOf(address(this)) / _utilizedAssets) * MAGIC_SCALE_1E6;
     }
