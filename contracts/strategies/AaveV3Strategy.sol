@@ -14,20 +14,20 @@ contract AaveV3Strategy is IController {
     using SafeERC20 for IERC20;
 
     IOwnership public immutable ownership;
-    IVault public vault;
-    IAaveV3Pool aave;
-    IAaveV3Reward aaveReward;
+    IVault public immutable vault;
+    IAaveV3Pool public immutable aave;
+    IAaveV3Reward public immutable aaveReward;
 
-    IERC20 public usdc;
-    IERC20 public ausdc;
-    address public aaveRewardToken;
-    address[] supplyingAssets;
+    IERC20 public immutable usdc;
+    IERC20 public immutable ausdc;
+    address public immutable aaveRewardToken;
+    address[] public supplyingAssets;
 
-    uint256 maxSupplyRatio;
-    uint256 maxUtilizationRatio;
-    uint256 utilizedAmount;
+    uint256 public maxSupplyRatio;
+    uint256 public maxUtilizationRatio;
+    uint256 public utilizedAmount;
 
-    bool locked;
+    bool public locked;
 
     /**
     @notice internal multiplication scale 1e6 to reduce decimal truncation
@@ -55,15 +55,17 @@ contract AaveV3Strategy is IController {
     }
 
     constructor(
-        address _vault,
         address _ownership,
+        address _vault,
+        address _aave,
         address _aaveReward,
         address _usdc,
         address _ausdc,
         address _aaveRewardToken
     ) {
-        vault = IVault(_vault);
         ownership = IOwnership(_ownership);
+        vault = IVault(_vault);
+        aave = IAaveV3Pool(_aave);
         aaveReward = IAaveV3Reward(_aaveReward);
         usdc = IERC20(_usdc);
         ausdc = IERC20(_ausdc);
