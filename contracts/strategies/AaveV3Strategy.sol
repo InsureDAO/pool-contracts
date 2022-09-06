@@ -79,6 +79,7 @@ contract AaveV3Strategy is IController {
     }
 
     function _utilize(uint256 _amount) internal {
+        require(_amount != 0, "Amount cannot be zero");
         require(
             _calcUtilizationRatio(utilizedAmount + _amount) <= maxUtilizationRatio,
             "Exceeded max utilization ratio"
@@ -88,9 +89,7 @@ contract AaveV3Strategy is IController {
         usdc.safeTransferFrom(address(vault), address(this), _amount);
 
         // supply utilized assets into aave pool
-        _supply(_amount);
-
-        utilizedAmount += _amount;
+        aave.supply(address(usdc), _amount, address(this), 0);
     }
 
     function unutilize(address _token, uint256 _amount) external override validUtilizeToken(_token) {
@@ -98,9 +97,9 @@ contract AaveV3Strategy is IController {
     }
 
     function _unutilize(uint256 _amount) internal {
-        require(_amount <= ausdc.balanceOf(address(this)), "Insufficient assets to unutilize");
+        require(_amount <= utilizedAmount, "Insufficient assets to unutilize");
 
-        _withdraw(_amount);
+        aave.withdraw(address(usdc), _amount, address(vault));
 
         utilizedAmount -= _amount;
     }
@@ -139,7 +138,7 @@ contract AaveV3Strategy is IController {
     }
 
     function valueAll() public view override returns (uint256) {
-        return ausdc.balanceOf(address(this));
+        return utilizedAmount;
     }
 
     function setMaxUtilizationRatio(uint256 _ratio) external override onlyOwner withinValidRatio(_ratio) {
@@ -148,18 +147,6 @@ contract AaveV3Strategy is IController {
 
     function setMaxSupplyRatio(uint256 _ratio) external onlyOwner withinValidRatio(_ratio) {
         maxSupplyRatio = _ratio;
-    }
-
-    function _supply(uint256 _amount) internal {
-        require(_amount != 0, "Amount must be greater than zero");
-
-        aave.supply(address(usdc), _amount, address(this), 0);
-    }
-
-    function _withdraw(uint256 _amount) internal {
-        require(ausdc.balanceOf(address(this)) >= _amount, "Insufficient supply for withdraw");
-
-        aave.withdraw(address(usdc), _amount, address(vault));
     }
 
     function withdrawReward(uint256 _amount, address _to) external onlyOwner {
