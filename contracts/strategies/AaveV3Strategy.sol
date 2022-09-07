@@ -9,6 +9,7 @@ import "../interfaces/IOwnership.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IAaveV3Pool.sol";
 import "../interfaces/IAaveV3Reward.sol";
+import "../interfaces/IExchangeLogic.sol";
 
 contract AaveV3Strategy is IController {
     using SafeERC20 for IERC20;
@@ -17,10 +18,11 @@ contract AaveV3Strategy is IController {
     IVault public immutable vault;
     IAaveV3Pool public immutable aave;
     IAaveV3Reward public immutable aaveReward;
+    IExchangeLogic public exchangeLogic;
 
     IERC20 public immutable usdc;
     IERC20 public immutable ausdc;
-    address public immutable aaveRewardToken;
+    IERC20 public aaveRewardToken;
     address[] public supplyingAssets;
 
     uint256 public maxUtilizationRatio;
@@ -49,22 +51,24 @@ contract AaveV3Strategy is IController {
     }
 
     constructor(
-        address _ownership,
-        address _vault,
-        address _aave,
-        address _aaveReward,
-        address _usdc,
-        address _ausdc,
-        address _aaveRewardToken
+        IOwnership _ownership,
+        IVault _vault,
+        IExchangeLogic _exchangeLogic,
+        IAaveV3Pool _aave,
+        IAaveV3Reward _aaveReward,
+        IERC20 _usdc,
+        IERC20 _ausdc,
+        IERC20 _aaveRewardToken
     ) {
-        ownership = IOwnership(_ownership);
-        vault = IVault(_vault);
-        aave = IAaveV3Pool(_aave);
-        aaveReward = IAaveV3Reward(_aaveReward);
-        usdc = IERC20(_usdc);
-        ausdc = IERC20(_ausdc);
+        ownership = _ownership;
+        vault = _vault;
+        exchangeLogic = _exchangeLogic;
+        aave = _aave;
+        aaveReward = _aaveReward;
+        usdc = _usdc;
+        ausdc = _ausdc;
         aaveRewardToken = _aaveRewardToken;
-        supplyingAssets.push(_usdc);
+        supplyingAssets.push(address(_usdc));
 
         maxUtilizationRatio = MAGIC_SCALE_1E6;
         aaveMaxOccupancyRatio = (MAGIC_SCALE_1E6 * 10) / 100;
@@ -146,23 +150,39 @@ contract AaveV3Strategy is IController {
         maxUtilizationRatio = _ratio;
     }
 
-    function withdrawReward(uint256 _amount, address _to) external onlyOwner {
-        require(_to != address(0), "Zero address specified");
+    function setExchangeLogic(address _exchangeLogic) public onlyOwner {
+        _setExchangeLogic(_exchangeLogic);
+    }
+
+    function setAaveRewardToken(IERC20 _token) public onlyOwner {
+        aaveRewardToken = _token;
+    }
+
+    function withdrawReward(uint256 _amount) external onlyOwner {
         require(_amount != 0, "No amount specified");
         require(_amount > getAccruedReward(), "Insufficient reward to withdraw");
 
-        aaveReward.claimRewards(supplyingAssets, _amount, _to, aaveRewardToken);
+        aaveReward.claimRewards(supplyingAssets, _amount, address(this), address(aaveRewardToken));
+
+        uint256 _swapped = _swap(address(aaveRewardToken), address(usdc), _amount);
+
+        // compound swapped usdc
+        _utilize(_swapped);
     }
 
-    function withdrawAllReward(address _to) external onlyOwner {
-        require(_to != address(0), "Zero address specified");
+    function withdrawAllReward() external onlyOwner {
         require(getAccruedReward() > 0, "No reward claimable");
 
-        aaveReward.claimAllRewards(supplyingAssets, _to);
+        aaveReward.claimAllRewards(supplyingAssets, address(this));
+
+        uint256 _swapped = _swap(address(aaveRewardToken), address(usdc), aaveRewardToken.balanceOf(address(this)));
+
+        // compound swapped usdc
+        _utilize(_swapped);
     }
 
     function getAccruedReward() public view returns (uint256) {
-        return aaveReward.getUserAccruedRewards(address(this), aaveRewardToken);
+        return aaveReward.getUserAccruedRewards(address(this), address(aaveRewardToken));
     }
 
     function currentUtilizationRatio() public view returns (uint256) {
@@ -183,6 +203,32 @@ contract AaveV3Strategy is IController {
         unchecked {
             _available = (_reserve * aaveMaxOccupancyRatio) / MAGIC_SCALE_1E6;
         }
+    }
+
+    function _setExchangeLogic(address _exchangeLogic) private {
+        exchangeLogic = IExchangeLogic(_exchangeLogic);
+
+        address _swapper = exchangeLogic.swapper();
+        usdc.safeApprove(_swapper, type(uint256).max);
+        IERC20(aaveRewardToken).safeApprove(_swapper, type(uint256).max);
+    }
+
+    function _swap(
+        address _tokenIn,
+        address _tokenOut,
+        uint256 _amountIn
+    ) internal returns (uint256) {
+        uint256 _amountOutMin = (_amountIn * exchangeLogic.slippageTolerance()) / MAGIC_SCALE_1E6;
+
+        (bool _success, bytes memory _res) = exchangeLogic.swapper().call(
+            exchangeLogic.abiEncodeSwap(_tokenIn, _tokenOut, _amountIn, _amountOutMin, address(this))
+        );
+
+        require(_success, "Swap faild");
+
+        uint256 _swapped = abi.decode(_res, (uint256));
+
+        return _swapped;
     }
 
     function _abs(int256 _number) internal pure returns (uint256) {
