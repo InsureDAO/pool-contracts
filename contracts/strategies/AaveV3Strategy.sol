@@ -26,6 +26,8 @@ contract AaveV3Strategy is IController {
     uint256 public maxUtilizationRatio;
     uint256 public utilizedAmount;
 
+    uint256 public aaveMaxOccupancyRatio;
+
     /**
     @notice internal multiplication scale 1e6 to reduce decimal truncation
     */
@@ -65,6 +67,7 @@ contract AaveV3Strategy is IController {
         supplyingAssets.push(_usdc);
 
         maxUtilizationRatio = MAGIC_SCALE_1E6;
+        aaveMaxOccupancyRatio = (MAGIC_SCALE_1E6 * 10) / 100;
     }
 
     function utilize(uint256 _amount) external override {
@@ -73,6 +76,7 @@ contract AaveV3Strategy is IController {
 
     function _utilize(uint256 _amount) internal {
         require(_amount != 0, "Amount cannot be zero");
+        require(_amount >= _calcAaveNewSupplyCap(), "Exceeded additional supply capacity");
         require(
             _calcUtilizationRatio(utilizedAmount + _amount) <= maxUtilizationRatio,
             "Exceeded max utilization ratio"
@@ -165,22 +169,20 @@ contract AaveV3Strategy is IController {
         return _calcUtilizationRatio(valueAll());
     }
 
-    function _calcUtilizationRatio(uint256 _amount) internal view returns (uint256) {
+    function _calcUtilizationRatio(uint256 _amount) internal view returns (uint256 _utilizationRatio) {
         uint256 _totalBalance = vault.available() + valueAll();
 
-        return (_amount * MAGIC_SCALE_1E6) / _totalBalance;
+        unchecked {
+            _utilizationRatio = (_amount * MAGIC_SCALE_1E6) / _totalBalance;
+        }
     }
 
-    function _calcSuppliedAssetsRatio(uint256 _amount) internal view returns (uint256) {
-        uint256 _utilizedAssets = currentUtilizationRatio() * vault.available();
+    function _calcAaveNewSupplyCap() internal view returns (uint256 _available) {
+        uint256 _reserve = ausdc.totalSupply();
 
-        return (_amount / _utilizedAssets) * MAGIC_SCALE_1E6;
-    }
-
-    function _calcSuppliedAssetsRatio() internal view returns (uint256) {
-        uint256 _utilizedAssets = currentUtilizationRatio() * vault.available();
-
-        return (ausdc.balanceOf(address(this)) / _utilizedAssets) * MAGIC_SCALE_1E6;
+        unchecked {
+            _available = (_reserve * aaveMaxOccupancyRatio) / MAGIC_SCALE_1E6;
+        }
     }
 
     function _abs(int256 _number) internal pure returns (uint256) {
