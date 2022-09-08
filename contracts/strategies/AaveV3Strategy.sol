@@ -104,7 +104,7 @@ contract AaveV3Strategy is IController {
         usdc.safeTransfer(address(vault), _amount);
     }
 
-    function emigrate(address _to) external override onlyOwner {
+    function emigrate(address _to) external override onlyVault {
         require(_to != address(0), "Zero address cannot be accepted");
 
         // liquidate all positions
