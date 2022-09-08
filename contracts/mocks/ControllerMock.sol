@@ -62,5 +62,5 @@ contract ControllerMock is IController {
 
     function setMaxUtilizationRatio(uint256 _ratio) external {}
 
-    function getCurrentUtilizationRatio() external view returns (uint256) {}
+    function currentUtilizationRatio() external view returns (uint256) {}
 }
