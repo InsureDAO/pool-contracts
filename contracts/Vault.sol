@@ -342,7 +342,7 @@ contract Vault is IVault {
         if (_amount != 0) {
             IERC20(_token).safeTransfer(address(controller), _amount);
             balance -= _amount;
-            controller.utilize(_amount);
+            controller.pullFund(_amount);
         }
 
         return _amount;
@@ -420,7 +420,7 @@ contract Vault is IVault {
         require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
 
         uint256 beforeBalance = IERC20(token).balanceOf(address(this));
-        controller.unutilize(_amount);
+        controller.returnFund(_amount);
         uint256 received = IERC20(token).balanceOf(address(this)) - beforeBalance;
         require(received >= _amount, "ERROR_INSUFFICIENT_RETURN_VALUE");
         balance += received;
