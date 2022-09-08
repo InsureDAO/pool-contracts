@@ -9,6 +9,7 @@ import "../interfaces/IOwnership.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IAaveV3Pool.sol";
 import "../interfaces/IAaveV3Reward.sol";
+import "../interfaces/IExchangeLogic.sol";
 
 contract AaveV3Strategy is IController {
     using SafeERC20 for IERC20;
@@ -17,17 +18,17 @@ contract AaveV3Strategy is IController {
     IVault public immutable vault;
     IAaveV3Pool public immutable aave;
     IAaveV3Reward public immutable aaveReward;
+    IExchangeLogic public exchangeLogic;
 
     IERC20 public immutable usdc;
     IERC20 public immutable ausdc;
-    address public immutable aaveRewardToken;
+    IERC20 public aaveRewardToken;
     address[] public supplyingAssets;
 
-    uint256 public maxSupplyRatio;
     uint256 public maxUtilizationRatio;
     uint256 public utilizedAmount;
 
-    bool public locked;
+    uint256 public aaveMaxOccupancyRatio;
 
     /**
     @notice internal multiplication scale 1e6 to reduce decimal truncation
@@ -44,73 +45,65 @@ contract AaveV3Strategy is IController {
         _;
     }
 
-    modifier validUtilizeToken(address _utilizedToken) {
-        require(_utilizedToken == address(usdc), "Unsupported token address");
-        _;
-    }
-
     modifier withinValidRatio(uint256 _ratio) {
         require(_ratio <= MAGIC_SCALE_1E6, "Exceeded limit for ratio");
         _;
     }
 
     constructor(
-        address _ownership,
-        address _vault,
-        address _aave,
-        address _aaveReward,
-        address _usdc,
-        address _ausdc,
-        address _aaveRewardToken
+        IOwnership _ownership,
+        IVault _vault,
+        IExchangeLogic _exchangeLogic,
+        IAaveV3Pool _aave,
+        IAaveV3Reward _aaveReward,
+        IERC20 _usdc,
+        IERC20 _ausdc,
+        IERC20 _aaveRewardToken
     ) {
-        ownership = IOwnership(_ownership);
-        vault = IVault(_vault);
-        aave = IAaveV3Pool(_aave);
-        aaveReward = IAaveV3Reward(_aaveReward);
-        usdc = IERC20(_usdc);
-        ausdc = IERC20(_ausdc);
+        ownership = _ownership;
+        vault = _vault;
+        exchangeLogic = _exchangeLogic;
+        aave = _aave;
+        aaveReward = _aaveReward;
+        usdc = _usdc;
+        ausdc = _ausdc;
         aaveRewardToken = _aaveRewardToken;
-        supplyingAssets.push(_usdc);
+        supplyingAssets.push(address(_usdc));
 
         maxUtilizationRatio = MAGIC_SCALE_1E6;
-        maxSupplyRatio = MAGIC_SCALE_1E6;
+        aaveMaxOccupancyRatio = (MAGIC_SCALE_1E6 * 10) / 100;
     }
 
-    function utilize(address _token, uint256 _amount) external override validUtilizeToken(_token) {
+    function utilize(uint256 _amount) external override {
         _utilize(_amount);
     }
 
     function _utilize(uint256 _amount) internal {
+        require(_amount != 0, "Amount cannot be zero");
+        require(_amount >= _calcAaveNewSupplyCap(), "Exceeded additional supply capacity");
         require(
             _calcUtilizationRatio(utilizedAmount + _amount) <= maxUtilizationRatio,
             "Exceeded max utilization ratio"
         );
 
+        // receive usdc from the vault
         usdc.safeTransferFrom(address(vault), address(this), _amount);
 
-        utilizedAmount += _amount;
+        // supply utilized assets into aave pool
+        aave.supply(address(usdc), _amount, address(this), 0);
     }
 
-    function unutilize(address _token, uint256 _amount) external override validUtilizeToken(_token) {
+    function unutilize(uint256 _amount) external override {
         _unutilize(_amount);
     }
 
     function _unutilize(uint256 _amount) internal {
-        uint256 _available = usdc.balanceOf(address(this));
+        require(_amount != 0, "Amount cannot be zero");
+        require(_amount <= utilizedAmount, "Insufficient assets to unutilize");
 
-        if (_amount > _available) {
-            uint256 _coverAmount;
-            unchecked {
-                _coverAmount = _amount - _available;
-            }
-            require(ausdc.balanceOf(address(this)) >= _coverAmount, "Cannot cover the requested amount");
-
-            aave.withdraw(address(usdc), _coverAmount, address(this));
-        }
+        aave.withdraw(address(usdc), _amount, address(vault));
 
         utilizedAmount -= _amount;
-
-        usdc.safeTransfer(address(vault), _amount);
     }
 
     function adjustUtilization() external override {
@@ -123,9 +116,12 @@ contract AaveV3Strategy is IController {
     }
 
     function emigrate(address _to) external override onlyOwner {
+        require(_to != address(0), "Zero address cannot be accepted");
+
         // liquidate all positions
         aave.withdraw(address(usdc), ausdc.balanceOf(address(this)), address(this));
 
+        // approve to pull all assets
         usdc.safeApprove(_to, type(uint256).max);
 
         IController(_to).immigrate(address(this));
@@ -134,80 +130,105 @@ contract AaveV3Strategy is IController {
     }
 
     function immigrate(address _from) external override {
+        require(_from != address(0), "Zero address cannot be accepted");
         require(utilizedAmount == 0, "Already in use");
 
-        usdc.safeTransferFrom(_from, address(this), usdc.balanceOf(_from));
-        utilizedAmount = IController(_from).utilizedAmount();
+        uint256 _amount = IController(_from).utilizedAmount();
+
+        usdc.safeTransferFrom(_from, address(this), _amount);
+
+        _utilize(_amount);
+
+        utilizedAmount = _amount;
     }
 
     function valueAll() public view override returns (uint256) {
-        uint256 _usdc = usdc.balanceOf(address(this));
-        uint256 _ausdc = ausdc.balanceOf(address(this));
-        uint256 _pendingReward = getAccruedReward();
-
-        return _usdc + _ausdc + _pendingReward;
+        return utilizedAmount;
     }
 
     function setMaxUtilizationRatio(uint256 _ratio) external override onlyOwner withinValidRatio(_ratio) {
         maxUtilizationRatio = _ratio;
     }
 
-    function setMaxSupplyRatio(uint256 _ratio) external onlyOwner withinValidRatio(_ratio) {
-        maxSupplyRatio = _ratio;
+    function setExchangeLogic(address _exchangeLogic) public onlyOwner {
+        _setExchangeLogic(_exchangeLogic);
     }
 
-    function supply(uint256 _amount) external {
-        uint256 _expectedSupply = ausdc.balanceOf(address(this)) + _amount;
-        require(_calcSuppliedAssetsRatio(_expectedSupply) <= maxSupplyRatio, "Exceeded supply limit of the controller");
-
-        aave.supply(address(usdc), _amount, address(this), 0);
+    function setAaveRewardToken(IERC20 _token) public onlyOwner {
+        aaveRewardToken = _token;
     }
 
-    function withdraw(uint256 _amount) external {
-        require(ausdc.balanceOf(address(this)) >= _amount, "Insufficient supply for withdraw");
-
-        aave.withdraw(address(usdc), _amount, address(this));
-    }
-
-    function withdrawReward(uint256 _amount, address _to) external onlyOwner {
-        require(_to != address(0), "Zero address specified");
+    function withdrawReward(uint256 _amount) external onlyOwner {
         require(_amount != 0, "No amount specified");
         require(_amount > getAccruedReward(), "Insufficient reward to withdraw");
 
-        aaveReward.claimRewards(supplyingAssets, _amount, _to, aaveRewardToken);
+        aaveReward.claimRewards(supplyingAssets, _amount, address(this), address(aaveRewardToken));
+
+        uint256 _swapped = _swap(address(aaveRewardToken), address(usdc), _amount);
+
+        // compound swapped usdc
+        _utilize(_swapped);
     }
 
-    function withdrawAllReward(address _to) external onlyOwner {
-        require(_to != address(0), "Zero address specified");
+    function withdrawAllReward() external onlyOwner {
         require(getAccruedReward() > 0, "No reward claimable");
 
-        aaveReward.claimAllRewards(supplyingAssets, _to);
+        aaveReward.claimAllRewards(supplyingAssets, address(this));
+
+        uint256 _swapped = _swap(address(aaveRewardToken), address(usdc), aaveRewardToken.balanceOf(address(this)));
+
+        // compound swapped usdc
+        _utilize(_swapped);
     }
 
     function getAccruedReward() public view returns (uint256) {
-        return aaveReward.getUserAccruedRewards(address(this), aaveRewardToken);
+        return aaveReward.getUserAccruedRewards(address(this), address(aaveRewardToken));
     }
 
     function currentUtilizationRatio() public view returns (uint256) {
         return _calcUtilizationRatio(valueAll());
     }
 
-    function _calcUtilizationRatio(uint256 _amount) internal view returns (uint256) {
+    function _calcUtilizationRatio(uint256 _amount) internal view returns (uint256 _utilizationRatio) {
         uint256 _totalBalance = vault.available() + valueAll();
 
-        return (_amount * MAGIC_SCALE_1E6) / _totalBalance;
+        unchecked {
+            _utilizationRatio = (_amount * MAGIC_SCALE_1E6) / _totalBalance;
+        }
     }
 
-    function _calcSuppliedAssetsRatio(uint256 _amount) internal view returns (uint256) {
-        uint256 _utilizedAssets = currentUtilizationRatio() * vault.available();
+    function _calcAaveNewSupplyCap() internal view returns (uint256 _available) {
+        uint256 _reserve = ausdc.totalSupply();
 
-        return (_amount / _utilizedAssets) * MAGIC_SCALE_1E6;
+        unchecked {
+            _available = (_reserve * aaveMaxOccupancyRatio) / MAGIC_SCALE_1E6;
+        }
     }
 
-    function _calcSuppliedAssetsRatio() internal view returns (uint256) {
-        uint256 _utilizedAssets = currentUtilizationRatio() * vault.available();
+    function _setExchangeLogic(address _exchangeLogic) private {
+        exchangeLogic = IExchangeLogic(_exchangeLogic);
 
-        return (ausdc.balanceOf(address(this)) / _utilizedAssets) * MAGIC_SCALE_1E6;
+        address _swapper = exchangeLogic.swapper();
+        usdc.safeApprove(_swapper, type(uint256).max);
+        IERC20(aaveRewardToken).safeApprove(_swapper, type(uint256).max);
+    }
+
+    function _swap(
+        address _tokenIn,
+        address _tokenOut,
+        uint256 _amountIn
+    ) internal returns (uint256) {
+        uint256 _amountOutMin = (_amountIn * exchangeLogic.slippageTolerance()) / MAGIC_SCALE_1E6;
+
+        (bool _success, bytes memory _res) = exchangeLogic.swapper().call(
+            exchangeLogic.abiEncodeSwap(_tokenIn, _tokenOut, _amountIn, _amountOutMin, address(this))
+        );
+
+        require(_success, "Swap faild");
+
+        uint256 _swapped = abi.decode(_res, (uint256));
+
+        return _swapped;
     }
 
     function _abs(int256 _number) internal pure returns (uint256) {
