@@ -278,7 +278,7 @@ describe("Index", function () {
       });
 
       //increase of undering value
-      await controller.earn(gov.address, depositAmount); //gov.address has no meaning. mint usdc to controller
+      await controller.utilize(depositAmount);
 
       //successfully increase index's liquidity
       await verifyVaultStatusOf({
@@ -320,7 +320,7 @@ describe("Index", function () {
     it("only 3rd loop. decrease credits", async function () {
       //increase liquidity
       await index.connect(alice).deposit(depositAmount);
-      await controller.earn(gov.address, depositAmount);
+      await controller.utilize(depositAmount);
       await index.adjustAlloc();
 
       await verifyPoolsStatusForIndex({
