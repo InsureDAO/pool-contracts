@@ -60,6 +60,4 @@ interface IVault {
     function withdrawRedundant(address _token, address _to) external;
 
     function setController(address _controller) external;
-
-    function setKeeper(address _keeper) external;
 }

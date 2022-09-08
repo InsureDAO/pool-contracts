@@ -30,14 +30,12 @@ contract Vault is IVault {
     mapping(address => uint256) public attributions;
     uint256 public totalAttributions;
 
-    address public keeper; //keeper can operate utilize(), if address zero, anyone can operate.
     uint256 public override balance; //balance of underlying token
     uint256 public totalDebt; //total debt balance. 1debt:1token
 
     uint256 private constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
 
     event ControllerSet(address controller);
-    event KeeperChanged(address keeper);
 
     modifier onlyOwner() {
         require(ownership.owner() == msg.sender, "Caller is not allowed to operate");
@@ -332,9 +330,6 @@ contract Vault is IVault {
         require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
 
         address _token = token;
-        if (keeper != address(0)) {
-            require(msg.sender == keeper, "ERROR_NOT_KEEPER");
-        }
 
         uint256 _amount = controller.utilizedAmount(); //balance
         require(_amount <= available(), "EXCEED_AVAILABLE");
@@ -485,18 +480,6 @@ contract Vault is IVault {
         controller = IController(_controller);
 
         emit ControllerSet(_controller);
-    }
-
-    /**
-     * @notice set keeper to incentivize calling utilize()
-     * @param _keeper keeper address
-     */
-    function setKeeper(address _keeper) external override onlyOwner {
-        if (keeper != _keeper) {
-            keeper = _keeper;
-        }
-
-        emit KeeperChanged(_keeper);
     }
 
     /**
