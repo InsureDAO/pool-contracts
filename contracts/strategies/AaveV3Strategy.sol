@@ -74,7 +74,7 @@ contract AaveV3Strategy is IController {
         aaveMaxOccupancyRatio = (MAGIC_SCALE_1E6 * 10) / 100;
     }
 
-    function pullFund(uint256 _amount) external override {
+    function pullFund(uint256 _amount) external override onlyVault {
         _utilize(_amount);
     }
 
@@ -93,7 +93,7 @@ contract AaveV3Strategy is IController {
         aave.supply(address(usdc), _amount, address(this), 0);
     }
 
-    function returnFund(uint256 _amount) external override {
+    function returnFund(uint256 _amount) external override onlyVault {
         _unutilize(_amount);
     }
 
@@ -115,7 +115,7 @@ contract AaveV3Strategy is IController {
         }
     }
 
-    function emigrate(address _to) external override onlyOwner {
+    function emigrate(address _to) external override onlyVault {
         require(_to != address(0), "Zero address cannot be accepted");
 
         // liquidate all positions
