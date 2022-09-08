@@ -74,45 +74,34 @@ contract AaveV3Strategy is IController {
         aaveMaxOccupancyRatio = (MAGIC_SCALE_1E6 * 10) / 100;
     }
 
-    function pullFund(uint256 _amount) external override {
-        _utilize(_amount);
+    /**
+     * Controller methods
+     */
+    function adjustFund() external override {
+        uint256 expectUtilizeAmount = (totalValueAll() * maxUtilizationRatio) / MAGIC_SCALE_1E6;
+        if (expectUtilizeAmount < utilizedAmount) {
+            unchecked {
+                _pullFund(utilizedAmount - expectUtilizeAmount);
+            }
+        }
     }
 
-    function _utilize(uint256 _amount) internal {
-        require(_amount != 0, "Amount cannot be zero");
-        require(_amount >= _calcAaveNewSupplyCap(), "Exceeded additional supply capacity");
+    function _pullFund(uint256 _amount) internal {
         require(
             _calcUtilizationRatio(utilizedAmount + _amount) <= maxUtilizationRatio,
             "Exceeded max utilization ratio"
         );
 
         // receive usdc from the vault
-        usdc.safeTransferFrom(address(vault), address(this), _amount);
+        vault.utilize(_amount);
 
-        // supply utilized assets into aave pool
-        aave.supply(address(usdc), _amount, address(this), 0);
+        // directly utilize all amount
+        _utilize(_amount);
     }
 
-    function returnFund(uint256 _amount) external override {
+    function returnFund(uint256 _amount) external onlyVault {
         _unutilize(_amount);
-    }
-
-    function _unutilize(uint256 _amount) internal {
-        require(_amount != 0, "Amount cannot be zero");
-        require(_amount <= utilizedAmount, "Insufficient assets to unutilize");
-
-        aave.withdraw(address(usdc), _amount, address(vault));
-
-        utilizedAmount -= _amount;
-    }
-
-    function adjustFund() external override {
-        int256 _shouldUtilizedRatio = int256(maxUtilizationRatio) - int256(currentUtilizationRatio());
-        uint256 _diffAmount = (vault.available() * _abs(_shouldUtilizedRatio)) / MAGIC_SCALE_1E6;
-
-        if (_shouldUtilizedRatio != 0) {
-            _shouldUtilizedRatio > 0 ? _utilize(_diffAmount) : _unutilize(_diffAmount);
-        }
+        usdc.safeTransfer(address(vault), _amount);
     }
 
     function emigrate(address _to) external override onlyOwner {
@@ -142,8 +131,42 @@ contract AaveV3Strategy is IController {
         utilizedAmount = _amount;
     }
 
+    function currentUtilizationRatio() public view returns (uint256) {
+        return _calcUtilizationRatio(valueAll());
+    }
+
+    function _calcUtilizationRatio(uint256 _amount) internal view returns (uint256 _utilizationRatio) {
+        unchecked {
+            _utilizationRatio = (_amount * MAGIC_SCALE_1E6) / totalValueAll();
+        }
+    }
+
+    function totalValueAll() public view returns (uint256) {
+        return vault.available() + valueAll();
+    }
+
     function valueAll() public view override returns (uint256) {
         return utilizedAmount;
+    }
+
+    /**
+     * Strategy methods
+     */
+    function _utilize(uint256 _amount) internal {
+        require(_amount != 0, "Amount cannot be zero");
+        require(_amount >= _calcAaveNewSupplyCap(), "Exceeded additional supply capacity");
+
+        // supply utilized assets into aave pool
+        aave.supply(address(usdc), _amount, address(this), 0);
+    }
+
+    function _unutilize(uint256 _amount) internal {
+        require(_amount != 0, "Amount cannot be zero");
+        require(_amount <= utilizedAmount, "Insufficient assets to unutilize");
+
+        aave.withdraw(address(usdc), _amount, address(vault));
+
+        utilizedAmount -= _amount;
     }
 
     function setMaxUtilizationRatio(uint256 _ratio) external override onlyOwner withinValidRatio(_ratio) {
@@ -183,18 +206,6 @@ contract AaveV3Strategy is IController {
 
     function getAccruedReward() public view returns (uint256) {
         return aaveReward.getUserAccruedRewards(address(this), address(aaveRewardToken));
-    }
-
-    function currentUtilizationRatio() public view returns (uint256) {
-        return _calcUtilizationRatio(valueAll());
-    }
-
-    function _calcUtilizationRatio(uint256 _amount) internal view returns (uint256 _utilizationRatio) {
-        uint256 _totalBalance = vault.available() + valueAll();
-
-        unchecked {
-            _utilizationRatio = (_amount * MAGIC_SCALE_1E6) / _totalBalance;
-        }
     }
 
     function _calcAaveNewSupplyCap() internal view returns (uint256 _available) {

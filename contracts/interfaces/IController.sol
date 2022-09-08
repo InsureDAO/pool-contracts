@@ -2,8 +2,6 @@
 pragma solidity 0.8.12;
 
 interface IController {
-    function pullFund(uint256 _amount) external;
-
     function returnFund(uint256 _amount) external;
 
     function adjustFund() external;

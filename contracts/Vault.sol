@@ -47,6 +47,11 @@ contract Vault is IVault {
         _;
     }
 
+    modifier onlyController() {
+        require(address(controller) == msg.sender, "Caller is not allowed to operate");
+        _;
+    }
+
     constructor(
         address _token,
         address _registry,
@@ -410,18 +415,12 @@ contract Vault is IVault {
      * @notice utilize all available underwritten funds into the set controller.
      * @return _amount amount of tokens utilized
      */
-    function utilize() external override returns (uint256) {
-        require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
-
-        address _token = token;
-
-        uint256 _amount = controller.utilizedAmount(); //balance
+    function utilize(uint256 _amount) external onlyController returns (uint256) {
         require(_amount <= available(), "EXCEED_AVAILABLE");
 
         if (_amount != 0) {
-            IERC20(_token).safeTransfer(address(controller), _amount);
+            IERC20(token).safeTransfer(address(controller), _amount);
             balance -= _amount;
-            controller.pullFund(_amount);
         }
 
         return _amount;
@@ -431,14 +430,18 @@ contract Vault is IVault {
      * @notice internal function to unutilize the funds and keep utilization rate
      * @param _amount amount to withdraw from controller
      */
-    function _unutilize(uint256 _amount) internal {
+    function _unutilize(uint256 _amount) internal returns (uint256) {
         require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
 
-        uint256 beforeBalance = IERC20(token).balanceOf(address(this));
-        controller.returnFund(_amount);
-        uint256 received = IERC20(token).balanceOf(address(this)) - beforeBalance;
-        require(received >= _amount, "ERROR_INSUFFICIENT_RETURN_VALUE");
-        balance += received;
+        if (_amount != 0) {
+            uint256 beforeBalance = IERC20(token).balanceOf(address(this));
+            controller.returnFund(_amount);
+            uint256 received = IERC20(token).balanceOf(address(this)) - beforeBalance;
+            require(received >= _amount, "ERROR_INSUFFICIENT_RETURN_VALUE");
+            balance += received;
+
+            return received;
+        }
     }
 
     /**

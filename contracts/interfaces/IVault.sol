@@ -30,7 +30,7 @@ interface IVault {
 
     function attributionValue(uint256 _attribution) external view returns (uint256);
 
-    function utilize() external returns (uint256 _amount);
+    function utilize(uint256 _amount) external returns (uint256);
 
     function valueAll() external view returns (uint256);
 
