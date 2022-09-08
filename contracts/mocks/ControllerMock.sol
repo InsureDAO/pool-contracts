@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.12;
 
 import "../mocks/TestERC20Mock.sol";
@@ -29,7 +30,7 @@ contract ControllerMock is IController {
         return token.balanceOf(address(this));
     }
 
-    function utilizedAmount() external view returns (uint256) {
+    function managingFund() external view returns (uint256) {
         return vault.valueAll() / 2; //for test
     }
 

@@ -12,7 +12,7 @@ interface IController {
 
     function valueAll() external view returns (uint256);
 
-    function utilizedAmount() external view returns (uint256);
+    function managingFund() external view returns (uint256);
 
     function setMaxUtilizationRatio(uint256 _ratio) external;
 

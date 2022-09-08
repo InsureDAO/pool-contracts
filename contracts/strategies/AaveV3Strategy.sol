@@ -26,7 +26,7 @@ contract AaveV3Strategy is IController {
     address[] public supplyingAssets;
 
     uint256 public maxUtilizationRatio;
-    uint256 public utilizedAmount;
+    uint256 public managingFund;
 
     uint256 public aaveMaxOccupancyRatio;
 
@@ -79,18 +79,15 @@ contract AaveV3Strategy is IController {
      */
     function adjustFund() external override {
         uint256 expectUtilizeAmount = (totalValueAll() * maxUtilizationRatio) / MAGIC_SCALE_1E6;
-        if (expectUtilizeAmount < utilizedAmount) {
+        if (expectUtilizeAmount < managingFund) {
             unchecked {
-                _pullFund(utilizedAmount - expectUtilizeAmount);
+                _pullFund(managingFund - expectUtilizeAmount);
             }
         }
     }
 
     function _pullFund(uint256 _amount) internal {
-        require(
-            _calcUtilizationRatio(utilizedAmount + _amount) <= maxUtilizationRatio,
-            "Exceeded max utilization ratio"
-        );
+        require(_calcUtilizationRatio(managingFund + _amount) <= maxUtilizationRatio, "Exceeded max utilization ratio");
 
         // receive usdc from the vault
         vault.utilize(_amount);
@@ -115,20 +112,20 @@ contract AaveV3Strategy is IController {
 
         IController(_to).immigrate(address(this));
 
-        utilizedAmount = 0;
+        managingFund = 0;
     }
 
     function immigrate(address _from) external override {
         require(_from != address(0), "Zero address cannot be accepted");
-        require(utilizedAmount == 0, "Already in use");
+        require(managingFund == 0, "Already in use");
 
-        uint256 _amount = IController(_from).utilizedAmount();
+        uint256 _amount = IController(_from).managingFund();
 
         usdc.safeTransferFrom(_from, address(this), _amount);
 
         _utilize(_amount);
 
-        utilizedAmount = _amount;
+        managingFund = _amount;
     }
 
     function currentUtilizationRatio() public view returns (uint256) {
@@ -146,7 +143,7 @@ contract AaveV3Strategy is IController {
     }
 
     function valueAll() public view override returns (uint256) {
-        return utilizedAmount;
+        return managingFund;
     }
 
     /**
@@ -162,11 +159,11 @@ contract AaveV3Strategy is IController {
 
     function _unutilize(uint256 _amount) internal {
         require(_amount != 0, "Amount cannot be zero");
-        require(_amount <= utilizedAmount, "Insufficient assets to unutilize");
+        require(_amount <= managingFund, "Insufficient assets to unutilize");
 
         aave.withdraw(address(usdc), _amount, address(vault));
 
-        utilizedAmount -= _amount;
+        managingFund -= _amount;
     }
 
     function setMaxUtilizationRatio(uint256 _ratio) external override onlyOwner withinValidRatio(_ratio) {
