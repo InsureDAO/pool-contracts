@@ -20,7 +20,7 @@ contract ControllerMock is IController {
         ownership = IOwnership(_ownership);
     }
 
-    function unutilize(uint256 _amount) external {
+    function returnFund(uint256 _amount) external {
         require(msg.sender == address(vault));
         token.transfer(address(vault), _amount);
     }
@@ -43,7 +43,7 @@ contract ControllerMock is IController {
         token.mint(address(this), _mint);
     }
 
-    function utilize(uint256 _amount) external {
+    function pullFund(uint256 _amount) external {
         //do something for yield here in real contracts
         token.mint(address(this), _amount);
     }
@@ -54,7 +54,7 @@ contract ControllerMock is IController {
         token.transfer(_to, amount);
     }
 
-    function adjustUtilization() external {}
+    function adjustFund() external {}
 
     function emigrate(address _to) external {}
 

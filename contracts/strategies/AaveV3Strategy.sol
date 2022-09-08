@@ -74,7 +74,7 @@ contract AaveV3Strategy is IController {
         aaveMaxOccupancyRatio = (MAGIC_SCALE_1E6 * 10) / 100;
     }
 
-    function utilize(uint256 _amount) external override {
+    function pullFund(uint256 _amount) external override {
         _utilize(_amount);
     }
 
@@ -93,7 +93,7 @@ contract AaveV3Strategy is IController {
         aave.supply(address(usdc), _amount, address(this), 0);
     }
 
-    function unutilize(uint256 _amount) external override {
+    function returnFund(uint256 _amount) external override {
         _unutilize(_amount);
     }
 
@@ -106,7 +106,7 @@ contract AaveV3Strategy is IController {
         utilizedAmount -= _amount;
     }
 
-    function adjustUtilization() external override {
+    function adjustFund() external override {
         int256 _shouldUtilizedRatio = int256(maxUtilizationRatio) - int256(currentUtilizationRatio());
         uint256 _diffAmount = (vault.available() * _abs(_shouldUtilizedRatio)) / MAGIC_SCALE_1E6;
 
