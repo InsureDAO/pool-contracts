@@ -21,9 +21,9 @@ const {
   verifyDebtOf,
 
   verifyRate,
-} = require("../test-utils");
+} = require("../../test-utils");
 
-const { ZERO_ADDRESS, TEST_ADDRESS, NULL_ADDRESS, short, YEAR, WEEK, DAY, ZERO, ONE } = require("../constant-utils");
+const { ZERO_ADDRESS, TEST_ADDRESS, NULL_ADDRESS, short, YEAR, WEEK, DAY, ZERO, ONE } = require("../../constant-utils");
 
 async function snapshot() {
   return network.provider.send("evm_snapshot", []);
