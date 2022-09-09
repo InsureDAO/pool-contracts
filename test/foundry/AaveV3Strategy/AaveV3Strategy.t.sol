@@ -160,7 +160,14 @@ contract AaveV3StrategyTest is Test {
         assertGt(strategy.managingFund(), _fundBeforeClaiming);
     }
 
-    function testWithdrawAllReward() public {}
+    function testWithdrawAllReward() public {
+        skip(1e6);
+        uint256 _fundBeforeClaiming = strategy.managingFund();
+        vm.prank(deployer);
+        strategy.withdrawAllReward();
+        // FIXME: confirm actual reward value
+        assertGt(strategy.managingFund(), _fundBeforeClaiming);
+    }
 
     function testGetUnclaimedReward() public {
         skip(1e6);
