@@ -236,9 +236,11 @@ contract AaveV3Strategy is IController {
         address _tokenOut,
         uint256 _amountIn
     ) internal returns (uint256) {
-        // FIXME: derive usdc amount from oracle and multiply it
-        // uint256 _amountOutMin = (_amountIn * exchangeLogic.slippageTolerance()) / MAGIC_SCALE_1E6;
-        uint256 _amountOutMin = 1;
+        uint256 _amountOutMin;
+        unchecked {
+            uint256 _estimatedAmount = exchangeLogic.estimateAmountOut(_tokenIn, _tokenOut, _amountIn);
+            _amountOutMin = (_estimatedAmount * exchangeLogic.slippageTolerance()) / MAGIC_SCALE_1E6;
+        }
 
         address _swapper = exchangeLogic.swapper();
         aaveRewardToken.approve(_swapper, _amountIn);

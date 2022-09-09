@@ -27,7 +27,8 @@ contract AaveV3StrategyTest is Test {
 
     address aavePool;
     address aaveReward;
-    address uniswapV3;
+    address uniswapV3Router;
+    address uniswapV3Quoter;
 
     string OPTIMISM_RPC_URL = vm.envString("OPTIMISM_URL");
 
@@ -45,13 +46,14 @@ contract AaveV3StrategyTest is Test {
         aaveRewardToken = addresses.aaveRewardToken;
         aavePool = addresses.aavePool;
         aaveReward = addresses.aaveReward;
-        uniswapV3 = addresses.uniswapV3Router;
+        uniswapV3Router = addresses.uniswapV3Router;
+        uniswapV3Quoter = addresses.uniswapV3Quoter;
 
         vm.startPrank(deployer);
         ownership = new Ownership();
         registry = new Registry(address(ownership));
         vault = new Vault(addresses.usdc, address(registry), address(0), address(ownership));
-        exchangeLogic = new ExchangeLogicUniswapV3(addresses.uniswapV3Router);
+        exchangeLogic = new ExchangeLogicUniswapV3(uniswapV3Router, uniswapV3Quoter);
         strategy = new AaveV3Strategy(
             ownership,
             vault,
@@ -137,7 +139,7 @@ contract AaveV3StrategyTest is Test {
 
     function testSetExchangeLogic() public {
         assertEq(address(strategy.exchangeLogic()), address(exchangeLogic));
-        IExchangeLogic _newLogic = new ExchangeLogicUniswapV3(uniswapV3);
+        IExchangeLogic _newLogic = new ExchangeLogicUniswapV3(uniswapV3Router, uniswapV3Quoter);
         vm.prank(address(deployer));
         strategy.setExchangeLogic(address(_newLogic));
         assertEq(address(strategy.exchangeLogic()), address(_newLogic));
@@ -154,24 +156,24 @@ contract AaveV3StrategyTest is Test {
         skip(1e6);
         uint256 _unclaimed = strategy.getUnclaimedReward();
         uint256 _fundBeforeClaiming = strategy.managingFund();
+        uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimed);
         vm.prank(deployer);
         strategy.withdrawReward(_unclaimed);
-        // FIXME: confirm actual reward value
-        assertGt(strategy.managingFund(), _fundBeforeClaiming);
+        assertApproxEqRel(strategy.managingFund(), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
     }
 
     function testWithdrawAllReward() public {
         skip(1e6);
+        uint256 _unclaimed = strategy.getUnclaimedReward();
         uint256 _fundBeforeClaiming = strategy.managingFund();
+        uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimed);
         vm.prank(deployer);
         strategy.withdrawAllReward();
-        // FIXME: confirm actual reward value
-        assertGt(strategy.managingFund(), _fundBeforeClaiming);
+        assertApproxEqRel(strategy.managingFund(), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
     }
 
     function testGetUnclaimedReward() public {
         skip(1e6);
-        // FIXME: confirm actual reward value
         assertGt(strategy.getUnclaimedReward(), 0);
     }
 }

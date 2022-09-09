@@ -9,6 +9,7 @@ library AddressHelper {
         address ausdc;
         address aaveRewardToken;
         address uniswapV3Router;
+        address uniswapV3Quoter;
     }
 
     function addresses(uint256 _chainid) internal pure returns (Addr memory) {
@@ -22,7 +23,8 @@ library AddressHelper {
                     ausdc: 0x625E7708f30cA75bfd92586e17077590C60eb4cD,
                     // OP token
                     aaveRewardToken: 0x4200000000000000000000000000000000000042,
-                    uniswapV3Router: 0xE592427A0AEce92De3Edee1F18E0157C05861564
+                    uniswapV3Router: 0xE592427A0AEce92De3Edee1F18E0157C05861564,
+                    uniswapV3Quoter: 0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6
                 });
         }
 
@@ -33,7 +35,8 @@ library AddressHelper {
                 usdc: address(0),
                 ausdc: address(0),
                 aaveRewardToken: address(0),
-                uniswapV3Router: address(0)
+                uniswapV3Router: address(0),
+                uniswapV3Quoter: address(0)
             });
     }
 }

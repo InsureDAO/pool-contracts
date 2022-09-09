@@ -21,13 +21,13 @@ interface IExchangeLogic {
         address _tokenIn,
         address _tokenOut,
         uint256 _amountIn
-    ) external view returns (uint256);
+    ) external returns (uint256);
 
     function estimateAmountIn(
         address _tokenIn,
         address _tokenOut,
         uint256 _amountMinOut
-    ) external view returns (uint256);
+    ) external returns (uint256);
 
     function slippageTolerance() external view returns (uint256);
 
