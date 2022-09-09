@@ -63,7 +63,7 @@ contract ControllerMock is IController {
 
     function immigrate(address _from) external {}
 
-    function setMaxUtilizationRatio(uint256 _ratio) external {}
+    function setMaxManagingRatio(uint256 _ratio) external {}
 
-    function currentUtilizationRatio() external view returns (uint256) {}
+    function currentManagingRatio() external view returns (uint256) {}
 }

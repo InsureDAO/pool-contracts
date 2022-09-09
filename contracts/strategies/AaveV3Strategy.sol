@@ -3,7 +3,6 @@ pragma solidity 0.8.12;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
-
 import "../interfaces/IController.sol";
 import "../interfaces/IOwnership.sol";
 import "../interfaces/IVault.sol";
@@ -25,7 +24,7 @@ contract AaveV3Strategy is IController {
     IERC20 public aaveRewardToken;
     address[] public supplyingAssets;
 
-    uint256 public maxUtilizationRatio;
+    uint256 public maxManagingRatio;
     uint256 public managingFund;
 
     uint256 public aaveMaxOccupancyRatio;
@@ -41,7 +40,7 @@ contract AaveV3Strategy is IController {
     }
 
     modifier onlyVault() {
-        require(msg.sender == address(vault), "Vault can only utilize the balance");
+        require(msg.sender == address(vault), "Vault can only allowed to operate");
         _;
     }
 
@@ -68,9 +67,9 @@ contract AaveV3Strategy is IController {
         usdc = _usdc;
         ausdc = _ausdc;
         aaveRewardToken = _aaveRewardToken;
-        supplyingAssets.push(address(_usdc));
+        supplyingAssets.push(address(_ausdc));
 
-        maxUtilizationRatio = MAGIC_SCALE_1E6;
+        maxManagingRatio = MAGIC_SCALE_1E6;
         aaveMaxOccupancyRatio = (MAGIC_SCALE_1E6 * 10) / 100;
     }
 
@@ -78,20 +77,24 @@ contract AaveV3Strategy is IController {
      * Controller methods
      */
     function adjustFund() external override {
-        uint256 expectUtilizeAmount = (totalValueAll() * maxUtilizationRatio) / MAGIC_SCALE_1E6;
-        if (expectUtilizeAmount < managingFund) {
+        uint256 expectUtilizeAmount = (totalValueAll() * maxManagingRatio) / MAGIC_SCALE_1E6;
+        if (expectUtilizeAmount > managingFund) {
             unchecked {
-                _pullFund(managingFund - expectUtilizeAmount);
+                uint256 _shortage = expectUtilizeAmount - managingFund;
+                _pullFund(_shortage);
             }
         }
     }
 
     function _pullFund(uint256 _amount) internal {
-        require(_calcUtilizationRatio(managingFund + _amount) <= maxUtilizationRatio, "Exceeded max utilization ratio");
+        require(_calcManagingRatio(managingFund + _amount) <= maxManagingRatio, "Exceeded max managing ratio");
 
         // receive usdc from the vault
         vault.utilize(_amount);
 
+        unchecked {
+            managingFund += _amount;
+        }
         // directly utilize all amount
         _utilize(_amount);
     }
@@ -99,6 +102,10 @@ contract AaveV3Strategy is IController {
     function returnFund(uint256 _amount) external onlyVault {
         _unutilize(_amount);
         usdc.safeTransfer(address(vault), _amount);
+
+        unchecked {
+            managingFund -= _amount;
+        }
     }
 
     function emigrate(address _to) external override onlyVault {
@@ -128,13 +135,13 @@ contract AaveV3Strategy is IController {
         managingFund = _amount;
     }
 
-    function currentUtilizationRatio() public view returns (uint256) {
-        return _calcUtilizationRatio(valueAll());
+    function currentManagingRatio() public view returns (uint256) {
+        return _calcManagingRatio(valueAll());
     }
 
-    function _calcUtilizationRatio(uint256 _amount) internal view returns (uint256 _utilizationRatio) {
+    function _calcManagingRatio(uint256 _amount) internal view returns (uint256 _managingRatio) {
         unchecked {
-            _utilizationRatio = (_amount * MAGIC_SCALE_1E6) / totalValueAll();
+            _managingRatio = (_amount * MAGIC_SCALE_1E6) / totalValueAll();
         }
     }
 
@@ -151,9 +158,10 @@ contract AaveV3Strategy is IController {
      */
     function _utilize(uint256 _amount) internal {
         require(_amount != 0, "Amount cannot be zero");
-        require(_amount >= _calcAaveNewSupplyCap(), "Exceeded additional supply capacity");
+        require(_amount < _calcAaveNewSupplyCap(), "Exceeded additional supply capacity");
 
         // supply utilized assets into aave pool
+        usdc.approve(address(aave), _amount);
         aave.supply(address(usdc), _amount, address(this), 0);
     }
 
@@ -161,13 +169,11 @@ contract AaveV3Strategy is IController {
         require(_amount != 0, "Amount cannot be zero");
         require(_amount <= managingFund, "Insufficient assets to unutilize");
 
-        aave.withdraw(address(usdc), _amount, address(vault));
-
-        managingFund -= _amount;
+        aave.withdraw(address(usdc), _amount, address(this));
     }
 
-    function setMaxUtilizationRatio(uint256 _ratio) external override onlyOwner withinValidRatio(_ratio) {
-        maxUtilizationRatio = _ratio;
+    function setMaxManagingRatio(uint256 _ratio) external override onlyOwner withinValidRatio(_ratio) {
+        maxManagingRatio = _ratio;
     }
 
     function setExchangeLogic(address _exchangeLogic) public onlyOwner {
@@ -180,7 +186,7 @@ contract AaveV3Strategy is IController {
 
     function withdrawReward(uint256 _amount) external onlyOwner {
         require(_amount != 0, "No amount specified");
-        require(_amount > getAccruedReward(), "Insufficient reward to withdraw");
+        require(_amount <= getUnclaimedReward(), "Insufficient reward to withdraw");
 
         aaveReward.claimRewards(supplyingAssets, _amount, address(this), address(aaveRewardToken));
 
@@ -188,10 +194,12 @@ contract AaveV3Strategy is IController {
 
         // compound swapped usdc
         _utilize(_swapped);
+
+        managingFund += _swapped;
     }
 
     function withdrawAllReward() external onlyOwner {
-        require(getAccruedReward() > 0, "No reward claimable");
+        require(getUnclaimedReward() > 0, "No reward claimable");
 
         aaveReward.claimAllRewards(supplyingAssets, address(this));
 
@@ -199,10 +207,12 @@ contract AaveV3Strategy is IController {
 
         // compound swapped usdc
         _utilize(_swapped);
+
+        managingFund += _swapped;
     }
 
-    function getAccruedReward() public view returns (uint256) {
-        return aaveReward.getUserAccruedRewards(address(this), address(aaveRewardToken));
+    function getUnclaimedReward() public view returns (uint256) {
+        return aaveReward.getUserRewards(supplyingAssets, address(this), address(aaveRewardToken));
     }
 
     function _calcAaveNewSupplyCap() internal view returns (uint256 _available) {
@@ -226,13 +236,17 @@ contract AaveV3Strategy is IController {
         address _tokenOut,
         uint256 _amountIn
     ) internal returns (uint256) {
-        uint256 _amountOutMin = (_amountIn * exchangeLogic.slippageTolerance()) / MAGIC_SCALE_1E6;
+        // FIXME: derive usdc amount from oracle and multiply it
+        // uint256 _amountOutMin = (_amountIn * exchangeLogic.slippageTolerance()) / MAGIC_SCALE_1E6;
+        uint256 _amountOutMin = 1;
 
-        (bool _success, bytes memory _res) = exchangeLogic.swapper().call(
+        address _swapper = exchangeLogic.swapper();
+        aaveRewardToken.approve(_swapper, _amountIn);
+        (bool _success, bytes memory _res) = _swapper.call(
             exchangeLogic.abiEncodeSwap(_tokenIn, _tokenOut, _amountIn, _amountOutMin, address(this))
         );
 
-        require(_success, "Swap faild");
+        require(_success, "Swap failed");
 
         uint256 _swapped = abi.decode(_res, (uint256));
 
