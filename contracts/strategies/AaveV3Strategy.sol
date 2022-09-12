@@ -35,17 +35,17 @@ contract AaveV3Strategy is IController {
     uint256 private constant MAGIC_SCALE_1E6 = 1e6; //
 
     modifier onlyOwner() {
-        require(ownership.owner() == msg.sender, "Caller is not allowed to operate");
+        if (ownership.owner() != msg.sender) revert OnlyOwner();
         _;
     }
 
     modifier onlyVault() {
-        require(msg.sender == address(vault), "Vault can only allowed to operate");
+        if (msg.sender != address(vault)) revert OnlyVault();
         _;
     }
 
     modifier withinValidRatio(uint256 _ratio) {
-        require(_ratio <= MAGIC_SCALE_1E6, "Exceeded limit for ratio");
+        if (_ratio > MAGIC_SCALE_1E6) revert RatioOutOfRange();
         _;
     }
 
@@ -87,7 +87,7 @@ contract AaveV3Strategy is IController {
     }
 
     function _pullFund(uint256 _amount) internal {
-        require(_calcManagingRatio(managingFund + _amount) <= maxManagingRatio, "Exceeded max managing ratio");
+        if (_calcManagingRatio(managingFund + _amount) > maxManagingRatio) revert ExceedManagingRatio();
 
         // receive usdc from the vault
         vault.utilize(_amount);
@@ -109,7 +109,7 @@ contract AaveV3Strategy is IController {
     }
 
     function emigrate(address _to) external override onlyVault {
-        require(_to != address(0), "Zero address cannot be accepted");
+        if (_to == address(0)) revert ZeroAddress();
 
         // liquidate all positions
         aave.withdraw(address(usdc), ausdc.balanceOf(address(this)), address(this));
@@ -123,8 +123,9 @@ contract AaveV3Strategy is IController {
     }
 
     function immigrate(address _from) external override {
-        require(_from != address(0), "Zero address cannot be accepted");
-        require(managingFund == 0, "Already in use");
+        if (_from == address(0)) revert ZeroAddress();
+        if (_from == address(this)) revert MigrateToSelf();
+        if (managingFund != 0) revert AlreadyInUse();
 
         uint256 _amount = IController(_from).managingFund();
 
@@ -157,8 +158,8 @@ contract AaveV3Strategy is IController {
      * Strategy methods
      */
     function _utilize(uint256 _amount) internal {
-        require(_amount != 0, "Amount cannot be zero");
-        require(_amount < _calcAaveNewSupplyCap(), "Exceeded additional supply capacity");
+        if (_amount == 0) revert AmountZero();
+        if (_amount > _calcAaveNewSupplyCap()) revert AaveSupplyCapExceeded();
 
         // supply utilized assets into aave pool
         usdc.approve(address(aave), _amount);
@@ -166,8 +167,8 @@ contract AaveV3Strategy is IController {
     }
 
     function _unutilize(uint256 _amount) internal {
-        require(_amount != 0, "Amount cannot be zero");
-        require(_amount <= managingFund, "Insufficient assets to unutilize");
+        if (_amount == 0) revert AmountZero();
+        if (_amount > managingFund) revert InsufficientManagingFund();
 
         aave.withdraw(address(usdc), _amount, address(this));
     }
@@ -176,17 +177,18 @@ contract AaveV3Strategy is IController {
         maxManagingRatio = _ratio;
     }
 
-    function setExchangeLogic(address _exchangeLogic) public onlyOwner {
+    function setExchangeLogic(IExchangeLogic _exchangeLogic) public onlyOwner {
         _setExchangeLogic(_exchangeLogic);
     }
 
     function setAaveRewardToken(IERC20 _token) public onlyOwner {
+        if (address(_token) == address(0)) revert ZeroAddress();
         aaveRewardToken = _token;
     }
 
     function withdrawReward(uint256 _amount) external onlyOwner {
-        require(_amount != 0, "No amount specified");
-        require(_amount <= getUnclaimedReward(), "Insufficient reward to withdraw");
+        if (_amount == 0) revert AmountZero();
+        if (_amount > getUnclaimedReward()) revert InsufficientRewardToWithdraw();
 
         aaveReward.claimRewards(supplyingAssets, _amount, address(this), address(aaveRewardToken));
 
@@ -199,7 +201,7 @@ contract AaveV3Strategy is IController {
     }
 
     function withdrawAllReward() external onlyOwner {
-        require(getUnclaimedReward() > 0, "No reward claimable");
+        if (getUnclaimedReward() == 0) revert NoRewardClaimable();
 
         aaveReward.claimAllRewards(supplyingAssets, address(this));
 
@@ -223,8 +225,10 @@ contract AaveV3Strategy is IController {
         }
     }
 
-    function _setExchangeLogic(address _exchangeLogic) private {
-        exchangeLogic = IExchangeLogic(_exchangeLogic);
+    function _setExchangeLogic(IExchangeLogic _exchangeLogic) private {
+        if (address(_exchangeLogic) == address(0)) revert ZeroAddress();
+        if (address(_exchangeLogic) == address(exchangeLogic)) revert SameAddressUsed();
+        exchangeLogic = _exchangeLogic;
 
         address _swapper = exchangeLogic.swapper();
         usdc.safeApprove(_swapper, type(uint256).max);
@@ -248,7 +252,7 @@ contract AaveV3Strategy is IController {
             exchangeLogic.abiEncodeSwap(_tokenIn, _tokenOut, _amountIn, _amountOutMin, address(this))
         );
 
-        require(_success, "Swap failed");
+        if (!_success) revert NoRewardClaimable();
 
         uint256 _swapped = abi.decode(_res, (uint256));
 
