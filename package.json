@@ -46,7 +46,9 @@
   },
   "scripts": {
     "compile": "npx hardhat compile",
-    "test": "npx hardhat test",
+    "test:hardhat": "npx hardhat test",
+    "test:forge": "forge test -vvv --watch",
+    "cov:forge": "source scripts/test/check-coverage.sh",
     "prepare": "husky install"
   }
 }
