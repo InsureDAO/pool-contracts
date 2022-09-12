@@ -1,0 +1,5 @@
+[prifile.default]
+src = 'src'
+test = 'test'
+out = 'out'
+libs = ['lib']
