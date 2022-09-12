@@ -258,8 +258,4 @@ contract AaveV3Strategy is IController {
 
         return _swapped;
     }
-
-    function _abs(int256 _number) internal pure returns (uint256) {
-        return _number >= 0 ? uint256(_number) : uint256(-_number);
-    }
 }

@@ -37,7 +37,7 @@ abstract contract AaveV3StrategySetUp is Test {
     IVault vault;
     IExchangeLogic exchangeLogic;
 
-    function setUp() public virtual {
+    constructor() {
         optimismFork = vm.createFork(OPTIMISM_RPC_URL);
         vm.selectFork(optimismFork);
         AddressHelper.Addr memory addresses = AddressHelper.addresses(10);

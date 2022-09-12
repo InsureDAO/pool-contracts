@@ -4,10 +4,6 @@ pragma solidity ^0.8.12;
 import "./AaveV3StrategySetUp.sol";
 
 contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
-    function setUp() public override {
-        super.setUp();
-    }
-
     /**
      * Controller methods
      */

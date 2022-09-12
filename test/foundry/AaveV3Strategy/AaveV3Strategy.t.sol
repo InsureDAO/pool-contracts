@@ -8,9 +8,7 @@ import "../utils/AddressHelper.sol";
 import "./AaveV3StrategySetUp.sol";
 
 contract AaveV3StrategyTest is AaveV3StrategySetUp {
-    function setUp() public override {
-        super.setUp();
-    }
+    function setUp() public {}
 
     function testTotalValueAll() public {
         assertEq(strategy.totalValueAll(), 1e6);
@@ -51,6 +49,11 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         strategy.emigrate(address(newController));
         assertEq(strategy.valueAll(), 0);
         assertEq(newController.valueAll(), 1e5);
+    }
+
+    function testCurrentManagingRatio() public {
+        uint256 _currentRatio = strategy.currentManagingRatio();
+        assertEq(_currentRatio, 1e5);
     }
 
     function testSetMaxUtilizationRatio() public {
