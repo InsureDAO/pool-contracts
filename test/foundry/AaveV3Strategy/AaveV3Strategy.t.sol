@@ -8,8 +8,6 @@ import "../utils/AddressHelper.sol";
 import "./AaveV3StrategySetUp.sol";
 
 contract AaveV3StrategyTest is AaveV3StrategySetUp {
-    function setUp() public {}
-
     function testTotalValueAll() public {
         assertEq(strategy.totalValueAll(), 1e6);
     }
