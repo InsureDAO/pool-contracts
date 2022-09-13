@@ -11,14 +11,13 @@ import "../interfaces/IPremiumModelV2.sol";
 import "../interfaces/IOwnership.sol";
 import "hardhat/console.sol";
 
-contract PremiumModelV3 {
+contract PremiumModelV3 is IPremiumModelV2 {
     IOwnership public immutable ownership;
 
     mapping(address => uint256) public baseRates;
 
     uint256 public immutable rateSlope1;
     uint256 public immutable rateSlope2;
-
     uint256 public immutable OPTIMAL_UTILIZE_RATIO;
 
     uint256 internal immutable MAX_EXCESS_UTILIZE_RATIO;
@@ -66,17 +65,33 @@ contract PremiumModelV3 {
         return _getPremiumRate(_market, _utilizedRate);
     }
 
+    function getPremiumRate(
+        address _market,
+        uint256 _amount,
+        uint256 _totalLiquidity,
+        uint256 _lockedAmount
+    ) external view returns (uint256) {
+        uint256 rate;
+        if (_amount != 0 && _totalLiquidity != 0) {
+            uint256 premium = getPremium(_market, _amount, 365 days, _totalLiquidity, _lockedAmount);
+            rate = (premium * MAGIC_SCALE) / _amount;
+        }
+
+        return rate;
+    }
+
     function getPremium(
         address _market,
         uint256 _amount,
         uint256 _term,
         uint256 _totalLiquidity,
         uint256 _lockedAmount
-    ) external view returns (uint256) {
+    ) public view returns (uint256) {
+        require(_amount + _lockedAmount <= _totalLiquidity, "Amount exceeds total liquidity");
+        require(_totalLiquidity != 0, "totalLiquidity is 0");
+
         uint256 _utilizedRateBefore = (_lockedAmount * MAGIC_SCALE) / _totalLiquidity;
         uint256 _utilizedRateAfter = ((_lockedAmount + _amount) * MAGIC_SCALE) / _totalLiquidity;
-        assert(_utilizedRateBefore < _utilizedRateAfter);
-
         uint256 _premium;
 
         if (_utilizedRateAfter <= OPTIMAL_UTILIZE_RATIO || OPTIMAL_UTILIZE_RATIO <= _utilizedRateBefore) {
@@ -93,7 +108,7 @@ contract PremiumModelV3 {
         return _premium;
     }
 
-    function setBaseRate(address _market, uint256 _rate) external onlyOwner {
+    function setRate(address _market, uint256 _rate) external onlyOwner {
         baseRates[_market] = _rate;
     }
 

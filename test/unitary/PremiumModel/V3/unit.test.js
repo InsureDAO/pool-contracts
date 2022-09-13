@@ -6,7 +6,7 @@ const keccak256 = require("keccak256");
 
 const { snapshot, restore } = require("../../test-utils");
 
-const { ZERO_ADDRESS, YEAR } = require("../../constant-utils");
+const { ZERO_ADDRESS, YEAR, ZERO, ONE } = require("../../constant-utils");
 
 describe("PremiumModelV3", function () {
   const defaultRate = BigNumber.from("100000"); //1e5 => 10%
@@ -37,9 +37,42 @@ describe("PremiumModelV3", function () {
 
   describe("PremiumModelV3", function () {
     describe("constructor", function () {
-      it("set successfully", async () => {});
+      it("set successfully", async () => {
+        expect(await pm.ownership()).to.equal(ownership.address);
+        expect(await pm.baseRates(ZERO_ADDRESS)).to.equal(defaultRate);
+        expect(await pm.rateSlope1()).to.equal(rateSlope1);
+        expect(await pm.rateSlope2()).to.equal(rateSlope2);
 
-      it("revert when invalid parameter", async () => {});
+        expect(await pm.OPTIMAL_UTILIZE_RATIO()).to.equal(OPTIMAL_UTILIZE_RATIO);
+      });
+
+      it("revert when invalid parameter", async () => {
+        const PMV3 = await ethers.getContractFactory("PremiumModelV3");
+
+        await expect(
+          PMV3.deploy(ZERO_ADDRESS, defaultRate, rateSlope1, rateSlope2, OPTIMAL_UTILIZE_RATIO)
+        ).to.revertedWith("zero address");
+
+        await expect(
+          PMV3.deploy(ownership.address, ZERO, rateSlope1, rateSlope2, OPTIMAL_UTILIZE_RATIO)
+        ).to.revertedWith("rate is zero");
+
+        await expect(
+          PMV3.deploy(ownership.address, defaultRate, ZERO, rateSlope2, OPTIMAL_UTILIZE_RATIO)
+        ).to.revertedWith("slope1 is zero");
+
+        await expect(
+          PMV3.deploy(ownership.address, defaultRate, rateSlope1, ZERO, OPTIMAL_UTILIZE_RATIO)
+        ).to.revertedWith("slope2 is zero");
+
+        await expect(PMV3.deploy(ownership.address, defaultRate, rateSlope1, rateSlope2, ZERO)).to.revertedWith(
+          "ratio is zero"
+        );
+
+        await expect(PMV3.deploy(ownership.address, defaultRate, rateSlope1, rateSlope2, 1e6 + 1)).to.revertedWith(
+          "exceed max rate"
+        );
+      });
     });
 
     describe("getCurrentPremiumRate", function () {
@@ -96,6 +129,12 @@ describe("PremiumModelV3", function () {
         //Base + slope1 + slope2
         //10% + 10% + 40% = 60%
         expect(rate).to.equal("600000");
+      });
+
+      it("Return baseRate when _totalLiquidity = 0", async () => {
+        const rate = await pm.getCurrentPremiumRate(ZERO_ADDRESS, ZERO, ZERO);
+
+        expect(rate).to.equal(defaultRate);
       });
     });
 
@@ -208,7 +247,52 @@ describe("PremiumModelV3", function () {
         expect(premium).to.equal("46875000000000000");
       });
 
-      it("revert when exceed totalLiquidity", async () => {});
+      it("revert when exceed totalLiquidity", async () => {
+        const market = ZERO_ADDRESS;
+        const amount = BigNumber.from("900001");
+        const term = YEAR;
+        const totalLiquidity = BigNumber.from("1000000");
+        const lockedAmount = BigNumber.from("100000");
+
+        await expect(pm.getPremium(market, amount, term, totalLiquidity, lockedAmount)).to.revertedWith(
+          "Amount exceeds total liquidity"
+        );
+      });
+    });
+
+    describe("getPremiumRate", function () {
+      it("return correcrt rate based on getPremium", async () => {
+        //Use the test "Return correct premium ranged on slope1&2 (45% to 95%)"
+        const market = ZERO_ADDRESS;
+        const amount = BASE_LIQUIDITY.div(2); //50%
+        const term = YEAR;
+        const totalLiquidity = BASE_LIQUIDITY;
+        const utilizeRatio = BigNumber.from("450000"); //45%
+        const lockedAmount = BASE_LIQUIDITY.mul(utilizeRatio).div(MAGIC_SCALE);
+
+        const premium = await pm.getPremium(market, amount, term, totalLiquidity, lockedAmount);
+
+        //expected premium
+        // = test(45% to 90%) + test(90% to 95%)
+        // = (7875 + 1500) * 1e13
+        expect(premium).to.equal("93750000000000000");
+
+        const rate = await pm.getPremiumRate(market, amount, totalLiquidity, lockedAmount);
+        const expectedRate = premium.mul(MAGIC_SCALE).div(amount);
+
+        await expect(rate).to.equal(expectedRate);
+      });
+      it("return 0 when amount is 0", async () => {
+        const totalLiquidity = BASE_LIQUIDITY;
+        const utilizeRatio = BigNumber.from("450000"); //45%
+        const lockedAmount = BASE_LIQUIDITY.mul(utilizeRatio).div(MAGIC_SCALE);
+
+        const rate = await pm.getPremiumRate(ZERO_ADDRESS, ZERO, totalLiquidity, lockedAmount);
+        await expect(rate).to.equal(ZERO);
+      });
+      it("retrun 0 when totalLiquidity is 0", async () => {
+        expect(await pm.getPremiumRate(ZERO_ADDRESS, ONE, ZERO, ZERO)).to.equal(ZERO);
+      });
     });
   });
 });
