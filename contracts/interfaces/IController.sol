@@ -19,13 +19,9 @@ interface IController {
     function currentManagingRatio() external view returns (uint256);
 }
 
-error OnlyOwner();
-error OnlyVault();
 error RatioOutOfRange();
 error ExceedManagingRatio();
-error ZeroAddress();
 error AlreadyInUse();
-error AmountZero();
 error AaveSupplyCapExceeded();
 error InsufficientManagingFund();
 error InsufficientRewardToWithdraw();

@@ -17,7 +17,7 @@ contract UniswapV3ExchangeLogicTest is UniswapV3ExchangeLogicSetUp {
             aaveRewardToken,
             usdc,
             1_000 * 1e18,
-            0,
+            1,
             alice
         );
         vm.startPrank(alice);

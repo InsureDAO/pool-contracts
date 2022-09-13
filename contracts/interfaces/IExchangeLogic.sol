@@ -35,3 +35,4 @@ interface IExchangeLogic {
 }
 
 error ZeroSlippageTolerance();
+error SlippageToleranceOutOfRange();

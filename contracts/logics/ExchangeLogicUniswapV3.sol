@@ -6,6 +6,8 @@ import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol";
 import "../interfaces/IExchangeLogic.sol";
 
+import "../errors/CommonError.sol";
+
 /**
  * @title ExchangeLogicUniswapV3
  * @author @InsureDAO
@@ -22,7 +24,7 @@ contract ExchangeLogicUniswapV3 is IExchangeLogic {
     constructor(address _router, address _quoter) {
         swapper = _router;
         quoter = IQuoter(_quoter);
-        slippageTolerance = 985_000;
+        slippageTolerance = 985_000; // 1.5%
         fee = 3_000;
         sqrtPriceLimitX96 = 0;
     }
@@ -34,6 +36,9 @@ contract ExchangeLogicUniswapV3 is IExchangeLogic {
         uint256 _amountOutMin,
         address _to
     ) external view returns (bytes memory) {
+        if (_tokenIn == address(0) || _tokenOut == address(0) || _to == address(0)) revert ZeroAddress();
+        if (_amountIn == 0 || _amountOutMin == 0) revert AmountZero();
+
         uint256 _deadline;
         unchecked {
             _deadline = block.timestamp + 60; // using 'now' for convenience, for mainnet pass _deadline from frontend!
@@ -59,19 +64,24 @@ contract ExchangeLogicUniswapV3 is IExchangeLogic {
         address _tokenOut,
         uint256 _amountIn
     ) external returns (uint256) {
+        if (_tokenIn == address(0) || _tokenOut == address(0)) revert ZeroAddress();
+        if (_amountIn == 0) revert AmountZero();
         return quoter.quoteExactInputSingle(_tokenIn, _tokenOut, fee, _amountIn, sqrtPriceLimitX96);
     }
 
     function estimateAmountIn(
         address _tokenIn,
         address _tokenOut,
-        uint256 _amountMinOut
+        uint256 _amountOutMin
     ) external returns (uint256) {
-        return quoter.quoteExactOutputSingle(_tokenIn, _tokenOut, fee, _amountMinOut, sqrtPriceLimitX96);
+        if (_tokenIn == address(0) || _tokenOut == address(0)) revert ZeroAddress();
+        if (_amountOutMin == 0) revert AmountZero();
+        return quoter.quoteExactOutputSingle(_tokenIn, _tokenOut, fee, _amountOutMin, sqrtPriceLimitX96);
     }
 
     function setSlippageTolerance(uint256 _tolerance) external {
-        require(_tolerance != 0, "Slippage tolerance cannot be zero");
+        if (_tolerance == 0) revert ZeroSlippageTolerance();
+        if (_tolerance > 1e6) revert SlippageToleranceOutOfRange();
 
         slippageTolerance = _tolerance;
     }
