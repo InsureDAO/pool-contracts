@@ -33,3 +33,5 @@ interface IExchangeLogic {
 
     function setSlippageTolerance(uint256 _tolerance) external;
 }
+
+error ZeroSlippageTolerance();
