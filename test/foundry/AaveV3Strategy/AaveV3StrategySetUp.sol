@@ -52,42 +52,16 @@ abstract contract AaveV3StrategySetUp is Test {
         vm.startPrank(deployer);
         ownership = new Ownership();
         registry = new Registry(address(ownership));
-        vault = new Vault(addresses.usdc, address(registry), address(0), address(ownership));
         exchangeLogic = new ExchangeLogicUniswapV3(uniswapV3Router, uniswapV3Quoter);
-        strategy = new AaveV3Strategy(
-            ownership,
-            vault,
-            exchangeLogic,
-            IAaveV3Pool(addresses.aavePool),
-            IAaveV3Reward(addresses.aaveReward),
-            IERC20(usdc),
-            IERC20(ausdc),
-            IERC20(aaveRewardToken)
-        );
-        vault.setController(address(strategy));
-        // set managing fund ratio
-        strategy.setMaxManagingRatio(1e5); // 10%
+
         // treated as market
         registry.supportMarket(dealer);
         registry.supportMarket(alice);
         registry.supportMarket(bob);
         vm.stopPrank();
-        // approve unlimited transfer
-        vm.prank(dealer);
-        IERC20(usdc).approve(address(vault), type(uint256).max);
-        vm.prank(alice);
-        IERC20(usdc).approve(address(vault), type(uint256).max);
-        vm.prank(bob);
-        IERC20(usdc).approve(address(vault), type(uint256).max);
 
-        deal(usdc, dealer, 1e8);
-        deal(usdc, alice, 1e6);
-        deal(usdc, bob, 1e6);
-
-        vm.prank(dealer);
-        vault.addValue(1e6, dealer, address(0));
-        vm.prank(alice);
-        vault.borrowValue(1e5, alice);
-        strategy.adjustFund();
+        deal(usdc, dealer, 1e10);
+        deal(usdc, alice, 1e10);
+        deal(usdc, bob, 1e10);
     }
 }

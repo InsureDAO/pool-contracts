@@ -9,6 +9,7 @@ import "../interfaces/IVault.sol";
 import "../interfaces/IAaveV3Pool.sol";
 import "../interfaces/IAaveV3Reward.sol";
 import "../interfaces/IExchangeLogic.sol";
+import "../errors/CommonError.sol";
 
 contract AaveV3Strategy is IController {
     using SafeERC20 for IERC20;
