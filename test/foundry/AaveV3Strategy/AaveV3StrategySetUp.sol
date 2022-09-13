@@ -53,6 +53,19 @@ abstract contract AaveV3StrategySetUp is Test {
         ownership = new Ownership();
         registry = new Registry(address(ownership));
         exchangeLogic = new ExchangeLogicUniswapV3(uniswapV3Router, uniswapV3Quoter);
+        vault = new Vault(usdc, address(registry), address(0), address(ownership));
+        strategy = new AaveV3Strategy(
+            ownership,
+            vault,
+            exchangeLogic,
+            IAaveV3Pool(aavePool),
+            IAaveV3Reward(aaveReward),
+            IERC20(usdc),
+            IERC20(ausdc),
+            IERC20(aaveRewardToken)
+        );
+
+        vault.setController(address(strategy));
 
         // treated as market
         registry.supportMarket(dealer);
@@ -63,5 +76,24 @@ abstract contract AaveV3StrategySetUp is Test {
         deal(usdc, dealer, 1e10);
         deal(usdc, alice, 1e10);
         deal(usdc, bob, 1e10);
+
+        // approve unlimited transfer
+        vm.prank(dealer);
+        IERC20(usdc).approve(address(vault), type(uint256).max);
+        vm.prank(alice);
+        IERC20(usdc).approve(address(vault), type(uint256).max);
+        vm.prank(bob);
+        IERC20(usdc).approve(address(vault), type(uint256).max);
+
+        vm.prank(dealer);
+        vault.addValue(10_000 * 1e6, dealer, address(0));
+        vm.prank(alice);
+        vault.borrowValue(1_000 * 1e6, alice);
+
+        // set managing fund ratio
+        vm.startPrank(deployer);
+        strategy.setMaxManagingRatio(1e5); // 10%
+        strategy.adjustFund();
+        vm.stopPrank();
     }
 }
