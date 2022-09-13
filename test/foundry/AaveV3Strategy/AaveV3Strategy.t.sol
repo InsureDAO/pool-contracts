@@ -9,26 +9,28 @@ import "./AaveV3StrategySetUp.sol";
 
 contract AaveV3StrategyTest is AaveV3StrategySetUp {
     function testTotalValueAll() public {
-        assertEq(strategy.totalValueAll(), 1e6);
+        assertEq(strategy.totalValueAll(), 900_000);
     }
 
     function testValueAll() public {
-        assertEq(strategy.valueAll(), 1e5);
+        assertEq(strategy.valueAll(), 90_000);
     }
 
     function testReturnFund() public {
         vm.prank(address(vault));
         strategy.returnFund(10_000);
 
-        assertEq(strategy.valueAll(), 90_000);
+        assertEq(strategy.valueAll(), 80_000);
+        assertEq(IERC20(ausdc).balanceOf(address(strategy)), 80_000);
     }
 
     function testAdjustFund() public {
         vm.prank(address(deployer));
-        strategy.setMaxManagingRatio(2e5);
+        strategy.setMaxManagingRatio(0.2e6);
         strategy.adjustFund();
 
-        assertEq(strategy.valueAll(), 2e5);
+        assertEq(strategy.valueAll(), 180_000);
+        assertEq(IERC20(ausdc).balanceOf(address(strategy)), 180_000);
     }
 
     function testMigration() public {
@@ -46,7 +48,9 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         vm.prank(address(vault));
         strategy.emigrate(address(newController));
         assertEq(strategy.valueAll(), 0);
-        assertEq(newController.valueAll(), 1e5);
+        assertEq(IERC20(ausdc).balanceOf(address(strategy)), 0);
+        assertEq(newController.valueAll(), 90_000);
+        assertEq(IERC20(ausdc).balanceOf(address(newController)), 90_000);
     }
 
     function testCurrentManagingRatio() public {

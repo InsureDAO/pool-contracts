@@ -86,6 +86,8 @@ abstract contract AaveV3StrategySetUp is Test {
 
         vm.prank(dealer);
         vault.addValue(1e6, dealer, address(0));
+        vm.prank(alice);
+        vault.borrowValue(1e5, alice);
         strategy.adjustFund();
     }
 }
