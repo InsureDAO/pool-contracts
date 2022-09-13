@@ -87,6 +87,7 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimed);
         vm.prank(deployer);
         strategy.withdrawReward(_unclaimed);
+        assertApproxEqRel(IERC20(ausdc).balanceOf(address(strategy)), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
         assertApproxEqRel(strategy.managingFund(), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
     }
 
@@ -97,6 +98,7 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimed);
         vm.prank(deployer);
         strategy.withdrawAllReward();
+        assertApproxEqRel(IERC20(ausdc).balanceOf(address(strategy)), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
         assertApproxEqRel(strategy.managingFund(), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
     }
 
