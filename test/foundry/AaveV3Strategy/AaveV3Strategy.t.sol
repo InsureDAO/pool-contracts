@@ -54,7 +54,7 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         strategy.returnFund(100 * 1e6);
 
         assertEq(strategy.valueAll(), 800 * 1e6);
-        assertEq(IERC20(ausdc).balanceOf(address(strategy)), 800 * 1e6);
+        assertApproxEqRel(IERC20(ausdc).balanceOf(address(strategy)), 800 * 1e6, 0.001e18); // within 0.1%
     }
 
     function testAdjustFund() public {
@@ -63,7 +63,7 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         strategy.adjustFund();
 
         assertEq(strategy.valueAll(), 1_800 * 1e6);
-        assertEq(IERC20(ausdc).balanceOf(address(strategy)), 1_800 * 1e6);
+        assertApproxEqRel(IERC20(ausdc).balanceOf(address(strategy)), 1_800 * 1e6, 0.001e18);
     }
 
     function testMigration() public {
