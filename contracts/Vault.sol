@@ -205,6 +205,11 @@ contract Vault is IVault {
         }
     }
 
+    function addBalance(uint256 _amount) external {
+        IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
+        balance += _amount;
+    }
+
     /**
      * @notice an address that has balance in the vault can offset an address's debt
      * @param _amount debt amount to offset
@@ -278,6 +283,26 @@ contract Vault is IVault {
         require(_to != address(0), "ERROR_ZERO_ADDRESS");
 
         _retVal = _withdrawAttribution(attributions[msg.sender], _to);
+    }
+
+    function renounceAttribution(uint256 _attribution) external returns (uint256) {
+        return _renounceAttribution(_attribution);
+    }
+
+    function renounceAllAttribution() external {
+        _renounceAttribution(attributions[msg.sender]);
+    }
+
+    function _renounceAttribution(uint256 _attribution) internal returns (uint256) {
+        uint256 _userAttribution = attributions[msg.sender];
+        require(_userAttribution >= _attribution, "not enough attribution");
+
+        unchecked {
+            attributions[msg.sender] -= _attribution;
+        }
+        totalAttributions -= _attribution;
+
+        return attributions[msg.sender];
     }
 
     /**
