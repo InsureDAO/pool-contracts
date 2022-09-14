@@ -1,10 +1,7 @@
 const { BigNumber } = require("ethers");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-// localhost
-const USDC_ADDRESS = "0x2f3A40A3db8a7e3D09B0adfEfbCe4f6F81927557";
-// TODO: change address(arbitrum goerli use only)
-// const USDC_ADDRESS = "0xb0Ad46bD50b44cBE47E2d83143E0E415d6A842F6";
+const USDC_ADDRESS = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8";
 
 const ALLOCATION_POINT = BigNumber.from("1000000");
 

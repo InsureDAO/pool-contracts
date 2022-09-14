@@ -6,7 +6,7 @@ const { USDC_ADDRESS, PREMIUM_RATE_BASE } = require("./config");
 const {
   RegistryAddress,
   FactoryAddress,
-  ParametersAddress,
+  ParametersV2Address,
   PoolTemplateAddress,
   PremiumV2Address,
 } = require("./deployments");
@@ -22,7 +22,7 @@ const {
  * @type {PoolConfig[]}
  */
 const NEW_POOLS = [
-  /* GMx */
+  /* GMX */
   {
     tokenAddress: "0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a",
     rate: 5,
@@ -87,7 +87,7 @@ async function main() {
 
   const registry = Registry.attach(RegistryAddress);
   const factory = Factory.attach(FactoryAddress);
-  const parameters = Parameters.attach(ParametersAddress);
+  const parameters = Parameters.attach(ParametersV2Address);
   const premium = PremiumV2.attach(PremiumV2Address);
 
   for (const pool of NEW_POOLS) {

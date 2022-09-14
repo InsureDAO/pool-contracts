@@ -12,13 +12,13 @@ const {
 
   SHIBUYA_URL,
   ASTAR_URL,
+  ARBITRUM_URL,
   MUMBAI_URL,
   GOERLI_URL,
 
   INFURA_KEY,
   ETHERSCAN_API,
   OPT_ETHERSCAN_API,
-  FORK_URL,
 } = process.env;
 
 /**
@@ -44,8 +44,9 @@ module.exports = {
         // { privateKey: `0x${TEST_KEY}`, balance: "2903004000000000000000000000000000000" },
       ],
       forking: {
-        url: GOERLI_URL,
-        enabled: false, // set true when perform fork environment
+        url: ARBITRUM_URL,
+        ignoreUnknownTxType: true,
+        enabled: true, // set as false if disable fork environment
       },
     },
     mainnet: {
@@ -59,6 +60,10 @@ module.exports = {
       url: ASTAR_URL,
       accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROL_KEY}`],
       gasPrice: 3e9, //3Gwei
+    },
+    arbitrum: {
+      url: ARBITRUM_URL,
+      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROL_KEY}`],
     },
     optimisticEthereum: {
       url: `https://optimism-mainnet.infura.io/v3/${INFURA_KEY}`,

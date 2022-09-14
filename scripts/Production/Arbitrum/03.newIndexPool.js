@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 
 const { USDC_ADDRESS } = require("./config");
-const { RegistryAddress, FactoryAddress, ParametersAddress, IndexTemplateAddress } = require("./deployments");
+const { RegistryAddress, FactoryAddress, ParametersV2Address, IndexTemplateAddress } = require("./deployments");
 
 async function main() {
   const start = process.hrtime();
@@ -14,7 +14,7 @@ async function main() {
 
   const registry = Registry.attach(RegistryAddress);
   const factory = Factory.attach(FactoryAddress);
-  const parameters = Parameters.attach(ParametersAddress);
+  const parameters = Parameters.attach(ParametersV2Address);
 
   const marketAddress = await (async () => {
     try {

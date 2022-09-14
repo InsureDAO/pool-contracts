@@ -1,22 +1,31 @@
 // TODO: change these addresses(local use only)
-const OwnershipAddress = "0x5Afcafb7b1331b1D360160A4444c283928422d4B";
-const RegistryAddress = "0x3A795fDD2cDDeD73f57030a04D7b5A22071Dcd30";
-const FactoryAddress = "0xbC6463bD7F53Db06a2247D181Dc784bE8c3E302f";
-const ParametersAddress = "0xee7692B963B179F8c0BCA35e20b123296208c4F5";
-const VaultAddress = "0x401fE975a9d685073a890Dd21A2D6A8E771Fa68C";
-const PremiumV2Address = "0xD22D49A68c7751cE05fc16ab2A74D95FbA2d505F";
+const OwnershipAddress = "0x2d2AA870F6781aB757346b90Ad7CFc48a56ea37a";
+const RegistryAddress = "0xaF555C79445650415eD3b26e6F590189196C5e6D";
+const FactoryAddress = "0xAD50b856c6d3B594B11436e1e99454d5BA528224";
+const PremiumV2Address = "0x44a015F023158bac70C973E375B5461841B0F217";
+const ParametersV2Address = "0xD68B6Fc463b28F6fE9a316ee8705f7EbDc2223e1";
+const VaultAddress = "0xc1a86989d38A3B94743Deeaf616395D10AE1FdB0";
 
-const PoolTemplateAddress = "0x53bDe0778Ab2B77Bb661ad8CEaF34C42C70ab9eA";
-const IndexTemplateAddress = "0xa10DC19977379D87eAb2Dd7Ea54F7B6345463f98";
-const CDSTemplateAddress = "0x91d2300Eb1515b6D63E928755863E7F05e3c8E44";
+const PoolTemplateAddress = "0x0B0D90c79130D96873686af45Fe5Be8e65E33e18";
+const IndexTemplateAddress = "0x9F4Af41416a40a874E53f6b244EfC6cD6099b34E";
+const CDSTemplateAddress = "0xBDDCdf29842BE2247F4b84372f0b71CA474455A2";
 
 const Pools = {
-  protocolName: "0x7581fEe6E481Bd4D6801D135367bB12179036266",
+  gmx: "0x8d70D0A86299c57356359E131AeD7AB08DCb0228",
+  radiant: "0x6f6ac013705eCede43C8552521fc6d08C2ef93ED",
+  dopex: "0x5915d7958B36505D691c4773C56Af5F5cfA43E65",
+  vesta: "0xab370D4c2867A43655472ACF1D8bbf39815eaa6C",
+  mycelium: "0x2b3F90DF59b2207188590d680EdB55b2Bd6283bf",
+  mux: "0x69B964b2d04F796824014139ED3061736aEbe7C0",
+  dForce: "0x2A0f339cbefbbb4585Fea15804736126d5862A1F",
+  abracadabra: "0xB022a3aeC6C1280450205ed499B3dE0171DeF6d5",
+  premia: "0x162B46cBf5f111e630d1D2DE5A9024Ca43232D49",
+  hop: "0xBa69eB4440B8cC64faD999878e244737D7016bb3",
 };
 
 const Indices = {
-  name1: "0xAfe12B75a1A55d8a6d21525eC0317cF09Dc9AF3B",
-  name2: "0x1539b3C431eAdC96dF30541a250D719cD56c060A",
+  group1: "0xd6B1170fc5a784F751965061fDf3EfF1Ba4B9890",
+  group2: "0x12cdfAff3D7d6027Fb19A0087fafBf2cBA5c0AE9",
 };
 
 const CDS = [];
@@ -25,7 +34,7 @@ Object.assign(exports, {
   OwnershipAddress,
   RegistryAddress,
   FactoryAddress,
-  ParametersAddress,
+  ParametersV2Address,
   PremiumV2Address,
   VaultAddress,
   PoolTemplateAddress,

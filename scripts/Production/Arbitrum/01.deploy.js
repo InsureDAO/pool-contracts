@@ -1,5 +1,4 @@
-const hre = require("hardhat");
-const ethers = hre.ethers;
+const { ethers } = require("hardhat");
 
 /**
  * two pools, no index/cds, FlatPremiumV2, ParameterV2, openDeposit=false
@@ -7,7 +6,7 @@ const ethers = hre.ethers;
 
 async function main() {
   //----- IMPORT -----//
-  [, creator] = await ethers.getSigners();
+  const [creator, manager] = await ethers.getSigners();
   console.log("creator address: ", creator.address);
 
   const {
@@ -138,6 +137,17 @@ async function main() {
   await tx.wait();
 
   tx = await parametersV2.setPremiumModel(ZERO_ADDRESS, premiumV2.address);
+  await tx.wait();
+
+  tx = await parametersV2.setMaxList(ZERO_ADDRESS, 10);
+  await tx.wait();
+
+  // transfer ownership to manager
+  tx = await ownership.commitTransferOwnership(manager.address);
+  await tx.wait();
+  tx = await ownership.connect(manager).acceptTransferOwnership();
+  await tx.wait();
+  console.log("owner address:", manager.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
