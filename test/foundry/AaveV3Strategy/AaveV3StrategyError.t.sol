@@ -145,12 +145,6 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
         strategy.setAaveRewardToken(IERC20(address(0)));
     }
 
-    function testFailSetNonERC20ToAaveRewardToken() public {
-        vm.prank(deployer);
-        vm.expectRevert();
-        strategy.setAaveRewardToken(IERC20(alice));
-    }
-
     function testCannotWithdrawRewardWithoutOwner() public {
         vm.expectRevert(OnlyOwner.selector);
         strategy.withdrawReward(1);

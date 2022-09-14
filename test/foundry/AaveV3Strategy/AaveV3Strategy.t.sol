@@ -8,12 +8,16 @@ import "../utils/AddressHelper.sol";
 import "./AaveV3StrategySetUp.sol";
 
 contract AaveV3StrategyTest is AaveV3StrategySetUp {
-    function testTotalValueAll() public {
-        assertEq(strategy.totalValueAll(), 9_000 * 1e6);
-    }
+    /**
+     * Controller methods
+     */
+    function testAdjustFund() public {
+        vm.prank(address(deployer));
+        strategy.setMaxManagingRatio(0.2e6); //10% => 20%
+        strategy.adjustFund(); //+900
 
-    function testValueAll() public {
-        assertEq(strategy.valueAll(), 900 * 1e6);
+        assertEq(strategy.valueAll(), 1_800 * 1e6);
+        assertApproxEqRel(IERC20(ausdc).balanceOf(address(strategy)), 1_800 * 1e6, 0.001e18);
     }
 
     function testReturnFund() public {
@@ -22,15 +26,6 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
 
         assertEq(strategy.valueAll(), 800 * 1e6);
         assertApproxEqRel(IERC20(ausdc).balanceOf(address(strategy)), 800 * 1e6, 0.001e18); // within 0.1%
-    }
-
-    function testAdjustFund() public {
-        vm.prank(address(deployer));
-        strategy.setMaxManagingRatio(0.2e6);
-        strategy.adjustFund();
-
-        assertEq(strategy.valueAll(), 1_800 * 1e6);
-        assertApproxEqRel(IERC20(ausdc).balanceOf(address(strategy)), 1_800 * 1e6, 0.001e18);
     }
 
     function testMigration() public {
@@ -47,17 +42,34 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
 
         vm.prank(address(vault));
         strategy.emigrate(address(newController));
+
+        //check old controller
         assertEq(strategy.valueAll(), 0);
         assertEq(IERC20(ausdc).balanceOf(address(strategy)), 0);
+
+        //check new controller
         assertEq(newController.valueAll(), 900 * 1e6);
         assertEq(IERC20(ausdc).balanceOf(address(newController)), 900 * 1e6);
     }
 
     function testCurrentManagingRatio() public {
         uint256 _currentRatio = strategy.currentManagingRatio();
-        assertEq(_currentRatio, 1e5);
+        assertEq(_currentRatio, 1e5); //10%
     }
 
+    function testTotalValueAll() public {
+        //available: 8100 + managingFund: 900 (10% utilize)
+        assertEq(strategy.totalValueAll(), 9_000 * 1e6);
+    }
+
+    function testValueAll() public {
+        //managingFund: 900
+        assertEq(strategy.valueAll(), 900 * 1e6);
+    }
+
+    /**
+     * Strategy methods
+     */
     function testSetMaxUtilizationRatio() public {
         assertEq(strategy.maxManagingRatio(), 1e5);
         vm.prank(address(deployer));

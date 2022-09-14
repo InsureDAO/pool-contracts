@@ -113,7 +113,10 @@ contract AaveV3Strategy is IController {
         if (_to == address(0)) revert ZeroAddress();
 
         // liquidate all positions
-        aave.withdraw(address(usdc), ausdc.balanceOf(address(this)), address(this));
+        uint256 _aaveBalance = ausdc.balanceOf(address(this));
+        if (_aaveBalance != 0) {
+            aave.withdraw(address(usdc), _aaveBalance, address(this));
+        }
 
         // approve to pull all assets
         usdc.safeApprove(_to, type(uint256).max);
@@ -135,6 +138,15 @@ contract AaveV3Strategy is IController {
         _utilize(_amount);
 
         managingFund = _amount;
+    }
+
+    function emergencyExit(address _to) external onlyOwner {
+        if (_to == address(0)) revert ZeroAddress();
+
+        uint256 _aaveBalance = ausdc.balanceOf(address(this));
+        IERC20(ausdc).transfer(_to, _aaveBalance);
+
+        managingFund -= _aaveBalance;
     }
 
     function currentManagingRatio() public view returns (uint256) {
@@ -184,7 +196,16 @@ contract AaveV3Strategy is IController {
 
     function setAaveRewardToken(IERC20 _token) public onlyOwner {
         if (address(_token) == address(0)) revert ZeroAddress();
+
+        address _swapper = exchangeLogic.swapper();
+
+        //revoke old token's allowance to the swapper
+        IERC20(aaveRewardToken).safeApprove(_swapper, 0);
+
         aaveRewardToken = _token;
+
+        //approve new token to the swapper
+        IERC20(_token).safeApprove(_swapper, type(uint256).max);
     }
 
     function withdrawReward(uint256 _amount) external onlyOwner {
@@ -229,9 +250,16 @@ contract AaveV3Strategy is IController {
     function _setExchangeLogic(IExchangeLogic _exchangeLogic) private {
         if (address(_exchangeLogic) == address(0)) revert ZeroAddress();
         if (address(_exchangeLogic) == address(exchangeLogic)) revert SameAddressUsed();
+
+        //revoke allowance of current swapper
+        address _oldSwapper = exchangeLogic.swapper();
+        usdc.safeApprove(_oldSwapper, 0);
+        IERC20(aaveRewardToken).safeApprove(_oldSwapper, 0);
+
+        //update, and approve to new swapper
         exchangeLogic = _exchangeLogic;
 
-        address _swapper = exchangeLogic.swapper();
+        address _swapper = _exchangeLogic.swapper();
         usdc.safeApprove(_swapper, type(uint256).max);
         IERC20(aaveRewardToken).safeApprove(_swapper, type(uint256).max);
     }
