@@ -49,8 +49,7 @@
     "compile": "npx hardhat compile",
     "test": "npx hardhat test",
     "prepare": "husky install",
-    "postinstall": "patch-package",
-    "hardhat:patch": "patch -p1 < hardhat+2.10.2.patch"
+    "postinstall": "patch-package"
   },
   "__comments": [
     "hardhat:patch should be applied if you need to send unknown tx type.",
