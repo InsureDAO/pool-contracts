@@ -50,6 +50,19 @@ contract AaveV3Strategy is IController {
         _;
     }
 
+    event FundPulled(address indexed _vault, uint256 _amount);
+    event FundReturned(address indexed _vault, uint256 _amount);
+    event FundEmigrated(address indexed _to, uint256 _amount);
+    event FundImmigrated(address indexed _from, uint256 _amount);
+    event EmergencyExit(address indexed _destination, uint256 _withdrawnAmount);
+    event SupplyIncreased(address indexed _token, uint256 _amount);
+    event SupplyDecreased(address indexed _token, uint256 _amount);
+    event MaxManagingRatioSet(uint256 _ratio);
+    event ExchangeLogicSet(address _logic);
+    event RewardTokenSet(address _token);
+    event RewardClaimed(address _token, uint256 _amount);
+    event SwapSucceeded(address indexed _tokenIn, address indexed _tokenOut, uint256 _amountIn, uint256 _amountOut);
+
     constructor(
         IOwnership _ownership,
         IVault _vault,
@@ -95,6 +108,7 @@ contract AaveV3Strategy is IController {
 
         // receive usdc from the vault
         vault.utilize(_amount);
+        emit FundPulled(address(vault), _amount);
 
         unchecked {
             managingFund += _amount;
@@ -110,6 +124,8 @@ contract AaveV3Strategy is IController {
         unchecked {
             managingFund -= _amount;
         }
+
+        emit FundReturned(address(vault), _amount);
     }
 
     function emigrate(address _to) external override onlyVault {
@@ -126,6 +142,8 @@ contract AaveV3Strategy is IController {
 
         IController(_to).immigrate(address(this));
 
+        emit FundEmigrated(_to, managingFund);
+
         managingFund = 0;
     }
 
@@ -138,6 +156,8 @@ contract AaveV3Strategy is IController {
 
         usdc.safeTransferFrom(_from, address(this), _amount);
 
+        emit FundImmigrated(_from, _amount);
+
         _utilize(_amount);
 
         managingFund = _amount;
@@ -147,7 +167,9 @@ contract AaveV3Strategy is IController {
         if (_to == address(0)) revert ZeroAddress();
 
         uint256 _aaveBalance = ausdc.balanceOf(address(this));
-        IERC20(ausdc).transfer(_to, _aaveBalance);
+        IERC20(ausdc).safeTransfer(_to, _aaveBalance);
+
+        emit EmergencyExit(_to, _aaveBalance);
 
         managingFund -= _aaveBalance;
     }
@@ -180,6 +202,7 @@ contract AaveV3Strategy is IController {
         // supply utilized assets into aave pool
         usdc.approve(address(aave), _amount);
         aave.supply(address(usdc), _amount, address(this), 0);
+        emit SupplyIncreased(address(usdc), _amount);
     }
 
     function _unutilize(uint256 _amount) internal {
@@ -187,10 +210,12 @@ contract AaveV3Strategy is IController {
         if (_amount > managingFund) revert InsufficientManagingFund();
 
         aave.withdraw(address(usdc), _amount, address(this));
+        emit SupplyDecreased(address(usdc), _amount);
     }
 
     function setMaxManagingRatio(uint256 _ratio) external override onlyOwner withinValidRatio(_ratio) {
         maxManagingRatio = _ratio;
+        emit MaxManagingRatioSet(_ratio);
     }
 
     function setExchangeLogic(IExchangeLogic _exchangeLogic) public onlyOwner {
@@ -206,6 +231,7 @@ contract AaveV3Strategy is IController {
         IERC20(aaveRewardToken).safeApprove(_swapper, 0);
 
         aaveRewardToken = _token;
+        emit RewardTokenSet(address(_token));
 
         //approve new token to the swapper
         IERC20(_token).safeApprove(_swapper, type(uint256).max);
@@ -216,6 +242,7 @@ contract AaveV3Strategy is IController {
         if (_amount > getUnclaimedReward()) revert InsufficientRewardToWithdraw();
 
         aaveReward.claimRewards(supplyingAssets, _amount, address(this), address(aaveRewardToken));
+        emit RewardClaimed(address(aaveRewardToken), _amount);
 
         uint256 _swapped = _swap(address(aaveRewardToken), address(usdc), _amount);
 
@@ -226,9 +253,11 @@ contract AaveV3Strategy is IController {
     }
 
     function withdrawAllReward() external onlyOwner {
-        if (getUnclaimedReward() == 0) revert NoRewardClaimable();
+        uint256 _claimable = getUnclaimedReward();
+        if (_claimable == 0) revert NoRewardClaimable();
 
         aaveReward.claimAllRewards(supplyingAssets, address(this));
+        emit RewardClaimed(address(aaveRewardToken), _claimable);
 
         uint256 _swapped = _swap(address(aaveRewardToken), address(usdc), aaveRewardToken.balanceOf(address(this)));
 
@@ -260,6 +289,7 @@ contract AaveV3Strategy is IController {
 
         //update, and approve to new swapper
         exchangeLogic = _exchangeLogic;
+        emit ExchangeLogicSet(address(_exchangeLogic));
 
         address _swapper = _exchangeLogic.swapper();
         IERC20(aaveRewardToken).safeApprove(_swapper, type(uint256).max);
@@ -284,6 +314,7 @@ contract AaveV3Strategy is IController {
         if (!_success) revert NoRewardClaimable();
 
         uint256 _swapped = abi.decode(_res, (uint256));
+        emit SwapSucceeded(_tokenIn, _tokenOut, _amountIn, _swapped);
 
         return _swapped;
     }
