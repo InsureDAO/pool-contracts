@@ -88,8 +88,8 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
     function testSetAaveRewardToken() public {
         assertEq(address(strategy.aaveRewardToken()), aaveRewardToken);
         vm.prank(address(deployer));
-        strategy.setAaveRewardToken(IERC20(usdc));
-        assertEq(address(strategy.aaveRewardToken()), usdc);
+        strategy.setAaveRewardToken(IERC20(ausdc));
+        assertEq(address(strategy.aaveRewardToken()), ausdc);
     }
 
     function testWithdrawReward() public {
