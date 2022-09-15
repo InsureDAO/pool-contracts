@@ -74,7 +74,6 @@ contract AaveV3Strategy is IController {
         aaveMaxOccupancyRatio = (MAGIC_SCALE_1E6 * 10) / 100;
 
         address _swapper = IExchangeLogic(exchangeLogic).swapper();
-        usdc.safeApprove(_swapper, type(uint256).max);
         IERC20(aaveRewardToken).safeApprove(_swapper, type(uint256).max);
     }
 
@@ -257,14 +256,12 @@ contract AaveV3Strategy is IController {
 
         //revoke allowance of current swapper
         address _oldSwapper = exchangeLogic.swapper();
-        usdc.safeApprove(_oldSwapper, 0);
         IERC20(aaveRewardToken).safeApprove(_oldSwapper, 0);
 
         //update, and approve to new swapper
         exchangeLogic = _exchangeLogic;
 
         address _swapper = _exchangeLogic.swapper();
-        usdc.safeApprove(_swapper, type(uint256).max);
         IERC20(aaveRewardToken).safeApprove(_swapper, type(uint256).max);
     }
 
