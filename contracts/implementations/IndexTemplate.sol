@@ -300,7 +300,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * 4) else allocate the allocatable credits to the pools proportionally to the shortage of each pool
      */
     function _adjustAlloc(uint256 _liquidity) internal {
-        uint256 _targetTotalCredits = (targetLev * _liquidity) / MAGIC_SCALE_1E6; //ゴール
+        uint256 _targetTotalCredits = (targetLev * _liquidity) / MAGIC_SCALE_1E6;
 
         uint256 _allocatablePoints = totalAllocPoint;
         uint256 _totalAllocatedCredit = totalAllocatedCredit;
