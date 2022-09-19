@@ -566,6 +566,12 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         address _pool,
         uint256 _allocPoint
     ) external override onlyOwner {
+        /**
+         * - add new pool => if (_length <= _indexA)
+         * - overwrite pool => if(_indexA < _length), _pool != poolList[_indexA] (!= address(0))
+         * - remove pool => if(_indexA < _length), _pool == address(0);
+         * - update allocPoint
+         */
         require(registry.isListed(_pool), "ERROR:UNREGISTERED_POOL");
         require(_indexA <= parameters.getMaxList(address(this)), "ERROR: EXCEEEDED_MAX_INDEX");
         uint256 _length = poolList.length;
@@ -584,13 +590,17 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
              * overwriting/removing pool
              */
 
-            //1. withdraw all credits
+            //1. withdraw all credits from old pool
             address _poolAddress = poolList[_indexA];
-            if (_poolAddress != address(0) && _poolAddress != _pool) {
-                (uint256 _current, uint256 _available) = IPoolTemplate(_poolAddress).pairValues(address(this));
+            if (_poolAddress != _pool) {
+                (uint256 _current, ) = IPoolTemplate(_poolAddress).pairValues(address(this));
 
                 IPoolTemplate(_poolAddress).withdrawCredit(_current);
             }
+            //2. remove index data from the old pool.
+
+            //3. overwrite to new pool, or just remove the pool
+
             _totalAllocPoint -= allocPoints[_poolAddress];
             IPoolTemplate(_pool).registerIndex(_indexB);
             poolList[_indexA] = _pool;
