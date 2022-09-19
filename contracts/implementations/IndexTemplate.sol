@@ -589,11 +589,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             if (_poolAddress != address(0) && _poolAddress != _pool) {
                 (uint256 _current, uint256 _available) = IPoolTemplate(_poolAddress).pairValues(address(this));
 
-                require(
-                    IPoolTemplate(_poolAddress).marketStatus() == IPoolTemplate.MarketStatus.Trading &&
-                        _available >= _current,
-                    "ERROR: CANNOT_EXIT_POOL"
-                );
                 IPoolTemplate(_poolAddress).withdrawCredit(_current);
             }
             _totalAllocPoint -= allocPoints[_poolAddress];
