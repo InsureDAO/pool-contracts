@@ -572,13 +572,19 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         uint256 _totalAllocPoint = totalAllocPoint;
 
-        //create a new pool or replace existing
         if (_length <= _indexA) {
+            /**
+             * add new pool
+             */
             require(_length == _indexA, "ERROR: BAD_INDEX");
             IPoolTemplate(_pool).registerIndex(_indexB);
             poolList.push(_pool);
         } else {
-            //action for existing slot
+            /**
+             * overwriting/removing pool
+             */
+
+            //1. withdraw all credits
             address _poolAddress = poolList[_indexA];
             if (_poolAddress != address(0) && _poolAddress != _pool) {
                 (uint256 _current, uint256 _available) = IPoolTemplate(_poolAddress).pairValues(address(this));
