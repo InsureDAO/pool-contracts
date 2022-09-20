@@ -567,10 +567,23 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _allocPoint
     ) external override onlyOwner {
         /**
-         * - add new pool => if (_length <= _indexA)
-         * - overwrite pool => if(_indexA < _length), _pool != poolList[_indexA] (!= address(0))
-         * - remove pool => if(_indexA < _length), _pool == address(0);
-         * - update allocPoint
+         * A. add new pool
+         * B. overwrite pool
+         * C. remove pool
+         * D. update allocPoint
+         *
+         * 1. Withdraw all credits from old pool
+         * 2. Remove index data from the old pool.
+         * 3. Sub oldAllocPoint
+         * 4. register Pool
+         * 5. Add newAllocPoint
+
+         * A:       4,5
+         * B: 1,2,3,4,5
+         * C: 1,2,3, shift poolList
+         * D:     3,  5
+
+         * validation: _indexA (A : BCD) => _pool (B : C : D)
          */
         require(registry.isListed(_pool), "ERROR:UNREGISTERED_POOL");
         require(_indexA <= parameters.getMaxList(address(this)), "ERROR: EXCEEEDED_MAX_INDEX");
@@ -579,29 +592,27 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _totalAllocPoint = totalAllocPoint;
 
         if (_length <= _indexA) {
-            /**
-             * add new pool
-             */
+            //A: add new pool
             require(_length == _indexA, "ERROR: BAD_INDEX");
             IPoolTemplate(_pool).registerIndex(_indexB);
             poolList.push(_pool);
         } else {
-            /**
-             * overwriting/removing pool
-             */
-
-            //1. withdraw all credits from old pool
             address _poolAddress = poolList[_indexA];
-            if (_poolAddress != _pool) {
+            if (_pool == address(0)) {
+                //C: Remove pool
                 (uint256 _current, ) = IPoolTemplate(_poolAddress).pairValues(address(this));
-
                 IPoolTemplate(_poolAddress).withdrawCredit(_current);
+            } else if (_poolAddress != _pool) {
+                //B: Overwrite pool
+                (uint256 _current, ) = IPoolTemplate(_poolAddress).pairValues(address(this));
+                IPoolTemplate(_poolAddress).withdrawCredit(_current);
+            } else {
+                //D: Update allocPoint
+                return;
             }
-            //2. remove index data from the old pool.
-
-            //3. overwrite to new pool, or just remove the pool
 
             _totalAllocPoint -= allocPoints[_poolAddress];
+            allocPoints[_poolAddress] = 0;
             IPoolTemplate(_pool).registerIndex(_indexB);
             poolList[_indexA] = _pool;
         }
