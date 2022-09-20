@@ -43,14 +43,14 @@ describe("Vault", function () {
     vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
 
     //set up
+    await usdc.mint(creator.address, initialMint);
+    await usdc.connect(creator).approve(vault.address, initialMint);
+
     await usdc.mint(alice.address, initialMint);
     await usdc.connect(alice).approve(vault.address, initialMint);
 
     await usdc.mint(bob.address, initialMint);
     await usdc.connect(bob).approve(vault.address, initialMint);
-
-    await otherToken.mint(alice.address, initialMint);
-    await usdc.connect(alice).approve(vault.address, initialMint);
 
     await registry.supportMarket(alice.address); //now alice can do the same as markets
     await registry.supportMarket(creator.address);
@@ -455,6 +455,30 @@ describe("Vault", function () {
           [alice.address]: initialMint,
           [vault.address]: ZERO,
         },
+      });
+    });
+  });
+
+  describe("addBalance", function () {
+    it("should increase balance", async () => {
+      await vault.addValue(depositAmount, alice.address, alice.address);
+      await vault.connect(creator).addBalance(depositAmount);
+
+      //status
+      await verifyVaultStatus({
+        vault: vault,
+        balance: depositAmount.mul(2),
+        valueAll: depositAmount.mul(2),
+        totalAttributions: depositAmount,
+        totalDebt: ZERO,
+      });
+
+      await verifyVaultStatusOf({
+        vault: vault,
+        target: alice.address,
+        attributions: depositAmount,
+        underlyingValue: depositAmount.mul(2), //balance added without totalAttribution to be increased.
+        debt: ZERO,
       });
     });
   });
