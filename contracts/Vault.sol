@@ -295,7 +295,7 @@ contract Vault is IVault {
 
     function _renounceAttribution(uint256 _attribution) internal returns (uint256) {
         uint256 _userAttribution = attributions[msg.sender];
-        require(_userAttribution >= _attribution, "not enough attribution");
+        require(_userAttribution >= _attribution, "_attribution exceed your holding");
 
         unchecked {
             attributions[msg.sender] -= _attribution;
