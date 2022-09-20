@@ -205,6 +205,12 @@ contract Vault is IVault {
         }
     }
 
+    /**
+     * @notice simply, add underlying asset without granting attribution to the sender.
+     * @param _amount adding amount
+     * @dev This performs like investment feature. Good to use for distributing revenue for all underwriters.
+     * This function results increasing of getPricePerFullShare().
+     */
     function addBalance(uint256 _amount) external {
         IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
         balance += _amount;
@@ -285,14 +291,26 @@ contract Vault is IVault {
         _retVal = _withdrawAttribution(attributions[msg.sender], _to);
     }
 
+    /**
+     * @notice See _renounceAttribution() below.
+     */
     function renounceAttribution(uint256 _attribution) external returns (uint256) {
         return _renounceAttribution(_attribution);
     }
 
+    /**
+     * @notice Burn sender's all attribution. See _renounceAttribution() below.
+     */
     function renounceAllAttribution() external {
         _renounceAttribution(attributions[msg.sender]);
     }
 
+    /**
+     * @notice Burn sender's attribution.
+     * @param _attribution amount to be burnt
+     * @return . remaining attribution
+     * @dev This function results increasing of getPricePerFullShare().
+     */
     function _renounceAttribution(uint256 _attribution) internal returns (uint256) {
         uint256 _userAttribution = attributions[msg.sender];
         require(_userAttribution >= _attribution, "_attribution exceed your holding");
