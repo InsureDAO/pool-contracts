@@ -34,7 +34,7 @@ abstract contract AaveV3StrategySetUp is Test {
 
     IOwnership ownership;
     IRegistry registry;
-    IVault vault;
+    Vault vault;
     IExchangeLogic exchangeLogic;
 
     constructor() {
@@ -73,9 +73,9 @@ abstract contract AaveV3StrategySetUp is Test {
         registry.supportMarket(bob);
         vm.stopPrank();
 
-        deal(usdc, dealer, 1e10);
-        deal(usdc, alice, 1e10);
-        deal(usdc, bob, 1e10);
+        deal(usdc, dealer, 1_000_000 * 1e6);
+        deal(usdc, alice, 1_000_000 * 1e6);
+        deal(usdc, bob, 1_000_000 * 1e6);
 
         // approve unlimited transfer
         vm.prank(dealer);
@@ -86,7 +86,7 @@ abstract contract AaveV3StrategySetUp is Test {
         IERC20(usdc).approve(address(vault), type(uint256).max);
 
         vm.prank(dealer);
-        vault.addValue(10_000 * 1e6, dealer, address(0));
+        vault.addValue(10_000 * 1e6, dealer, dealer);
         vm.prank(alice);
         vault.borrowValue(1_000 * 1e6, alice);
 

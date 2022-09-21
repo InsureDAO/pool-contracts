@@ -10,6 +10,8 @@ interface IController {
 
     function immigrate(address _from) external;
 
+    function emergencyExit(address _to) external;
+
     function valueAll() external view returns (uint256);
 
     function managingFund() external view returns (uint256);

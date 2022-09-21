@@ -101,6 +101,12 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
         strategy.immigrate(address(strategy));
     }
 
+    function testCannotEmergencyExitWithoutOwner() public {
+        vm.expectRevert(OnlyOwner.selector);
+        vm.prank(alice);
+        strategy.emergencyExit(alice);
+    }
+
     /**
      * Strategy methods
      */

@@ -52,6 +52,13 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         assertEq(IERC20(ausdc).balanceOf(address(newController)), 900 * 1e6);
     }
 
+    function testEmergencyExit() public {
+        assertEq(IERC20(ausdc).balanceOf(alice), 0);
+        vm.prank(deployer);
+        strategy.emergencyExit(alice);
+        assertEq(IERC20(ausdc).balanceOf(alice), 900 * 1e6);
+    }
+
     function testCurrentManagingRatio() public {
         uint256 _currentRatio = strategy.currentManagingRatio();
         assertEq(_currentRatio, 1e5); //10%
@@ -75,6 +82,13 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         vm.prank(address(deployer));
         strategy.setMaxManagingRatio(2e5);
         assertEq(strategy.maxManagingRatio(), 2e5);
+    }
+
+    function testSetAaveMaxOccupancyRatio() public {
+        assertEq(strategy.aaveMaxOccupancyRatio(), 1e5);
+        vm.prank(address(deployer));
+        strategy.setAaveMaxOccupancyRatio(2e5);
+        assertEq(strategy.aaveMaxOccupancyRatio(), 2e5);
     }
 
     function testSetExchangeLogic() public {

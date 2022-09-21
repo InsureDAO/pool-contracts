@@ -58,6 +58,7 @@ contract AaveV3Strategy is IController {
     event SupplyIncreased(address indexed _token, uint256 _amount);
     event SupplyDecreased(address indexed _token, uint256 _amount);
     event MaxManagingRatioSet(uint256 _ratio);
+    event MaxOccupancyRatioSet(uint256 _ratio);
     event ExchangeLogicSet(address _logic);
     event RewardTokenSet(address _token);
     event RewardClaimed(address _token, uint256 _amount);
@@ -110,11 +111,12 @@ contract AaveV3Strategy is IController {
         vault.utilize(_amount);
         emit FundPulled(address(vault), _amount);
 
+        // directly utilize all amount
+        _utilize(_amount);
+
         unchecked {
             managingFund += _amount;
         }
-        // directly utilize all amount
-        _utilize(_amount);
     }
 
     function returnFund(uint256 _amount) external onlyVault {
@@ -197,7 +199,7 @@ contract AaveV3Strategy is IController {
      */
     function _utilize(uint256 _amount) internal {
         if (_amount == 0) revert AmountZero();
-        if (_amount > _calcAaveNewSupplyCap()) revert AaveSupplyCapExceeded();
+        if (managingFund + _amount > _calcAaveNewSupplyCap()) revert AaveSupplyCapExceeded();
 
         // supply utilized assets into aave pool
         usdc.approve(address(aave), _amount);
@@ -216,6 +218,11 @@ contract AaveV3Strategy is IController {
     function setMaxManagingRatio(uint256 _ratio) external override onlyOwner withinValidRatio(_ratio) {
         maxManagingRatio = _ratio;
         emit MaxManagingRatioSet(_ratio);
+    }
+
+    function setAaveMaxOccupancyRatio(uint256 _ratio) external onlyOwner withinValidRatio(_ratio) {
+        aaveMaxOccupancyRatio = _ratio;
+        emit MaxOccupancyRatioSet(_ratio);
     }
 
     function setExchangeLogic(IExchangeLogic _exchangeLogic) public onlyOwner {
