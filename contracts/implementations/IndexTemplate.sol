@@ -14,6 +14,7 @@ import "../interfaces/IRegistry.sol";
 import "../interfaces/IParameters.sol";
 import "../interfaces/IPoolTemplate.sol";
 import "../interfaces/ICDSTemplate.sol";
+import "hardhat/console.sol";
 
 /**
  * An index pool can index a certain number of pools with leverage.
@@ -59,6 +60,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     mapping(address => uint256) public allocPoints; //allocation point for each pool
     uint256 public totalAllocPoint; //total allocation point
     address[] public poolList; //list of all pools
+    uint256 public poolLength; //length of poolList;
     uint256 public targetLev; //1x = MAGIC_SCALE_1E6
     //The allocated credits are deemed as liquidity in each underlying pool
     //Credit amount(liquidity) will be determined by the following math
@@ -251,7 +253,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         if (_totalLiquidity == 0) return 0;
 
-        uint256 _length = poolList.length;
+        uint256 _length = poolLength;
         uint256 _totalLockedCredits;
         uint256 _maxLockedCredits;
 
@@ -303,7 +305,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         uint256 _allocatablePoints = totalAllocPoint;
         uint256 _totalAllocatedCredit = totalAllocatedCredit;
-        uint256 _poolLength = poolList.length;
+        uint256 _poolLength = poolLength;
 
         uint256 _totalFreeableCredits;
         uint256 _totalFrozenCredits;
@@ -434,7 +436,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      */
     function resume() external override {
         require(locked, "ERROR: MARKET_IS_NOT_LOCKED");
-        uint256 _poolLength = poolList.length;
+        uint256 _poolLength = poolLength;
 
         for (uint256 i; i < _poolLength; ) {
             require(
@@ -555,6 +557,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     //update allocPoint
     function set(uint256 _indexA, uint256 _allocPoint) public onlyOwner {
         _updateAllocPoint(_indexA, _allocPoint);
+        adjustAlloc();
     }
 
     //overwrite, or remove
@@ -565,28 +568,30 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     ) external onlyOwner {
         /**
          * A. add new pool (latest indexA, new pool)
-         * B. overwrite pool (exist indexA. new pool)
+         * B. update allocPoint (exist indexA. same pool as indexA)
          * C. remove pool (exist indexA. address(0) pool)
-         * D. update allocPoint (exist indexA. same pool as indexA)
+         * D. overwrite pool (exist indexA. new pool)
          */
-        require(registry.isListed(_pool), "ERROR:UNREGISTERED_POOL");
         require(_indexA <= parameters.getMaxList(address(this)), "ERROR: EXCEEEDED_MAX_INDEX");
 
-        uint256 _poollength = poolList.length;
+        uint256 _poollength = poolLength;
 
         if (_indexA >= _poollength) {
+            //register new pool
+            require(registry.isListed(_pool), "ERROR:UNREGISTERED_POOL");
             require(_indexA == _poollength, "NOT_NEXT_SLOT");
             _addPool(_pool, _allocPoint);
         } else {
-            //existing indexA
+            //update/remove/overwrite a registered pool
+            require(registry.isListed(_pool) || _pool == address(0), "ERROR:UNREGISTERED_POOL");
             address _currentPool = poolList[_indexA];
 
             if (_pool == _currentPool) {
                 _updateAllocPoint(_indexA, _allocPoint);
             } else if (_pool == address(0)) {
-                _removePool(_currentPool);
+                _removePool(_currentPool, _indexA);
             } else {
-                _removePool(_currentPool);
+                _removePool(_currentPool, _indexA);
                 _addPool(_pool, _allocPoint);
             }
         }
@@ -595,8 +600,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     }
 
     function _updateAllocPoint(uint256 _indexA, uint256 _allocPoint) internal {
-        //code
         address _pool = poolList[_indexA];
+
         totalAllocPoint -= allocPoints[_pool];
         totalAllocPoint += _allocPoint;
         allocPoints[_pool] = _allocPoint;
@@ -608,6 +613,15 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         //register
         IPoolTemplate(_pool).registerIndex();
 
+        uint256 _latestArrayIndex = poolLength;
+        if (_latestArrayIndex == poolList.length) {
+            poolList.push(_pool);
+        } else {
+            poolList[_latestArrayIndex] = _pool;
+        }
+
+        ++poolLength;
+
         //update allocPoint
         totalAllocPoint += _allocPoint;
         allocPoints[_pool] = _allocPoint;
@@ -615,13 +629,25 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         emit newAllocation(_pool, _allocPoint);
     }
 
-    function _removePool(address _pool) internal {
+    function _removePool(address _pool, uint256 _index) internal {
+        //adjustAlloc has to be done first before removing pool from poolList to update credits information in this contract.
+        totalAllocPoint -= allocPoints[_pool];
+        allocPoints[_pool] = 0;
+        adjustAlloc();
+
         //unregister
         IPoolTemplate(_pool).unregisterIndex();
 
-        //update allocPoint
-        totalAllocPoint -= allocPoints[_pool];
-        allocPoints[_pool] = 0;
+        //update poolList
+        --poolLength;
+
+        uint256 _latestArrayIndex = poolLength;
+        if (_latestArrayIndex != 0) {
+            poolList[_index] = poolList[_latestArrayIndex];
+            poolList[_latestArrayIndex] = address(0);
+        } else {
+            poolList[0] = address(0);
+        }
 
         emit newAllocation(_pool, 0);
     }
@@ -652,8 +678,8 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @return _totalValue accrued but yet claimed premium within underlying pools
      */
     function _accruedPremiums() internal view returns (uint256 _totalValue) {
-        uint256 poolLength = poolList.length;
-        for (uint256 i; i < poolLength; ) {
+        uint256 _poolLength = poolLength;
+        for (uint256 i; i < _poolLength; ) {
             if (allocPoints[poolList[i]] != 0) {
                 _totalValue = _totalValue + IPoolTemplate(poolList[i]).pendingPremium(address(this));
             }

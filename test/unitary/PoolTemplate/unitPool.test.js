@@ -10,6 +10,7 @@ const {
 
   verifyPoolsStatus,
   verifyPoolsStatusForIndex,
+  verifyIndexInfo,
 
   verifyValueOfUnderlying,
 
@@ -147,7 +148,7 @@ describe("Pool", function () {
     await registry.setFactory(factory.address);
 
     await factory.approveTemplate(poolTemplate.address, true, false, true);
-    await factory.approveReference(poolTemplate.address, 0, usdc.address, true);
+    await factory.approveReference(poolTemplate.address, 0, ZERO_ADDRESS, true);
     await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
     await factory.approveReference(poolTemplate.address, 2, registry.address, true);
     await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
@@ -162,6 +163,7 @@ describe("Pool", function () {
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
     await parameters.setWithdrawable(ZERO_ADDRESS, "2592000");
     await parameters.setVault(usdc.address, vault.address);
+    await parameters.setMaxList(ZERO_ADDRESS, "10");
 
     let tx = await factory.createMarket(
       poolTemplate.address,
@@ -189,6 +191,7 @@ describe("Pool", function () {
         expect(await market.symbol()).to.equal("iDAI");
       });
     });
+
     describe("insure", function () {
       beforeEach(async () => {
         await usdc.connect(alice).approve(vault.address, initialMint);
@@ -263,6 +266,7 @@ describe("Pool", function () {
         await expect(market.connect(bob).redeem(0, loss, proof)).to.revertedWith("ERROR: NOT_YOUR_INSURANCE");
       });
     });
+
     describe("redeem2", function () {
       beforeEach(async () => {
         await usdc.connect(alice).approve(vault.address, initialMint);
@@ -473,6 +477,172 @@ describe("Pool", function () {
 
         await usdc.connect(gov).approve(vault.address, depositAmount);
         await market.connect(gov).deposit(depositAmount);
+      });
+    });
+
+    describe("registerIndex", function () {
+      beforeEach(async () => {
+        await registry.supportMarket(chad.address);
+        await registry.supportMarket(tom.address);
+      });
+
+      it("success", async () => {
+        expect(await market.indexLength()).to.equal(0);
+
+        //execute
+        await market.connect(chad).registerIndex();
+
+        //check
+        expect(await market.indexLength()).to.equal(1);
+        await verifyIndexInfo({
+          pool: market,
+          index: chad.address,
+          credit: 0,
+          rewardDebt: 0,
+          slot: 1,
+          exist: true,
+        });
+
+        //execute (2nd round)
+        await market.connect(tom).registerIndex();
+
+        //check
+        expect(await market.indexLength()).to.equal(2);
+        await verifyIndexInfo({
+          pool: market,
+          index: chad.address,
+          credit: 0,
+          rewardDebt: 0,
+          slot: 1,
+          exist: true,
+        });
+        await verifyIndexInfo({
+          pool: market,
+          index: tom.address,
+          credit: 0,
+          rewardDebt: 0,
+          slot: 2,
+          exist: true,
+        });
+      });
+
+      it("revert when called by anonymous", async () => {
+        await expect(market.connect(bob).registerIndex()).to.revertedWith("Not an Official Pool");
+      });
+
+      it("revert when duplicated", async () => {
+        await market.connect(chad).registerIndex();
+        await expect(market.connect(chad).registerIndex()).to.revertedWith("Already Registered");
+      });
+
+      it("revert when exceed maxlist", async () => {});
+    });
+
+    describe("unregisterIndex", function () {
+      beforeEach(async () => {
+        await registry.supportMarket(chad.address);
+        await registry.supportMarket(tom.address);
+        await registry.supportMarket(bob.address);
+
+        await market.connect(chad).registerIndex(); // [chad]
+      });
+
+      it("success(1)", async () => {
+        //execute
+        await market.connect(chad).unregisterIndex(); // []
+
+        //check
+        expect(await market.indexLength()).to.equal(0);
+        await verifyIndexInfo({
+          pool: market,
+          index: chad.address,
+          credit: 0,
+          rewardDebt: 0,
+          slot: 0,
+          exist: false,
+        });
+      });
+
+      it("success(2)", async () => {
+        //execute
+        await market.connect(tom).registerIndex(); // [chad, tom]
+        await market.connect(chad).unregisterIndex(); // [tom]
+
+        //check
+        expect(await market.indexLength()).to.equal(1);
+        await verifyIndexInfo({
+          pool: market,
+          index: chad.address,
+          credit: 0,
+          rewardDebt: 0,
+          slot: 0,
+          exist: false,
+        });
+
+        await verifyIndexInfo({
+          pool: market,
+          index: tom.address,
+          credit: 0,
+          rewardDebt: 0,
+          slot: 1,
+          exist: true,
+        });
+      });
+
+      it("success(3)", async () => {
+        //execute
+        await market.connect(tom).registerIndex();
+        await market.connect(bob).registerIndex(); // [chad, tom, bob]
+
+        await market.connect(chad).unregisterIndex(); // [bob, tom]
+
+        //check
+        expect(await market.indexLength()).to.equal(2);
+        await verifyIndexInfo({
+          pool: market,
+          index: chad.address,
+          credit: 0,
+          rewardDebt: 0,
+          slot: 0,
+          exist: false,
+        });
+
+        await verifyIndexInfo({
+          pool: market,
+          index: bob.address,
+          credit: 0,
+          rewardDebt: 0,
+          slot: 1,
+          exist: true,
+        });
+
+        await verifyIndexInfo({
+          pool: market,
+          index: tom.address,
+          credit: 0,
+          rewardDebt: 0,
+          slot: 2,
+          exist: true,
+        });
+      });
+
+      it("revert when called by anonymous", async () => {
+        await expect(market.connect(alice).unregisterIndex()).to.revertedWith("NOT_REGISTERED");
+      });
+
+      it("revert when market is not in Trading status", async () => {
+        let incident = await now();
+        await applyCover({
+          pool: market,
+          pending: DAY,
+          targetAddress: ZERO_ADDRESS,
+          payoutNumerator: 10000,
+          payoutDenominator: 10000,
+          incidentTimestamp: incident,
+          lossAmount: 10000,
+        });
+
+        await expect(market.connect(alice).unregisterIndex()).to.revertedWith("POOL_IS_NOT_IN_TRADING_STATUS");
       });
     });
   });

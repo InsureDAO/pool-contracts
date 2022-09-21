@@ -14,6 +14,7 @@ import "../interfaces/IParameters.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IRegistry.sol";
 import "../interfaces/IIndexTemplate.sol";
+import "hardhat/console.sol";
 
 contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     /**
@@ -343,7 +344,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      */
 
     function registerIndex() external {
-        require(IRegistry(registry).isListed(msg.sender), "ERROR: UNREGISTERED_INDEX");
+        require(IRegistry(registry).isListed(msg.sender), "Not an Official Pool");
         require(!indices[msg.sender].exist, "Already Registered");
 
         uint256 _nextArrayIndex = indexLength;
@@ -352,7 +353,12 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         indices[msg.sender].exist = true;
         indices[msg.sender].slot = _nextArrayIndex + 1;
 
-        indexList.push(msg.sender);
+        if (_nextArrayIndex != indexList.length) {
+            indexList[_nextArrayIndex] = msg.sender;
+        } else {
+            indexList.push(msg.sender);
+        }
+
         ++indexLength;
     }
 
@@ -363,32 +369,40 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     function unregisterIndex() external {
         require(marketStatus == MarketStatus.Trading, "POOL_IS_NOT_IN_TRADING_STATUS");
         IndexInfo storage _index = indices[msg.sender];
-        require(_index.exist, "ALLOCATE_CREDIT_BAD_CONDITIONS");
+        require(_index.exist, "NOT_REGISTERED");
 
         if (_index.credit != 0) {
             //withdraw credits of the index pool
             _withdrawCredit(_index.credit, msg.sender);
         }
 
-        /**
-         * remove index info. (indicies & indexList)
-         */
-        _index.exist = false;
-        //check _index.rewardDebt = 0 in the test
-        _shiftArray(_index.slot);
+        _index.rewardDebt = 0;
+
+        _removeIndex(_index);
     }
 
-    function _shiftArray(uint256 _slot) internal {
-        address _oldAddress = indexList[_slot - 1];
-        indices[_oldAddress].slot = 0;
+    function _removeIndex(IndexInfo storage _index) internal {
+        //Delete old index
+        uint256 _slot = _index.slot;
+        _index.slot = 0;
+        _index.exist = false;
 
-        uint256 _latestSlot = indexList.length - 1;
-        address _latestAddress = indexList[_latestSlot];
-        indices[_latestAddress].slot = _slot;
-
-        indexList[_slot - 1] = _latestAddress;
-        indexList[_latestSlot] = address(0);
         --indexLength;
+
+        //Shift array
+        if (indexLength != 0) {
+            // [A, B, C] => [C, B, 0]
+            uint256 _latestArrayIndex = indexLength;
+            address _latestAddress = indexList[_latestArrayIndex];
+
+            indexList[_latestArrayIndex] = address(0);
+
+            indexList[_slot - 1] = _latestAddress;
+            indices[_latestAddress].slot = _slot;
+        } else {
+            // [A] => [0]
+            indexList[0] = address(0);
+        }
     }
 
     /**
@@ -432,6 +446,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     function _withdrawCredit(uint256 _credit, address _indexAddress) internal returns (uint256) {
         IndexInfo storage _index = indices[_indexAddress];
+
+        require(_index.exist, "not exist");
+        require(_index.credit >= _credit, "exceed credit");
+        require(_credit <= _availableBalance(), "exceed available credit");
 
         require(
             _index.exist && _index.credit >= _credit && _credit <= _availableBalance(),
