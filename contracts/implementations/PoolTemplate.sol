@@ -83,6 +83,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     mapping(address => IndexInfo) public indices;
     address[] public indexList;
+    uint256 public indexLength;
 
     //
     // * We do some fancy math for premium calculation of indices.
@@ -341,35 +342,18 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * Index interactions
      */
 
-    /**
-     * @notice Register an index that can allocate credit to the pool
-     * @param _index index number of an index pool to get registered in the pool
-     */
-    function registerIndex(uint256 _index) external override {
-        /**
-         * add or overwrite new index.
-         */
+    function registerIndex() external {
         require(IRegistry(registry).isListed(msg.sender), "ERROR: UNREGISTERED_INDEX");
-        require(_index <= parameters.getMaxList(address(this)), "ERROR: EXCEEEDED_MAX_LIST");
-        uint256 _length = indexList.length;
-        if (_length <= _index) {
-            require(_length == _index, "ERROR: BAD_INDEX");
-            indexList.push(msg.sender);
-            indices[msg.sender].exist = true;
-            indices[msg.sender].slot = _index + 1;
-        } else {
-            address _indexAddress = indexList[_index];
-            if (_indexAddress != address(0) && _indexAddress != msg.sender) {
-                require(indices[msg.sender].credit == 0, "ERROR: ALREADY_ALLOCATED");
-                require(indices[_indexAddress].credit == 0, "ERROR: WITHDRAW_CREDIT_FIRST");
+        require(!indices[msg.sender].exist, "Already Registered");
 
-                indices[_indexAddress].slot = 0;
-                indices[_indexAddress].exist = false;
-                indices[msg.sender].slot = _index;
-                indices[msg.sender].exist = true;
-                indexList[_index] = msg.sender;
-            }
-        }
+        uint256 _nextArrayIndex = indexLength;
+        require(_nextArrayIndex <= parameters.getMaxList(address(this)), "ERROR: EXCEEEDED_MAX_LIST");
+
+        indices[msg.sender].exist = true;
+        indices[msg.sender].slot = _nextArrayIndex + 1;
+
+        indexList.push(msg.sender);
+        ++indexLength;
     }
 
     /**
@@ -404,6 +388,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         indexList[_slot - 1] = _latestAddress;
         indexList[_latestSlot] = address(0);
+        --indexLength;
     }
 
     /**
@@ -645,8 +630,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         marketStatus = MarketStatus.Payingout;
         pendingEnd = block.timestamp + _pending;
 
-        uint256 indexLength = indexList.length;
-        for (uint256 i; i < indexLength; ) {
+        uint256 _indexLength = indexLength;
+        for (uint256 i; i < _indexLength; ) {
             if (indices[indexList[i]].credit != 0) {
                 IIndexTemplate(indexList[i]).lock();
             }
@@ -705,8 +690,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         marketStatus = MarketStatus.Trading;
 
-        uint256 indexLength = indexList.length;
-        for (uint256 i; i < indexLength; ) {
+        uint256 _indexLength = indexLength;
+        for (uint256 i; i < _indexLength; ) {
             IIndexTemplate(indexList[i]).adjustAlloc();
             unchecked {
                 ++i;
@@ -727,8 +712,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         }
 
         uint256 _actualDeduction;
-        uint256 indexLength = indexList.length;
-        for (uint256 i; i < indexLength; ) {
+        uint256 _indexLength = indexLength;
+        for (uint256 i; i < _indexLength; ) {
             address _index = indexList[i];
             uint256 _credit = indices[_index].credit;
 

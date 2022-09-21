@@ -39,8 +39,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     event Locked();
     event MetadataChanged(string metadata);
     event LeverageSet(uint256 target);
-    event AllocationSet(uint256 indexed _indexA, uint256 indexed _indexB, address indexed pool, uint256 allocPoint);
-
+    event newAllocation(address market, uint256 allocPoints);
     /**
      * Storage
      */
@@ -553,79 +552,79 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         emit LeverageSet(_target);
     }
 
-    /**
-     * @notice Change allocation point for each pool
-     * @param _indexA target index id of the underlying pool
-     * @param _indexB target index id of the index address within the underlying pool
-     * @param _pool address of pool
-     * @param _allocPoint new allocation point
-     */
+    //update allocPoint
+    function set(uint256 _indexA, uint256 _allocPoint) public onlyOwner {
+        _updateAllocPoint(_indexA, _allocPoint);
+    }
+
+    //overwrite, or remove
     function set(
         uint256 _indexA,
-        uint256 _indexB,
         address _pool,
         uint256 _allocPoint
-    ) external override onlyOwner {
+    ) external onlyOwner {
         /**
-         * A. add new pool
-         * B. overwrite pool
-         * C. remove pool
-         * D. update allocPoint
-         *
-         * 1. Withdraw all credits from old pool
-         * 2. Remove index data from the old pool.
-         * 3. Sub oldAllocPoint
-         * 4. register Pool
-         * 5. Add newAllocPoint
-
-         * A:       4,5
-         * B: 1,2,3,4,5
-         * C: 1,2,3, shift poolList
-         * D:     3,  5
-
-         * validation: _indexA (A : BCD) => _pool (B : C : D)
+         * A. add new pool (latest indexA, new pool)
+         * B. overwrite pool (exist indexA. new pool)
+         * C. remove pool (exist indexA. address(0) pool)
+         * D. update allocPoint (exist indexA. same pool as indexA)
          */
         require(registry.isListed(_pool), "ERROR:UNREGISTERED_POOL");
         require(_indexA <= parameters.getMaxList(address(this)), "ERROR: EXCEEEDED_MAX_INDEX");
-        uint256 _length = poolList.length;
 
-        uint256 _totalAllocPoint = totalAllocPoint;
+        uint256 _poollength = poolList.length;
 
-        if (_length <= _indexA) {
-            //A: add new pool
-            require(_length == _indexA, "ERROR: BAD_INDEX");
-            IPoolTemplate(_pool).registerIndex(_indexB);
-            poolList.push(_pool);
+        if (_indexA >= _poollength) {
+            require(_indexA == _poollength, "NOT_NEXT_SLOT");
+            _addPool(_pool, _allocPoint);
         } else {
-            address _poolAddress = poolList[_indexA];
-            if (_pool == address(0)) {
-                //C: Remove pool
-                (uint256 _current, ) = IPoolTemplate(_poolAddress).pairValues(address(this));
-                IPoolTemplate(_poolAddress).withdrawCredit(_current);
-            } else if (_poolAddress != _pool) {
-                //B: Overwrite pool
-                (uint256 _current, ) = IPoolTemplate(_poolAddress).pairValues(address(this));
-                IPoolTemplate(_poolAddress).withdrawCredit(_current);
-            } else {
-                //D: Update allocPoint
-                return;
-            }
+            //existing indexA
+            address _currentPool = poolList[_indexA];
 
-            _totalAllocPoint -= allocPoints[_poolAddress];
-            allocPoints[_poolAddress] = 0;
-            IPoolTemplate(_pool).registerIndex(_indexB);
-            poolList[_indexA] = _pool;
+            if (_pool == _currentPool) {
+                _updateAllocPoint(_indexA, _allocPoint);
+            } else if (_pool == address(0)) {
+                _removePool(_currentPool);
+            } else {
+                _removePool(_currentPool);
+                _addPool(_pool, _allocPoint);
+            }
         }
 
-        totalAllocPoint = _totalAllocPoint + _allocPoint;
-        allocPoints[_pool] = _allocPoint;
         adjustAlloc();
-        emit AllocationSet(_indexA, _indexB, _pool, _allocPoint);
     }
 
-    /**
-     * Internal functions
-     */
+    function _updateAllocPoint(uint256 _indexA, uint256 _allocPoint) internal {
+        //code
+        address _pool = poolList[_indexA];
+        totalAllocPoint -= allocPoints[_pool];
+        totalAllocPoint += _allocPoint;
+        allocPoints[_pool] = _allocPoint;
+
+        emit newAllocation(_pool, _allocPoint);
+    }
+
+    function _addPool(address _pool, uint256 _allocPoint) internal {
+        //register
+        IPoolTemplate(_pool).registerIndex();
+
+        //update allocPoint
+        totalAllocPoint += _allocPoint;
+        allocPoints[_pool] = _allocPoint;
+
+        emit newAllocation(_pool, _allocPoint);
+    }
+
+    function _removePool(address _pool) internal {
+        //unregister
+        IPoolTemplate(_pool).unregisterIndex();
+
+        //update allocPoint
+        totalAllocPoint -= allocPoints[_pool];
+        allocPoints[_pool] = 0;
+
+        emit newAllocation(_pool, 0);
+    }
 
     /**
      * @notice Internal function to offset withdraw request and latest balance
