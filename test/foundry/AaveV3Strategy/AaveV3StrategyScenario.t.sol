@@ -323,6 +323,49 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
         assertEq(vault.balance(), 9_100 * 1e6);
         assertEq(strategy.managingFund(), 900 * 1e6);
     }
+
+    function testExchangeLogicUnavailable() public {
+        vm.startPrank(deployer);
+        vault = new Vault(usdc, address(registry), address(0), address(ownership));
+        strategy = new AaveV3Strategy(
+            ownership,
+            vault,
+            new ExchangeLogicUniswapV3(address(1), address(2)), // set unavailable contract address
+            IAaveV3Pool(aavePool),
+            IAaveV3Reward(aaveReward),
+            IERC20(usdc),
+            IERC20(ausdc),
+            IERC20(aaveRewardToken)
+        );
+
+        vault.setController(address(strategy));
+        vm.stopPrank();
+
+        // approve unlimited transfer
+        vm.prank(dealer);
+        IERC20(usdc).approve(address(vault), type(uint256).max);
+        vm.prank(alice);
+        IERC20(usdc).approve(address(vault), type(uint256).max);
+        vm.prank(bob);
+        IERC20(usdc).approve(address(vault), type(uint256).max);
+
+        vm.prank(dealer);
+        vault.addValue(10_000 * 1e6, dealer, dealer);
+        vm.prank(alice);
+        vault.borrowValue(1_000 * 1e6, alice);
+
+        vm.prank(deployer);
+        strategy.setMaxManagingRatio(1e5); // 10%
+
+        strategy.adjustFund();
+
+        skip(1e6);
+        uint256 _unclaimedReward = strategy.getUnclaimedReward();
+        vm.prank(deployer);
+        vm.expectRevert();
+        strategy.withdrawAllReward();
+        assertEq(strategy.getUnclaimedReward(), _unclaimedReward);
+    }
 }
 
 contract WhenMigrateAsset is AaveV3StrategySetUp {
