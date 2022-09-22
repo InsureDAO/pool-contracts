@@ -177,7 +177,7 @@ contract AaveV3Strategy is IController {
     }
 
     function currentManagingRatio() public view returns (uint256) {
-        return _calcManagingRatio(valueAll());
+        return _calcManagingRatio(managingFund);
     }
 
     function _calcManagingRatio(uint256 _amount) internal view returns (uint256 _managingRatio) {
@@ -187,11 +187,7 @@ contract AaveV3Strategy is IController {
     }
 
     function totalValueAll() public view returns (uint256) {
-        return vault.available() + valueAll();
-    }
-
-    function valueAll() public view override returns (uint256) {
-        return managingFund;
+        return vault.available() + managingFund;
     }
 
     /**

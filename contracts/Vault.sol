@@ -385,7 +385,7 @@ contract Vault is IVault {
      */
     function valueAll() public view returns (uint256) {
         if (address(controller) != address(0)) {
-            return balance + controller.valueAll();
+            return balance + controller.managingFund();
         } else {
             return balance;
         }
@@ -457,7 +457,7 @@ contract Vault is IVault {
         uint256 _balance = balance;
         uint256 _tokenBalance = IERC20(_token).balanceOf(address(this));
         if (_token == token && _balance < _tokenBalance) {
-            uint256 _utilized = controller.valueAll();
+            uint256 _utilized = controller.managingFund();
             uint256 _actualValue = IERC20(token).balanceOf(address(this)) + _utilized;
             uint256 _virtualValue = balance + _utilized;
             if (_actualValue > _virtualValue) {
@@ -480,9 +480,9 @@ contract Vault is IVault {
         require(_controller != address(0), "ERROR_ZERO_ADDRESS");
 
         if (address(controller) != address(0)) {
-            uint256 beforeUnderlying = controller.valueAll();
+            uint256 beforeUnderlying = controller.managingFund();
             controller.emigrate(address(_controller));
-            require(IController(_controller).valueAll() >= beforeUnderlying, "ERROR_VALUE_ALL_DECREASED");
+            require(IController(_controller).managingFund() >= beforeUnderlying, "ERROR_VALUE_ALL_DECREASED");
         }
         controller = IController(_controller);
 

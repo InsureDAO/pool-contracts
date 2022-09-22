@@ -12,8 +12,6 @@ interface IController {
 
     function emergencyExit(address _to) external;
 
-    function valueAll() external view returns (uint256);
-
     function managingFund() external view returns (uint256);
 
     function setMaxManagingRatio(uint256 _ratio) external;
