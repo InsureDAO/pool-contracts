@@ -6,6 +6,25 @@ const { expect } = require("chai");
 const { MerkleTree } = require("merkletreejs");
 const keccak256 = require("keccak256");
 
+async function snapshot() {
+  return network.provider.send("evm_snapshot", []);
+}
+
+async function restore(snapshotId) {
+  return network.provider.send("evm_revert", [snapshotId]);
+}
+
+async function moveForwardPeriods(days) {
+  await ethers.provider.send("evm_increaseTime", [DAY.mul(days).toNumber()]);
+  await ethers.provider.send("evm_mine");
+
+  return true;
+}
+
+async function now() {
+  return BigNumber.from((await ethers.provider.getBlock("latest")).timestamp);
+}
+
 //======== TOKEN ========//
 const verifyBalance = async ({ token, address, expectedBalance }) => {
   const balance = await token.balanceOf(address);
@@ -229,6 +248,9 @@ const insure = async ({ pool, insurer, amount, maxCost, span, target, insured, a
 };
 
 Object.assign(exports, {
+  snapshot,
+  restore,
+
   verifyBalance,
   verifyBalances,
   verifyAllowance,

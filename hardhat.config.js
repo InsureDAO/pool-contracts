@@ -40,8 +40,8 @@ module.exports = {
       initialBaseFeePerGas: 0,
       /**
       accounts: [
-        { privateKey: `0x${DEPLOY_KEY}`, balance: "2903004000000000000000000000000000000" },
-        { privateKey: `0x${CONTROL_KEY}`, balance: "2903004000000000000000000000000000000" },
+        //{ privateKey: `0x${DEPLOY_KEY}`, balance: "2903004000000000000000000000000000000" },
+        //{ privateKey: `0x${CONTROL_KEY}`, balance: "2903004000000000000000000000000000000" },
         // { privateKey: `0x${TEST_KEY}`, balance: "2903004000000000000000000000000000000" },
       ],
       forking: {
