@@ -500,7 +500,6 @@ describe("Pool", function () {
           credit: 0,
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
 
         //execute (2nd round)
@@ -514,7 +513,6 @@ describe("Pool", function () {
           credit: 0,
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
         await verifyIndexInfo({
           pool: market,
@@ -522,7 +520,6 @@ describe("Pool", function () {
           credit: 0,
           rewardDebt: 0,
           slot: 2,
-          exist: true,
         });
       });
 
@@ -559,7 +556,6 @@ describe("Pool", function () {
           credit: 0,
           rewardDebt: 0,
           slot: 0,
-          exist: false,
         });
       });
 
@@ -576,7 +572,6 @@ describe("Pool", function () {
           credit: 0,
           rewardDebt: 0,
           slot: 0,
-          exist: false,
         });
 
         await verifyIndexInfo({
@@ -585,7 +580,6 @@ describe("Pool", function () {
           credit: 0,
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
       });
 
@@ -604,7 +598,6 @@ describe("Pool", function () {
           credit: 0,
           rewardDebt: 0,
           slot: 0,
-          exist: false,
         });
 
         await verifyIndexInfo({
@@ -613,7 +606,6 @@ describe("Pool", function () {
           credit: 0,
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
 
         await verifyIndexInfo({
@@ -622,7 +614,6 @@ describe("Pool", function () {
           credit: 0,
           rewardDebt: 0,
           slot: 2,
-          exist: true,
         });
       });
 

@@ -94,14 +94,12 @@ const verifyPoolsStatusForIndex = async ({ pools }) => {
   }
 };
 
-const verifyIndexInfo = async ({ pool, index, credit, rewardDebt, slot, exist }) => {
+const verifyIndexInfo = async ({ pool, index, credit, rewardDebt, slot }) => {
   let _slot = (await pool.indices(index)).slot;
 
   expect((await pool.indices(index)).credit).to.equal(credit);
   expect((await pool.indices(index)).rewardDebt).to.equal(rewardDebt);
   expect(_slot).to.equal(slot);
-  expect((await pool.indices(index)).exist).to.equal(exist);
-
   if (!_slot.eq("0")) {
     expect(await pool.indexList(_slot.sub("1"))).to.equal(index);
   }

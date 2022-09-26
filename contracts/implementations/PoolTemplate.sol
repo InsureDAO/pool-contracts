@@ -79,7 +79,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 credit; //How many credit (equal to liquidity) the index has allocated
         uint256 rewardDebt; // Reward debt. *See explanation below.
         uint256 slot; //index number within indexList. incremented by 1.
-        bool exist; //true if the index has allocated credit
     }
 
     mapping(address => IndexInfo) public indices;
@@ -345,12 +344,11 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     function registerIndex() external {
         require(IRegistry(registry).isListed(msg.sender), "Not an Official Pool");
-        require(!indices[msg.sender].exist, "Already Registered");
+        require(indices[msg.sender].slot == 0, "Already Registered");
 
         uint256 _nextArrayIndex = indexLength;
         require(_nextArrayIndex <= parameters.getMaxList(address(this)), "ERROR: EXCEEEDED_MAX_LIST");
 
-        indices[msg.sender].exist = true;
         indices[msg.sender].slot = _nextArrayIndex + 1;
 
         if (_nextArrayIndex != indexList.length) {
@@ -369,7 +367,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     function unregisterIndex() external {
         require(marketStatus == MarketStatus.Trading, "POOL_IS_NOT_IN_TRADING_STATUS");
         IndexInfo storage _index = indices[msg.sender];
-        require(_index.exist, "NOT_REGISTERED");
+        require(_index.slot != 0, "NOT_REGISTERED");
 
         if (_index.credit != 0) {
             //withdraw credits of the index pool
@@ -385,7 +383,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         //Delete old index
         uint256 _slot = _index.slot;
         _index.slot = 0;
-        _index.exist = false;
 
         --indexLength;
 
@@ -413,7 +410,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     function allocateCredit(uint256 _credit) external override returns (uint256 _pending) {
         IndexInfo storage _index = indices[msg.sender];
-        require(_index.exist, "ALLOCATE_CREDIT_BAD_CONDITIONS");
+        require(_index.slot != 0, "ALLOCATE_CREDIT_BAD_CONDITIONS");
 
         uint256 _rewardPerCredit = rewardPerCredit;
 
@@ -447,14 +444,9 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     function _withdrawCredit(uint256 _credit, address _indexAddress) internal returns (uint256) {
         IndexInfo storage _index = indices[_indexAddress];
 
-        require(_index.exist, "not exist");
+        require(_index.slot != 0, "not registered");
         require(_index.credit >= _credit, "exceed credit");
         require(_credit <= _availableBalance(), "exceed available credit");
-
-        require(
-            _index.exist && _index.credit >= _credit && _credit <= _availableBalance(),
-            "WITHDRAW_CREDIT_BAD_CONDITIONS"
-        );
 
         uint256 _rewardPerCredit = rewardPerCredit;
 

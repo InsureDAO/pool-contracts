@@ -243,9 +243,6 @@ describe("multiIndex", function () {
 
     /**
      * A. add new pool (latest indexA, new pool)
-     * B. overwrite pool (exist indexA. new pool)
-     * C. remove pool (exist indexA. address(0) pool)
-     * D. update allocPoint (exist indexA. same pool as indexA)
      */
     console.log("----- test cases for test() -----");
     console.log("A. add new pool");
@@ -278,7 +275,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
 
@@ -296,7 +292,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
 
       expect(await index1.poolList(1)).equal(market2.address);
@@ -306,7 +301,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
 
@@ -328,7 +322,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
 
@@ -345,7 +338,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
 
       expect(await index2.poolLength()).equal(1);
@@ -356,7 +348,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 2,
-        exist: true,
       });
     });
 
@@ -376,7 +367,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
 
       await verifyIndexInfo({
@@ -385,7 +375,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 2,
-        exist: true,
       });
 
       await verifyIndexInfo({
@@ -394,7 +383,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 3,
-        exist: true,
       });
     });
   });
@@ -416,7 +404,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
 
@@ -435,7 +422,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
 
@@ -451,7 +437,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 0,
-        exist: false,
       });
     });
 
@@ -471,7 +456,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 0,
-        exist: false,
       });
 
       //check new market
@@ -482,7 +466,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
   });
@@ -506,7 +489,6 @@ describe("multiIndex", function () {
         credit: depositAmount.mul(2),
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
 
       await verifyIndexStatus({
@@ -549,7 +531,6 @@ describe("multiIndex", function () {
         credit: 0, //credits withdrawn
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
 
@@ -565,7 +546,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 0,
-        exist: false,
       });
     });
   });
@@ -590,7 +570,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
 
@@ -611,7 +590,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
 
       //update 2nd market
@@ -630,7 +608,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
 
@@ -648,7 +625,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 0,
-        exist: false,
       });
 
       await verifyIndexInfo({
@@ -657,7 +633,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
 
@@ -677,7 +652,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 0,
-        exist: false,
       });
 
       //check new market
@@ -688,7 +662,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
 
       //no change on market2
@@ -699,7 +672,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
 
@@ -719,7 +691,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
 
       expect(await index1.allocPoints(market2.address)).equal(ZERO);
@@ -729,7 +700,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 0,
-        exist: false,
       });
 
       expect(await index1.allocPoints(market3.address)).equal(ONE);
@@ -739,7 +709,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
   });
@@ -783,7 +752,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
 
       //update 2nd market with different function
@@ -802,7 +770,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
 
@@ -823,7 +790,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
 
@@ -860,7 +826,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 0,
-        exist: false,
       });
 
       await verifyIndexInfo({
@@ -869,7 +834,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
 
       await verifyIndexInfo({
@@ -878,7 +842,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
 
@@ -915,7 +878,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
 
       await verifyIndexInfo({
@@ -924,7 +886,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 0,
-        exist: false,
       });
 
       await verifyIndexInfo({
@@ -933,7 +894,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
     });
 
@@ -970,7 +930,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
 
       await verifyIndexInfo({
@@ -979,7 +938,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 1,
-        exist: true,
       });
 
       await verifyIndexInfo({
@@ -988,7 +946,6 @@ describe("multiIndex", function () {
         credit: 0,
         rewardDebt: 0,
         slot: 0,
-        exist: false,
       });
     });
   });
@@ -1045,7 +1002,6 @@ describe("multiIndex", function () {
           credit: depositAmount.mul(2).div(4),
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
         await verifyIndexInfo({
           pool: market5,
@@ -1053,7 +1009,6 @@ describe("multiIndex", function () {
           credit: depositAmount.mul(2).div(4),
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
         await verifyIndexInfo({
           pool: market3,
@@ -1061,7 +1016,6 @@ describe("multiIndex", function () {
           credit: depositAmount.mul(2).div(4),
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
         await verifyIndexInfo({
           pool: market2,
@@ -1069,7 +1023,6 @@ describe("multiIndex", function () {
           credit: depositAmount.mul(2).div(4),
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
         await verifyIndexInfo({
           pool: market1,
@@ -1077,7 +1030,6 @@ describe("multiIndex", function () {
           credit: 0,
           rewardDebt: 0,
           slot: 0,
-          exist: false,
         });
       }
 
@@ -1092,7 +1044,6 @@ describe("multiIndex", function () {
           credit: depositAmount.mul(2).div(2),
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
         await verifyIndexInfo({
           pool: market5,
@@ -1100,7 +1051,6 @@ describe("multiIndex", function () {
           credit: ZERO,
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
         await verifyIndexInfo({
           pool: market3,
@@ -1108,7 +1058,6 @@ describe("multiIndex", function () {
           credit: depositAmount.mul(2).div(2),
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
       }
 
@@ -1120,7 +1069,6 @@ describe("multiIndex", function () {
           credit: depositAmount.mul(2),
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
         await verifyIndexInfo({
           pool: market5,
@@ -1128,7 +1076,6 @@ describe("multiIndex", function () {
           credit: ZERO,
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
         await verifyIndexInfo({
           pool: market4,
@@ -1136,7 +1083,6 @@ describe("multiIndex", function () {
           credit: 0,
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
       }
       await index1["set(uint256,uint256)"]("2", ten_to_the_18); //[2,5,4]
@@ -1147,7 +1093,6 @@ describe("multiIndex", function () {
           credit: depositAmount.mul(2).div(2),
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
         await verifyIndexInfo({
           pool: market5,
@@ -1155,7 +1100,6 @@ describe("multiIndex", function () {
           credit: ZERO,
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
         await verifyIndexInfo({
           pool: market4,
@@ -1163,7 +1107,6 @@ describe("multiIndex", function () {
           credit: depositAmount.mul(2).div(2),
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
       }
 
@@ -1176,7 +1119,6 @@ describe("multiIndex", function () {
           credit: depositAmount.mul(2).div(2),
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
         await verifyIndexInfo({
           pool: market5,
@@ -1184,7 +1126,6 @@ describe("multiIndex", function () {
           credit: ZERO,
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
         await verifyIndexInfo({
           pool: market3,
@@ -1192,7 +1133,6 @@ describe("multiIndex", function () {
           credit: depositAmount.mul(2).div(2),
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
       }
 
@@ -1216,7 +1156,6 @@ describe("multiIndex", function () {
           credit: depositAmount.mul(2).div(3),
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
 
         await verifyIndexInfo({
@@ -1225,7 +1164,6 @@ describe("multiIndex", function () {
           credit: depositAmount.mul(2).div(3),
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
         await verifyIndexInfo({
           pool: market3,
@@ -1233,7 +1171,6 @@ describe("multiIndex", function () {
           credit: depositAmount.mul(2).div(3),
           rewardDebt: 0,
           slot: 1,
-          exist: true,
         });
       }
     });
