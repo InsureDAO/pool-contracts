@@ -1,12 +1,11 @@
-pragma solidity 0.8.10;
+pragma solidity 0.8.12;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 
 contract TestPremiumModel {
     using Address for address;
 
-    constructor() {
-    }
+    constructor() {}
 
     function getPremium(
         uint256 _amount,

@@ -23,16 +23,7 @@ const {
   verifyRate,
 } = require("../test-utils");
 
-const {
-  ZERO_ADDRESS,
-  TEST_ADDRESS,
-  NULL_ADDRESS,
-  short,
-  YEAR,
-  WEEK,
-  DAY,
-  ZERO,
-} = require("../constant-utils");
+const { ZERO_ADDRESS, TEST_ADDRESS, NULL_ADDRESS, short, YEAR, WEEK, DAY, ZERO } = require("../constant-utils");
 
 async function snapshot() {
   return network.provider.send("evm_snapshot", []);
@@ -67,12 +58,12 @@ describe("Pool", function () {
   const UTILIZATION_RATE_LENGTH_1E6 = BigNumber.from("1000000"); //1e6
   const padded1 = ethers.utils.hexZeroPad("0x1", 32);
 
-  const insure = async({pool, insurer, amount, maxCost, span, target, insured, agent}) => {
-    let tx = await pool.connect(insurer).insure(amount, maxCost, span, target, insured, agent );
+  const insure = async ({ pool, insurer, amount, maxCost, span, target, insured, agent }) => {
+    let tx = await pool.connect(insurer).insure(amount, maxCost, span, target, insured, agent);
     premiumAmount = (await tx.wait()).events[2].args["premium"];
 
-    return premiumAmount
-  } 
+    return premiumAmount;
+  };
 
   const applyCover = async ({
     pool,
@@ -81,11 +72,11 @@ describe("Pool", function () {
     payoutNumerator,
     payoutDenominator,
     incidentTimestamp,
-    lossAmount
+    lossAmount,
   }) => {
     const padded1 = ethers.utils.hexZeroPad("0x1", 32);
     const padded2 = ethers.utils.hexZeroPad("0x2", 32);
-    const _loss = lossAmount
+    const _loss = lossAmount;
 
     const getLeaves = (target) => {
       return [
@@ -102,10 +93,7 @@ describe("Pool", function () {
       const list = getLeaves(target);
 
       return list.map(({ id, account, loss }) => {
-        return ethers.utils.solidityKeccak256(
-          ["bytes32", "address", "uint256"],
-          [id, account, loss]
-        );
+        return ethers.utils.solidityKeccak256(["bytes32", "address", "uint256"], [id, account, loss]);
       });
     };
 
@@ -118,15 +106,7 @@ describe("Pool", function () {
     //console.log("proof", leaves, proof, root, leaf);
     //console.log("verify", tree.verify(proof, leaf, root)); // true
 
-    await pool.applyCover(
-      pending,
-      payoutNumerator,
-      payoutDenominator,
-      incidentTimestamp,
-      root,
-      "raw data",
-      "metadata"
-    );
+    await pool.applyCover(pending, payoutNumerator, payoutDenominator, incidentTimestamp, root, "raw data", "metadata");
 
     return proof;
   };
@@ -153,12 +133,7 @@ describe("Pool", function () {
     factory = await Factory.deploy(registry.address, ownership.address);
     premium = await PremiumModel.deploy();
     controller = await Contorller.deploy(usdc.address, ownership.address);
-    vault = await Vault.deploy(
-      usdc.address,
-      registry.address,
-      controller.address,
-      ownership.address
-    );
+    vault = await Vault.deploy(usdc.address, registry.address, controller.address, ownership.address);
     poolTemplate = await PoolTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
 
@@ -174,24 +149,15 @@ describe("Pool", function () {
     await factory.approveTemplate(poolTemplate.address, true, false, true);
     await factory.approveReference(poolTemplate.address, 0, usdc.address, true);
     await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
-    await factory.approveReference(
-      poolTemplate.address,
-      2,
-      registry.address,
-      true
-    );
-    await factory.approveReference(
-      poolTemplate.address,
-      3,
-      parameters.address,
-      true
-    );
+    await factory.approveReference(poolTemplate.address, 2, registry.address, true);
+    await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
     await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true); //everyone can be initialDepositor
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
     await parameters.setGrace(ZERO_ADDRESS, "259200");
     await parameters.setLockup(ZERO_ADDRESS, "604800");
+    await parameters.setMaxDate(ZERO_ADDRESS, YEAR);
     await parameters.setMinDate(ZERO_ADDRESS, "604800");
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
     await parameters.setWithdrawable(ZERO_ADDRESS, "2592000");
@@ -201,12 +167,7 @@ describe("Pool", function () {
       poolTemplate.address,
       "Here is metadata.",
       [0, 0], //deposit 0 USDC
-      [
-        usdc.address,
-        usdc.address,
-        registry.address,
-        parameters.address,
-      ]
+      [usdc.address, usdc.address, registry.address, parameters.address]
     );
     let receipt = await tx.wait();
     const marketAddress = receipt.events[2].args[0];
@@ -226,14 +187,14 @@ describe("Pool", function () {
       it("should return correct metadata", async () => {
         expect(await market.name()).to.equal("InsureDAO DAI Insurance LP");
         expect(await market.symbol()).to.equal("iDAI");
-      })
+      });
     });
     describe("insure", function () {
       beforeEach(async () => {
-        await usdc.connect(alice).approve(vault.address, initialMint)
-        await market.connect(alice).deposit(initialMint)
+        await usdc.connect(alice).approve(vault.address, initialMint);
+        await market.connect(alice).deposit(initialMint);
 
-        await usdc.connect(bob).approve(vault.address, initialMint)
+        await usdc.connect(bob).approve(vault.address, initialMint);
       });
 
       it("insure for someone else", async () => {
@@ -245,20 +206,20 @@ describe("Pool", function () {
           span: WEEK,
           target: padded1,
           insured: chad.address,
-          agent: bob.address
-        })
+          agent: bob.address,
+        });
 
-        expect((await market.insurances(0)).insured).to.equal(chad.address)
-        expect((await market.insurances(0)).agent).to.equal(bob.address)
+        expect((await market.insurances(0)).insured).to.equal(chad.address);
+        expect((await market.insurances(0)).agent).to.equal(bob.address);
       });
     });
 
     describe("redeem", function () {
       beforeEach(async () => {
-        await usdc.connect(alice).approve(vault.address, initialMint)
-        await market.connect(alice).deposit(initialMint)
+        await usdc.connect(alice).approve(vault.address, initialMint);
+        await market.connect(alice).deposit(initialMint);
 
-        await usdc.connect(bob).approve(vault.address, initialMint)
+        await usdc.connect(bob).approve(vault.address, initialMint);
         await insure({
           pool: market,
           insurer: bob,
@@ -267,8 +228,8 @@ describe("Pool", function () {
           span: WEEK,
           target: padded1,
           insured: chad.address,
-          agent: tom.address
-        })
+          agent: tom.address,
+        });
 
         let incident = await now();
         proof = await applyCover({
@@ -278,36 +239,36 @@ describe("Pool", function () {
           payoutNumerator: 10000,
           payoutDenominator: 10000,
           incidentTimestamp: incident,
-          lossAmount: loss
+          lossAmount: loss,
         });
       });
 
       it("can redeem for myself", async () => {
-        let current = await usdc.balanceOf(chad.address)
-  
+        let current = await usdc.balanceOf(chad.address);
+
         await market.connect(chad).redeem(0, loss, proof);
 
-        expect(await usdc.balanceOf(chad.address)).to.equal(current.add(insureAmount))
+        expect(await usdc.balanceOf(chad.address)).to.equal(current.add(insureAmount));
       });
 
       it("agent can redeem", async () => {
-        let current = await usdc.balanceOf(chad.address)
-  
+        let current = await usdc.balanceOf(chad.address);
+
         await market.connect(tom).redeem(0, loss, proof);
 
-        expect(await usdc.balanceOf(chad.address)).to.equal(current.add(insureAmount))
+        expect(await usdc.balanceOf(chad.address)).to.equal(current.add(insureAmount));
       });
 
       it("revert when not holder nor agent redeem", async () => {
-        await expect(market.connect(bob).redeem(0, loss, proof)).to.revertedWith("ERROR: NOT_YOUR_INSURANCE")       
+        await expect(market.connect(bob).redeem(0, loss, proof)).to.revertedWith("ERROR: NOT_YOUR_INSURANCE");
       });
     });
     describe("redeem2", function () {
       beforeEach(async () => {
-        await usdc.connect(alice).approve(vault.address, initialMint)
-        await market.connect(alice).deposit(initialMint)
+        await usdc.connect(alice).approve(vault.address, initialMint);
+        await market.connect(alice).deposit(initialMint);
 
-        await usdc.connect(bob).approve(vault.address, initialMint)
+        await usdc.connect(bob).approve(vault.address, initialMint);
         await insure({
           pool: market,
           insurer: bob,
@@ -316,12 +277,12 @@ describe("Pool", function () {
           span: WEEK,
           target: padded1,
           insured: chad.address,
-          agent: tom.address
-        })
+          agent: tom.address,
+        });
       });
 
       it("redeem amount capped at loss", async () => {
-        let smallLoss = insureAmount.div(2)
+        let smallLoss = insureAmount.div(2);
         let incident = await now();
 
         proof = await applyCover({
@@ -331,82 +292,82 @@ describe("Pool", function () {
           payoutNumerator: 10000,
           payoutDenominator: 10000,
           incidentTimestamp: incident,
-          lossAmount: smallLoss
+          lossAmount: smallLoss,
         });
 
-        let current = await usdc.balanceOf(chad.address)
-  
+        let current = await usdc.balanceOf(chad.address);
+
         await market.connect(chad).redeem(0, smallLoss, proof);
 
-        expect(await usdc.balanceOf(chad.address)).to.equal(current.add(smallLoss))
+        expect(await usdc.balanceOf(chad.address)).to.equal(current.add(smallLoss));
       });
 
       it("loss has effect of partial payment", async () => {
-        let smallLoss = insureAmount.div(2)
+        let smallLoss = insureAmount.div(2);
         let incident = await now();
 
         proof = await applyCover({
           pool: market,
           pending: DAY,
           targetAddress: ZERO_ADDRESS, //everyone
-          payoutNumerator: 5000, 
+          payoutNumerator: 5000,
           payoutDenominator: 10000, //50%
           incidentTimestamp: incident,
-          lossAmount: smallLoss
+          lossAmount: smallLoss,
         });
 
-        let current = await usdc.balanceOf(chad.address)
-  
+        let current = await usdc.balanceOf(chad.address);
+
         await market.connect(chad).redeem(0, smallLoss, proof);
 
-        expect(await usdc.balanceOf(chad.address)).to.equal(current.add(smallLoss.div(2)))
+        expect(await usdc.balanceOf(chad.address)).to.equal(current.add(smallLoss.div(2)));
       });
 
       it("only loss has effect of partial payment", async () => {
-        let smallLoss = insureAmount.div(2)
+        let smallLoss = insureAmount.div(2);
         let incident = await now();
 
         proof = await applyCover({
           pool: market,
           pending: DAY,
           targetAddress: ZERO_ADDRESS, //everyone
-          payoutNumerator: 5000, 
+          payoutNumerator: 5000,
           payoutDenominator: 10000, //50%
           incidentTimestamp: incident,
-          lossAmount: loss
+          lossAmount: loss,
         });
 
-        let current = await usdc.balanceOf(chad.address)
-  
+        let current = await usdc.balanceOf(chad.address);
+
         await market.connect(chad).redeem(0, loss, proof);
 
-        expect(await usdc.balanceOf(chad.address)).to.equal(current.add(insureAmount))
+        expect(await usdc.balanceOf(chad.address)).to.equal(current.add(insureAmount));
       });
 
       it("revert when loss input differ than the merkle tree", async () => {
-        let smallLoss = insureAmount.div(2)
+        let smallLoss = insureAmount.div(2);
         let incident = await now();
 
         proof = await applyCover({
           pool: market,
           pending: DAY,
           targetAddress: ZERO_ADDRESS, //everyone
-          payoutNumerator: 5000, 
+          payoutNumerator: 5000,
           payoutDenominator: 10000, //50%
           incidentTimestamp: incident,
-          lossAmount: smallLoss
+          lossAmount: smallLoss,
         });
-  
+
         await expect(market.connect(chad).redeem(0, loss, proof)).to.revertedWith("ERROR: INSURANCE_EXEMPTED");
       });
     });
 
     describe("applyBounty", function () {
       beforeEach(async () => {
-        await usdc.connect(alice).approve(vault.address, initialMint)
-        await market.connect(alice).deposit(initialMint)
+        await usdc.connect(alice).approve(vault.address, initialMint);
+        await market.connect(alice).deposit(initialMint);
 
-        await usdc.connect(bob).approve(vault.address, initialMint)
+        await usdc.connect(bob).approve(vault.address, initialMint);
         premiumAmount = await insure({
           pool: market,
           insurer: bob,
@@ -415,9 +376,9 @@ describe("Pool", function () {
           span: WEEK,
           target: padded1,
           insured: chad.address,
-          agent: tom.address
-        })
-         
+          agent: tom.address,
+        });
+
         govFee = premiumAmount.mul(governanceFeeRate).div(RATE_DIVIDER);
         income = premiumAmount.sub(govFee);
       });
@@ -433,20 +394,20 @@ describe("Pool", function () {
               rate: defaultRate.mul(initialMint.add(income)).div(initialMint),
               utilizationRate: defaultRate.mul(insureAmount).div(initialMint.add(income)),
               allInsuranceCount: 1,
-            }
-          ]
+            },
+          ],
         });
-        
+
         //transfer Bounty & unlock policies
-        let payout = initialMint.div(2)
+        let payout = initialMint.div(2);
 
-        expect((await market.insurances(0)).status).to.equal(true)
-        expect(await usdc.balanceOf(tom.address)).to.equal(initialMint)
-        
-        await market.applyBounty(payout, tom.address, [0])
+        expect((await market.insurances(0)).status).to.equal(true);
+        expect(await usdc.balanceOf(tom.address)).to.equal(initialMint);
 
-        expect((await market.insurances(0)).status).to.equal(false)
-        expect(await usdc.balanceOf(tom.address)).to.equal(initialMint.add(payout))
+        await market.applyBounty(payout, tom.address, [0]);
+
+        expect((await market.insurances(0)).status).to.equal(false);
+        expect(await usdc.balanceOf(tom.address)).to.equal(initialMint.add(payout));
 
         //check debt
         await verifyVaultStatusOf({
@@ -454,8 +415,8 @@ describe("Pool", function () {
           target: market.address,
           attributions: initialMint.add(income).sub(payout),
           underlyingValue: initialMint.add(income).sub(payout),
-          debt: ZERO
-        })
+          debt: ZERO,
+        });
 
         //unlock liquidity
         await verifyPoolsStatus({
@@ -468,11 +429,9 @@ describe("Pool", function () {
               rate: defaultRate.mul(initialMint.add(income).sub(payout)).div(initialMint),
               utilizationRate: ZERO,
               allInsuranceCount: 1,
-            }
-          ]
+            },
+          ],
         });
-
-
       });
 
       it("revert when market is in Payout", async () => {
@@ -483,11 +442,37 @@ describe("Pool", function () {
           payoutNumerator: 10000,
           payoutDenominator: 10000,
           incidentTimestamp: await now(),
-          lossAmount: loss
+          lossAmount: loss,
         });
 
-        let payout = initialMint.div(2)
-        await expect(market.applyBounty(payout, tom.address, [0])).to.revertedWith("ERROR: NOT_TRADING_STATUS")
+        let payout = initialMint.div(2);
+        await expect(market.applyBounty(payout, tom.address, [0])).to.revertedWith("ERROR: NOT_TRADING_STATUS");
+      });
+    });
+
+    describe("openDeposit", function () {
+      it("set correctly", async () => {
+        expect(await market.openDeposit()).to.equal(true);
+        await market.setOpenDeposit(false);
+        expect(await market.openDeposit()).to.equal(false);
+
+        //if branch test
+        await market.setOpenDeposit(false);
+        expect(await market.openDeposit()).to.equal(false);
+      });
+      it("revert when not owner", async () => {
+        await expect(market.connect(alice).setOpenDeposit(false)).to.revertedWith("Caller is not allowed to operate");
+      });
+    });
+
+    describe("deposit", function () {
+      it("only owner can deposit when openDeposit is false", async () => {
+        await market.setOpenDeposit(false);
+
+        await expect(market.connect(alice).deposit(depositAmount)).to.revertedWith("deposit prohibit");
+
+        await usdc.connect(gov).approve(vault.address, depositAmount);
+        await market.connect(gov).deposit(depositAmount);
       });
     });
   });

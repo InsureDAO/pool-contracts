@@ -2,11 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
 
-const {
-  ZERO_ADDRESS,
-  TEST_ADDRESS,
-  NULL_ADDRESS,
-} = require("../constant-utils");
+const { ZERO_ADDRESS, TEST_ADDRESS, NULL_ADDRESS } = require("../constant-utils");
 const { zeroPad } = require("@ethersproject/bytes");
 
 async function snapshot() {
@@ -54,29 +50,22 @@ describe("Parameters", function () {
         expect(await parameters.getVault(TEST_ADDRESS)).to.equal(TEST_ADDRESS);
       });
       it("should only allow setting attempt by the admin", async () => {
-        await expect(
-          parameters.connect(alice).setVault(TEST_ADDRESS, TEST_ADDRESS)
-        ).to.revertedWith("Caller is not allowed to operate");
+        await expect(parameters.connect(alice).setVault(TEST_ADDRESS, TEST_ADDRESS)).to.revertedWith(
+          "Caller is not allowed to operate"
+        );
       });
 
       it("should only allow registration once", async () => {
         await parameters.setVault(TEST_ADDRESS, TEST_ADDRESS);
-        await expect(
-          parameters.setVault(TEST_ADDRESS, TEST_ADDRESS)
-        ).to.revertedWith("dev: already initialized");
+        await expect(parameters.setVault(TEST_ADDRESS, TEST_ADDRESS)).to.revertedWith("dev: already initialized");
       });
 
       it("should not allow zero address", async () => {
-        await expect(
-          parameters.setVault(TEST_ADDRESS, ZERO_ADDRESS)
-        ).to.revertedWith("dev: zero address");
+        await expect(parameters.setVault(TEST_ADDRESS, ZERO_ADDRESS)).to.revertedWith("dev: zero address");
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setVault(TEST_ADDRESS, TEST_ADDRESS)).to.emit(
-          parameters,
-          "VaultSet"
-        );
+        await expect(parameters.setVault(TEST_ADDRESS, TEST_ADDRESS)).to.emit(parameters, "VaultSet");
       });
     });
 
@@ -87,30 +76,22 @@ describe("Parameters", function () {
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await expect(
-          parameters
-            .connect(alice)
-            .setPremiumModel(TEST_ADDRESS, premiumModel.address)
-        ).to.revertedWith("Caller is not allowed to operate");
+        await expect(parameters.connect(alice).setPremiumModel(TEST_ADDRESS, premiumModel.address)).to.revertedWith(
+          "Caller is not allowed to operate"
+        );
       });
       it("should return the dafault value if the address not registered", async () => {
         await parameters.setPremiumModel(ZERO_ADDRESS, premiumModel.address);
-        expect(
-          await parameters.getPremium(10000, 100, 100, 100, TEST_ADDRESS)
-        ).to.equal(1000);
+        expect(await parameters.getPremium(10000, 100, 100, 100, TEST_ADDRESS)).to.equal(1000);
       });
 
       it("should return the value if registered", async () => {
         await parameters.setPremiumModel(NULL_ADDRESS, premiumModel.address);
-        expect(
-          await parameters.getPremium(10000, 100, 100, 100, NULL_ADDRESS)
-        ).to.equal(1000);
+        expect(await parameters.getPremium(10000, 100, 100, 100, NULL_ADDRESS)).to.equal(1000);
       });
 
       it("should emit the event", async () => {
-        await expect(
-          parameters.setPremiumModel(TEST_ADDRESS, TEST_ADDRESS)
-        ).to.emit(parameters, "PremiumSet");
+        await expect(parameters.setPremiumModel(TEST_ADDRESS, TEST_ADDRESS)).to.emit(parameters, "PremiumSet");
       });
     });
 
@@ -121,9 +102,9 @@ describe("Parameters", function () {
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await expect(
-          parameters.connect(alice).setLockup(TEST_ADDRESS, 86400)
-        ).to.revertedWith("Caller is not allowed to operate");
+        await expect(parameters.connect(alice).setLockup(TEST_ADDRESS, 86400)).to.revertedWith(
+          "Caller is not allowed to operate"
+        );
       });
 
       it("should return the dafault value if the address not registered", async () => {
@@ -137,10 +118,7 @@ describe("Parameters", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setLockup(TEST_ADDRESS, 86400)).to.emit(
-          parameters,
-          "LockupSet"
-        );
+        await expect(parameters.setLockup(TEST_ADDRESS, 86400)).to.emit(parameters, "LockupSet");
       });
     });
 
@@ -151,9 +129,9 @@ describe("Parameters", function () {
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await expect(
-          parameters.connect(alice).setGrace(TEST_ADDRESS, 86400)
-        ).to.revertedWith("Caller is not allowed to operate");
+        await expect(parameters.connect(alice).setGrace(TEST_ADDRESS, 86400)).to.revertedWith(
+          "Caller is not allowed to operate"
+        );
       });
 
       it("should return the dafault value if the address not registered", async () => {
@@ -167,40 +145,65 @@ describe("Parameters", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setGrace(TEST_ADDRESS, 86400)).to.emit(
-          parameters,
-          "GraceSet"
-        );
+        await expect(parameters.setGrace(TEST_ADDRESS, 86400)).to.emit(parameters, "GraceSet");
       });
     });
 
+    describe("setMaxDate", function () {
+      it("should allow setting by the admin address", async () => {
+        await parameters.setMaxDate(ZERO_ADDRESS, 604800);
+        expect(await parameters.getMaxDate(TEST_ADDRESS)).to.equal(604800);
+      });
+
+      it("should only allow setting attempt by the admin", async () => {
+        await expect(parameters.connect(alice).setMaxDate(TEST_ADDRESS, 604800)).to.revertedWith(
+          "Caller is not allowed to operate"
+        );
+      });
+
+      it("should return the dafault value if the address not registered", async () => {
+        await parameters.setMaxDate(ZERO_ADDRESS, 604800);
+        expect(await parameters.getMaxDate(TEST_ADDRESS)).to.equal(604800);
+      });
+
+      it("should return the value if registered", async () => {
+        await parameters.setMaxDate(NULL_ADDRESS, 604800);
+        expect(await parameters.getMaxDate(NULL_ADDRESS)).to.equal(604800);
+      });
+
+      it("should emit the event", async () => {
+        await expect(parameters.setMaxDate(TEST_ADDRESS, 604800)).to.emit(parameters, "MaxDateSet");
+      });
+    });
     describe("setMinDate", function () {
       it("should allow setting by the admin address", async () => {
+        await parameters.setMaxDate(TEST_ADDRESS, 604801);
         await parameters.setMinDate(TEST_ADDRESS, 604800);
         expect(await parameters.getMinDate(TEST_ADDRESS)).to.equal(604800);
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await expect(
-          parameters.connect(alice).setMinDate(TEST_ADDRESS, 604800)
-        ).to.revertedWith("Caller is not allowed to operate");
+        await parameters.setMaxDate(TEST_ADDRESS, 604801);
+        await expect(parameters.connect(alice).setMinDate(TEST_ADDRESS, 604800)).to.revertedWith(
+          "Caller is not allowed to operate"
+        );
       });
 
       it("should return the dafault value if the address not registered", async () => {
+        await parameters.setMaxDate(ZERO_ADDRESS, 604801);
         await parameters.setMinDate(ZERO_ADDRESS, 604800);
         expect(await parameters.getMinDate(TEST_ADDRESS)).to.equal(604800);
       });
 
       it("should return the value if registered", async () => {
+        await parameters.setMaxDate(NULL_ADDRESS, 604801);
         await parameters.setMinDate(NULL_ADDRESS, 604800);
         expect(await parameters.getMinDate(NULL_ADDRESS)).to.equal(604800);
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setMinDate(TEST_ADDRESS, 604800)).to.emit(
-          parameters,
-          "MinDateSet"
-        );
+        await parameters.setMaxDate(TEST_ADDRESS, 604801);
+        await expect(parameters.setMinDate(TEST_ADDRESS, 604800)).to.emit(parameters, "MinDateSet");
       });
     });
 
@@ -211,9 +214,9 @@ describe("Parameters", function () {
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await expect(
-          parameters.connect(alice).setUpperSlack(TEST_ADDRESS, 5000)
-        ).to.revertedWith("Caller is not allowed to operate");
+        await expect(parameters.connect(alice).setUpperSlack(TEST_ADDRESS, 5000)).to.revertedWith(
+          "Caller is not allowed to operate"
+        );
       });
 
       it("should return the dafault value if the address not registered", async () => {
@@ -227,10 +230,7 @@ describe("Parameters", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setUpperSlack(TEST_ADDRESS, 5000)).to.emit(
-          parameters,
-          "UpperSlack"
-        );
+        await expect(parameters.setUpperSlack(TEST_ADDRESS, 5000)).to.emit(parameters, "UpperSlack");
       });
     });
 
@@ -243,9 +243,9 @@ describe("Parameters", function () {
 
       it("should only allow setting attempt by the admin", async () => {
         await parameters.setUpperSlack(TEST_ADDRESS, 6000);
-        await expect(
-          parameters.connect(alice).setLowerSlack(TEST_ADDRESS, 5000)
-        ).to.revertedWith("Caller is not allowed to operate");
+        await expect(parameters.connect(alice).setLowerSlack(TEST_ADDRESS, 5000)).to.revertedWith(
+          "Caller is not allowed to operate"
+        );
       });
 
       it("should return the dafault value if the address not registered", async () => {
@@ -262,10 +262,7 @@ describe("Parameters", function () {
 
       it("should emit the event", async () => {
         await parameters.setUpperSlack(TEST_ADDRESS, 6000);
-        await expect(parameters.setLowerSlack(TEST_ADDRESS, 5000)).to.emit(
-          parameters,
-          "LowerSlack"
-        );
+        await expect(parameters.setLowerSlack(TEST_ADDRESS, 5000)).to.emit(parameters, "LowerSlack");
       });
     });
     describe("setWithdrawable", function () {
@@ -275,9 +272,9 @@ describe("Parameters", function () {
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await expect(
-          parameters.connect(alice).setWithdrawable(TEST_ADDRESS, 604800)
-        ).to.revertedWith("Caller is not allowed to operate");
+        await expect(parameters.connect(alice).setWithdrawable(TEST_ADDRESS, 604800)).to.revertedWith(
+          "Caller is not allowed to operate"
+        );
       });
 
       it("should return the dafault value if the address not registered", async () => {
@@ -291,10 +288,7 @@ describe("Parameters", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setWithdrawable(TEST_ADDRESS, 604800)).to.emit(
-          parameters,
-          "WithdrawableSet"
-        );
+        await expect(parameters.setWithdrawable(TEST_ADDRESS, 604800)).to.emit(parameters, "WithdrawableSet");
       });
     });
 
@@ -306,12 +300,8 @@ describe("Parameters", function () {
         );
 
         expect(
-          await parameters.getCondition(
-            "0x0000000000000000000000000000000000000000000000000000000000000000"
-          )
-        ).to.equal(
-          "0x0000000000000000000000000000000000000000000000000000000000000001"
-        );
+          await parameters.getCondition("0x0000000000000000000000000000000000000000000000000000000000000000")
+        ).to.equal("0x0000000000000000000000000000000000000000000000000000000000000001");
       });
 
       it("should only allow setting attempt by the admin", async () => {
@@ -331,12 +321,8 @@ describe("Parameters", function () {
           "0x0000000000000000000000000000000000000000000000000000000000000002"
         );
         expect(
-          await parameters.getCondition(
-            "0x0000000000000000000000000000000000000000000000000000000000000001"
-          )
-        ).to.equal(
-          "0x0000000000000000000000000000000000000000000000000000000000000002"
-        );
+          await parameters.getCondition("0x0000000000000000000000000000000000000000000000000000000000000001")
+        ).to.equal("0x0000000000000000000000000000000000000000000000000000000000000002");
       });
 
       it("should emit the event", async () => {
@@ -356,9 +342,9 @@ describe("Parameters", function () {
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await expect(
-          parameters.connect(alice).setMaxList(TEST_ADDRESS, 10)
-        ).to.revertedWith("Caller is not allowed to operate");
+        await expect(parameters.connect(alice).setMaxList(TEST_ADDRESS, 10)).to.revertedWith(
+          "Caller is not allowed to operate"
+        );
       });
 
       it("should return the dafault value if the address not registered", async () => {
@@ -372,10 +358,7 @@ describe("Parameters", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setMaxList(TEST_ADDRESS, 10)).to.emit(
-          parameters,
-          "MaxListSet"
-        );
+        await expect(parameters.setMaxList(TEST_ADDRESS, 10)).to.emit(parameters, "MaxListSet");
       });
     });
     describe("setFeeRate", function () {
@@ -385,9 +368,9 @@ describe("Parameters", function () {
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await expect(
-          parameters.connect(alice).setFeeRate(TEST_ADDRESS, 20000)
-        ).to.revertedWith("Caller is not allowed to operate");
+        await expect(parameters.connect(alice).setFeeRate(TEST_ADDRESS, 20000)).to.revertedWith(
+          "Caller is not allowed to operate"
+        );
       });
 
       it("should return the dafault value if the address not registered", async () => {
@@ -401,10 +384,7 @@ describe("Parameters", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setFeeRate(TEST_ADDRESS, 20000)).to.emit(
-          parameters,
-          "FeeRateSet"
-        );
+        await expect(parameters.setFeeRate(TEST_ADDRESS, 20000)).to.emit(parameters, "FeeRateSet");
       });
     });
   });

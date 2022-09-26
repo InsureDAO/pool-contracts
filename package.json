@@ -1,43 +1,51 @@
 {
-  "name": "insuredao-contract",
-  "version": "1.0.0",
-  "description": "",
+  "name": "@insuredao/pool-contracts",
+  "version": "1.0.2",
+  "description": "Core smart contracts of InsureDAO",
   "main": "hardhat.config.js",
   "directories": {
     "test": "test"
   },
-  "dependencies": {
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/InsureDAO/pool-contracts.git"
+  },
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/insureDAO/pool-contracts/issues"
+  },
+  "homepage": "https://www.insuredao.fi/",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.0",
+    "@nomiclabs/hardhat-etherscan": "^3.1.0",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/contracts": "^4.3.2",
+    "@openzeppelin/test-helpers": "^0.5.6",
     "abdk-libraries-solidity": "^3.0.0",
+    "chai": "^4.2.0",
     "dotenv": "^10.0.0",
     "ethereum-waffle": "^3.2.0",
-    "ethers": "^5.3.1",
-    "solidity-coverage": "^0.7.16"
-  },
-  "author": "@kohshiba",
-  "license": "GPL-3.0",
-  "devDependencies": {
-    "@nomiclabs/hardhat-etherscan": "^2.1.8",
-    "@openzeppelin/test-helpers": "^0.5.6",
-    "chai": "^4.2.0",
     "fs": "^0.0.1-security",
     "ganache-cli": "^6.10.1",
     "hardhat": "^2.8.3",
     "hardhat-contract-sizer": "^2.0.3",
+    "husky": "^8.0.0",
     "keccak256": "^1.0.3",
     "merkletreejs": "^0.2.24",
     "mocha": "^8.1.1",
-    "solc": "0.6.0"
+    "prettier": "^2.7.1",
+    "prettier-plugin-solidity": "^1.0.0-dev.22",
+    "pretty-quick": "^3.1.3",
+    "solc": "0.6.0",
+    "solidity-coverage": "^0.7.16"
   },
   "scripts": {
     "compile": "npx hardhat compile",
-    "test": "npx hardhat test"
-  },
-  "bugs": {
-    "url": "https://github.com/insureDAO/pool-contracts/issues"
-  },
-  "homepage": "https://github.com/insureDAO/pool-contracts#readme"
+    "test": "npx hardhat test",
+    "prepare": "husky install"
+  }
 }

@@ -1,4 +1,4 @@
-pragma solidity 0.8.10;
+pragma solidity 0.8.12;
 
 interface IIndexTemplate {
     function compensate(uint256) external returns (uint256 _compensated);
@@ -11,6 +11,7 @@ interface IIndexTemplate {
 
     //onlyOwner
     function setLeverage(uint256 _target) external;
+
     function set(
         uint256 _indexA,
         uint256 _indexB,
