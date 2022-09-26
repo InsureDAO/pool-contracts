@@ -235,9 +235,10 @@ describe("Index", function () {
 
   describe("adjustAlloc", function () {
     beforeEach(async () => {
-      await index.set("0", "0", market1.address, defaultAllocPoint); //set market1 to the Index
-      await index.set("1", "0", market2.address, defaultAllocPoint); //set market2 to the Index
-      await index.set("2", "0", market3.address, defaultAllocPoint); //set market2 to the Index
+      //set markets to the Index
+      await index["set(uint256,address,uint256)"]("0", market1.address, defaultAllocPoint);
+      await index["set(uint256,address,uint256)"]("1", market2.address, defaultAllocPoint);
+      await index["set(uint256,address,uint256)"]("2", market3.address, defaultAllocPoint);
 
       await index.setLeverage(targetLeverage); //2x
     });
@@ -604,6 +605,7 @@ describe("Index", function () {
         ],
       });
     });
+
     it("Paused pool withdraw all (w/ income)", async function () {
       await index.connect(alice).deposit(depositAmount);
       await index.setLeverage(targetLeverage.div(2).mul(3));
@@ -741,7 +743,7 @@ describe("Index", function () {
        * market3 = 10000
        */
 
-      await index.set(0, 0, market1.address, ZERO);
+      await index["set(uint256,uint256)"](0, ZERO);
 
       /***
        * 10000 deposit

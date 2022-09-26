@@ -14,6 +14,7 @@ import "../interfaces/IParameters.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IRegistry.sol";
 import "../interfaces/IIndexTemplate.sol";
+import "hardhat/console.sol";
 
 contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     /**
@@ -77,12 +78,12 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     struct IndexInfo {
         uint256 credit; //How many credit (equal to liquidity) the index has allocated
         uint256 rewardDebt; // Reward debt. *See explanation below.
-        uint256 index; //index number
-        bool exist; //true if the index has allocated credit
+        uint256 slot; //index number within indexList. incremented by 1.
     }
 
     mapping(address => IndexInfo) public indices;
     address[] public indexList;
+    uint256 public indexLength;
 
     //
     // * We do some fancy math for premium calculation of indices.
@@ -341,32 +342,63 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * Index interactions
      */
 
-    /**
-     * @notice Register an index that can allocate credit to the pool
-     * @param _index index number of an index pool to get registered in the pool
-     */
+    function registerIndex() external {
+        require(IRegistry(registry).isListed(msg.sender), "Not an Official Pool");
+        require(indices[msg.sender].slot == 0, "Already Registered");
 
-    function registerIndex(uint256 _index) external override {
-        require(IRegistry(registry).isListed(msg.sender), "ERROR: UNREGISTERED_INDEX");
-        require(_index <= parameters.getMaxList(address(this)), "ERROR: EXCEEEDED_MAX_LIST");
-        uint256 _length = indexList.length;
-        if (_length <= _index) {
-            require(_length == _index, "ERROR: BAD_INDEX");
-            indexList.push(msg.sender);
-            indices[msg.sender].exist = true;
-            indices[msg.sender].index = _index;
+        uint256 _nextArrayIndex = indexLength;
+        require(_nextArrayIndex <= parameters.getMaxList(address(this)), "ERROR: EXCEEEDED_MAX_LIST");
+
+        indices[msg.sender].slot = _nextArrayIndex + 1;
+
+        if (_nextArrayIndex != indexList.length) {
+            indexList[_nextArrayIndex] = msg.sender;
         } else {
-            address _indexAddress = indexList[_index];
-            if (_indexAddress != address(0) && _indexAddress != msg.sender) {
-                require(indices[msg.sender].credit == 0, "ERROR: ALREADY_ALLOCATED");
-                require(indices[_indexAddress].credit == 0, "ERROR: WITHDRAW_CREDIT_FIRST");
+            indexList.push(msg.sender);
+        }
 
-                indices[_indexAddress].index = 0;
-                indices[_indexAddress].exist = false;
-                indices[msg.sender].index = _index;
-                indices[msg.sender].exist = true;
-                indexList[_index] = msg.sender;
-            }
+        ++indexLength;
+    }
+
+    /**
+     * @notice
+     * @dev called by index pool
+     */
+    function unregisterIndex() external {
+        require(marketStatus == MarketStatus.Trading, "POOL_IS_NOT_IN_TRADING_STATUS");
+        IndexInfo storage _index = indices[msg.sender];
+        require(_index.slot != 0, "NOT_REGISTERED");
+
+        if (_index.credit != 0) {
+            //withdraw credits of the index pool
+            _withdrawCredit(_index.credit, msg.sender);
+        }
+
+        _index.rewardDebt = 0;
+
+        _removeIndex(_index);
+    }
+
+    function _removeIndex(IndexInfo storage _index) internal {
+        //Delete old index
+        uint256 _slot = _index.slot;
+        _index.slot = 0;
+
+        --indexLength;
+
+        //Shift array
+        if (indexLength != 0) {
+            // [A, B, C] => [C, B, 0]
+            uint256 _latestArrayIndex = indexLength;
+            address _latestAddress = indexList[_latestArrayIndex];
+
+            indexList[_latestArrayIndex] = address(0);
+
+            indexList[_slot - 1] = _latestAddress;
+            indices[_latestAddress].slot = _slot;
+        } else {
+            // [A] => [0]
+            indexList[0] = address(0);
         }
     }
 
@@ -378,7 +410,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     function allocateCredit(uint256 _credit) external override returns (uint256 _pending) {
         IndexInfo storage _index = indices[msg.sender];
-        require(_index.exist, "ALLOCATE_CREDIT_BAD_CONDITIONS");
+        require(_index.slot != 0, "ALLOCATE_CREDIT_BAD_CONDITIONS");
 
         uint256 _rewardPerCredit = rewardPerCredit;
 
@@ -401,21 +433,25 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @notice An index withdraw credit and earn accrued premium
      * @param _credit credit (liquidity amount) to be withdrawn from this pool
      * @return _pending pending preium for the caller index
+     * @dev called from index pool
      */
-    function withdrawCredit(uint256 _credit) external override returns (uint256 _pending) {
-        require(marketStatus == MarketStatus.Trading, "POOL_IS_IN_TRADING_STATUS");
+    function withdrawCredit(uint256 _credit) external override returns (uint256) {
+        require(marketStatus == MarketStatus.Trading, "POOL_IS_NOT_IN_TRADING_STATUS");
 
-        IndexInfo storage _index = indices[msg.sender];
+        return _withdrawCredit(_credit, msg.sender);
+    }
 
-        require(
-            _index.exist && _index.credit >= _credit && _credit <= _availableBalance(),
-            "WITHDRAW_CREDIT_BAD_CONDITIONS"
-        );
+    function _withdrawCredit(uint256 _credit, address _indexAddress) internal returns (uint256) {
+        IndexInfo storage _index = indices[_indexAddress];
+
+        require(_index.slot != 0, "not registered");
+        require(_index.credit >= _credit, "exceed credit");
+        require(_credit <= _availableBalance(), "exceed available credit");
 
         uint256 _rewardPerCredit = rewardPerCredit;
 
         //calculate acrrued premium
-        _pending = _sub((_index.credit * _rewardPerCredit) / MAGIC_SCALE_1E6, _index.rewardDebt);
+        uint256 _pending = _sub((_index.credit * _rewardPerCredit) / MAGIC_SCALE_1E6, _index.rewardDebt);
 
         //Withdraw liquidity
         if (_credit != 0) {
@@ -423,16 +459,18 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
             unchecked {
                 _index.credit -= _credit;
             }
-            emit CreditDecrease(msg.sender, _credit);
+            emit CreditDecrease(_indexAddress, _credit);
         }
 
         //withdraw acrrued premium
         if (_pending != 0) {
-            vault.transferAttribution(_pending, msg.sender);
+            vault.transferAttribution(_pending, _indexAddress);
             attributionDebt -= _pending;
         }
 
         _index.rewardDebt = (_index.credit * _rewardPerCredit) / MAGIC_SCALE_1E6;
+
+        return _pending;
     }
 
     /**
@@ -602,8 +640,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         marketStatus = MarketStatus.Payingout;
         pendingEnd = block.timestamp + _pending;
 
-        uint256 indexLength = indexList.length;
-        for (uint256 i; i < indexLength; ) {
+        uint256 _indexLength = indexLength;
+        for (uint256 i; i < _indexLength; ) {
             if (indices[indexList[i]].credit != 0) {
                 IIndexTemplate(indexList[i]).lock();
             }
@@ -662,8 +700,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         marketStatus = MarketStatus.Trading;
 
-        uint256 indexLength = indexList.length;
-        for (uint256 i; i < indexLength; ) {
+        uint256 _indexLength = indexLength;
+        for (uint256 i; i < _indexLength; ) {
             IIndexTemplate(indexList[i]).adjustAlloc();
             unchecked {
                 ++i;
@@ -684,8 +722,8 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         }
 
         uint256 _actualDeduction;
-        uint256 indexLength = indexList.length;
-        for (uint256 i; i < indexLength; ) {
+        uint256 _indexLength = indexLength;
+        for (uint256 i; i < _indexLength; ) {
             address _index = indexList[i];
             uint256 _credit = indices[_index].credit;
 

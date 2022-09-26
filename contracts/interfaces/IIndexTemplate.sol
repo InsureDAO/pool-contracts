@@ -14,7 +14,6 @@ interface IIndexTemplate {
 
     function set(
         uint256 _indexA,
-        uint256 _indexB,
         address _pool,
         uint256 _allocPoint
     ) external;

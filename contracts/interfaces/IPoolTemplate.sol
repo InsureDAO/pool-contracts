@@ -6,6 +6,8 @@ interface IPoolTemplate {
         Payingout
     }
 
+    function indexLength() external returns (uint256);
+
     function deposit(uint256 _amount) external returns (uint256 _mintAmount);
 
     function requestWithdraw(uint256 _amount) external;
@@ -33,7 +35,9 @@ interface IPoolTemplate {
 
     function unlock(uint256 _id) external;
 
-    function registerIndex(uint256 _index) external;
+    function registerIndex() external;
+
+    function unregisterIndex() external;
 
     function allocateCredit(uint256 _credit) external returns (uint256 _mintAmount);
 
