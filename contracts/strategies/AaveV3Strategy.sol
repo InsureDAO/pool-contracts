@@ -20,19 +20,28 @@ contract AaveV3Strategy is IController {
     IAaveV3Reward public immutable aaveReward;
     IExchangeLogic public exchangeLogic;
 
-    IERC20 public immutable usdc;
-    IERC20 public immutable ausdc;
-    IERC20 public aaveRewardToken;
-    address[] public supplyingAssets;
-
+    /// @inheritdoc IController
     uint256 public maxManagingRatio;
+
+    /// @inheritdoc IController
     uint256 public managingFund;
 
+    /// @notice We use usdc as vault asset
+    IERC20 public immutable usdc;
+
+    /// @dev Supplying USDC to Aave pool, aUSDC is minted as your position.
+    IERC20 public immutable ausdc;
+
+    /// @notice Reward token could be changed by Aave. Owner need to reflect it properly.
+    IERC20 public aaveRewardToken;
+
+    /// @dev Current supplying assets array used to claim reward. This should be a*** token.
+    address[] public supplyingAssets;
+
+    /// @dev This variable is significant to avoid locking asset in Aave pool.
     uint256 public aaveMaxOccupancyRatio;
 
-    /**
-    @notice internal multiplication scale 1e6 to reduce decimal truncation
-    */
+    /// @dev internal multiplication scale 1e6 to reduce decimal truncation
     uint256 private constant MAGIC_SCALE_1E6 = 1e6; //
 
     modifier onlyOwner() {
@@ -94,6 +103,8 @@ contract AaveV3Strategy is IController {
     /**
      * Controller methods
      */
+
+    /// @inheritdoc IController
     function adjustFund() external override {
         uint256 expectUtilizeAmount = (totalValueAll() * maxManagingRatio) / MAGIC_SCALE_1E6;
         if (expectUtilizeAmount > managingFund) {
@@ -104,21 +115,7 @@ contract AaveV3Strategy is IController {
         }
     }
 
-    function _pullFund(uint256 _amount) internal {
-        if (_calcManagingRatio(managingFund + _amount) > maxManagingRatio) revert ExceedManagingRatio();
-
-        // receive usdc from the vault
-        vault.utilize(_amount);
-        emit FundPulled(address(vault), _amount);
-
-        // directly utilize all amount
-        _utilize(_amount);
-
-        unchecked {
-            managingFund += _amount;
-        }
-    }
-
+    /// @inheritdoc IController
     function returnFund(uint256 _amount) external onlyVault {
         _unutilize(_amount);
         usdc.safeTransfer(address(vault), _amount);
@@ -130,6 +127,13 @@ contract AaveV3Strategy is IController {
         emit FundReturned(address(vault), _amount);
     }
 
+    /// @inheritdoc IController
+    function setMaxManagingRatio(uint256 _ratio) external override onlyOwner withinValidRatio(_ratio) {
+        maxManagingRatio = _ratio;
+        emit MaxManagingRatioSet(_ratio);
+    }
+
+    /// @inheritdoc IController
     function emigrate(address _to) external override onlyVault {
         if (_to == address(0)) revert ZeroAddress();
 
@@ -149,6 +153,7 @@ contract AaveV3Strategy is IController {
         managingFund = 0;
     }
 
+    /// @inheritdoc IController
     function immigrate(address _from) external override {
         if (_from == address(0)) revert ZeroAddress();
         if (_from == address(this)) revert MigrateToSelf();
@@ -165,6 +170,7 @@ contract AaveV3Strategy is IController {
         managingFund = _amount;
     }
 
+    /// @inheritdoc IController
     function emergencyExit(address _to) external onlyOwner {
         if (_to == address(0)) revert ZeroAddress();
 
@@ -176,55 +182,64 @@ contract AaveV3Strategy is IController {
         managingFund -= _aaveBalance;
     }
 
+    /// @inheritdoc IController
     function currentManagingRatio() public view returns (uint256) {
         return _calcManagingRatio(managingFund);
     }
 
+    /// @dev Internal function to pull fund from a vault. This is called only in adjustFund().
+    function _pullFund(uint256 _amount) internal {
+        if (_calcManagingRatio(managingFund + _amount) > maxManagingRatio) revert ExceedManagingRatio();
+
+        // receive usdc from the vault
+        vault.utilize(_amount);
+        emit FundPulled(address(vault), _amount);
+
+        // directly utilize all amount
+        _utilize(_amount);
+
+        unchecked {
+            managingFund += _amount;
+        }
+    }
+
+    /// @notice Returns sum of vault available asset and controller managing fund.
+    function totalValueAll() public view returns (uint256) {
+        return vault.available() + managingFund;
+    }
+
+    /// @dev Calculate what percentage of a vault fund to be utilized from amount given.
     function _calcManagingRatio(uint256 _amount) internal view returns (uint256 _managingRatio) {
         unchecked {
             _managingRatio = (_amount * MAGIC_SCALE_1E6) / totalValueAll();
         }
     }
 
-    function totalValueAll() public view returns (uint256) {
-        return vault.available() + managingFund;
-    }
-
     /**
      * Strategy methods
      */
-    function _utilize(uint256 _amount) internal {
-        if (_amount == 0) revert AmountZero();
-        if (managingFund + _amount > _calcAaveNewSupplyCap()) revert AaveSupplyCapExceeded();
 
-        // supply utilized assets into aave pool
-        usdc.approve(address(aave), _amount);
-        aave.supply(address(usdc), _amount, address(this), 0);
-        emit SupplyIncreased(address(usdc), _amount);
-    }
-
-    function _unutilize(uint256 _amount) internal {
-        if (_amount == 0) revert AmountZero();
-        if (_amount > managingFund) revert InsufficientManagingFund();
-
-        aave.withdraw(address(usdc), _amount, address(this));
-        emit SupplyDecreased(address(usdc), _amount);
-    }
-
-    function setMaxManagingRatio(uint256 _ratio) external override onlyOwner withinValidRatio(_ratio) {
-        maxManagingRatio = _ratio;
-        emit MaxManagingRatioSet(_ratio);
-    }
-
+    /**
+     * @notice Sets aaveMaxOccupancyRatio
+     * @param _ratio The portion of the aave total supply
+     */
     function setAaveMaxOccupancyRatio(uint256 _ratio) external onlyOwner withinValidRatio(_ratio) {
         aaveMaxOccupancyRatio = _ratio;
         emit MaxOccupancyRatioSet(_ratio);
     }
 
+    /**
+     * @notice Sets exchangeLogic contract for the strategy
+     * @param _exchangeLogic ExchangeLogic contract
+     */
     function setExchangeLogic(IExchangeLogic _exchangeLogic) public onlyOwner {
         _setExchangeLogic(_exchangeLogic);
     }
 
+    /**
+     * @notice Sets Aave reward token to be claimed as a token could be changed.
+     * @param _token New reward token to be claimed
+     */
     function setAaveRewardToken(IERC20 _token) public onlyOwner {
         if (address(_token) == address(0)) revert ZeroAddress();
 
@@ -240,6 +255,10 @@ contract AaveV3Strategy is IController {
         IERC20(_token).safeApprove(_swapper, type(uint256).max);
     }
 
+    /**
+     * @notice Claims specific amount of reward token. Claimed token is automatically compounded
+     * @param _amount The amount of reward token to be claimed
+     */
     function withdrawReward(uint256 _amount) external onlyOwner {
         if (_amount == 0) revert AmountZero();
         if (_amount > getUnclaimedReward()) revert InsufficientRewardToWithdraw();
@@ -255,6 +274,9 @@ contract AaveV3Strategy is IController {
         managingFund += _swapped;
     }
 
+    /**
+     * @notice Claim all reward token. Claimed token is automatically compounded
+     */
     function withdrawAllReward() external onlyOwner {
         uint256 _claimable = getUnclaimedReward();
         if (_claimable == 0) revert NoRewardClaimable();
@@ -270,10 +292,43 @@ contract AaveV3Strategy is IController {
         managingFund += _swapped;
     }
 
+    /**
+     * @notice Gets amount of unclaimed reward token from Aave.
+     */
     function getUnclaimedReward() public view returns (uint256) {
         return aaveReward.getUserRewards(supplyingAssets, address(this), address(aaveRewardToken));
     }
 
+    /**
+     * @dev Supplies given amount of USDC to Aave pool. If all supplying asset of this contract exceeds
+     *      Aave total supply, transaction failed to be revereted.
+     * @param _amount The amount of USDC to supply
+     */
+    function _utilize(uint256 _amount) internal {
+        if (_amount == 0) revert AmountZero();
+        if (managingFund + _amount > _calcAaveNewSupplyCap()) revert AaveSupplyCapExceeded();
+
+        // supply utilized assets into aave pool
+        usdc.approve(address(aave), _amount);
+        aave.supply(address(usdc), _amount, address(this), 0);
+        emit SupplyIncreased(address(usdc), _amount);
+    }
+
+    /**
+     * @dev Withdraws given amount of supplying USDC from Aave pool.
+     * @param _amount The amount of USDC to withdraw
+     */
+    function _unutilize(uint256 _amount) internal {
+        if (_amount == 0) revert AmountZero();
+        if (_amount > managingFund) revert InsufficientManagingFund();
+
+        aave.withdraw(address(usdc), _amount, address(this));
+        emit SupplyDecreased(address(usdc), _amount);
+    }
+
+    /**
+     * @dev Calculates the amount limit of aUSDC token to be supplied.
+     */
     function _calcAaveNewSupplyCap() internal view returns (uint256 _available) {
         uint256 _reserve = ausdc.totalSupply();
 
@@ -282,6 +337,9 @@ contract AaveV3Strategy is IController {
         }
     }
 
+    /**
+     * @dev Internal function that actually set exchange logic to the contract.
+     */
     function _setExchangeLogic(IExchangeLogic _exchangeLogic) private {
         if (address(_exchangeLogic) == address(0)) revert ZeroAddress();
         if (address(_exchangeLogic) == address(exchangeLogic)) revert SameAddressUsed();
@@ -298,6 +356,10 @@ contract AaveV3Strategy is IController {
         IERC20(aaveRewardToken).safeApprove(_swapper, type(uint256).max);
     }
 
+    /**
+     * @dev Swap function to be used reward token conversion.
+     *      You can see more details in the IExchangeLogic interface.
+     */
     function _swap(
         address _tokenIn,
         address _tokenOut,
