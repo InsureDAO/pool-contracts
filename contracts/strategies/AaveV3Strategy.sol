@@ -11,6 +11,14 @@ import "../interfaces/IAaveV3Reward.sol";
 import "../interfaces/IExchangeLogic.sol";
 import "../errors/CommonError.sol";
 
+/**
+ * @title AaveV3Strategy
+ * @author @InsureDAO
+ * @notice This contract pulls a vault fund then utilize for various strategies.
+ * @dev This strategy also has Controller functionality because currently the controller
+ *      has 1 strategy and the strategy is not complicated. In the future, Strategy methods
+ *      will be generalized as interface and separated from Controller.
+ */
 contract AaveV3Strategy is IController {
     using SafeERC20 for IERC20;
 

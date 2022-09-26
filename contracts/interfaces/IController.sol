@@ -1,6 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.12;
 
+/**
+ * @title IController
+ * @author @InsureDAO
+ * @dev Defines the basic interface for an InsureDAO Controller.
+ * @notice Controller invests market deposited tokens on behalf of Vault contract.
+ *         This contract gets utilized a vault assets then invests these assets via
+ *         Strategy contract. To Avoid unnecessary complexity, sometimes the controller
+ *         includes the functionality of a strategy.
+ */
 interface IController {
     /**
      * @notice Utilizes a vault fund to strategies, which invest fund to
