@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.12;
 
 import "../mocks/TestERC20Mock.sol";
@@ -20,30 +21,36 @@ contract ControllerMock is IController {
         ownership = IOwnership(_ownership);
     }
 
-    function withdraw(address _to, uint256 _amount) external {
+    function returnFund(uint256 _amount) external {
         require(msg.sender == address(vault));
-        token.transfer(_to, _amount);
+        token.transfer(address(vault), _amount);
     }
 
     function valueAll() external view returns (uint256) {
         return token.balanceOf(address(this));
     }
 
-    function utilizeAmount() external returns (uint256) {
+    function managingFund() external view returns (uint256) {
         return vault.valueAll() / 2; //for test
+    }
+
+    function maxManagingRatio() external pure returns (uint256) {
+        return 1e6;
     }
 
     function setVault(address _address) external onlyOwner {
         vault = IVault(_address);
     }
 
+    /**
     function yield() external onlyOwner {
-        uint256 _amount = vault.utilize();
-        uint256 _mint = (_amount * 5) / 10;
+        uint256 _num = vault.utilize();
+        uint256 _mint = (_num * 5) / 10;
         token.mint(address(this), _mint);
     }
+    */
 
-    function earn(address, uint256 _amount) external {
+    function pullFund(uint256 _amount) external {
         //do something for yield here in real contracts
         token.mint(address(this), _amount);
     }
@@ -53,4 +60,16 @@ contract ControllerMock is IController {
         uint256 amount = token.balanceOf(address(this));
         token.transfer(_to, amount);
     }
+
+    function adjustFund() external {}
+
+    function emigrate(address _to) external {}
+
+    function immigrate(address _from) external {}
+
+    function emergencyExit(address _to) external {}
+
+    function setMaxManagingRatio(uint256 _ratio) external {}
+
+    function currentManagingRatio() external view returns (uint256) {}
 }

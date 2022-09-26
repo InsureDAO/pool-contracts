@@ -1,0 +1,6 @@
+@ensdomains/=node_modules/@ensdomains/
+@openzeppelin/=node_modules/@openzeppelin/
+abdk-libraries-solidity/=node_modules/abdk-libraries-solidity/
+ds-test/=lib/forge-std/lib/ds-test/src/
+forge-std/=lib/forge-std/src/
+hardhat/=node_modules/hardhat/

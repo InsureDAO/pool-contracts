@@ -25,6 +25,7 @@
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/contracts": "^4.3.2",
     "@openzeppelin/test-helpers": "^0.5.6",
+    "@uniswap/v3-periphery": "^1.4.1",
     "abdk-libraries-solidity": "^3.0.0",
     "chai": "^4.2.0",
     "dotenv": "^10.0.0",
@@ -45,7 +46,9 @@
   },
   "scripts": {
     "compile": "npx hardhat compile",
-    "test": "npx hardhat test",
+    "test:hardhat": "npx hardhat test",
+    "test:forge": "forge test -vvv --watch",
+    "cov:forge": "source scripts/test/check-coverage.sh",
     "prepare": "husky install"
   }
 }

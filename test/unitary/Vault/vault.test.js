@@ -90,7 +90,7 @@ describe("Vault", function () {
       await dai.connect(alice).approve(vault.address, 10000);
     });
 
-    it("allows add and withdraw value", async () => {
+    it.skip("allows add and withdraw value", async () => {
       await vault.connect(alice).addValue(10000, alice.address, alice.address);
       await controller.yield();
 
@@ -102,25 +102,7 @@ describe("Vault", function () {
       expect(await dai.balanceOf(alice.address)).to.equal(107500);
     });
 
-    it("DISALLOWS controller to call utilize when disabled", async () => {
-      await vault.connect(alice).addValue(10000, alice.address, alice.address);
-      await vault.connect(creator).setKeeper(NULL_ADDRESS);
-
-      await expect(controller.yield()).to.revertedWith("ERROR_NOT_KEEPER");
-    });
-
-    it("allows only keeper to call utilize when address is set", async () => {
-      await vault.connect(alice).addValue(10000, alice.address, alice.address);
-      await vault.connect(creator).setKeeper(controller.address);
-      await controller.yield();
-
-      expect(await vault["underlyingValue(address)"](alice.address)).to.equal(17500);
-      expect(await vault.getPricePerFullShare()).to.equal("1750000");
-
-      await expect(vault.connect(alice).utilize()).to.revertedWith("ERROR_NOT_KEEPER");
-    });
-
-    it("allows transfer value", async () => {
+    it.skip("allows transfer value", async () => {
       await vault.connect(alice).addValue(10000, alice.address, alice.address);
       await controller.yield();
 

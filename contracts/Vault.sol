@@ -30,14 +30,12 @@ contract Vault is IVault {
     mapping(address => uint256) public attributions;
     uint256 public totalAttributions;
 
-    address public keeper; //keeper can operate utilize(), if address zero, anyone can operate.
-    uint256 public balance; //balance of underlying token
+    uint256 public override balance; //balance of underlying token
     uint256 public totalDebt; //total debt balance. 1debt:1token
 
     uint256 private constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
 
     event ControllerSet(address controller);
-    event KeeperChanged(address keeper);
 
     modifier onlyOwner() {
         require(ownership.owner() == msg.sender, "Caller is not allowed to operate");
@@ -46,6 +44,11 @@ contract Vault is IVault {
 
     modifier onlyMarket() {
         require(IRegistry(registry).isListed(msg.sender), "ERROR_ONLY_MARKET");
+        _;
+    }
+
+    modifier onlyController() {
+        require(address(controller) == msg.sender, "Caller is not allowed to operate");
         _;
     }
 
@@ -368,30 +371,6 @@ contract Vault is IVault {
     }
 
     /**
-     * @notice utilize all available underwritten funds into the set controller.
-     * @return _amount amount of tokens utilized
-     */
-    function utilize() external override returns (uint256) {
-        require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
-
-        address _token = token;
-        if (keeper != address(0)) {
-            require(msg.sender == keeper, "ERROR_NOT_KEEPER");
-        }
-
-        uint256 _amount = controller.utilizeAmount(); //balance
-        require(_amount <= available(), "EXCEED_AVAILABLE");
-
-        if (_amount != 0) {
-            IERC20(_token).safeTransfer(address(controller), _amount);
-            balance -= _amount;
-            controller.earn(_token, _amount);
-        }
-
-        return _amount;
-    }
-
-    /**
      * @notice get attribution number for the specified address
      * @param _target target address
      * @return amount of attritbution
@@ -449,24 +428,10 @@ contract Vault is IVault {
      */
     function valueAll() public view returns (uint256) {
         if (address(controller) != address(0)) {
-            return balance + controller.valueAll();
+            return balance + controller.managingFund();
         } else {
             return balance;
         }
-    }
-
-    /**
-     * @notice internal function to unutilize the funds and keep utilization rate
-     * @param _amount amount to withdraw from controller
-     */
-    function _unutilize(uint256 _amount) internal {
-        require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
-
-        uint256 beforeBalance = IERC20(token).balanceOf(address(this));
-        controller.withdraw(address(this), _amount);
-        uint256 received = IERC20(token).balanceOf(address(this)) - beforeBalance;
-        require(received >= _amount, "ERROR_INSUFFICIENT_RETURN_VALUE");
-        balance += received;
     }
 
     /**
@@ -486,6 +451,43 @@ contract Vault is IVault {
     }
 
     /**
+     * Interaction with Controller
+     */
+
+    /**
+     * @notice utilize all available underwritten funds into the set controller.
+     * @return _amount amount of tokens utilized
+     */
+    function utilize(uint256 _amount) external onlyController returns (uint256) {
+        require(_amount <= available(), "EXCEED_AVAILABLE");
+
+        if (_amount != 0) {
+            IERC20(token).safeTransfer(address(controller), _amount);
+            balance -= _amount;
+        }
+
+        return _amount;
+    }
+
+    /**
+     * @notice internal function to unutilize the funds and keep utilization rate
+     * @param _amount amount to withdraw from controller
+     */
+    function _unutilize(uint256 _amount) internal returns (uint256) {
+        require(address(controller) != address(0), "ERROR_CONTROLLER_NOT_SET");
+
+        if (_amount != 0) {
+            uint256 beforeBalance = IERC20(token).balanceOf(address(this));
+            controller.returnFund(_amount);
+            uint256 received = IERC20(token).balanceOf(address(this)) - beforeBalance;
+            require(received >= _amount, "ERROR_INSUFFICIENT_RETURN_VALUE");
+            balance += received;
+
+            return received;
+        }
+    }
+
+    /**
      * onlyOwner
      */
 
@@ -498,7 +500,7 @@ contract Vault is IVault {
         uint256 _balance = balance;
         uint256 _tokenBalance = IERC20(_token).balanceOf(address(this));
         if (_token == token && _balance < _tokenBalance) {
-            uint256 _utilized = controller.valueAll();
+            uint256 _utilized = controller.managingFund();
             uint256 _actualValue = IERC20(token).balanceOf(address(this)) + _utilized;
             uint256 _virtualValue = balance + _utilized;
             if (_actualValue > _virtualValue) {
@@ -521,25 +523,13 @@ contract Vault is IVault {
         require(_controller != address(0), "ERROR_ZERO_ADDRESS");
 
         if (address(controller) != address(0)) {
-            uint256 beforeUnderlying = controller.valueAll();
-            controller.migrate(address(_controller));
-            require(IController(_controller).valueAll() >= beforeUnderlying, "ERROR_VALUE_ALL_DECREASED");
+            uint256 beforeUnderlying = controller.managingFund();
+            controller.emigrate(address(_controller));
+            require(IController(_controller).managingFund() >= beforeUnderlying, "ERROR_VALUE_ALL_DECREASED");
         }
         controller = IController(_controller);
 
         emit ControllerSet(_controller);
-    }
-
-    /**
-     * @notice set keeper to incentivize calling utilize()
-     * @param _keeper keeper address
-     */
-    function setKeeper(address _keeper) external override onlyOwner {
-        if (keeper != _keeper) {
-            keeper = _keeper;
-        }
-
-        emit KeeperChanged(_keeper);
     }
 
     /**

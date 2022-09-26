@@ -30,11 +30,15 @@ interface IVault {
 
     function attributionValue(uint256 _attribution) external view returns (uint256);
 
-    function utilize() external returns (uint256 _amount);
+    function utilize(uint256 _amount) external returns (uint256);
 
     function valueAll() external view returns (uint256);
 
     function token() external returns (address);
+
+    function balance() external view returns (uint256);
+
+    function available() external view returns (uint256);
 
     function borrowValue(uint256 _amount, address _to) external;
 
@@ -56,6 +60,4 @@ interface IVault {
     function withdrawRedundant(address _token, address _to) external;
 
     function setController(address _controller) external;
-
-    function setKeeper(address _keeper) external;
 }
