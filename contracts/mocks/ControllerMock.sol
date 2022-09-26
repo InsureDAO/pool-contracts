@@ -34,6 +34,10 @@ contract ControllerMock is IController {
         return vault.valueAll() / 2; //for test
     }
 
+    function maxManagingRatio() external pure returns (uint256) {
+        return 1e6;
+    }
+
     function setVault(address _address) external onlyOwner {
         vault = IVault(_address);
     }
