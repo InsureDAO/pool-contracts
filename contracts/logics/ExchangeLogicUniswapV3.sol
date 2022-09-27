@@ -33,6 +33,9 @@ contract ExchangeLogicUniswapV3 is IExchangeLogic {
         uint24 _fee,
         uint256 _slippageTolerance
     ) {
+        if (_fee == 0) revert FeeTierZero();
+        if (_slippageTolerance == 0) revert ZeroSlippageTolerance();
+        if (_slippageTolerance > 1e6) revert SlippageToleranceOutOfRange();
         swapper = _router;
         quoter = IQuoter(_quoter);
         fee = _fee;
@@ -92,3 +95,5 @@ contract ExchangeLogicUniswapV3 is IExchangeLogic {
         return quoter.quoteExactOutputSingle(_tokenIn, _tokenOut, fee, _amountOutMin, sqrtPriceLimitX96);
     }
 }
+
+error FeeTierZero();

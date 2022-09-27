@@ -37,7 +37,8 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
             IERC20(ausdc),
-            IERC20(aaveRewardToken)
+            IERC20(aaveRewardToken),
+            gelatoOps
         );
 
         vm.prank(address(vault));
@@ -93,7 +94,7 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
 
     function testSetExchangeLogic() public {
         assertEq(address(strategy.exchangeLogic()), address(exchangeLogic));
-        IExchangeLogic _newLogic = new ExchangeLogicUniswapV3(uniswapV3Router, uniswapV3Quoter);
+        IExchangeLogic _newLogic = new ExchangeLogicUniswapV3(uniswapV3Router, uniswapV3Quoter, 3_000, 997_000);
         vm.prank(address(deployer));
         strategy.setExchangeLogic(_newLogic);
         assertEq(address(strategy.exchangeLogic()), address(_newLogic));
@@ -106,24 +107,25 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         assertEq(address(strategy.aaveRewardToken()), ausdc);
     }
 
-    function testWithdrawReward() public {
-        skip(1e6);
-        uint256 _unclaimed = strategy.getUnclaimedReward();
-        uint256 _fundBeforeClaiming = strategy.managingFund();
-        uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimed);
+    function testSetMinCompoundLimit() public {
         vm.prank(deployer);
-        strategy.withdrawReward(_unclaimed);
-        assertApproxEqRel(IERC20(ausdc).balanceOf(address(strategy)), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
-        assertApproxEqRel(strategy.managingFund(), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
+        strategy.setMinCompoundLimit(10e6);
+        assertEq(strategy.minCompoundLimit(), 10e6);
     }
 
-    function testWithdrawAllReward() public {
+    function testSetOps() public {
+        vm.prank(deployer);
+        strategy.setOps(alice);
+        assertEq(strategy.ops(), alice);
+    }
+
+    function testCompound() public {
         skip(1e6);
         uint256 _unclaimed = strategy.getUnclaimedReward();
         uint256 _fundBeforeClaiming = strategy.managingFund();
         uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimed);
-        vm.prank(deployer);
-        strategy.withdrawAllReward();
+        vm.prank(gelatoOps);
+        strategy.compound();
         assertApproxEqRel(IERC20(ausdc).balanceOf(address(strategy)), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
         assertApproxEqRel(strategy.managingFund(), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
     }
@@ -131,5 +133,18 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
     function testGetUnclaimedReward() public {
         skip(1e6);
         assertGt(strategy.getUnclaimedReward(), 0);
+    }
+
+    function testCheck() public {
+        (bool _canExec, bytes memory _execPayload) = strategy.check();
+        assertEq(_canExec, false);
+        assertEq(_execPayload, bytes("No enough reward to withdraw"));
+
+        vm.prank(deployer);
+        strategy.setMinCompoundLimit(1);
+        skip(1e6);
+        (_canExec, _execPayload) = strategy.check();
+        assertEq(_canExec, true);
+        assertEq(_execPayload, abi.encodeWithSelector(AaveV3Strategy.compound.selector));
     }
 }

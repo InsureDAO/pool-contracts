@@ -236,25 +236,6 @@ contract AaveV3Strategy is IController, OpsReady {
      */
 
     /**
-     * @notice Claims specific amount of reward token. Claimed token is automatically compounded
-     * @param _amount The amount of reward token to be claimed
-     */
-    function withdrawReward(uint256 _amount) external onlyOps {
-        if (_amount == 0) revert AmountZero();
-        if (_amount > getUnclaimedReward()) revert InsufficientRewardToWithdraw();
-
-        aaveReward.claimRewards(supplyingAssets, _amount, address(this), address(aaveRewardToken));
-        emit RewardClaimed(address(aaveRewardToken), _amount);
-
-        uint256 _swapped = _swap(address(aaveRewardToken), address(usdc), _amount);
-
-        // compound swapped usdc
-        _utilize(_swapped);
-
-        managingFund += _swapped;
-    }
-
-    /**
      * @notice Claims all reward token, then compounds it automatically.
      * @dev Ops address should send transactions as private in the way prevent exploit from attackers.
      */
@@ -287,7 +268,9 @@ contract AaveV3Strategy is IController, OpsReady {
      */
     function check() external override returns (bool _canExec, bytes memory _execPayload) {
         uint256 _reward = getUnclaimedReward();
-        uint256 _estimatedOutUsdc = exchangeLogic.estimateAmountOut(address(aaveRewardToken), address(usdc), _reward);
+        uint256 _estimatedOutUsdc = _reward != 0
+            ? exchangeLogic.estimateAmountOut(address(aaveRewardToken), address(usdc), _reward)
+            : 0;
 
         _canExec = _estimatedOutUsdc >= minCompoundLimit;
 
