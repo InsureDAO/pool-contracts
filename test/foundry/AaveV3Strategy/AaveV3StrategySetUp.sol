@@ -30,6 +30,8 @@ abstract contract AaveV3StrategySetUp is Test {
     address uniswapV3Router;
     address uniswapV3Quoter;
     address gelatoOps;
+    address gelatoNetwork;
+    address gelatoTaskTreasury;
 
     string OPTIMISM_RPC_URL = vm.envString("OPTIMISM_URL");
 
@@ -50,6 +52,8 @@ abstract contract AaveV3StrategySetUp is Test {
         uniswapV3Router = addresses.uniswapV3Router;
         uniswapV3Quoter = addresses.uniswapV3Quoter;
         gelatoOps = addresses.gelatoOps;
+        gelatoNetwork = addresses.gelatoNetwork;
+        gelatoTaskTreasury = addresses.gelatoTaskTreasury;
 
         vm.startPrank(deployer);
         ownership = new Ownership();

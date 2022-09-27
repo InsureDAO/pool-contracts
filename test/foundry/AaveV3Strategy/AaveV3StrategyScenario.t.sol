@@ -460,3 +460,101 @@ contract WhenMigrateAsset is AaveV3StrategySetUp {
         assertEq(IERC20(ausdc).balanceOf(alice), 900 * 1e6);
     }
 }
+
+contract WhenCreateTaskOnGelatoOps is AaveV3StrategySetUp {
+    /**
+     * @notice Actually, we are going to use Gelato Ops UI to create tasks.
+     */
+    address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    function testExecuteTaskUsingGelatoOps() public {
+        // set up
+        vm.prank(deployer);
+        strategy.setMinCompoundLimit(1);
+
+        IOps _gelatoOps = IOps(gelatoOps);
+        ITaskTreasury _taskTreasury = ITaskTreasury(gelatoTaskTreasury);
+
+        // deposit fund to treasury
+        deal(alice, 2 ether);
+        vm.prank(alice);
+        _taskTreasury.depositFunds{value: 1 ether}(alice, ETH, 1 ether);
+
+        bytes memory _resolverData = abi.encodeWithSelector(strategy.check.selector);
+        bytes memory _execData = abi.encodeWithSelector(strategy.compound.selector);
+        bytes32 _resolverHash = keccak256(abi.encode(address(strategy), _resolverData));
+
+        // create task
+        vm.prank(alice);
+        _gelatoOps.createTask(address(strategy), strategy.compound.selector, address(strategy), _resolverData);
+        skip(1e6);
+
+        // gelato ops executes task
+        vm.prank(gelatoNetwork);
+        _gelatoOps.exec(0.01 ether, ETH, alice, true, true, _resolverHash, address(strategy), _execData);
+
+        assertEq(strategy.getUnclaimedReward(), 0);
+    }
+}
+
+interface ITaskTreasury {
+    /// @notice Function to deposit Funds which will be used to execute transactions on various services
+    /// @param _receiver Address receiving the credits
+    /// @param _token Token to be credited, use "0xeeee...." for ETH
+    /// @param _amount Amount to be credited
+    function depositFunds(
+        address _receiver,
+        address _token,
+        uint256 _amount
+    ) external payable;
+}
+
+interface IOps {
+    /// @notice Create a task that tells Gelato to monitor and execute transactions on specific contracts
+    /// @dev Requires funds to be added in Task Treasury, assumes treasury sends fee to Gelato via Ops
+    /// @param _execAddress On which contract should Gelato execute the transactions
+    /// @param _execSelector Which function Gelato should execute on the _execAddress
+    /// @param _resolverAddress On which contract should Gelato check when to execute the tx
+    /// @param _resolverData Which data should be used to check on the Resolver when to execute the tx
+    function createTask(
+        address _execAddress,
+        bytes4 _execSelector,
+        address _resolverAddress,
+        bytes calldata _resolverData
+    ) external returns (bytes32 task);
+
+    /// @notice Execution API called by Gelato
+    /// @param _txFee Fee paid to Gelato for execution, deducted on the TaskTreasury
+    /// @param _feeToken Token used to pay for the execution. ETH = 0xeeeeee...
+    /// @param _taskCreator On which contract should Gelato check when to execute the tx
+    /// @param _useTaskTreasuryFunds If msg.sender's balance on TaskTreasury should pay for the tx
+    /// @param _revertOnFailure To revert or not if call to execAddress fails
+    /// @param _execAddress On which contract should Gelato execute the tx
+    /// @param _execData Data used to execute the tx, queried from the Resolver by Gelato
+    function exec(
+        uint256 _txFee,
+        address _feeToken,
+        address _taskCreator,
+        bool _useTaskTreasuryFunds,
+        bool _revertOnFailure,
+        bytes32 _resolverHash,
+        address _execAddress,
+        bytes calldata _execData
+    ) external;
+
+    /// @notice Returns TaskId of a task Creator
+    /// @param _taskCreator Address of the task creator
+    /// @param _execAddress Address of the contract to be executed by Gelato
+    /// @param _selector Function on the _execAddress which should be executed
+    /// @param _useTaskTreasuryFunds If msg.sender's balance on TaskTreasury should pay for the tx
+    /// @param _feeToken FeeToken to use, address 0 if task treasury is used
+    /// @param _resolverHash hash of resolver address and data
+    function getTaskId(
+        address _taskCreator,
+        address _execAddress,
+        bytes4 _selector,
+        bool _useTaskTreasuryFunds,
+        address _feeToken,
+        bytes32 _resolverHash
+    ) external pure returns (bytes32);
+}
