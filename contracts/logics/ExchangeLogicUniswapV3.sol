@@ -20,18 +20,23 @@ contract ExchangeLogicUniswapV3 is IExchangeLogic {
     IQuoter public immutable quoter;
 
     /// @inheritdoc IExchangeLogic
-    uint256 public slippageTolerance;
+    uint256 public immutable slippageTolerance; // 0.3%
 
     /// @dev What tier of swap fees this contract used. See detail for https://docs.uniswap.org/protocol/concepts/V3-overview/fees.
     uint24 public fee;
     /// @dev The limit for the price the swap will push the pool to. We disable this feature. See detail for https://docs.uniswap.org/protocol/guides/swaps/single-swaps
     uint160 public constant sqrtPriceLimitX96 = 0;
 
-    constructor(address _router, address _quoter) {
+    constructor(
+        address _router,
+        address _quoter,
+        uint24 _fee,
+        uint256 _slippageTolerance
+    ) {
         swapper = _router;
         quoter = IQuoter(_quoter);
-        slippageTolerance = 985_000; // 1.5%
-        fee = 3_000;
+        fee = _fee;
+        slippageTolerance = _slippageTolerance;
     }
 
     /// @inheritdoc IExchangeLogic
@@ -85,13 +90,5 @@ contract ExchangeLogicUniswapV3 is IExchangeLogic {
         if (_tokenIn == address(0) || _tokenOut == address(0)) revert ZeroAddress();
         if (_amountOutMin == 0) revert AmountZero();
         return quoter.quoteExactOutputSingle(_tokenIn, _tokenOut, fee, _amountOutMin, sqrtPriceLimitX96);
-    }
-
-    /// @inheritdoc IExchangeLogic
-    function setSlippageTolerance(uint256 _tolerance) external {
-        if (_tolerance == 0) revert ZeroSlippageTolerance();
-        if (_tolerance > 1e6) revert SlippageToleranceOutOfRange();
-
-        slippageTolerance = _tolerance;
     }
 }
