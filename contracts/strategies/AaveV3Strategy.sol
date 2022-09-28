@@ -51,8 +51,8 @@ contract AaveV3Strategy is IController, OpsReady {
     /// @dev This variable is significant to avoid locking asset in Aave pool.
     uint256 public aaveMaxOccupancyRatio;
 
-    /// @dev What minimum amount a compound should execute under.
-    uint256 public minCompoundLimit;
+    /// @dev What minimum reward a compound should be triggered by check() function.
+    uint256 public minOpsTrigger;
 
     /// @dev internal multiplication scale 1e6 to reduce decimal truncation
     uint256 private constant MAGIC_SCALE_1E6 = 1e6; //
@@ -110,7 +110,7 @@ contract AaveV3Strategy is IController, OpsReady {
 
         maxManagingRatio = MAGIC_SCALE_1E6;
         aaveMaxOccupancyRatio = (MAGIC_SCALE_1E6 * 10) / 100;
-        minCompoundLimit = 100e6;
+        minOpsTrigger = 100e6;
 
         address _swapper = IExchangeLogic(exchangeLogic).swapper();
         IERC20(aaveRewardToken).safeApprove(_swapper, type(uint256).max);
@@ -272,7 +272,7 @@ contract AaveV3Strategy is IController, OpsReady {
             ? exchangeLogic.estimateAmountOut(address(aaveRewardToken), address(usdc), _reward)
             : 0;
 
-        _canExec = _estimatedOutUsdc >= minCompoundLimit;
+        _canExec = _estimatedOutUsdc >= minOpsTrigger;
 
         if (_canExec) {
             _execPayload = abi.encodeWithSelector(this.compound.selector);
@@ -286,9 +286,9 @@ contract AaveV3Strategy is IController, OpsReady {
         ops = _ops;
     }
 
-    function setMinCompoundLimit(uint256 _min) external onlyOwner {
+    function setMinOpsTrigger(uint256 _min) external onlyOwner {
         if (_min == 0) revert AmountZero();
-        minCompoundLimit = _min;
+        minOpsTrigger = _min;
     }
 
     /**

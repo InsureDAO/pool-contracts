@@ -155,15 +155,15 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
         strategy.setAaveRewardToken(IERC20(address(0)));
     }
 
-    function testCannotSetMinCompoundLimitZero() public {
+    function testCannotSetMinOpsTriggerZero() public {
         vm.prank(deployer);
         vm.expectRevert(AmountZero.selector);
-        strategy.setMinCompoundLimit(0);
+        strategy.setMinOpsTrigger(0);
     }
 
-    function testCannotSetMinCompoundLimitWithoutOwner() public {
+    function testCannotSetMinOpsTriggerWithoutOwner() public {
         vm.expectRevert(OnlyOwner.selector);
-        strategy.setMinCompoundLimit(10e6);
+        strategy.setMinOpsTrigger(10e6);
     }
 
     function testCannotCompoundWithoutOps() public {

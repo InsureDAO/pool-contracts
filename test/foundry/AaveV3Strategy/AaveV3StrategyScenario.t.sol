@@ -470,7 +470,7 @@ contract WhenCreateTaskOnGelatoOps is AaveV3StrategySetUp {
     function testExecuteTaskUsingGelatoOps() public {
         // set up
         vm.prank(deployer);
-        strategy.setMinCompoundLimit(1);
+        strategy.setMinOpsTrigger(1);
 
         IOps _gelatoOps = IOps(gelatoOps);
         ITaskTreasury _taskTreasury = ITaskTreasury(gelatoTaskTreasury);

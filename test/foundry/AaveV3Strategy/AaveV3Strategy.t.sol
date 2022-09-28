@@ -107,10 +107,10 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         assertEq(address(strategy.aaveRewardToken()), ausdc);
     }
 
-    function testSetMinCompoundLimit() public {
+    function testSetMinOpsTrigger() public {
         vm.prank(deployer);
-        strategy.setMinCompoundLimit(10e6);
-        assertEq(strategy.minCompoundLimit(), 10e6);
+        strategy.setMinOpsTrigger(10e6);
+        assertEq(strategy.minOpsTrigger(), 10e6);
     }
 
     function testSetOps() public {
@@ -141,7 +141,7 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         assertEq(_execPayload, bytes("No enough reward to withdraw"));
 
         vm.prank(deployer);
-        strategy.setMinCompoundLimit(1);
+        strategy.setMinOpsTrigger(1);
         skip(1e6);
         (_canExec, _execPayload) = strategy.check();
         assertEq(_canExec, true);
