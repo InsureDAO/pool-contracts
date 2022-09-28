@@ -20,7 +20,7 @@ contract ExchangeLogicUniswapV3 is IExchangeLogic {
     IQuoter public immutable quoter;
 
     /// @inheritdoc IExchangeLogic
-    uint256 public immutable slippageTolerance; // 0.3%
+    uint256 public immutable slippageTolerance;
 
     /// @dev What tier of swap fees this contract used. See detail for https://docs.uniswap.org/protocol/concepts/V3-overview/fees.
     uint24 public fee;
