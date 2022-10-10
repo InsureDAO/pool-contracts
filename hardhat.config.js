@@ -67,6 +67,7 @@ module.exports = {
     goerli: {
       url: GOERLI_URL,
       accounts: [`0x${TEST_KEY}`],
+      gasPrice: 10e9, //10Gwei
     },
     mumbai: {
       url: MUMBAI_URL,
@@ -87,6 +88,7 @@ module.exports = {
   etherscan: {
     apiKey: {
       mainnet: `${ETHERSCAN_API}`,
+      goerli: `${ETHERSCAN_API}`,
       optimisticEthereum: `${OPT_ETHERSCAN_API}`,
     },
   },

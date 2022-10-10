@@ -82,7 +82,7 @@ async function main() {
   let tx = await registry.setFactory(factory.address);
   await tx.wait();
 
-  tx = await factory.approveTemplate(poolTemplate.address, true, true, false); //anyone can create pool.
+  tx = await factory.approveTemplate(poolTemplate.address, true, true, false);
   await tx.wait();
 
   //pool setup
