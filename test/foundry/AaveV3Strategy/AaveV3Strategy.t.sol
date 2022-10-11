@@ -16,16 +16,14 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         strategy.setMaxManagingRatio(0.2e6); //10% => 20%
         strategy.adjustFund(); //+900
 
-        assertEq(strategy.managingFund(), 1_800 * 1e6);
-        assertApproxEqRel(IERC20(ausdc).balanceOf(address(strategy)), 1_800 * 1e6, 0.001e18);
+        assertApproxEqRel(strategy.managingFund(), 1_800 * 1e6, 0.001e18);
     }
 
     function testReturnFund() public {
         vm.prank(address(vault));
         strategy.returnFund(100 * 1e6);
 
-        assertEq(strategy.managingFund(), 800 * 1e6);
-        assertApproxEqRel(IERC20(ausdc).balanceOf(address(strategy)), 800 * 1e6, 0.001e18); // within 0.1%
+        assertApproxEqRel(strategy.managingFund(), 800 * 1e6, 0.001e18); // within 0.1%
     }
 
     function testMigration() public {
@@ -45,11 +43,9 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
 
         //check old controller
         assertEq(strategy.managingFund(), 0);
-        assertEq(IERC20(ausdc).balanceOf(address(strategy)), 0);
 
         //check new controller
         assertEq(newController.managingFund(), 900 * 1e6);
-        assertEq(IERC20(ausdc).balanceOf(address(newController)), 900 * 1e6);
     }
 
     function testEmergencyExit() public {
@@ -69,7 +65,7 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         assertEq(strategy.totalValueAll(), 9_000 * 1e6);
     }
 
-    function testValueAll() public {
+    function testManagingFund() public {
         //managingFund: 900
         assertEq(strategy.managingFund(), 900 * 1e6);
     }

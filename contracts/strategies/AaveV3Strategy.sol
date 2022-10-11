@@ -31,9 +31,6 @@ contract AaveV3Strategy is IController {
     /// @inheritdoc IController
     uint256 public maxManagingRatio;
 
-    /// @inheritdoc IController
-    uint256 public managingFund;
-
     /// @notice We use usdc as vault asset
     IERC20 public immutable usdc;
 
@@ -113,11 +110,16 @@ contract AaveV3Strategy is IController {
      */
 
     /// @inheritdoc IController
+    function managingFund() public view override returns (uint256) {
+        return ausdc.balanceOf(address(this));
+    }
+
+    /// @inheritdoc IController
     function adjustFund() external override {
         uint256 expectUtilizeAmount = (totalValueAll() * maxManagingRatio) / MAGIC_SCALE_1E6;
-        if (expectUtilizeAmount > managingFund) {
+        if (expectUtilizeAmount > managingFund()) {
             unchecked {
-                uint256 _shortage = expectUtilizeAmount - managingFund;
+                uint256 _shortage = expectUtilizeAmount - managingFund();
                 _pullFund(_shortage);
             }
         }
@@ -127,10 +129,6 @@ contract AaveV3Strategy is IController {
     function returnFund(uint256 _amount) external onlyVault {
         _unutilize(_amount);
         usdc.safeTransfer(address(vault), _amount);
-
-        unchecked {
-            managingFund -= _amount;
-        }
 
         emit FundReturned(address(vault), _amount);
     }
@@ -146,58 +144,54 @@ contract AaveV3Strategy is IController {
         if (_to == address(0)) revert ZeroAddress();
 
         // liquidate all positions
-        uint256 _aaveBalance = ausdc.balanceOf(address(this));
-        if (_aaveBalance != 0) {
-            aave.withdraw(address(usdc), _aaveBalance, address(this));
+        uint256 _underlying = managingFund();
+        if (_underlying != 0) {
+            aave.withdraw(address(usdc), _underlying, address(this));
         }
 
-        // approve to pull all assets
+        // approve to pull all balance
         usdc.safeApprove(_to, type(uint256).max);
+
+        uint256 _migrateAmount = usdc.balanceOf(address(this));
 
         IController(_to).immigrate(address(this));
 
-        emit FundEmigrated(_to, managingFund);
-
-        managingFund = 0;
+        emit FundEmigrated(_to, _migrateAmount);
     }
 
     /// @inheritdoc IController
     function immigrate(address _from) external override {
         if (_from == address(0)) revert ZeroAddress();
         if (_from == address(this)) revert MigrateToSelf();
-        if (managingFund != 0) revert AlreadyInUse();
+        if (managingFund() != 0) revert AlreadyInUse();
 
-        uint256 _amount = IController(_from).managingFund();
+        uint256 _amount = usdc.balanceOf(_from);
 
         usdc.safeTransferFrom(_from, address(this), _amount);
 
         emit FundImmigrated(_from, _amount);
 
         _utilize(_amount);
-
-        managingFund = _amount;
     }
 
     /// @inheritdoc IController
     function emergencyExit(address _to) external onlyOwner {
         if (_to == address(0)) revert ZeroAddress();
 
-        uint256 _aaveBalance = ausdc.balanceOf(address(this));
-        IERC20(ausdc).safeTransfer(_to, _aaveBalance);
+        uint256 _transferAmount = managingFund();
+        IERC20(ausdc).safeTransfer(_to, _transferAmount);
 
-        emit EmergencyExit(_to, _aaveBalance);
-
-        managingFund -= _aaveBalance;
+        emit EmergencyExit(_to, _transferAmount);
     }
 
     /// @inheritdoc IController
     function currentManagingRatio() public view returns (uint256) {
-        return _calcManagingRatio(managingFund);
+        return _calcManagingRatio(managingFund());
     }
 
     /// @dev Internal function to pull fund from a vault. This is called only in adjustFund().
     function _pullFund(uint256 _amount) internal {
-        if (_calcManagingRatio(managingFund + _amount) > maxManagingRatio) revert ExceedManagingRatio();
+        if (_calcManagingRatio(managingFund() + _amount) > maxManagingRatio) revert ExceedManagingRatio();
 
         // receive usdc from the vault
         vault.utilize(_amount);
@@ -205,15 +199,11 @@ contract AaveV3Strategy is IController {
 
         // directly utilize all amount
         _utilize(_amount);
-
-        unchecked {
-            managingFund += _amount;
-        }
     }
 
     /// @notice Returns sum of vault available asset and controller managing fund.
     function totalValueAll() public view returns (uint256) {
-        return vault.available() + managingFund;
+        return vault.available() + managingFund();
     }
 
     /// @dev Calculate what percentage of a vault fund to be utilized from amount given.
@@ -278,8 +268,6 @@ contract AaveV3Strategy is IController {
 
         // compound swapped usdc
         _utilize(_swapped);
-
-        managingFund += _swapped;
     }
 
     /**
@@ -296,8 +284,6 @@ contract AaveV3Strategy is IController {
 
         // compound swapped usdc
         _utilize(_swapped);
-
-        managingFund += _swapped;
     }
 
     /**
@@ -314,7 +300,7 @@ contract AaveV3Strategy is IController {
      */
     function _utilize(uint256 _amount) internal {
         if (_amount == 0) revert AmountZero();
-        if (managingFund + _amount > _calcAaveNewSupplyCap()) revert AaveSupplyCapExceeded();
+        if (managingFund() + _amount > _calcAaveNewSupplyCap()) revert AaveSupplyCapExceeded();
 
         // supply utilized assets into aave pool
         usdc.approve(address(aave), _amount);
@@ -328,7 +314,7 @@ contract AaveV3Strategy is IController {
      */
     function _unutilize(uint256 _amount) internal {
         if (_amount == 0) revert AmountZero();
-        if (_amount > managingFund) revert InsufficientManagingFund();
+        if (_amount > managingFund()) revert InsufficientManagingFund();
 
         aave.withdraw(address(usdc), _amount, address(this));
         emit SupplyDecreased(address(usdc), _amount);

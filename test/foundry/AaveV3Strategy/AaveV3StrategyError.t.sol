@@ -52,21 +52,6 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
         _newController.immigrate(address(0));
     }
 
-    function testCannotImmigrateFromNonController() public {
-        IController _newController = new AaveV3Strategy(
-            ownership,
-            vault,
-            exchangeLogic,
-            IAaveV3Pool(aavePool),
-            IAaveV3Reward(aaveReward),
-            IERC20(usdc),
-            IERC20(ausdc),
-            IERC20(aaveRewardToken)
-        );
-        vm.expectRevert();
-        _newController.immigrate(alice);
-    }
-
     function testFailImmigrateWithoutApprove() public {
         IController _newController = new AaveV3Strategy(
             ownership,
