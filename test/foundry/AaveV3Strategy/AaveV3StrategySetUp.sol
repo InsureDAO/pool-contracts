@@ -61,8 +61,7 @@ abstract contract AaveV3StrategySetUp is Test {
             IAaveV3Pool(aavePool),
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
-            IERC20(ausdc),
-            IERC20(aaveRewardToken)
+            IERC20(ausdc)
         );
 
         vault.setController(address(strategy));

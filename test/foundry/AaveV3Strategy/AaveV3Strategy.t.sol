@@ -36,8 +36,7 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
             IAaveV3Pool(aavePool),
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
-            IERC20(ausdc),
-            IERC20(aaveRewardToken)
+            IERC20(ausdc)
         );
 
         vm.prank(address(vault));
@@ -99,27 +98,10 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         assertEq(address(strategy.exchangeLogic()), address(_newLogic));
     }
 
-    function testSetAaveRewardToken() public {
-        assertEq(address(strategy.aaveRewardToken()), aaveRewardToken);
-        vm.prank(address(deployer));
-        strategy.setAaveRewardToken(IERC20(ausdc));
-        assertEq(address(strategy.aaveRewardToken()), ausdc);
-    }
-
-    function testWithdrawReward() public {
-        skip(1e6);
-        uint256 _unclaimed = strategy.getUnclaimedReward();
-        uint256 _fundBeforeClaiming = strategy.managingFund();
-        uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimed);
-        vm.prank(deployer);
-        strategy.withdrawReward(_unclaimed);
-        assertApproxEqRel(IERC20(ausdc).balanceOf(address(strategy)), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
-        assertApproxEqRel(strategy.managingFund(), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
-    }
-
     function testWithdrawAllReward() public {
         skip(1e6);
-        uint256 _unclaimed = strategy.getUnclaimedReward();
+        (, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        uint256 _unclaimed = _rewards[0];
         uint256 _fundBeforeClaiming = strategy.managingFund();
         uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimed);
         vm.prank(deployer);
@@ -128,8 +110,10 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         assertApproxEqRel(strategy.managingFund(), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
     }
 
-    function testGetUnclaimedReward() public {
+    function testGetUnclaimedRewards() public {
         skip(1e6);
-        assertGt(strategy.getUnclaimedReward(), 0);
+        (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        assertEq(_tokens[0], aaveRewardToken);
+        assertGt(_rewards[0], 0);
     }
 }
