@@ -289,15 +289,17 @@ contract AaveV3Strategy is IController {
         uint256 _claimable = getUnclaimedReward();
         if (_claimable == 0) revert NoRewardClaimable();
 
-        aaveReward.claimAllRewards(supplyingAssets, address(this));
-        emit RewardClaimed(address(aaveRewardToken), _claimable);
+        (address[] memory _rewards, uint256[] memory _gotRewards) = aaveReward.claimAllRewards(
+            supplyingAssets,
+            address(this)
+        );
 
-        uint256 _swapped = _swap(address(aaveRewardToken), address(usdc), aaveRewardToken.balanceOf(address(this)));
-
-        // compound swapped usdc
-        _utilize(_swapped);
-
-        managingFund += _swapped;
+        uint256 _rewardsCount = _rewards.length;
+        for (uint256 i = 0; i < _rewardsCount; i++) {
+            uint256 _swapped = _swap(_rewards[i], address(usdc), _gotRewards[i]);
+            // compound swapped usdc
+            _utilize(_swapped);
+        }
     }
 
     /**

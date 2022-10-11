@@ -103,7 +103,7 @@ module.exports = {
     },
   },
   paths: {
-    sources: "./contracts",
+    sources: ["./contracts", "./lib"],
     tests: "./test/unitary",
     cache: "./cache",
     artifacts: "./artifacts",
