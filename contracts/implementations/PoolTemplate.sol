@@ -83,7 +83,6 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
     mapping(address => IndexInfo) public indices;
     address[] public indexList;
-    uint256 public indexLength;
 
     //
     // * We do some fancy math for premium calculation of indices.
@@ -341,23 +340,19 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
     /**
      * Index interactions
      */
+    function getIndicies() external view returns (address[] memory) {
+        return indexList;
+    }
 
     function registerIndex() external {
         require(IRegistry(registry).isListed(msg.sender), "Not an Official Pool");
         require(indices[msg.sender].slot == 0, "Already Registered");
 
-        uint256 _nextArrayIndex = indexLength;
-        require(_nextArrayIndex <= parameters.getMaxList(address(this)), "ERROR: EXCEEEDED_MAX_LIST");
+        uint256 _nextArrayIndex = indexList.length;
+        require(_nextArrayIndex <= parameters.getMaxList(address(this)), "Exceed max list");
 
+        indexList.push(msg.sender);
         indices[msg.sender].slot = _nextArrayIndex + 1;
-
-        if (_nextArrayIndex != indexList.length) {
-            indexList[_nextArrayIndex] = msg.sender;
-        } else {
-            indexList.push(msg.sender);
-        }
-
-        ++indexLength;
     }
 
     /**
@@ -365,14 +360,10 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
      * @dev called by index pool
      */
     function unregisterIndex() external {
-        require(marketStatus == MarketStatus.Trading, "POOL_IS_NOT_IN_TRADING_STATUS");
+        require(marketStatus == MarketStatus.Trading, "Market is not Trading status");
         IndexInfo storage _index = indices[msg.sender];
-        require(_index.slot != 0, "NOT_REGISTERED");
-
-        if (_index.credit != 0) {
-            //withdraw credits of the index pool
-            _withdrawCredit(_index.credit, msg.sender);
-        }
+        require(_index.slot != 0, "Not Registered");
+        require(_index.credit == 0, "Credits allocated");
 
         _index.rewardDebt = 0;
 
@@ -384,22 +375,17 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         uint256 _slot = _index.slot;
         _index.slot = 0;
 
-        --indexLength;
+        uint256 _latestArrayIndex = indexList.length - 1;
 
         //Shift array
-        if (indexLength != 0) {
-            // [A, B, C] => [C, B, 0]
-            uint256 _latestArrayIndex = indexLength;
+        if (_latestArrayIndex != 0) {
+            // [A, B, C] => [C, B, C]
             address _latestAddress = indexList[_latestArrayIndex];
 
-            indexList[_latestArrayIndex] = address(0);
-
-            indexList[_slot - 1] = _latestAddress;
             indices[_latestAddress].slot = _slot;
-        } else {
-            // [A] => [0]
-            indexList[0] = address(0);
+            indexList[_slot - 1] = _latestAddress;
         }
+        indexList.pop();
     }
 
     /**
@@ -640,7 +626,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         marketStatus = MarketStatus.Payingout;
         pendingEnd = block.timestamp + _pending;
 
-        uint256 _indexLength = indexLength;
+        uint256 _indexLength = indexList.length;
         for (uint256 i; i < _indexLength; ) {
             if (indices[indexList[i]].credit != 0) {
                 IIndexTemplate(indexList[i]).lock();
@@ -700,7 +686,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
 
         marketStatus = MarketStatus.Trading;
 
-        uint256 _indexLength = indexLength;
+        uint256 _indexLength = indexList.length;
         for (uint256 i; i < _indexLength; ) {
             IIndexTemplate(indexList[i]).adjustAlloc();
             unchecked {
@@ -722,7 +708,7 @@ contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
         }
 
         uint256 _actualDeduction;
-        uint256 _indexLength = indexLength;
+        uint256 _indexLength = indexList.length;
         for (uint256 i; i < _indexLength; ) {
             address _index = indexList[i];
             uint256 _credit = indices[_index].credit;
