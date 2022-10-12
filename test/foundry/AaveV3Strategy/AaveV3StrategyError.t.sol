@@ -168,13 +168,13 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
 
     function testCannotCompoundWithoutOps() public {
         vm.expectRevert(OnlyOps.selector);
-        strategy.compound();
+        strategy.compound(1e6);
     }
 
-    function testCannotCompoundNoReward() public {
+    function testCannotCompoundAmountZero() public {
         vm.prank(gelatoOps);
-        vm.expectRevert(NoRewardClaimable.selector);
-        strategy.compound();
+        vm.expectRevert(AmountZero.selector);
+        strategy.compound(0);
     }
 
     function testCannotSetOpsWithoutOwner() public {

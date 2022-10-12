@@ -124,8 +124,9 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         uint256 _unclaimed = strategy.getUnclaimedReward();
         uint256 _fundBeforeClaiming = strategy.managingFund();
         uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimed);
+        uint256 _minAmountOut = (_expectedUsdcOut * exchangeLogic.slippageTolerance()) / 1e6;
         vm.prank(gelatoOps);
-        strategy.compound();
+        strategy.compound(_minAmountOut);
         assertApproxEqRel(IERC20(ausdc).balanceOf(address(strategy)), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
         assertApproxEqRel(strategy.managingFund(), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
     }
@@ -143,8 +144,11 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         vm.prank(deployer);
         strategy.setMinOpsTrigger(1);
         skip(1e6);
+        uint256 _unclaimedReward = strategy.getUnclaimedReward();
+        uint256 _estimatedUsdcAmount = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimedReward);
+        uint256 _minAmountOut = (_estimatedUsdcAmount * exchangeLogic.slippageTolerance()) / 1e6;
         (_canExec, _execPayload) = strategy.check();
         assertEq(_canExec, true);
-        assertEq(_execPayload, abi.encodeWithSelector(AaveV3Strategy.compound.selector));
+        assertEq(_execPayload, abi.encodeWithSelector(AaveV3Strategy.compound.selector, _minAmountOut));
     }
 }

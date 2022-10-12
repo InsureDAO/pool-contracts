@@ -238,14 +238,21 @@ contract AaveV3Strategy is IController, OpsReady {
     /**
      * @notice Claims all reward token, then compounds it automatically.
      * @dev Ops address should send transactions as private in the way prevent exploit from attackers.
+     * @param _minAmountOut minimum amount of USDC caller expects to receive
      */
-    function compound() external onlyOps {
+    function compound(uint256 _minAmountOut) external onlyOps {
+        if (_minAmountOut == 0) revert AmountZero();
         uint256 _claimable = getUnclaimedReward();
         if (_claimable == 0) revert NoRewardClaimable();
 
         aaveReward.claimRewards(supplyingAssets, _claimable, address(this), address(aaveRewardToken));
 
-        uint256 _swapped = _swap(address(aaveRewardToken), address(usdc), aaveRewardToken.balanceOf(address(this)));
+        uint256 _swapped = _swap(
+            address(aaveRewardToken),
+            address(usdc),
+            aaveRewardToken.balanceOf(address(this)),
+            _minAmountOut
+        );
 
         // compound swapped usdc
         _utilize(_swapped);
@@ -270,11 +277,12 @@ contract AaveV3Strategy is IController, OpsReady {
         uint256 _estimatedOutUsdc = _reward != 0
             ? exchangeLogic.estimateAmountOut(address(aaveRewardToken), address(usdc), _reward)
             : 0;
+        uint256 _minAmountOut = (_estimatedOutUsdc * exchangeLogic.slippageTolerance()) / MAGIC_SCALE_1E6;
 
-        _canExec = _estimatedOutUsdc >= minOpsTrigger;
+        _canExec = _minAmountOut >= minOpsTrigger;
 
         if (_canExec) {
-            _execPayload = abi.encodeWithSelector(this.compound.selector);
+            _execPayload = abi.encodeWithSelector(this.compound.selector, _minAmountOut);
         } else {
             _execPayload = bytes("No enough reward to withdraw");
         }
@@ -390,17 +398,12 @@ contract AaveV3Strategy is IController, OpsReady {
     function _swap(
         address _tokenIn,
         address _tokenOut,
-        uint256 _amountIn
+        uint256 _amountIn,
+        uint256 _minAmountOut
     ) internal returns (uint256) {
-        uint256 _amountOutMin;
-        unchecked {
-            uint256 _estimatedAmount = exchangeLogic.estimateAmountOut(_tokenIn, _tokenOut, _amountIn);
-            _amountOutMin = (_estimatedAmount * exchangeLogic.slippageTolerance()) / MAGIC_SCALE_1E6;
-        }
-
         address _swapper = exchangeLogic.swapper();
         (bool _success, bytes memory _res) = _swapper.call(
-            exchangeLogic.abiEncodeSwap(_tokenIn, _tokenOut, _amountIn, _amountOutMin, address(this))
+            exchangeLogic.abiEncodeSwap(_tokenIn, _tokenOut, _amountIn, _minAmountOut, address(this))
         );
 
         if (!_success) revert NoRewardClaimable();

@@ -30,8 +30,9 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
         skip(1e6);
         uint256 _claimableReward = strategy.getUnclaimedReward();
         uint256 _expectedCompoundUsdc = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _claimableReward);
+        uint256 _minAmountOut = (_expectedCompoundUsdc * exchangeLogic.slippageTolerance()) / 1e6;
         vm.prank(gelatoOps);
-        strategy.compound();
+        strategy.compound(_minAmountOut);
         assertEq(strategy.managingFund(), 2_000 * 1e6 + _expectedCompoundUsdc);
     }
 
@@ -85,8 +86,9 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
         skip(1e6);
         uint256 _claimableReward = strategy.getUnclaimedReward();
         uint256 _expectedCompoundUsdc = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _claimableReward);
+        uint256 _minAmountOut = (_expectedCompoundUsdc * exchangeLogic.slippageTolerance()) / 1e6;
         vm.prank(gelatoOps);
-        strategy.compound();
+        strategy.compound(_minAmountOut);
         assertEq(strategy.managingFund(), 900 * 1e6 + _expectedCompoundUsdc);
     }
 
@@ -238,8 +240,9 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
         uint256 _preManagingFund = strategy.managingFund();
         uint256 _unclaimedReward = strategy.getUnclaimedReward();
         uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimedReward);
+        uint256 _minAmountOut = (_expectedUsdcOut * exchangeLogic.slippageTolerance()) / 1e6;
         vm.prank(gelatoOps);
-        strategy.compound();
+        strategy.compound(_minAmountOut);
 
         assertEq(strategy.managingFund(), _preManagingFund + _expectedUsdcOut);
     }
@@ -258,6 +261,7 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
         skip(1e6);
         uint256 _unclaimedReward = strategy.getUnclaimedReward();
         uint256 _estimatedUsdcAmount = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimedReward);
+        uint256 _minAmountOut = (_estimatedUsdcAmount * exchangeLogic.slippageTolerance()) / 1e6;
         uint256 _totalSupply = IERC20(ausdc).totalSupply();
         uint256 _currentSupply = IERC20(ausdc).balanceOf(address(strategy));
         uint256 _expectedSupplyRatio = ((_estimatedUsdcAmount + _currentSupply) * 1e6) / _totalSupply;
@@ -267,11 +271,10 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
 
         // new supply exceeds limit
         assertGt(_expectedSupplyRatio, strategy.aaveMaxOccupancyRatio());
-
         vm.prank(gelatoOps);
         // compound should be reverted
         vm.expectRevert(AaveSupplyCapExceeded.selector);
-        strategy.compound();
+        strategy.compound(_minAmountOut);
 
         // unclaimed reward stil exist
         assertEq(strategy.getUnclaimedReward(), _unclaimedReward);
@@ -317,9 +320,14 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
         assertEq(strategy.managingFund(), 900 * 1e6);
 
         skip(1e6);
-        vm.prank(gelatoOps);
         vm.expectRevert();
-        strategy.compound();
+        uint256 _unclaimedReward = strategy.getUnclaimedReward();
+        vm.expectRevert(AmountZero.selector);
+        uint256 _estimatedUsdcAmount = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimedReward);
+        uint256 _minAmountOut = (_estimatedUsdcAmount * exchangeLogic.slippageTolerance()) / 1e6;
+        vm.prank(gelatoOps);
+        vm.expectRevert(AmountZero.selector);
+        strategy.compound(_minAmountOut);
 
         // vault and strategy balance has no change
         assertEq(vault.balance(), 9_100 * 1e6);
@@ -364,9 +372,11 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
 
         skip(1e6);
         uint256 _unclaimedReward = strategy.getUnclaimedReward();
+        uint256 _estimatedUsdcAmount = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimedReward);
+        uint256 _minAmountOut = (_estimatedUsdcAmount * exchangeLogic.slippageTolerance()) / 1e6;
         vm.prank(gelatoOps);
         vm.expectRevert();
-        strategy.compound();
+        strategy.compound(_minAmountOut);
         assertEq(strategy.getUnclaimedReward(), _unclaimedReward);
     }
 }
@@ -481,7 +491,6 @@ contract WhenCreateTaskOnGelatoOps is AaveV3StrategySetUp {
         _taskTreasury.depositFunds{value: 1 ether}(alice, ETH, 1 ether);
 
         bytes memory _resolverData = abi.encodeWithSelector(strategy.check.selector);
-        bytes memory _execData = abi.encodeWithSelector(strategy.compound.selector);
         bytes32 _resolverHash = keccak256(abi.encode(address(strategy), _resolverData));
 
         // create task
@@ -490,8 +499,9 @@ contract WhenCreateTaskOnGelatoOps is AaveV3StrategySetUp {
         skip(1e6);
 
         // gelato ops executes task
+        (bool _canExec, bytes memory _execPayload) = strategy.check();
         vm.prank(gelatoNetwork);
-        _gelatoOps.exec(0.01 ether, ETH, alice, true, true, _resolverHash, address(strategy), _execData);
+        _gelatoOps.exec(0.01 ether, ETH, alice, true, true, _resolverHash, address(strategy), _execPayload);
 
         assertEq(strategy.getUnclaimedReward(), 0);
     }
