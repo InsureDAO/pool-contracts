@@ -28,12 +28,14 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
         assertEq(vault.balance(), 20_000 * 1e6); // balance(21_100) - pulled fund(1_100)
 
         skip(1e6);
+        uint256 _fundWithInterest = strategy.managingFund();
         uint256 _claimableReward = strategy.getUnclaimedReward();
         uint256 _expectedCompoundUsdc = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _claimableReward);
+
         uint256 _minAmountOut = (_expectedCompoundUsdc * exchangeLogic.slippageTolerance()) / 1e6;
         vm.prank(gelatoOps);
         strategy.compound(_minAmountOut);
-        assertEq(strategy.managingFund(), 2_000 * 1e6 + _expectedCompoundUsdc);
+        assertApproxEqRel(strategy.managingFund(), _fundWithInterest + _expectedCompoundUsdc, 0.001e18);
     }
 
     function testVaultBalanceIncreasedAndAdjustFuzzing(uint256 _newValueAdded) public {
@@ -59,7 +61,7 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
 
         strategy.adjustFund();
 
-        assertEq(strategy.managingFund(), _expectedManagingFund);
+        assertApproxEqRel(strategy.managingFund(), _expectedManagingFund, 0.001e18);
         assertEq(vault.available(), _preAvailableVaultFund - _shortage);
         assertEq(vault.balance(), _preBalance - _shortage);
     }
@@ -86,10 +88,11 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
         skip(1e6);
         uint256 _claimableReward = strategy.getUnclaimedReward();
         uint256 _expectedCompoundUsdc = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _claimableReward);
+        uint256 _fundWithInterest = strategy.managingFund();
         uint256 _minAmountOut = (_expectedCompoundUsdc * exchangeLogic.slippageTolerance()) / 1e6;
         vm.prank(gelatoOps);
         strategy.compound(_minAmountOut);
-        assertEq(strategy.managingFund(), 900 * 1e6 + _expectedCompoundUsdc);
+        assertApproxEqRel(strategy.managingFund(), _fundWithInterest + _expectedCompoundUsdc, 0.001e18);
     }
 
     function testVaultBalanceDecreasedAndAdjustFuzzing(uint256 _valueWithdrawn) public {
@@ -121,7 +124,7 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
         uint256 _expectedManagingFund = (_newRatio * (vault.available() + _preManagingFund)) / 1e6;
         strategy.adjustFund();
 
-        assertEq(strategy.managingFund(), _expectedManagingFund);
+        assertApproxEqRel(strategy.managingFund(), _expectedManagingFund, 0.001e18);
     }
 
     function testMaxManagingRatioDecreasedAndAdjust(uint256 _newRatio) public {
@@ -204,7 +207,7 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
          * sent usdc does not affect fund adjustment
          */
         assertEq(vault.available(), 7_200 * 1e6);
-        assertEq(strategy.managingFund(), 1_800 * 1e6);
+        assertApproxEqRel(strategy.managingFund(), 1_800 * 1e6, 0.001e18);
     }
 }
 
@@ -244,7 +247,7 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
         vm.prank(gelatoOps);
         strategy.compound(_minAmountOut);
 
-        assertEq(strategy.managingFund(), _preManagingFund + _expectedUsdcOut);
+        assertApproxEqRel(strategy.managingFund(), _preManagingFund + _expectedUsdcOut, 0.001e18);
     }
 
     function testCompoundedRewardExceedAaveSupplyingRatio() public {
@@ -320,6 +323,8 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
         assertEq(strategy.managingFund(), 900 * 1e6);
 
         skip(1e6);
+        uint256 _fundWithInterest = strategy.managingFund();
+        vm.prank(deployer);
         vm.expectRevert();
         uint256 _unclaimedReward = strategy.getUnclaimedReward();
         vm.expectRevert(AmountZero.selector);
@@ -331,7 +336,7 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
 
         // vault and strategy balance has no change
         assertEq(vault.balance(), 9_100 * 1e6);
-        assertEq(strategy.managingFund(), 900 * 1e6);
+        assertEq(strategy.managingFund(), _fundWithInterest);
     }
 
     function testExchangeLogicUnavailable() public {
@@ -400,18 +405,6 @@ contract WhenMigrateAsset is AaveV3StrategySetUp {
         );
     }
 
-    function testMigrateWithUnrecordedBalance() public {
-        assertEq(strategy.managingFund(), 900 * 1e6);
-        vm.prank(bob);
-        IERC20(usdc).safeTransfer(address(strategy), 10_000 * 1e6);
-
-        vm.prank(deployer);
-        vault.setController(address(newController));
-
-        assertEq(strategy.managingFund(), 0);
-        assertEq(newController.managingFund(), 900 * 1e6);
-    }
-
     function testMaxManagingRatioDifferent() public {
         vm.startPrank(deployer);
         newController.setMaxManagingRatio(5e4); // 5%
@@ -436,7 +429,6 @@ contract WhenMigrateAsset is AaveV3StrategySetUp {
 
     function testAaveContractUnavailable() public {
         vm.startPrank(deployer);
-        // vault = new Vault(usdc, address(registry), address(0), address(ownership));
         newController = new AaveV3Strategy(
             ownership,
             vault,
