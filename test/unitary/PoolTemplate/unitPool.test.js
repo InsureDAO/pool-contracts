@@ -125,7 +125,6 @@ describe("Pool", function () {
     const Registry = await ethers.getContractFactory("Registry");
     const PremiumModel = await ethers.getContractFactory("TestPremiumModel");
     const Parameters = await ethers.getContractFactory("Parameters");
-    const Contorller = await ethers.getContractFactory("ControllerMock");
 
     //deploy
     ownership = await Ownership.deploy();
@@ -133,8 +132,7 @@ describe("Pool", function () {
     registry = await Registry.deploy(ownership.address);
     factory = await Factory.deploy(registry.address, ownership.address);
     premium = await PremiumModel.deploy();
-    controller = await Contorller.deploy(usdc.address, ownership.address);
-    vault = await Vault.deploy(usdc.address, registry.address, controller.address, ownership.address);
+    vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
     poolTemplate = await PoolTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
 
@@ -196,7 +194,6 @@ describe("Pool", function () {
       beforeEach(async () => {
         await usdc.connect(alice).approve(vault.address, initialMint);
         await market.connect(alice).deposit(initialMint);
-
         await usdc.connect(bob).approve(vault.address, initialMint);
       });
 
@@ -487,13 +484,13 @@ describe("Pool", function () {
       });
 
       it("success", async () => {
-        expect(await market.indexLength()).to.equal(0);
+        expect((await market.getIndicies()).length).to.equal(0);
 
         //execute
         await market.connect(chad).registerIndex();
 
         //check
-        expect(await market.indexLength()).to.equal(1);
+        expect((await market.getIndicies()).length).to.equal(1);
         await verifyIndexInfo({
           pool: market,
           index: chad.address,
@@ -506,7 +503,7 @@ describe("Pool", function () {
         await market.connect(tom).registerIndex();
 
         //check
-        expect(await market.indexLength()).to.equal(2);
+        expect((await market.getIndicies()).length).to.equal(2);
         await verifyIndexInfo({
           pool: market,
           index: chad.address,
@@ -549,7 +546,7 @@ describe("Pool", function () {
         await market.connect(chad).unregisterIndex(); // []
 
         //check
-        expect(await market.indexLength()).to.equal(0);
+        expect((await market.getIndicies()).length).to.equal(0);
         await verifyIndexInfo({
           pool: market,
           index: chad.address,
@@ -565,7 +562,7 @@ describe("Pool", function () {
         await market.connect(chad).unregisterIndex(); // [tom]
 
         //check
-        expect(await market.indexLength()).to.equal(1);
+        expect((await market.getIndicies()).length).to.equal(1);
         await verifyIndexInfo({
           pool: market,
           index: chad.address,
@@ -591,7 +588,7 @@ describe("Pool", function () {
         await market.connect(chad).unregisterIndex(); // [bob, tom]
 
         //check
-        expect(await market.indexLength()).to.equal(2);
+        expect((await market.getIndicies()).length).to.equal(2);
         await verifyIndexInfo({
           pool: market,
           index: chad.address,
@@ -618,7 +615,7 @@ describe("Pool", function () {
       });
 
       it("revert when called by anonymous", async () => {
-        await expect(market.connect(alice).unregisterIndex()).to.revertedWith("NOT_REGISTERED");
+        await expect(market.connect(alice).unregisterIndex()).to.revertedWith("Not Registered");
       });
 
       it("revert when market is not in Trading status", async () => {
@@ -633,7 +630,7 @@ describe("Pool", function () {
           lossAmount: 10000,
         });
 
-        await expect(market.connect(alice).unregisterIndex()).to.revertedWith("POOL_IS_NOT_IN_TRADING_STATUS");
+        await expect(market.connect(alice).unregisterIndex()).to.revertedWith("Market is not Trading status");
       });
     });
   });

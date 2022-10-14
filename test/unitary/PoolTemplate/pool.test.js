@@ -610,7 +610,6 @@ describe("Pool", function () {
     const Registry = await ethers.getContractFactory("Registry");
     const PremiumModel = await ethers.getContractFactory("TestPremiumModel");
     const Parameters = await ethers.getContractFactory("Parameters");
-    const Contorller = await ethers.getContractFactory("ControllerMock");
 
     //deploy
     ownership = await Ownership.deploy();
@@ -618,8 +617,7 @@ describe("Pool", function () {
     registry = await Registry.deploy(ownership.address);
     factory = await Factory.deploy(registry.address, ownership.address);
     premium = await PremiumModel.deploy();
-    controller = await Contorller.deploy(usdc.address, ownership.address);
-    vault = await Vault.deploy(usdc.address, registry.address, controller.address, ownership.address);
+    vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
     poolTemplate = await PoolTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
 
