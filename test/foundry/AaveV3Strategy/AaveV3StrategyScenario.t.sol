@@ -28,11 +28,16 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
         assertEq(vault.balance(), 20_000 * 1e6); // balance(21_100) - pulled fund(1_100)
 
         skip(1e6);
-        (, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
-        uint256 _expectedCompoundUsdc = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _rewards[0]);
-        vm.prank(deployer);
-        strategy.withdrawAllReward();
-        assertEq(strategy.managingFund(), 2_000 * 1e6 + _expectedCompoundUsdc);
+        uint256 _fundWithInterest = strategy.managingFund();
+        (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        address _token = _tokens[0];
+        uint256 _reward = _rewards[0];
+        uint256 _expectedCompoundUsdc = exchangeLogic.estimateAmountOut(_token, usdc, _reward);
+
+        uint256 _minAmountOut = (_expectedCompoundUsdc * exchangeLogic.slippageTolerance()) / 1e6;
+        vm.prank(gelatoOps);
+        strategy.compound(_token, _reward, _minAmountOut);
+        assertApproxEqRel(strategy.managingFund(), _fundWithInterest + _expectedCompoundUsdc, 0.001e18);
     }
 
     function testVaultBalanceIncreasedAndAdjustFuzzing(uint256 _newValueAdded) public {
@@ -58,7 +63,7 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
 
         strategy.adjustFund();
 
-        assertEq(strategy.managingFund(), _expectedManagingFund);
+        assertApproxEqRel(strategy.managingFund(), _expectedManagingFund, 0.001e18);
         assertEq(vault.available(), _preAvailableVaultFund - _shortage);
         assertEq(vault.balance(), _preBalance - _shortage);
     }
@@ -83,11 +88,16 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
         assertEq(vault.balance(), 5_100 * 1e6); // no change
 
         skip(1e6);
-        (, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
-        uint256 _expectedCompoundUsdc = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _rewards[0]);
-        vm.prank(deployer);
-        strategy.withdrawAllReward();
-        assertEq(strategy.managingFund(), 900 * 1e6 + _expectedCompoundUsdc);
+        uint256 _fundWithInterest = strategy.managingFund();
+        (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        address _token = _tokens[0];
+        uint256 _reward = _rewards[0];
+        uint256 _expectedCompoundUsdc = exchangeLogic.estimateAmountOut(_token, usdc, _reward);
+
+        uint256 _minAmountOut = (_expectedCompoundUsdc * exchangeLogic.slippageTolerance()) / 1e6;
+        vm.prank(gelatoOps);
+        strategy.compound(_token, _reward, _minAmountOut);
+        assertApproxEqRel(strategy.managingFund(), _fundWithInterest + _expectedCompoundUsdc, 0.001e18);
     }
 
     function testVaultBalanceDecreasedAndAdjustFuzzing(uint256 _valueWithdrawn) public {
@@ -119,7 +129,7 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
         uint256 _expectedManagingFund = (_newRatio * (vault.available() + _preManagingFund)) / 1e6;
         strategy.adjustFund();
 
-        assertEq(strategy.managingFund(), _expectedManagingFund);
+        assertApproxEqRel(strategy.managingFund(), _expectedManagingFund, 0.001e18);
     }
 
     function testMaxManagingRatioDecreasedAndAdjust(uint256 _newRatio) public {
@@ -146,7 +156,8 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
             IAaveV3Pool(address(1)),
             IAaveV3Reward(address(1)),
             IERC20(usdc),
-            IERC20(ausdc)
+            IERC20(ausdc),
+            gelatoOps
         );
 
         vault.setController(address(strategy));
@@ -200,7 +211,7 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
          * sent usdc does not affect fund adjustment
          */
         assertEq(vault.available(), 7_200 * 1e6);
-        assertEq(strategy.managingFund(), 1_800 * 1e6);
+        assertApproxEqRel(strategy.managingFund(), 1_800 * 1e6, 0.001e18);
     }
 }
 
@@ -234,12 +245,15 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
         vm.assume(_time <= 3e8); // approximately 10 years
         skip(_time);
         uint256 _preManagingFund = strategy.managingFund();
-        (, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
-        uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _rewards[0]);
-        vm.prank(deployer);
-        strategy.withdrawAllReward();
+        (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        address _token = _tokens[0];
+        uint256 _reward = _rewards[0];
+        uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(_token, usdc, _reward);
+        uint256 _minAmountOut = (_expectedUsdcOut * exchangeLogic.slippageTolerance()) / 1e6;
+        vm.prank(gelatoOps);
+        strategy.compound(_token, _reward, _minAmountOut);
 
-        assertEq(strategy.managingFund(), _preManagingFund + _expectedUsdcOut);
+        assertApproxEqRel(strategy.managingFund(), _preManagingFund + _expectedUsdcOut, 0.001e18);
     }
 
     function testCompoundedRewardExceedAaveSupplyingRatio() public {
@@ -254,9 +268,11 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
 
         vm.prank(deployer);
         skip(1e6);
-        (, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        address _token = _tokens[0];
         uint256 _unclaimedReward = _rewards[0];
         uint256 _estimatedUsdcAmount = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimedReward);
+        uint256 _minAmountOut = (_estimatedUsdcAmount * exchangeLogic.slippageTolerance()) / 1e6;
         uint256 _totalSupply = IERC20(ausdc).totalSupply();
         uint256 _currentSupply = IERC20(ausdc).balanceOf(address(strategy));
         uint256 _expectedSupplyRatio = ((_estimatedUsdcAmount + _currentSupply) * 1e6) / _totalSupply;
@@ -266,11 +282,10 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
 
         // new supply exceeds limit
         assertGt(_expectedSupplyRatio, strategy.aaveMaxOccupancyRatio());
-
-        vm.prank(deployer);
+        vm.prank(gelatoOps);
         // compound should be reverted
         vm.expectRevert(AaveSupplyCapExceeded.selector);
-        strategy.withdrawAllReward();
+        strategy.compound(_token, _unclaimedReward, _minAmountOut);
 
         // unclaimed reward stil exist
         (, _rewards) = strategy.getUnclaimedRewards();
@@ -287,7 +302,8 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
             IAaveV3Pool(aavePool),
             IAaveV3Reward(address(1)), // set unavailable contract address
             IERC20(usdc),
-            IERC20(ausdc)
+            IERC20(ausdc),
+            gelatoOps
         );
 
         vault.setController(address(strategy));
@@ -315,13 +331,8 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
         assertEq(strategy.managingFund(), 900 * 1e6);
 
         skip(1e6);
-        vm.prank(deployer);
         vm.expectRevert();
-        strategy.withdrawAllReward();
-
-        // vault and strategy balance has no change
-        assertEq(vault.balance(), 9_100 * 1e6);
-        assertEq(strategy.managingFund(), 900 * 1e6);
+        strategy.check();
     }
 
     function testExchangeLogicUnavailable() public {
@@ -330,11 +341,12 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
         strategy = new AaveV3Strategy(
             ownership,
             vault,
-            new ExchangeLogicUniswapV3(address(1), address(2)), // set unavailable contract address
+            new ExchangeLogicUniswapV3(address(1), address(2), 3_000, 975_000), // set unavailable contract address
             IAaveV3Pool(aavePool),
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
-            IERC20(ausdc)
+            IERC20(ausdc),
+            gelatoOps
         );
 
         vault.setController(address(strategy));
@@ -359,12 +371,19 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
         strategy.adjustFund();
 
         skip(1e6);
-        (, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        address _token = _tokens[0];
         uint256 _unclaimedReward = _rewards[0];
         vm.prank(deployer);
+        uint256 _estimatedUsdcAmount = exchangeLogic.estimateAmountOut(_token, usdc, _unclaimedReward);
+        uint256 _minAmountOut = (_estimatedUsdcAmount * exchangeLogic.slippageTolerance()) / 1e6;
+
+        // compound should be reverted
+        vm.prank(gelatoOps);
         vm.expectRevert();
-        strategy.withdrawAllReward();
-        (, _rewards) = strategy.getUnclaimedRewards();
+        strategy.compound(_token, _unclaimedReward, _minAmountOut);
+        // reward should still be unclaimed
+        (_tokens, _rewards) = strategy.getUnclaimedRewards();
         assertEq(_rewards[0], _unclaimedReward);
     }
 }
@@ -382,20 +401,9 @@ contract WhenMigrateAsset is AaveV3StrategySetUp {
             IAaveV3Pool(aavePool),
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
-            IERC20(ausdc)
+            IERC20(ausdc),
+            gelatoOps
         );
-    }
-
-    function testMigrateWithUnrecordedBalance() public {
-        assertEq(strategy.managingFund(), 900 * 1e6);
-        vm.prank(bob);
-        IERC20(usdc).safeTransfer(address(strategy), 10_000 * 1e6);
-
-        vm.prank(deployer);
-        vault.setController(address(newController));
-
-        assertEq(strategy.managingFund(), 0);
-        assertEq(newController.managingFund(), 900 * 1e6);
     }
 
     function testMaxManagingRatioDifferent() public {
@@ -419,14 +427,12 @@ contract WhenMigrateAsset is AaveV3StrategySetUp {
         vm.prank(deployer);
 
         // no reward claimable(everything compounded)
-        (address[] memory _rewardAddresses, uint256[] memory _newRewards) = strategy.getUnclaimedRewards();
-        console.log(aaveRewardToken);
+        (, uint256[] memory _newRewards) = strategy.getUnclaimedRewards();
         assertEq(_newRewards[0], 0);
     }
 
     function testAaveContractUnavailable() public {
         vm.startPrank(deployer);
-        // vault = new Vault(usdc, address(registry), address(0), address(ownership));
         newController = new AaveV3Strategy(
             ownership,
             vault,
@@ -434,7 +440,8 @@ contract WhenMigrateAsset is AaveV3StrategySetUp {
             IAaveV3Pool(address(1)),
             IAaveV3Reward(address(1)), // set unavailable contract address
             IERC20(usdc),
-            IERC20(ausdc)
+            IERC20(ausdc),
+            gelatoOps
         );
 
         vm.expectRevert();
@@ -457,4 +464,105 @@ contract WhenMigrateAsset is AaveV3StrategySetUp {
         assertEq(IERC20(ausdc).balanceOf(address(strategy)), 0);
         assertEq(IERC20(ausdc).balanceOf(alice), 900 * 1e6);
     }
+}
+
+contract WhenCreateTaskOnGelatoOps is AaveV3StrategySetUp {
+    /**
+     * @notice Actually, we are going to use Gelato Ops UI to create tasks.
+     */
+    address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    function testExecuteTaskUsingGelatoOps() public {
+        // set up
+        vm.prank(deployer);
+        strategy.setMinOpsTrigger(1);
+
+        IOps _gelatoOps = IOps(gelatoOps);
+        ITaskTreasury _taskTreasury = ITaskTreasury(gelatoTaskTreasury);
+
+        // deposit fund to treasury
+        deal(alice, 2 ether);
+        vm.prank(alice);
+        _taskTreasury.depositFunds{value: 1 ether}(alice, ETH, 1 ether);
+
+        bytes memory _resolverData = abi.encodeWithSelector(strategy.check.selector);
+        bytes32 _resolverHash = keccak256(abi.encode(address(strategy), _resolverData));
+
+        // create task
+        vm.prank(alice);
+        _gelatoOps.createTask(address(strategy), strategy.compound.selector, address(strategy), _resolverData);
+        skip(1e6);
+
+        // gelato ops executes task
+        (bool _canExec, bytes memory _execPayload) = strategy.check();
+        assertEq(_canExec, true);
+        vm.prank(gelatoNetwork);
+        _gelatoOps.exec(0.01 ether, ETH, alice, true, true, _resolverHash, address(strategy), _execPayload);
+
+        (, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+
+        assertEq(_rewards[0], 0);
+    }
+}
+
+interface ITaskTreasury {
+    /// @notice Function to deposit Funds which will be used to execute transactions on various services
+    /// @param _receiver Address receiving the credits
+    /// @param _token Token to be credited, use "0xeeee...." for ETH
+    /// @param _amount Amount to be credited
+    function depositFunds(
+        address _receiver,
+        address _token,
+        uint256 _amount
+    ) external payable;
+}
+
+interface IOps {
+    /// @notice Create a task that tells Gelato to monitor and execute transactions on specific contracts
+    /// @dev Requires funds to be added in Task Treasury, assumes treasury sends fee to Gelato via Ops
+    /// @param _execAddress On which contract should Gelato execute the transactions
+    /// @param _execSelector Which function Gelato should execute on the _execAddress
+    /// @param _resolverAddress On which contract should Gelato check when to execute the tx
+    /// @param _resolverData Which data should be used to check on the Resolver when to execute the tx
+    function createTask(
+        address _execAddress,
+        bytes4 _execSelector,
+        address _resolverAddress,
+        bytes calldata _resolverData
+    ) external returns (bytes32 task);
+
+    /// @notice Execution API called by Gelato
+    /// @param _txFee Fee paid to Gelato for execution, deducted on the TaskTreasury
+    /// @param _feeToken Token used to pay for the execution. ETH = 0xeeeeee...
+    /// @param _taskCreator On which contract should Gelato check when to execute the tx
+    /// @param _useTaskTreasuryFunds If msg.sender's balance on TaskTreasury should pay for the tx
+    /// @param _revertOnFailure To revert or not if call to execAddress fails
+    /// @param _execAddress On which contract should Gelato execute the tx
+    /// @param _execData Data used to execute the tx, queried from the Resolver by Gelato
+    function exec(
+        uint256 _txFee,
+        address _feeToken,
+        address _taskCreator,
+        bool _useTaskTreasuryFunds,
+        bool _revertOnFailure,
+        bytes32 _resolverHash,
+        address _execAddress,
+        bytes calldata _execData
+    ) external;
+
+    /// @notice Returns TaskId of a task Creator
+    /// @param _taskCreator Address of the task creator
+    /// @param _execAddress Address of the contract to be executed by Gelato
+    /// @param _selector Function on the _execAddress which should be executed
+    /// @param _useTaskTreasuryFunds If msg.sender's balance on TaskTreasury should pay for the tx
+    /// @param _feeToken FeeToken to use, address 0 if task treasury is used
+    /// @param _resolverHash hash of resolver address and data
+    function getTaskId(
+        address _taskCreator,
+        address _execAddress,
+        bytes4 _selector,
+        bool _useTaskTreasuryFunds,
+        address _feeToken,
+        bytes32 _resolverHash
+    ) external pure returns (bytes32);
 }

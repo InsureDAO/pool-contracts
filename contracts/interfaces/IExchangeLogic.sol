@@ -50,11 +50,6 @@ interface IExchangeLogic {
      * @dev Returns what portion of tokens to be lost from swap operation.
      */
     function slippageTolerance() external view returns (uint256);
-
-    /**
-     * @dev Sets slippageTolerance of swap operations.
-     */
-    function setSlippageTolerance(uint256 _tolerance) external;
 }
 
 error ZeroSlippageTolerance();

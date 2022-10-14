@@ -12,9 +12,9 @@ describe("PremiumModelV3", function () {
   const defaultRate = BigNumber.from("100000"); //1e5 => 10%
   const BASE_LIQUIDITY = BigNumber.from("1000000000000000000"); //1e18
   const MAGIC_SCALE = BigNumber.from("1000000"); //1e6
-  let rateSlope1 = BigNumber.from("100000"); //10%
-  let rateSlope2 = BigNumber.from("400000"); //40%
-  let OPTIMAL_UTILIZE_RATIO = BigNumber.from("900000"); //90%
+  const defaultRateSlope1 = BigNumber.from("100000"); //10%
+  const defaultRateSlope2 = BigNumber.from("400000"); //40%
+  const defaultOptimalUtilizeRatio = BigNumber.from("900000"); //90%
 
   before(async () => {
     //import
@@ -24,7 +24,13 @@ describe("PremiumModelV3", function () {
 
     //deploy
     ownership = await Ownership.deploy();
-    pm = await PMV3.deploy(ownership.address, defaultRate, rateSlope1, rateSlope2, OPTIMAL_UTILIZE_RATIO);
+    pm = await PMV3.deploy(
+      ownership.address,
+      defaultRate,
+      defaultRateSlope1,
+      defaultRateSlope2,
+      defaultOptimalUtilizeRatio
+    );
   });
 
   beforeEach(async () => {
@@ -39,39 +45,38 @@ describe("PremiumModelV3", function () {
     describe("constructor", function () {
       it("set successfully", async () => {
         expect(await pm.ownership()).to.equal(ownership.address);
-        expect(await pm.baseRates(ZERO_ADDRESS)).to.equal(defaultRate);
-        expect(await pm.rateSlope1()).to.equal(rateSlope1);
-        expect(await pm.rateSlope2()).to.equal(rateSlope2);
-
-        expect(await pm.OPTIMAL_UTILIZE_RATIO()).to.equal(OPTIMAL_UTILIZE_RATIO);
+        expect((await pm.rates(ZERO_ADDRESS)).baseRate).to.equal(defaultRate);
+        expect((await pm.rates(ZERO_ADDRESS)).rateSlope1).to.equal(defaultRateSlope1);
+        expect((await pm.rates(ZERO_ADDRESS)).rateSlope2).to.equal(defaultRateSlope2);
+        expect((await pm.rates(ZERO_ADDRESS)).optimalUtilizeRatio).to.equal(defaultOptimalUtilizeRatio);
       });
 
       it("revert when invalid parameter", async () => {
         const PMV3 = await ethers.getContractFactory("PremiumModelV3");
 
         await expect(
-          PMV3.deploy(ZERO_ADDRESS, defaultRate, rateSlope1, rateSlope2, OPTIMAL_UTILIZE_RATIO)
+          PMV3.deploy(ZERO_ADDRESS, defaultRate, defaultRateSlope1, defaultRateSlope2, defaultOptimalUtilizeRatio)
         ).to.revertedWith("zero address");
 
         await expect(
-          PMV3.deploy(ownership.address, ZERO, rateSlope1, rateSlope2, OPTIMAL_UTILIZE_RATIO)
+          PMV3.deploy(ownership.address, ZERO, defaultRateSlope1, defaultRateSlope2, defaultOptimalUtilizeRatio)
         ).to.revertedWith("rate is zero");
 
         await expect(
-          PMV3.deploy(ownership.address, defaultRate, ZERO, rateSlope2, OPTIMAL_UTILIZE_RATIO)
+          PMV3.deploy(ownership.address, defaultRate, ZERO, defaultRateSlope2, defaultOptimalUtilizeRatio)
         ).to.revertedWith("slope1 is zero");
 
         await expect(
-          PMV3.deploy(ownership.address, defaultRate, rateSlope1, ZERO, OPTIMAL_UTILIZE_RATIO)
+          PMV3.deploy(ownership.address, defaultRate, defaultRateSlope1, ZERO, defaultOptimalUtilizeRatio)
         ).to.revertedWith("slope2 is zero");
 
-        await expect(PMV3.deploy(ownership.address, defaultRate, rateSlope1, rateSlope2, ZERO)).to.revertedWith(
-          "ratio is zero"
-        );
+        await expect(
+          PMV3.deploy(ownership.address, defaultRate, defaultRateSlope1, defaultRateSlope2, ZERO)
+        ).to.revertedWith("ratio is zero");
 
-        await expect(PMV3.deploy(ownership.address, defaultRate, rateSlope1, rateSlope2, 1e6 + 1)).to.revertedWith(
-          "exceed max rate"
-        );
+        await expect(
+          PMV3.deploy(ownership.address, defaultRate, defaultRateSlope1, defaultRateSlope2, 1e6 + 1)
+        ).to.revertedWith("exceed max rate");
       });
     });
 
@@ -292,6 +297,76 @@ describe("PremiumModelV3", function () {
       });
       it("retrun 0 when totalLiquidity is 0", async () => {
         expect(await pm.getPremiumRate(ZERO_ADDRESS, ONE, ZERO, ZERO)).to.equal(ZERO);
+      });
+    });
+
+    describe("setRate, getRate", function () {
+      it("set baseRate successfully", async () => {
+        const Market = gov.address;
+        const Rate = [ONE, ZERO, ZERO, ZERO];
+
+        await pm.setRate(Market, Rate);
+        expect((await pm.rates(Market)).baseRate).to.equal(ONE);
+        expect((await pm.rates(Market)).rateSlope1).to.equal(ZERO);
+        expect((await pm.rates(Market)).rateSlope2).to.equal(ZERO);
+        expect((await pm.rates(Market)).optimalUtilizeRatio).to.equal(ZERO);
+
+        const _rate = await pm.getRate(Market);
+        expect(_rate.baseRate).to.equal(ONE);
+        expect(_rate.rateSlope1).to.equal(defaultRateSlope1);
+        expect(_rate.rateSlope2).to.equal(defaultRateSlope2);
+        expect(_rate.optimalUtilizeRatio).to.equal(defaultOptimalUtilizeRatio);
+      });
+
+      it("set rateSlope1 successfully", async () => {
+        const Market = gov.address;
+        const Rate = [ZERO, ONE, ZERO, ZERO];
+
+        await pm.setRate(Market, Rate);
+        expect((await pm.rates(Market)).baseRate).to.equal(ZERO);
+        expect((await pm.rates(Market)).rateSlope1).to.equal(ONE);
+        expect((await pm.rates(Market)).rateSlope2).to.equal(ZERO);
+        expect((await pm.rates(Market)).optimalUtilizeRatio).to.equal(ZERO);
+
+        const _rate = await pm.getRate(Market);
+        expect(_rate.baseRate).to.equal(defaultRate);
+        expect(_rate.rateSlope1).to.equal(ONE);
+        expect(_rate.rateSlope2).to.equal(defaultRateSlope2);
+        expect(_rate.optimalUtilizeRatio).to.equal(defaultOptimalUtilizeRatio);
+      });
+
+      it("set rateSlope2 successfully", async () => {
+        const Market = gov.address;
+        const Rate = [ZERO, ZERO, ONE, ZERO];
+
+        await pm.setRate(Market, Rate);
+        expect((await pm.rates(Market)).baseRate).to.equal(ZERO);
+        expect((await pm.rates(Market)).rateSlope1).to.equal(ZERO);
+        expect((await pm.rates(Market)).rateSlope2).to.equal(ONE);
+        expect((await pm.rates(Market)).optimalUtilizeRatio).to.equal(ZERO);
+
+        const _rate = await pm.getRate(Market);
+        expect(_rate.baseRate).to.equal(defaultRate);
+        expect(_rate.rateSlope1).to.equal(defaultRateSlope1);
+        expect(_rate.rateSlope2).to.equal(ONE);
+        expect(_rate.optimalUtilizeRatio).to.equal(defaultOptimalUtilizeRatio);
+      });
+
+      it("set optimalUtilizeRatio successfully", async () => {
+        const Market = gov.address;
+        const Rate = [ZERO, ZERO, ZERO, ONE];
+
+        await pm.setRate(Market, Rate);
+        expect((await pm.rates(Market)).baseRate).to.equal(ZERO);
+        expect((await pm.rates(Market)).rateSlope1).to.equal(ZERO);
+        expect((await pm.rates(Market)).rateSlope2).to.equal(ZERO);
+        expect((await pm.rates(Market)).optimalUtilizeRatio).to.equal(ONE);
+
+        const _rate = await pm.getRate(Market);
+        expect(_rate.baseRate).to.equal(defaultRate);
+        expect(_rate.rateSlope1).to.equal(defaultRateSlope1);
+        expect(_rate.rateSlope2).to.equal(defaultRateSlope2);
+        expect(_rate.optimalUtilizeRatio).to.equal(ONE);
       });
     });
   });

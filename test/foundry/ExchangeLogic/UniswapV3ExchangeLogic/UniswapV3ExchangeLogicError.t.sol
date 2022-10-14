@@ -7,7 +7,7 @@ contract UniswapV3ExchangeLogicErrorTest is UniswapV3ExchangeLogicSetUp {
     IExchangeLogic private uniswapV3ExchangeLogic;
 
     function setUp() public {
-        uniswapV3ExchangeLogic = new ExchangeLogicUniswapV3(uniswapV3Router, uniswapV3Quoter);
+        uniswapV3ExchangeLogic = new ExchangeLogicUniswapV3(uniswapV3Router, uniswapV3Quoter, 3_000, 975_000);
         deal(aaveRewardToken, alice, 10_000 * 1e18);
     }
 
@@ -51,13 +51,18 @@ contract UniswapV3ExchangeLogicErrorTest is UniswapV3ExchangeLogicSetUp {
         uniswapV3ExchangeLogic.estimateAmountOut(aaveRewardToken, usdc, 0);
     }
 
+    function testCannotSetFeeTierZero() public {
+        vm.expectRevert(FeeTierZero.selector);
+        new ExchangeLogicUniswapV3(uniswapV3Router, uniswapV3Quoter, 0, 975_000);
+    }
+
     function testCannotSetSlippageToleranceZero() public {
         vm.expectRevert(ZeroSlippageTolerance.selector);
-        uniswapV3ExchangeLogic.setSlippageTolerance(0);
+        new ExchangeLogicUniswapV3(uniswapV3Router, uniswapV3Quoter, 3_000, 0);
     }
 
     function testCannotSetSlippageOutOfRange() public {
         vm.expectRevert(SlippageToleranceOutOfRange.selector);
-        uniswapV3ExchangeLogic.setSlippageTolerance(1e6 + 1);
+        new ExchangeLogicUniswapV3(uniswapV3Router, uniswapV3Quoter, 3_000, 1e6 + 1);
     }
 }

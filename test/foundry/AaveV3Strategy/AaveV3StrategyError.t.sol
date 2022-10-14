@@ -45,24 +45,11 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
             IAaveV3Pool(aavePool),
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
-            IERC20(ausdc)
+            IERC20(ausdc),
+            gelatoOps
         );
         vm.expectRevert(ZeroAddress.selector);
         _newController.immigrate(address(0));
-    }
-
-    function testCannotImmigrateFromNonController() public {
-        IController _newController = new AaveV3Strategy(
-            ownership,
-            vault,
-            exchangeLogic,
-            IAaveV3Pool(aavePool),
-            IAaveV3Reward(aaveReward),
-            IERC20(usdc),
-            IERC20(ausdc)
-        );
-        vm.expectRevert();
-        _newController.immigrate(alice);
     }
 
     function testFailImmigrateWithoutApprove() public {
@@ -73,7 +60,8 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
             IAaveV3Pool(aavePool),
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
-            IERC20(ausdc)
+            IERC20(ausdc),
+            gelatoOps
         );
         _newController.immigrate(address(strategy));
     }
@@ -86,7 +74,8 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
             IAaveV3Pool(aavePool),
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
-            IERC20(ausdc)
+            IERC20(ausdc),
+            gelatoOps
         );
         vm.expectRevert(AlreadyInUse.selector);
         strategy.immigrate(address(_newController));
@@ -136,8 +125,47 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
         strategy.setExchangeLogic(IExchangeLogic(alice));
     }
 
-    function testCannotWithdrawAllRewardWithoutOwner() public {
+    function testCannotSetMinOpsTriggerZero() public {
+        vm.prank(deployer);
+        vm.expectRevert(AmountZero.selector);
+        strategy.setMinOpsTrigger(0);
+    }
+
+    function testCannotSetMinOpsTriggerWithoutOwner() public {
         vm.expectRevert(OnlyOwner.selector);
-        strategy.withdrawAllReward();
+        strategy.setMinOpsTrigger(10e6);
+    }
+
+    function testCannotCompoundWithoutOps() public {
+        skip(1e6);
+        (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        address _token = _tokens[0];
+        uint256 _unclaimed = _rewards[0];
+        uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimed);
+        uint256 _minAmountOut = (_expectedUsdcOut * exchangeLogic.slippageTolerance()) / 1e6;
+        vm.expectRevert(OnlyOps.selector);
+        strategy.compound(_token, _unclaimed, _minAmountOut);
+    }
+
+    function testCannotCompoundAmountOrAddressZero() public {
+        skip(1e6);
+        (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        address _token = _tokens[0];
+        uint256 _unclaimed = _rewards[0];
+        uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimed);
+        uint256 _minAmountOut = (_expectedUsdcOut * exchangeLogic.slippageTolerance()) / 1e6;
+        vm.startPrank(gelatoOps);
+        vm.expectRevert(AmountZero.selector);
+        strategy.compound(_token, 0, _minAmountOut);
+        vm.expectRevert(AmountZero.selector);
+        strategy.compound(_token, _unclaimed, 0);
+        vm.expectRevert(ZeroAddress.selector);
+        strategy.compound(address(0), _unclaimed, _minAmountOut);
+        vm.stopPrank();
+    }
+
+    function testCannotSetOpsWithoutOwner() public {
+        vm.expectRevert(OnlyOwner.selector);
+        strategy.setOps(alice);
     }
 }

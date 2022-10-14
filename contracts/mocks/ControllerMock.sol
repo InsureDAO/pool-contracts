@@ -31,7 +31,7 @@ contract ControllerMock is IController {
     }
 
     function managingFund() external view returns (uint256) {
-        return vault.valueAll() / 2; //for test
+        return token.balanceOf(address(this)); //for test
     }
 
     function maxManagingRatio() external pure returns (uint256) {

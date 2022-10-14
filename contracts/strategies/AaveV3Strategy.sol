@@ -3,6 +3,8 @@ pragma solidity 0.8.12;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
+
+import "../abstracts/OpsReady.sol";
 import "../interfaces/IController.sol";
 import "../interfaces/IOwnership.sol";
 import "../interfaces/IVault.sol";
@@ -19,7 +21,7 @@ import "../errors/CommonError.sol";
  *      has 1 strategy and the strategy is not complicated. In the future, Strategy methods
  *      will be generalized as interface and separated from Controller.
  */
-contract AaveV3Strategy is IController {
+contract AaveV3Strategy is IController, OpsReady {
     using SafeERC20 for IERC20;
 
     IOwnership public immutable ownership;
@@ -30,9 +32,6 @@ contract AaveV3Strategy is IController {
 
     /// @inheritdoc IController
     uint256 public maxManagingRatio;
-
-    /// @inheritdoc IController
-    uint256 public managingFund;
 
     /// @notice We use usdc as vault asset
     IERC20 public immutable usdc;
@@ -45,6 +44,9 @@ contract AaveV3Strategy is IController {
 
     /// @dev This variable is significant to avoid locking asset in Aave pool.
     uint256 public aaveMaxOccupancyRatio;
+
+    /// @dev What minimum reward a compound should be triggered by check() function.
+    uint256 public minOpsTrigger;
 
     /// @dev internal multiplication scale 1e6 to reduce decimal truncation
     uint256 private constant MAGIC_SCALE_1E6 = 1e6; //
@@ -85,7 +87,8 @@ contract AaveV3Strategy is IController {
         IAaveV3Pool _aave,
         IAaveV3Reward _aaveReward,
         IERC20 _usdc,
-        IERC20 _ausdc
+        IERC20 _ausdc,
+        address _ops
     ) {
         ownership = _ownership;
         vault = _vault;
@@ -94,10 +97,12 @@ contract AaveV3Strategy is IController {
         aaveReward = _aaveReward;
         usdc = _usdc;
         ausdc = _ausdc;
+        ops = _ops;
         supplyingAssets.push(address(_ausdc));
 
         maxManagingRatio = MAGIC_SCALE_1E6;
         aaveMaxOccupancyRatio = (MAGIC_SCALE_1E6 * 10) / 100;
+        minOpsTrigger = 100e6;
     }
 
     /**
@@ -105,11 +110,16 @@ contract AaveV3Strategy is IController {
      */
 
     /// @inheritdoc IController
+    function managingFund() public view override returns (uint256) {
+        return ausdc.balanceOf(address(this));
+    }
+
+    /// @inheritdoc IController
     function adjustFund() external override {
         uint256 expectUtilizeAmount = (totalValueAll() * maxManagingRatio) / MAGIC_SCALE_1E6;
-        if (expectUtilizeAmount > managingFund) {
+        if (expectUtilizeAmount > managingFund()) {
             unchecked {
-                uint256 _shortage = expectUtilizeAmount - managingFund;
+                uint256 _shortage = expectUtilizeAmount - managingFund();
                 _pullFund(_shortage);
             }
         }
@@ -119,10 +129,6 @@ contract AaveV3Strategy is IController {
     function returnFund(uint256 _amount) external onlyVault {
         _unutilize(_amount);
         usdc.safeTransfer(address(vault), _amount);
-
-        unchecked {
-            managingFund -= _amount;
-        }
 
         emit FundReturned(address(vault), _amount);
     }
@@ -139,58 +145,54 @@ contract AaveV3Strategy is IController {
 
         // liquidate all positions
         _withdrawAllReward();
-        uint256 _aaveBalance = ausdc.balanceOf(address(this));
-        if (_aaveBalance != 0) {
-            aave.withdraw(address(usdc), _aaveBalance, address(this));
+        uint256 _underlying = managingFund();
+        if (_underlying != 0) {
+            aave.withdraw(address(usdc), _underlying, address(this));
         }
 
-        // approve to pull all assets
+        // approve to pull all balance
         usdc.safeApprove(_to, type(uint256).max);
+
+        uint256 _migrateAmount = usdc.balanceOf(address(this));
 
         IController(_to).immigrate(address(this));
 
-        emit FundEmigrated(_to, managingFund);
-
-        managingFund = 0;
+        emit FundEmigrated(_to, _migrateAmount);
     }
 
     /// @inheritdoc IController
     function immigrate(address _from) external override {
         if (_from == address(0)) revert ZeroAddress();
         if (_from == address(this)) revert MigrateToSelf();
-        if (managingFund != 0) revert AlreadyInUse();
+        if (managingFund() != 0) revert AlreadyInUse();
 
-        uint256 _amount = IController(_from).managingFund();
+        uint256 _amount = usdc.balanceOf(_from);
 
         usdc.safeTransferFrom(_from, address(this), _amount);
 
         emit FundImmigrated(_from, _amount);
 
         _utilize(_amount);
-
-        managingFund = _amount;
     }
 
     /// @inheritdoc IController
     function emergencyExit(address _to) external onlyOwner {
         if (_to == address(0)) revert ZeroAddress();
 
-        uint256 _aaveBalance = ausdc.balanceOf(address(this));
-        IERC20(ausdc).safeTransfer(_to, _aaveBalance);
+        uint256 _transferAmount = managingFund();
+        IERC20(ausdc).safeTransfer(_to, _transferAmount);
 
-        emit EmergencyExit(_to, _aaveBalance);
-
-        managingFund -= _aaveBalance;
+        emit EmergencyExit(_to, _transferAmount);
     }
 
     /// @inheritdoc IController
     function currentManagingRatio() public view returns (uint256) {
-        return _calcManagingRatio(managingFund);
+        return _calcManagingRatio(managingFund());
     }
 
     /// @dev Internal function to pull fund from a vault. This is called only in adjustFund().
     function _pullFund(uint256 _amount) internal {
-        if (_calcManagingRatio(managingFund + _amount) > maxManagingRatio) revert ExceedManagingRatio();
+        if (_calcManagingRatio(managingFund() + _amount) > maxManagingRatio) revert ExceedManagingRatio();
 
         // receive usdc from the vault
         vault.utilize(_amount);
@@ -198,15 +200,11 @@ contract AaveV3Strategy is IController {
 
         // directly utilize all amount
         _utilize(_amount);
-
-        unchecked {
-            managingFund += _amount;
-        }
     }
 
     /// @notice Returns sum of vault available asset and controller managing fund.
     function totalValueAll() public view returns (uint256) {
-        return vault.available() + managingFund;
+        return vault.available() + managingFund();
     }
 
     /// @dev Calculate what percentage of a vault fund to be utilized from amount given.
@@ -219,6 +217,66 @@ contract AaveV3Strategy is IController {
     /**
      * Strategy methods
      */
+
+    /**
+     * @notice Claims all reward token, then compounds it automatically.
+     * @param _token token address to be swapped
+     * @param _amount what amount of the token to be swapped
+     * @param _minAmountOut minimum amount of USDC caller expects to receive.
+     *                      This prevent MEV attacks.
+     */
+    function compound(
+        address _token,
+        uint256 _amount,
+        uint256 _minAmountOut
+    ) external onlyOps {
+        if (_token == address(0)) revert ZeroAddress();
+        if (_amount == 0) revert AmountZero();
+        if (_minAmountOut == 0) revert AmountZero();
+        uint256 _reward = aaveReward.claimRewards(supplyingAssets, _amount, address(this), _token);
+        IERC20(_token).safeApprove(exchangeLogic.swapper(), _reward);
+        uint256 _swapped = _swap(_token, address(usdc), _reward, _minAmountOut);
+        _utilize(_swapped);
+    }
+
+    /**
+     * @inheritdoc OpsReady
+     * @notice Check the rewards can be compounded. If the contract has sufficient reward,
+     *         returns compound() function payload to execute.
+     */
+    function check() external override returns (bool _canExec, bytes memory _execPayload) {
+        // default payload is the error message
+        _execPayload = bytes("No enough reward to withdraw");
+        // all token addresse and reward amount list
+        (address[] memory _tokens, uint256[] memory _rewards) = getUnclaimedRewards();
+
+        // check if any reward is eligible for compound
+        uint256 _rewardsLength = _tokens.length;
+        for (uint256 i = 0; i < _rewardsLength; i++) {
+            address _token = _tokens[i];
+            uint256 _reward = _rewards[i];
+            uint256 _estimatedOutUsdc = _reward != 0
+                ? exchangeLogic.estimateAmountOut(_token, address(usdc), _reward)
+                : 0;
+            uint256 _minAmountOut = (_estimatedOutUsdc * exchangeLogic.slippageTolerance()) / MAGIC_SCALE_1E6;
+            _canExec = _minAmountOut >= minOpsTrigger;
+            // unclaimed reward is larger than trigger, compound will be executed
+            if (_canExec) {
+                _execPayload = abi.encodeWithSelector(this.compound.selector, _token, _reward, _minAmountOut);
+                break;
+            }
+        }
+    }
+
+    function setOps(address _ops) external onlyOwner {
+        if (_ops == address(0)) revert ZeroAddress();
+        ops = _ops;
+    }
+
+    function setMinOpsTrigger(uint256 _min) external onlyOwner {
+        if (_min == 0) revert AmountZero();
+        minOpsTrigger = _min;
+    }
 
     /**
      * @notice Sets aaveMaxOccupancyRatio
@@ -238,13 +296,6 @@ contract AaveV3Strategy is IController {
     }
 
     /**
-     * @notice Claim all reward token. Claimed token is automatically compounded
-     */
-    function withdrawAllReward() external onlyOwner {
-        _withdrawAllReward();
-    }
-
-    /**
      * @notice Gets amount of unclaimed reward token from Aave.
      */
     function getUnclaimedRewards() public view returns (address[] memory _tokens, uint256[] memory _rewards) {
@@ -256,7 +307,7 @@ contract AaveV3Strategy is IController {
     }
 
     /**
-     * @notice this function called by an owner or a vault(when compounding or migrating).
+     * @notice this function called when migration is being executed.
      */
     function _withdrawAllReward() internal {
         (address[] memory _rewards, uint256[] memory _gotRewards) = aaveReward.claimAllRewards(
@@ -271,9 +322,8 @@ contract AaveV3Strategy is IController {
             uint256 _amount = _gotRewards[i];
             if (_amount > 0) {
                 IERC20(_rewardToken).safeApprove(exchangeLogic.swapper(), _amount);
-                uint256 _swapped = _swap(_rewardToken, address(usdc), _amount);
-                // compound swapped usdc
-                _utilize(_swapped);
+                // execute swap regardless any slippage
+                _swap(_rewardToken, address(usdc), _amount, 1);
             }
         }
     }
@@ -285,7 +335,7 @@ contract AaveV3Strategy is IController {
      */
     function _utilize(uint256 _amount) internal {
         if (_amount == 0) revert AmountZero();
-        if (managingFund + _amount > _calcAaveNewSupplyCap()) revert AaveSupplyCapExceeded();
+        if (managingFund() + _amount > _calcAaveNewSupplyCap()) revert AaveSupplyCapExceeded();
 
         // supply utilized assets into aave pool
         usdc.approve(address(aave), _amount);
@@ -299,7 +349,7 @@ contract AaveV3Strategy is IController {
      */
     function _unutilize(uint256 _amount) internal {
         if (_amount == 0) revert AmountZero();
-        if (_amount > managingFund) revert InsufficientManagingFund();
+        if (_amount > managingFund()) revert InsufficientManagingFund();
 
         aave.withdraw(address(usdc), _amount, address(this));
         emit SupplyDecreased(address(usdc), _amount);
@@ -345,17 +395,12 @@ contract AaveV3Strategy is IController {
     function _swap(
         address _tokenIn,
         address _tokenOut,
-        uint256 _amountIn
+        uint256 _amountIn,
+        uint256 _minAmountOut
     ) internal returns (uint256) {
-        uint256 _amountOutMin;
-        unchecked {
-            uint256 _estimatedAmount = exchangeLogic.estimateAmountOut(_tokenIn, _tokenOut, _amountIn);
-            _amountOutMin = (_estimatedAmount * exchangeLogic.slippageTolerance()) / MAGIC_SCALE_1E6;
-        }
-
         address _swapper = exchangeLogic.swapper();
         (bool _success, bytes memory _res) = _swapper.call(
-            exchangeLogic.abiEncodeSwap(_tokenIn, _tokenOut, _amountIn, _amountOutMin, address(this))
+            exchangeLogic.abiEncodeSwap(_tokenIn, _tokenOut, _amountIn, _minAmountOut, address(this))
         );
 
         if (!_success) revert NoRewardClaimable();

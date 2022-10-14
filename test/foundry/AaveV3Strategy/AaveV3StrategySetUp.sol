@@ -29,6 +29,9 @@ abstract contract AaveV3StrategySetUp is Test {
     address aaveReward;
     address uniswapV3Router;
     address uniswapV3Quoter;
+    address gelatoOps;
+    address gelatoNetwork;
+    address gelatoTaskTreasury;
 
     string OPTIMISM_RPC_URL = vm.envString("OPTIMISM_URL");
 
@@ -48,11 +51,20 @@ abstract contract AaveV3StrategySetUp is Test {
         aaveReward = addresses.aaveReward;
         uniswapV3Router = addresses.uniswapV3Router;
         uniswapV3Quoter = addresses.uniswapV3Quoter;
+        gelatoOps = addresses.gelatoOps;
+        gelatoNetwork = addresses.gelatoNetwork;
+        gelatoTaskTreasury = addresses.gelatoTaskTreasury;
 
         vm.startPrank(deployer);
         ownership = new Ownership();
         registry = new Registry(address(ownership));
-        exchangeLogic = new ExchangeLogicUniswapV3(uniswapV3Router, uniswapV3Quoter);
+        // exchangeLogic = new ExchangeLogicUniswapV3(uniswapV3Router, uniswapV3Quoter);
+        exchangeLogic = new ExchangeLogicUniswapV3(
+            uniswapV3Router,
+            uniswapV3Quoter,
+            3_000, // fee => 0.3%
+            997_000 // slippage tolerance => 0.3%
+        );
         vault = new Vault(usdc, address(registry), address(0), address(ownership));
         strategy = new AaveV3Strategy(
             ownership,
@@ -61,7 +73,8 @@ abstract contract AaveV3StrategySetUp is Test {
             IAaveV3Pool(aavePool),
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
-            IERC20(ausdc)
+            IERC20(ausdc),
+            gelatoOps
         );
 
         vault.setController(address(strategy));
