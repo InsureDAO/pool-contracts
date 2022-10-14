@@ -31,8 +31,10 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
         uint256 _fundWithInterest = strategy.managingFund();
         uint256 _claimableReward = strategy.getUnclaimedReward();
         uint256 _expectedCompoundUsdc = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _claimableReward);
-        vm.prank(deployer);
-        strategy.withdrawAllReward();
+
+        uint256 _minAmountOut = (_expectedCompoundUsdc * exchangeLogic.slippageTolerance()) / 1e6;
+        vm.prank(gelatoOps);
+        strategy.compound(_minAmountOut);
         assertApproxEqRel(strategy.managingFund(), _fundWithInterest + _expectedCompoundUsdc, 0.001e18);
     }
 
@@ -87,8 +89,9 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
         uint256 _claimableReward = strategy.getUnclaimedReward();
         uint256 _expectedCompoundUsdc = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _claimableReward);
         uint256 _fundWithInterest = strategy.managingFund();
-        vm.prank(deployer);
-        strategy.withdrawAllReward();
+        uint256 _minAmountOut = (_expectedCompoundUsdc * exchangeLogic.slippageTolerance()) / 1e6;
+        vm.prank(gelatoOps);
+        strategy.compound(_minAmountOut);
         assertApproxEqRel(strategy.managingFund(), _fundWithInterest + _expectedCompoundUsdc, 0.001e18);
     }
 
@@ -149,7 +152,8 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
             IAaveV3Reward(address(1)),
             IERC20(usdc),
             IERC20(ausdc),
-            IERC20(aaveRewardToken)
+            IERC20(aaveRewardToken),
+            gelatoOps
         );
 
         vault.setController(address(strategy));
@@ -239,8 +243,9 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
         uint256 _preManagingFund = strategy.managingFund();
         uint256 _unclaimedReward = strategy.getUnclaimedReward();
         uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimedReward);
-        vm.prank(deployer);
-        strategy.withdrawAllReward();
+        uint256 _minAmountOut = (_expectedUsdcOut * exchangeLogic.slippageTolerance()) / 1e6;
+        vm.prank(gelatoOps);
+        strategy.compound(_minAmountOut);
 
         assertApproxEqRel(strategy.managingFund(), _preManagingFund + _expectedUsdcOut, 0.001e18);
     }
@@ -259,6 +264,7 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
         skip(1e6);
         uint256 _unclaimedReward = strategy.getUnclaimedReward();
         uint256 _estimatedUsdcAmount = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimedReward);
+        uint256 _minAmountOut = (_estimatedUsdcAmount * exchangeLogic.slippageTolerance()) / 1e6;
         uint256 _totalSupply = IERC20(ausdc).totalSupply();
         uint256 _currentSupply = IERC20(ausdc).balanceOf(address(strategy));
         uint256 _expectedSupplyRatio = ((_estimatedUsdcAmount + _currentSupply) * 1e6) / _totalSupply;
@@ -268,11 +274,10 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
 
         // new supply exceeds limit
         assertGt(_expectedSupplyRatio, strategy.aaveMaxOccupancyRatio());
-
-        vm.prank(deployer);
+        vm.prank(gelatoOps);
         // compound should be reverted
         vm.expectRevert(AaveSupplyCapExceeded.selector);
-        strategy.withdrawAllReward();
+        strategy.compound(_minAmountOut);
 
         // unclaimed reward stil exist
         assertEq(strategy.getUnclaimedReward(), _unclaimedReward);
@@ -289,7 +294,8 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
             IAaveV3Reward(address(1)), // set unavailable contract address
             IERC20(usdc),
             IERC20(ausdc),
-            IERC20(aaveRewardToken)
+            IERC20(aaveRewardToken),
+            gelatoOps
         );
 
         vault.setController(address(strategy));
@@ -320,7 +326,13 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
         uint256 _fundWithInterest = strategy.managingFund();
         vm.prank(deployer);
         vm.expectRevert();
-        strategy.withdrawAllReward();
+        uint256 _unclaimedReward = strategy.getUnclaimedReward();
+        vm.expectRevert(AmountZero.selector);
+        uint256 _estimatedUsdcAmount = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimedReward);
+        uint256 _minAmountOut = (_estimatedUsdcAmount * exchangeLogic.slippageTolerance()) / 1e6;
+        vm.prank(gelatoOps);
+        vm.expectRevert(AmountZero.selector);
+        strategy.compound(_minAmountOut);
 
         // vault and strategy balance has no change
         assertEq(vault.balance(), 9_100 * 1e6);
@@ -333,12 +345,13 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
         strategy = new AaveV3Strategy(
             ownership,
             vault,
-            new ExchangeLogicUniswapV3(address(1), address(2)), // set unavailable contract address
+            new ExchangeLogicUniswapV3(address(1), address(2), 3_000, 975_000), // set unavailable contract address
             IAaveV3Pool(aavePool),
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
             IERC20(ausdc),
-            IERC20(aaveRewardToken)
+            IERC20(aaveRewardToken),
+            gelatoOps
         );
 
         vault.setController(address(strategy));
@@ -364,9 +377,11 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
 
         skip(1e6);
         uint256 _unclaimedReward = strategy.getUnclaimedReward();
-        vm.prank(deployer);
+        uint256 _estimatedUsdcAmount = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimedReward);
+        uint256 _minAmountOut = (_estimatedUsdcAmount * exchangeLogic.slippageTolerance()) / 1e6;
+        vm.prank(gelatoOps);
         vm.expectRevert();
-        strategy.withdrawAllReward();
+        strategy.compound(_minAmountOut);
         assertEq(strategy.getUnclaimedReward(), _unclaimedReward);
     }
 }
@@ -385,7 +400,8 @@ contract WhenMigrateAsset is AaveV3StrategySetUp {
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
             IERC20(ausdc),
-            IERC20(aaveRewardToken)
+            IERC20(aaveRewardToken),
+            gelatoOps
         );
     }
 
@@ -421,7 +437,8 @@ contract WhenMigrateAsset is AaveV3StrategySetUp {
             IAaveV3Reward(address(1)), // set unavailable contract address
             IERC20(usdc),
             IERC20(ausdc),
-            IERC20(aaveRewardToken)
+            IERC20(aaveRewardToken),
+            gelatoOps
         );
 
         vm.expectRevert();
@@ -444,4 +461,102 @@ contract WhenMigrateAsset is AaveV3StrategySetUp {
         assertEq(IERC20(ausdc).balanceOf(address(strategy)), 0);
         assertEq(IERC20(ausdc).balanceOf(alice), 900 * 1e6);
     }
+}
+
+contract WhenCreateTaskOnGelatoOps is AaveV3StrategySetUp {
+    /**
+     * @notice Actually, we are going to use Gelato Ops UI to create tasks.
+     */
+    address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
+    function testExecuteTaskUsingGelatoOps() public {
+        // set up
+        vm.prank(deployer);
+        strategy.setMinOpsTrigger(1);
+
+        IOps _gelatoOps = IOps(gelatoOps);
+        ITaskTreasury _taskTreasury = ITaskTreasury(gelatoTaskTreasury);
+
+        // deposit fund to treasury
+        deal(alice, 2 ether);
+        vm.prank(alice);
+        _taskTreasury.depositFunds{value: 1 ether}(alice, ETH, 1 ether);
+
+        bytes memory _resolverData = abi.encodeWithSelector(strategy.check.selector);
+        bytes32 _resolverHash = keccak256(abi.encode(address(strategy), _resolverData));
+
+        // create task
+        vm.prank(alice);
+        _gelatoOps.createTask(address(strategy), strategy.compound.selector, address(strategy), _resolverData);
+        skip(1e6);
+
+        // gelato ops executes task
+        (bool _canExec, bytes memory _execPayload) = strategy.check();
+        vm.prank(gelatoNetwork);
+        _gelatoOps.exec(0.01 ether, ETH, alice, true, true, _resolverHash, address(strategy), _execPayload);
+
+        assertEq(strategy.getUnclaimedReward(), 0);
+    }
+}
+
+interface ITaskTreasury {
+    /// @notice Function to deposit Funds which will be used to execute transactions on various services
+    /// @param _receiver Address receiving the credits
+    /// @param _token Token to be credited, use "0xeeee...." for ETH
+    /// @param _amount Amount to be credited
+    function depositFunds(
+        address _receiver,
+        address _token,
+        uint256 _amount
+    ) external payable;
+}
+
+interface IOps {
+    /// @notice Create a task that tells Gelato to monitor and execute transactions on specific contracts
+    /// @dev Requires funds to be added in Task Treasury, assumes treasury sends fee to Gelato via Ops
+    /// @param _execAddress On which contract should Gelato execute the transactions
+    /// @param _execSelector Which function Gelato should execute on the _execAddress
+    /// @param _resolverAddress On which contract should Gelato check when to execute the tx
+    /// @param _resolverData Which data should be used to check on the Resolver when to execute the tx
+    function createTask(
+        address _execAddress,
+        bytes4 _execSelector,
+        address _resolverAddress,
+        bytes calldata _resolverData
+    ) external returns (bytes32 task);
+
+    /// @notice Execution API called by Gelato
+    /// @param _txFee Fee paid to Gelato for execution, deducted on the TaskTreasury
+    /// @param _feeToken Token used to pay for the execution. ETH = 0xeeeeee...
+    /// @param _taskCreator On which contract should Gelato check when to execute the tx
+    /// @param _useTaskTreasuryFunds If msg.sender's balance on TaskTreasury should pay for the tx
+    /// @param _revertOnFailure To revert or not if call to execAddress fails
+    /// @param _execAddress On which contract should Gelato execute the tx
+    /// @param _execData Data used to execute the tx, queried from the Resolver by Gelato
+    function exec(
+        uint256 _txFee,
+        address _feeToken,
+        address _taskCreator,
+        bool _useTaskTreasuryFunds,
+        bool _revertOnFailure,
+        bytes32 _resolverHash,
+        address _execAddress,
+        bytes calldata _execData
+    ) external;
+
+    /// @notice Returns TaskId of a task Creator
+    /// @param _taskCreator Address of the task creator
+    /// @param _execAddress Address of the contract to be executed by Gelato
+    /// @param _selector Function on the _execAddress which should be executed
+    /// @param _useTaskTreasuryFunds If msg.sender's balance on TaskTreasury should pay for the tx
+    /// @param _feeToken FeeToken to use, address 0 if task treasury is used
+    /// @param _resolverHash hash of resolver address and data
+    function getTaskId(
+        address _taskCreator,
+        address _execAddress,
+        bytes4 _selector,
+        bool _useTaskTreasuryFunds,
+        address _feeToken,
+        bytes32 _resolverHash
+    ) external pure returns (bytes32);
 }

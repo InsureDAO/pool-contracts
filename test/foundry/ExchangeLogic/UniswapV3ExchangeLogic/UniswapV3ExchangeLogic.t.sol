@@ -7,7 +7,7 @@ contract UniswapV3ExchangeLogicTest is UniswapV3ExchangeLogicSetUp {
     IExchangeLogic private uniswapV3ExchangeLogic;
 
     function setUp() public {
-        uniswapV3ExchangeLogic = new ExchangeLogicUniswapV3(uniswapV3Router, uniswapV3Quoter);
+        uniswapV3ExchangeLogic = new ExchangeLogicUniswapV3(uniswapV3Router, uniswapV3Quoter, 3_000, 975_000);
         deal(aaveRewardToken, alice, 10_000 * 1e18);
     }
 
@@ -37,10 +37,5 @@ contract UniswapV3ExchangeLogicTest is UniswapV3ExchangeLogicSetUp {
     function testEstimateAmountIn() public {
         uint256 _amountIn = uniswapV3ExchangeLogic.estimateAmountIn(aaveRewardToken, usdc, 1000 * 1e6);
         assertGt(_amountIn, 0);
-    }
-
-    function testSetSlippageTolerance() public {
-        uniswapV3ExchangeLogic.setSlippageTolerance(1e6);
-        assertEq(uniswapV3ExchangeLogic.slippageTolerance(), 1e6);
     }
 }

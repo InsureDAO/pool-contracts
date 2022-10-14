@@ -46,7 +46,8 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
             IERC20(ausdc),
-            IERC20(aaveRewardToken)
+            IERC20(aaveRewardToken),
+            gelatoOps
         );
         vm.expectRevert(ZeroAddress.selector);
         _newController.immigrate(address(0));
@@ -61,7 +62,8 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
             IERC20(ausdc),
-            IERC20(aaveRewardToken)
+            IERC20(aaveRewardToken),
+            gelatoOps
         );
         _newController.immigrate(address(strategy));
     }
@@ -75,7 +77,8 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
             IERC20(ausdc),
-            IERC20(aaveRewardToken)
+            IERC20(aaveRewardToken),
+            gelatoOps
         );
         vm.expectRevert(AlreadyInUse.selector);
         strategy.immigrate(address(_newController));
@@ -136,31 +139,30 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
         strategy.setAaveRewardToken(IERC20(address(0)));
     }
 
-    function testCannotWithdrawRewardWithoutOwner() public {
-        vm.expectRevert(OnlyOwner.selector);
-        strategy.withdrawReward(1);
-    }
-
-    function testCannotWithdrawRewardForAmountZero() public {
+    function testCannotSetMinOpsTriggerZero() public {
         vm.prank(deployer);
         vm.expectRevert(AmountZero.selector);
-        strategy.withdrawReward(0);
+        strategy.setMinOpsTrigger(0);
     }
 
-    function testCannotWithdrawRewardForInsufficientAmount() public {
-        vm.prank(deployer);
-        vm.expectRevert(InsufficientRewardToWithdraw.selector);
-        strategy.withdrawReward(1);
-    }
-
-    function testCannotWithdrawAllRewardWithoutOwner() public {
+    function testCannotSetMinOpsTriggerWithoutOwner() public {
         vm.expectRevert(OnlyOwner.selector);
-        strategy.withdrawAllReward();
+        strategy.setMinOpsTrigger(10e6);
     }
 
-    function testCannotWithdrawAllRewardForNoBalance() public {
-        vm.prank(deployer);
-        vm.expectRevert(NoRewardClaimable.selector);
-        strategy.withdrawAllReward();
+    function testCannotCompoundWithoutOps() public {
+        vm.expectRevert(OnlyOps.selector);
+        strategy.compound(1e6);
+    }
+
+    function testCannotCompoundAmountZero() public {
+        vm.prank(gelatoOps);
+        vm.expectRevert(AmountZero.selector);
+        strategy.compound(0);
+    }
+
+    function testCannotSetOpsWithoutOwner() public {
+        vm.expectRevert(OnlyOwner.selector);
+        strategy.setOps(alice);
     }
 }

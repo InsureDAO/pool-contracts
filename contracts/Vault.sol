@@ -204,6 +204,19 @@ contract Vault is IVault {
             debts[msg.sender] += _amount;
             totalDebt += _amount;
 
+            uint256 _available = available();
+
+            if (_available < _amount) {
+                //when USDC in this contract isn't enough
+                uint256 _shortage;
+                unchecked {
+                    _shortage = _amount - _available;
+                }
+                _unutilize(_shortage);
+
+                require(available() >= _amount, "Withdraw amount > Available");
+            }
+
             IERC20(token).safeTransfer(_to, _amount);
         }
     }
@@ -214,7 +227,7 @@ contract Vault is IVault {
      * @dev This performs like investment feature. Good to use for distributing revenue for all underwriters.
      * This function results increasing of attributionValue().
      */
-    function addBalance(uint256 _amount) external {
+    function addBalance(uint256 _amount) external onlyMarket {
         IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
         balance += _amount;
     }

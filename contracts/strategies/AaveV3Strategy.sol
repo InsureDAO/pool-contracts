@@ -3,6 +3,8 @@ pragma solidity 0.8.12;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
+
+import "../abstracts/OpsReady.sol";
 import "../interfaces/IController.sol";
 import "../interfaces/IOwnership.sol";
 import "../interfaces/IVault.sol";
@@ -19,7 +21,7 @@ import "../errors/CommonError.sol";
  *      has 1 strategy and the strategy is not complicated. In the future, Strategy methods
  *      will be generalized as interface and separated from Controller.
  */
-contract AaveV3Strategy is IController {
+contract AaveV3Strategy is IController, OpsReady {
     using SafeERC20 for IERC20;
 
     IOwnership public immutable ownership;
@@ -45,6 +47,9 @@ contract AaveV3Strategy is IController {
 
     /// @dev This variable is significant to avoid locking asset in Aave pool.
     uint256 public aaveMaxOccupancyRatio;
+
+    /// @dev What minimum reward a compound should be triggered by check() function.
+    uint256 public minOpsTrigger;
 
     /// @dev internal multiplication scale 1e6 to reduce decimal truncation
     uint256 private constant MAGIC_SCALE_1E6 = 1e6; //
@@ -86,7 +91,8 @@ contract AaveV3Strategy is IController {
         IAaveV3Reward _aaveReward,
         IERC20 _usdc,
         IERC20 _ausdc,
-        IERC20 _aaveRewardToken
+        IERC20 _aaveRewardToken,
+        address _ops
     ) {
         ownership = _ownership;
         vault = _vault;
@@ -96,10 +102,12 @@ contract AaveV3Strategy is IController {
         usdc = _usdc;
         ausdc = _ausdc;
         aaveRewardToken = _aaveRewardToken;
+        ops = _ops;
         supplyingAssets.push(address(_ausdc));
 
         maxManagingRatio = MAGIC_SCALE_1E6;
         aaveMaxOccupancyRatio = (MAGIC_SCALE_1E6 * 10) / 100;
+        minOpsTrigger = 100e6;
 
         address _swapper = IExchangeLogic(exchangeLogic).swapper();
         IERC20(aaveRewardToken).safeApprove(_swapper, type(uint256).max);
@@ -218,6 +226,67 @@ contract AaveV3Strategy is IController {
      */
 
     /**
+     * @notice Claims all reward token, then compounds it automatically.
+     * @dev Ops address should send transactions as private in the way prevent exploit from attackers.
+     * @param _minAmountOut minimum amount of USDC caller expects to receive
+     */
+    function compound(uint256 _minAmountOut) external onlyOps {
+        if (_minAmountOut == 0) revert AmountZero();
+        uint256 _claimable = getUnclaimedReward();
+        if (_claimable == 0) revert NoRewardClaimable();
+
+        aaveReward.claimRewards(supplyingAssets, _claimable, address(this), address(aaveRewardToken));
+
+        uint256 _swapped = _swap(
+            address(aaveRewardToken),
+            address(usdc),
+            aaveRewardToken.balanceOf(address(this)),
+            _minAmountOut
+        );
+
+        // compound swapped usdc
+        _utilize(_swapped);
+    }
+
+    /**
+     * @notice Gets amount of unclaimed reward token from Aave.
+     */
+    function getUnclaimedReward() public view returns (uint256) {
+        return aaveReward.getUserRewards(supplyingAssets, address(this), address(aaveRewardToken));
+    }
+
+    /**
+     * @inheritdoc OpsReady
+     * @notice Check the rewards can be compounded. If the contract has sufficient reward,
+     *         returns compound() function payload to execute.
+     */
+    function check() external override returns (bool _canExec, bytes memory _execPayload) {
+        uint256 _reward = getUnclaimedReward();
+        uint256 _estimatedOutUsdc = _reward != 0
+            ? exchangeLogic.estimateAmountOut(address(aaveRewardToken), address(usdc), _reward)
+            : 0;
+        uint256 _minAmountOut = (_estimatedOutUsdc * exchangeLogic.slippageTolerance()) / MAGIC_SCALE_1E6;
+
+        _canExec = _minAmountOut >= minOpsTrigger;
+
+        if (_canExec) {
+            _execPayload = abi.encodeWithSelector(this.compound.selector, _minAmountOut);
+        } else {
+            _execPayload = bytes("No enough reward to withdraw");
+        }
+    }
+
+    function setOps(address _ops) external onlyOwner {
+        if (_ops == address(0)) revert ZeroAddress();
+        ops = _ops;
+    }
+
+    function setMinOpsTrigger(uint256 _min) external onlyOwner {
+        if (_min == 0) revert AmountZero();
+        minOpsTrigger = _min;
+    }
+
+    /**
      * @notice Sets aaveMaxOccupancyRatio
      * @param _ratio The portion of the aave total supply
      */
@@ -251,46 +320,6 @@ contract AaveV3Strategy is IController {
 
         //approve new token to the swapper
         IERC20(_token).safeApprove(_swapper, type(uint256).max);
-    }
-
-    /**
-     * @notice Claims specific amount of reward token. Claimed token is automatically compounded
-     * @param _amount The amount of reward token to be claimed
-     */
-    function withdrawReward(uint256 _amount) external onlyOwner {
-        if (_amount == 0) revert AmountZero();
-        if (_amount > getUnclaimedReward()) revert InsufficientRewardToWithdraw();
-
-        aaveReward.claimRewards(supplyingAssets, _amount, address(this), address(aaveRewardToken));
-        emit RewardClaimed(address(aaveRewardToken), _amount);
-
-        uint256 _swapped = _swap(address(aaveRewardToken), address(usdc), _amount);
-
-        // compound swapped usdc
-        _utilize(_swapped);
-    }
-
-    /**
-     * @notice Claim all reward token. Claimed token is automatically compounded
-     */
-    function withdrawAllReward() external onlyOwner {
-        uint256 _claimable = getUnclaimedReward();
-        if (_claimable == 0) revert NoRewardClaimable();
-
-        aaveReward.claimAllRewards(supplyingAssets, address(this));
-        emit RewardClaimed(address(aaveRewardToken), _claimable);
-
-        uint256 _swapped = _swap(address(aaveRewardToken), address(usdc), aaveRewardToken.balanceOf(address(this)));
-
-        // compound swapped usdc
-        _utilize(_swapped);
-    }
-
-    /**
-     * @notice Gets amount of unclaimed reward token from Aave.
-     */
-    function getUnclaimedReward() public view returns (uint256) {
-        return aaveReward.getUserRewards(supplyingAssets, address(this), address(aaveRewardToken));
     }
 
     /**
@@ -357,17 +386,12 @@ contract AaveV3Strategy is IController {
     function _swap(
         address _tokenIn,
         address _tokenOut,
-        uint256 _amountIn
+        uint256 _amountIn,
+        uint256 _minAmountOut
     ) internal returns (uint256) {
-        uint256 _amountOutMin;
-        unchecked {
-            uint256 _estimatedAmount = exchangeLogic.estimateAmountOut(_tokenIn, _tokenOut, _amountIn);
-            _amountOutMin = (_estimatedAmount * exchangeLogic.slippageTolerance()) / MAGIC_SCALE_1E6;
-        }
-
         address _swapper = exchangeLogic.swapper();
         (bool _success, bytes memory _res) = _swapper.call(
-            exchangeLogic.abiEncodeSwap(_tokenIn, _tokenOut, _amountIn, _amountOutMin, address(this))
+            exchangeLogic.abiEncodeSwap(_tokenIn, _tokenOut, _amountIn, _minAmountOut, address(this))
         );
 
         if (!_success) revert NoRewardClaimable();
