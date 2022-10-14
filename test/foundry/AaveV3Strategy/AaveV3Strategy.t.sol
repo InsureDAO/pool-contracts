@@ -35,7 +35,6 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
             IERC20(ausdc),
-            IERC20(aaveRewardToken),
             gelatoOps
         );
 
@@ -96,13 +95,6 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         assertEq(address(strategy.exchangeLogic()), address(_newLogic));
     }
 
-    function testSetAaveRewardToken() public {
-        assertEq(address(strategy.aaveRewardToken()), aaveRewardToken);
-        vm.prank(address(deployer));
-        strategy.setAaveRewardToken(IERC20(ausdc));
-        assertEq(address(strategy.aaveRewardToken()), ausdc);
-    }
-
     function testSetMinOpsTrigger() public {
         vm.prank(deployer);
         strategy.setMinOpsTrigger(10e6);
@@ -117,19 +109,23 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
 
     function testCompound() public {
         skip(1e6);
-        uint256 _unclaimed = strategy.getUnclaimedReward();
+        (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        address _token = _tokens[0];
+        uint256 _unclaimed = _rewards[0];
         uint256 _fundBeforeClaiming = strategy.managingFund();
         uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimed);
         uint256 _minAmountOut = (_expectedUsdcOut * exchangeLogic.slippageTolerance()) / 1e6;
         vm.prank(gelatoOps);
-        strategy.compound(_minAmountOut);
+        strategy.compound(_token, _unclaimed, _minAmountOut);
         assertApproxEqRel(IERC20(ausdc).balanceOf(address(strategy)), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
         assertApproxEqRel(strategy.managingFund(), _fundBeforeClaiming + _expectedUsdcOut, 0.003e18);
     }
 
-    function testGetUnclaimedReward() public {
+    function testGetUnclaimedRewards() public {
         skip(1e6);
-        assertGt(strategy.getUnclaimedReward(), 0);
+        (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        assertEq(_tokens[0], aaveRewardToken);
+        assertGt(_rewards[0], 0);
     }
 
     function testCheck() public {
@@ -140,11 +136,16 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
         vm.prank(deployer);
         strategy.setMinOpsTrigger(1);
         skip(1e6);
-        uint256 _unclaimedReward = strategy.getUnclaimedReward();
-        uint256 _estimatedUsdcAmount = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimedReward);
+        (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        address _token = _tokens[0];
+        uint256 _reward = _rewards[0];
+        uint256 _estimatedUsdcAmount = exchangeLogic.estimateAmountOut(_token, usdc, _reward);
         uint256 _minAmountOut = (_estimatedUsdcAmount * exchangeLogic.slippageTolerance()) / 1e6;
         (_canExec, _execPayload) = strategy.check();
         assertEq(_canExec, true);
-        assertEq(_execPayload, abi.encodeWithSelector(AaveV3Strategy.compound.selector, _minAmountOut));
+        assertEq(
+            _execPayload,
+            abi.encodeWithSelector(AaveV3Strategy.compound.selector, _token, _reward, _minAmountOut)
+        );
     }
 }

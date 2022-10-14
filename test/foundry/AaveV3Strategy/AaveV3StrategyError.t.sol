@@ -46,7 +46,6 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
             IERC20(ausdc),
-            IERC20(aaveRewardToken),
             gelatoOps
         );
         vm.expectRevert(ZeroAddress.selector);
@@ -62,7 +61,6 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
             IERC20(ausdc),
-            IERC20(aaveRewardToken),
             gelatoOps
         );
         _newController.immigrate(address(strategy));
@@ -77,7 +75,6 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
             IAaveV3Reward(aaveReward),
             IERC20(usdc),
             IERC20(ausdc),
-            IERC20(aaveRewardToken),
             gelatoOps
         );
         vm.expectRevert(AlreadyInUse.selector);
@@ -128,17 +125,6 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
         strategy.setExchangeLogic(IExchangeLogic(alice));
     }
 
-    function testCannotSetAaveRewardTokenWithoutOwner() public {
-        vm.expectRevert(OnlyOwner.selector);
-        strategy.setAaveRewardToken(IERC20(aaveRewardToken));
-    }
-
-    function testCannotSetZeroAddressToAaveRewardToken() public {
-        vm.prank(deployer);
-        vm.expectRevert(ZeroAddress.selector);
-        strategy.setAaveRewardToken(IERC20(address(0)));
-    }
-
     function testCannotSetMinOpsTriggerZero() public {
         vm.prank(deployer);
         vm.expectRevert(AmountZero.selector);
@@ -151,14 +137,31 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
     }
 
     function testCannotCompoundWithoutOps() public {
+        skip(1e6);
+        (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        address _token = _tokens[0];
+        uint256 _unclaimed = _rewards[0];
+        uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimed);
+        uint256 _minAmountOut = (_expectedUsdcOut * exchangeLogic.slippageTolerance()) / 1e6;
         vm.expectRevert(OnlyOps.selector);
-        strategy.compound(1e6);
+        strategy.compound(_token, _unclaimed, _minAmountOut);
     }
 
-    function testCannotCompoundAmountZero() public {
-        vm.prank(gelatoOps);
+    function testCannotCompoundAmountOrAddressZero() public {
+        skip(1e6);
+        (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        address _token = _tokens[0];
+        uint256 _unclaimed = _rewards[0];
+        uint256 _expectedUsdcOut = exchangeLogic.estimateAmountOut(aaveRewardToken, usdc, _unclaimed);
+        uint256 _minAmountOut = (_expectedUsdcOut * exchangeLogic.slippageTolerance()) / 1e6;
+        vm.startPrank(gelatoOps);
         vm.expectRevert(AmountZero.selector);
-        strategy.compound(0);
+        strategy.compound(_token, 0, _minAmountOut);
+        vm.expectRevert(AmountZero.selector);
+        strategy.compound(_token, _unclaimed, 0);
+        vm.expectRevert(ZeroAddress.selector);
+        strategy.compound(address(0), _unclaimed, _minAmountOut);
+        vm.stopPrank();
     }
 
     function testCannotSetOpsWithoutOwner() public {
