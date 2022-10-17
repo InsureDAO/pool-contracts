@@ -8,7 +8,7 @@ async function main() {
   [creator] = await ethers.getSigners();
   const { RegistryAddress, ParametersV2Address } = require("./deployments");
 
-  const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+  const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
   const Registry = await ethers.getContractFactory("Registry");
   const Parameters = await ethers.getContractFactory("Parameters");
 
@@ -22,7 +22,7 @@ async function main() {
   let markets = await registry.getAllMarkets();
 
   for (let i = 2; i < markets.length; i++) {
-    let market = await PoolTemplate.attach(markets[i]);
+    let market = await MarketTemplate.attach(markets[i]);
     let count = await market.allInsuranceCount();
     console.log("==================================================================");
     console.log("market:", market.address, ", totalPolicyCount:", count.toString());

@@ -13,8 +13,8 @@ const {
   verifyPoolsStatusForIndex,
   verifyPoolsStatusForIndex_legacy,
   verifyIndexStatus,
-  verifyCDSStatus,
-  verifyCDSStatusOf,
+  verifyReserveStatus,
+  verifyReserveStatusOf,
   verifyVaultStatus,
   verifyVaultStatusOf,
 } = require("../test-utils");
@@ -44,7 +44,7 @@ async function setNextBlock(time) {
   await ethers.provider.send("evm_setNextBlockTimestamp", [time.toNumber()]);
 }
 
-describe("CDS", function () {
+describe("Reserve", function () {
   const initialMint = BigNumber.from("100000"); //initial token amount for users
   const depositAmount = BigNumber.from("10000"); //default deposit amount for test
   const defaultRate = BigNumber.from("1000000"); //initial rate between USDC and LP token
@@ -56,8 +56,8 @@ describe("CDS", function () {
     [gov, alice, bob, chad, tom] = await ethers.getSigners();
     const Ownership = await ethers.getContractFactory("Ownership");
     const USDC = await ethers.getContractFactory("TestERC20Mock");
-    const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
-    const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
+    const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
+    const ReserveTemplate = await ethers.getContractFactory("ReserveTemplate");
     const Factory = await ethers.getContractFactory("Factory");
     const Vault = await ethers.getContractFactory("Vault");
     const Registry = await ethers.getContractFactory("Registry");
@@ -72,8 +72,8 @@ describe("CDS", function () {
     premium = await PremiumModel.deploy();
     vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
 
-    poolTemplate = await PoolTemplate.deploy();
-    cdsTemplate = await CDSTemplate.deploy();
+    marketTemplate = await MarketTemplate.deploy();
+    reserveTemplate = await ReserveTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
 
     //set up
@@ -87,18 +87,18 @@ describe("CDS", function () {
 
     await registry.setFactory(factory.address);
 
-    await factory.approveTemplate(poolTemplate.address, true, false, true);
-    await factory.approveTemplate(cdsTemplate.address, true, false, true);
+    await factory.approveTemplate(marketTemplate.address, true, false, true);
+    await factory.approveTemplate(reserveTemplate.address, true, false, true);
 
-    await factory.approveReference(poolTemplate.address, 0, usdc.address, true);
-    await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
-    await factory.approveReference(poolTemplate.address, 2, registry.address, true);
-    await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
-    await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true);
+    await factory.approveReference(marketTemplate.address, 0, usdc.address, true);
+    await factory.approveReference(marketTemplate.address, 1, usdc.address, true);
+    await factory.approveReference(marketTemplate.address, 2, registry.address, true);
+    await factory.approveReference(marketTemplate.address, 3, parameters.address, true);
+    await factory.approveReference(marketTemplate.address, 4, ZERO_ADDRESS, true);
 
-    await factory.approveReference(cdsTemplate.address, 2, parameters.address, true);
-    await factory.approveReference(cdsTemplate.address, 0, usdc.address, true);
-    await factory.approveReference(cdsTemplate.address, 1, registry.address, true);
+    await factory.approveReference(reserveTemplate.address, 2, parameters.address, true);
+    await factory.approveReference(reserveTemplate.address, 0, usdc.address, true);
+    await factory.approveReference(reserveTemplate.address, 1, registry.address, true);
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
@@ -118,26 +118,26 @@ describe("CDS", function () {
 
     //market1
     let tx = await factory.createMarket(
-      poolTemplate.address,
+      marketTemplate.address,
       "Here is metadata.",
       [0, 0],
       [usdc.address, usdc.address, registry.address, parameters.address]
     );
     let receipt = await tx.wait();
     const marketAddress1 = receipt.events[2].args[0];
-    market1 = await PoolTemplate.attach(marketAddress1);
+    market1 = await MarketTemplate.attach(marketAddress1);
 
     tx = await factory.createMarket(
-      cdsTemplate.address,
+      reserveTemplate.address,
       "Here is metadata.",
       [0, 0],
       [usdc.address, registry.address, parameters.address]
     );
     receipt = await tx.wait();
     const marketAddress2 = receipt.events[2].args[0];
-    cds = await CDSTemplate.attach(marketAddress2);
+    reserve = await ReserveTemplate.attach(marketAddress2);
 
-    await registry.setCDS(ZERO_ADDRESS, cds.address);
+    await registry.setReserve(ZERO_ADDRESS, reserve.address);
   });
 
   beforeEach(async () => {
@@ -145,8 +145,8 @@ describe("CDS", function () {
 
     {
       //sanity check
-      await verifyCDSStatus({
-        cds: cds,
+      await verifyReserveStatus({
+        reserve: reserve,
         surplusPool: ZERO,
         crowdPool: ZERO,
         totalSupply: ZERO,
@@ -154,8 +154,8 @@ describe("CDS", function () {
         rate: ZERO,
       });
 
-      await verifyCDSStatusOf({
-        cds: cds,
+      await verifyReserveStatusOf({
+        reserve: reserve,
         targetAddress: alice.address,
         valueOfUnderlying: ZERO,
         withdrawTimestamp: ZERO,
@@ -172,7 +172,7 @@ describe("CDS", function () {
 
       await verifyVaultStatusOf({
         vault: vault,
-        target: cds.address,
+        target: reserve.address,
         attributions: ZERO,
         underlyingValue: ZERO,
         debt: ZERO,
@@ -182,16 +182,16 @@ describe("CDS", function () {
         token: usdc,
         userBalances: {
           [alice.address]: initialMint,
-          [cds.address]: ZERO,
+          [reserve.address]: ZERO,
           [vault.address]: ZERO,
         },
       });
 
       await verifyBalances({
-        token: cds,
+        token: reserve,
         userBalances: {
           [alice.address]: ZERO,
-          [cds.address]: ZERO,
+          [reserve.address]: ZERO,
           [vault.address]: ZERO,
         },
       });
@@ -202,16 +202,16 @@ describe("CDS", function () {
     await restore(snapshotId);
   });
 
-  describe("CDSTemplate", function () {
+  describe("ReserveTemplate", function () {
     describe("initialize", function () {
       it("should set configs after initialization", async () => {
-        expect(await cds.initialized()).to.equal(true);
-        expect(await cds.registry()).to.equal(registry.address);
-        expect(await cds.parameters()).to.equal(parameters.address);
-        expect(await cds.vault()).to.equal(vault.address);
-        expect(await cds.name()).to.equal("InsureDAO-Reserve");
-        expect(await cds.symbol()).to.equal("iReserve");
-        expect(await cds.decimals()).to.equal(18); //MockERC20 decimals
+        expect(await reserve.initialized()).to.equal(true);
+        expect(await reserve.registry()).to.equal(registry.address);
+        expect(await reserve.parameters()).to.equal(parameters.address);
+        expect(await reserve.vault()).to.equal(vault.address);
+        expect(await reserve.name()).to.equal("InsureDAO-Reserve");
+        expect(await reserve.symbol()).to.equal("iReserve");
+        expect(await reserve.decimals()).to.equal(18); //MockERC20 decimals
       });
 
       it("reverts when already initialized", async () => {
@@ -219,7 +219,7 @@ describe("CDS", function () {
         // "INITIALIZATION_BAD_CONDITIONS"
 
         await expect(
-          cds.initialize(
+          reserve.initialize(
             ZERO_ADDRESS,
             "Here is metadata.",
             [0, 0],
@@ -229,11 +229,11 @@ describe("CDS", function () {
       });
 
       it("reverts when address is zero and/or metadata is empty 1", async () => {
-        await factory.approveReference(cdsTemplate.address, 0, ZERO_ADDRESS, true);
+        await factory.approveReference(reserveTemplate.address, 0, ZERO_ADDRESS, true);
 
         await expect(
           factory.createMarket(
-            cdsTemplate.address,
+            reserveTemplate.address,
             "Here is metadata.",
             [0, 0],
             [ZERO_ADDRESS, registry.address, parameters.address]
@@ -242,11 +242,11 @@ describe("CDS", function () {
       });
 
       it("reverts when address is zero and/or metadata is empty 2", async () => {
-        await factory.approveReference(cdsTemplate.address, 1, ZERO_ADDRESS, true);
+        await factory.approveReference(reserveTemplate.address, 1, ZERO_ADDRESS, true);
 
         await expect(
           factory.createMarket(
-            cdsTemplate.address,
+            reserveTemplate.address,
             "Here is metadata.",
             [0, 0],
             [usdc.address, ZERO_ADDRESS, parameters.address]
@@ -255,11 +255,11 @@ describe("CDS", function () {
       });
 
       it("reverts when address is zero and/or metadata is empty 3", async () => {
-        await factory.approveReference(cdsTemplate.address, 2, ZERO_ADDRESS, true);
+        await factory.approveReference(reserveTemplate.address, 2, ZERO_ADDRESS, true);
 
         await expect(
           factory.createMarket(
-            cdsTemplate.address,
+            reserveTemplate.address,
             "Here is metadata.",
             [0, 0],
             [usdc.address, registry.address, ZERO_ADDRESS]
@@ -269,22 +269,27 @@ describe("CDS", function () {
 
       it("reverts when address is zero and/or metadata is empty 4", async () => {
         await expect(
-          factory.createMarket(cdsTemplate.address, "", [0, 0], [usdc.address, registry.address, parameters.address])
+          factory.createMarket(
+            reserveTemplate.address,
+            "",
+            [0, 0],
+            [usdc.address, registry.address, parameters.address]
+          )
         ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
     });
 
     describe("deposit", function () {
       it("should increase the crowd pool size and attribution", async () => {
-        let tx = await cds.connect(alice).deposit(depositAmount);
+        let tx = await reserve.connect(alice).deposit(depositAmount);
 
         {
           //sanity check
           let mintAmount = (await tx.wait()).events[3].args["value"]; //new minted LP
           await expect(mintAmount).to.equal(depositAmount);
 
-          await verifyCDSStatus({
-            cds: cds,
+          await verifyReserveStatus({
+            reserve: reserve,
             surplusPool: ZERO,
             crowdPool: depositAmount, //deposit goes into crowdPool
             totalSupply: mintAmount,
@@ -292,8 +297,8 @@ describe("CDS", function () {
             rate: defaultRate,
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount,
             withdrawTimestamp: ZERO,
@@ -310,7 +315,7 @@ describe("CDS", function () {
 
           await verifyVaultStatusOf({
             vault: vault,
-            target: cds.address,
+            target: reserve.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
             debt: ZERO,
@@ -320,16 +325,16 @@ describe("CDS", function () {
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: depositAmount,
             },
           });
 
           await verifyBalances({
-            token: cds,
+            token: reserve,
             userBalances: {
               [alice.address]: mintAmount,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO,
             },
           });
@@ -338,22 +343,22 @@ describe("CDS", function () {
 
       it("should return larger amount of iToken when the rate is low(when compensated)", async () => {
         //setup
-        await cds.connect(bob).deposit(depositAmount); //LP:USDC = 1:1
+        await reserve.connect(bob).deposit(depositAmount); //LP:USDC = 1:1
 
         await registry.supportMarket(chad.address); //now bob can act like a market
 
         let compensate = depositAmount.div(2);
-        await cds.connect(chad).compensate(compensate); //LP:USDC = 1:0.5
+        await reserve.connect(chad).compensate(compensate); //LP:USDC = 1:0.5
 
-        let tx = await cds.connect(alice).deposit(depositAmount); //LP mintAmount should be depositAmount*2
+        let tx = await reserve.connect(alice).deposit(depositAmount); //LP mintAmount should be depositAmount*2
 
         {
           //sanity check
           let mintAmount = (await tx.wait()).events[3].args["value"]; //new minted LP
           await expect(mintAmount).to.equal(depositAmount.mul(2));
 
-          await verifyCDSStatus({
-            cds: cds,
+          await verifyReserveStatus({
+            reserve: reserve,
             surplusPool: ZERO,
             crowdPool: depositAmount.sub(compensate).add(depositAmount),
             totalSupply: depositAmount.add(mintAmount),
@@ -361,16 +366,16 @@ describe("CDS", function () {
             rate: defaultRate.mul(depositAmount.sub(compensate).add(depositAmount)).div(depositAmount.add(mintAmount)),
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: bob.address,
             valueOfUnderlying: depositAmount.sub(compensate),
             withdrawTimestamp: ZERO,
             withdrawAmount: ZERO,
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount,
             withdrawTimestamp: ZERO,
@@ -387,7 +392,7 @@ describe("CDS", function () {
 
           await verifyVaultStatusOf({
             vault: vault,
-            target: cds.address,
+            target: reserve.address,
             attributions: depositAmount.sub(compensate).add(depositAmount), //unless Controller contract earn interest from investment, ..
             underlyingValue: depositAmount.sub(compensate).add(depositAmount), //.. these two are always the same
             debt: ZERO,
@@ -399,18 +404,18 @@ describe("CDS", function () {
               [alice.address]: initialMint.sub(depositAmount),
               [bob.address]: initialMint.sub(depositAmount),
               [chad.address]: initialMint,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: depositAmount.mul(2),
             },
           });
 
           await verifyBalances({
-            token: cds,
+            token: reserve,
             userBalances: {
               [alice.address]: mintAmount,
               [bob.address]: depositAmount,
               [chad.address]: ZERO,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO,
             },
           });
@@ -418,30 +423,30 @@ describe("CDS", function () {
       });
 
       it("revert when the deposit amount is zero", async () => {
-        await expect(cds.deposit(0)).to.revertedWith("ERROR: DEPOSIT_ZERO");
+        await expect(reserve.deposit(0)).to.revertedWith("ERROR: DEPOSIT_ZERO");
       });
 
       it("revert when paused", async () => {
-        await cds.setPaused(true);
-        await expect(cds.deposit(0)).to.revertedWith("ERROR: PAUSED");
+        await reserve.setPaused(true);
+        await expect(reserve.deposit(0)).to.revertedWith("ERROR: PAUSED");
       });
 
       it("revert when paused", async () => {
-        await cds.setPaused(true);
-        await expect(cds.deposit(0)).to.revertedWith("ERROR: PAUSED");
+        await reserve.setPaused(true);
+        await expect(reserve.deposit(0)).to.revertedWith("ERROR: PAUSED");
       });
 
-      it("dilute LP value when CDS system is failed", async () => {
-        await cds.connect(alice).deposit(depositAmount);
+      it("dilute LP value when Reserve system is failed", async () => {
+        await reserve.connect(alice).deposit(depositAmount);
 
         await registry.supportMarket(chad.address); //now chad can act like a market
 
         let compensate = depositAmount.add(1); //more than deposited
-        await cds.connect(chad).compensate(compensate);
+        await reserve.connect(chad).compensate(compensate);
 
-        let totalSupply = await cds.totalSupply();
+        let totalSupply = await reserve.totalSupply();
 
-        let tx = await cds.connect(bob).deposit(depositAmount);
+        let tx = await reserve.connect(bob).deposit(depositAmount);
 
         let mintedAmount = (await tx.wait()).events[2].args["mint"];
 
@@ -450,8 +455,8 @@ describe("CDS", function () {
         {
           //sanity check
 
-          await verifyCDSStatus({
-            cds: cds,
+          await verifyReserveStatus({
+            reserve: reserve,
             surplusPool: ZERO,
             crowdPool: depositAmount, //deposit goes into crowdPool
             totalSupply: depositAmount.add(mintedAmount),
@@ -459,16 +464,16 @@ describe("CDS", function () {
             rate: defaultRate.mul(depositAmount).div(depositAmount.add(mintedAmount)),
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: alice.address,
             valueOfUnderlying: ZERO,
             withdrawTimestamp: ZERO,
             withdrawAmount: ZERO,
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: bob.address,
             valueOfUnderlying: depositAmount.sub(1), //
             withdrawTimestamp: ZERO,
@@ -485,7 +490,7 @@ describe("CDS", function () {
 
           await verifyVaultStatusOf({
             vault: vault,
-            target: cds.address,
+            target: reserve.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
             debt: ZERO,
@@ -497,18 +502,18 @@ describe("CDS", function () {
               [alice.address]: initialMint.sub(depositAmount),
               [bob.address]: initialMint.sub(depositAmount),
               [chad.address]: initialMint,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: depositAmount.mul(2),
             },
           });
 
           await verifyBalances({
-            token: cds,
+            token: reserve,
             userBalances: {
               [alice.address]: depositAmount,
               [bob.address]: mintedAmount,
               [chad.address]: ZERO,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO,
             },
           });
@@ -518,12 +523,12 @@ describe("CDS", function () {
 
     describe("fund", function () {
       it("should increase the surplus pool size", async () => {
-        await cds.connect(alice).fund(depositAmount);
+        await reserve.connect(alice).fund(depositAmount);
 
         {
           //sanity check
-          await verifyCDSStatus({
-            cds: cds,
+          await verifyReserveStatus({
+            reserve: reserve,
             surplusPool: depositAmount, //fund() goes to surplusPool
             crowdPool: ZERO,
             totalSupply: ZERO, //LP isn't minted
@@ -531,8 +536,8 @@ describe("CDS", function () {
             rate: ZERO,
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: alice.address,
             valueOfUnderlying: ZERO, //doesn't count
             withdrawTimestamp: ZERO,
@@ -543,13 +548,13 @@ describe("CDS", function () {
             vault: vault,
             balance: depositAmount,
             valueAll: depositAmount,
-            totalAttributions: depositAmount, //attribution of CDS exists
+            totalAttributions: depositAmount, //attribution of Reserve exists
             totalDebt: ZERO,
           });
 
           await verifyVaultStatusOf({
             vault: vault,
-            target: cds.address,
+            target: reserve.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
             debt: ZERO,
@@ -559,16 +564,16 @@ describe("CDS", function () {
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: depositAmount,
             },
           });
 
           await verifyBalances({
-            token: cds,
+            token: reserve,
             userBalances: {
               [alice.address]: ZERO,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO,
             },
           });
@@ -576,21 +581,21 @@ describe("CDS", function () {
       });
 
       it("revert when paused", async () => {
-        await cds.setPaused(true);
+        await reserve.setPaused(true);
 
         //EXECUTE
-        await expect(cds.connect(alice).fund(depositAmount)).to.revertedWith("ERROR: PAUSED");
+        await expect(reserve.connect(alice).fund(depositAmount)).to.revertedWith("ERROR: PAUSED");
       });
     });
 
     describe("defund", function () {
       beforeEach(async () => {
-        await cds.connect(alice).fund(depositAmount);
+        await reserve.connect(alice).fund(depositAmount);
 
         {
           //sanity check
-          await verifyCDSStatus({
-            cds: cds,
+          await verifyReserveStatus({
+            reserve: reserve,
             surplusPool: depositAmount, //fund() goes to surplusPool
             crowdPool: ZERO,
             totalSupply: ZERO, //LP isn't minted
@@ -598,8 +603,8 @@ describe("CDS", function () {
             rate: ZERO,
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: alice.address,
             valueOfUnderlying: ZERO, //doesn't count
             withdrawTimestamp: ZERO,
@@ -610,13 +615,13 @@ describe("CDS", function () {
             vault: vault,
             balance: depositAmount,
             valueAll: depositAmount,
-            totalAttributions: depositAmount, //attribution of CDS exists
+            totalAttributions: depositAmount, //attribution of Reserve exists
             totalDebt: ZERO,
           });
 
           await verifyVaultStatusOf({
             vault: vault,
-            target: cds.address,
+            target: reserve.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
             debt: ZERO,
@@ -626,16 +631,16 @@ describe("CDS", function () {
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: depositAmount,
             },
           });
 
           await verifyBalances({
-            token: cds,
+            token: reserve,
             userBalances: {
               [alice.address]: ZERO,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO,
             },
           });
@@ -643,12 +648,12 @@ describe("CDS", function () {
       });
 
       it("success", async () => {
-        await cds.defund(gov.address, depositAmount);
+        await reserve.defund(gov.address, depositAmount);
 
         {
           //sanity check
-          await verifyCDSStatus({
-            cds: cds,
+          await verifyReserveStatus({
+            reserve: reserve,
             surplusPool: ZERO, //decrease
             crowdPool: ZERO,
             totalSupply: ZERO,
@@ -656,8 +661,8 @@ describe("CDS", function () {
             rate: ZERO,
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: alice.address,
             valueOfUnderlying: ZERO,
             withdrawTimestamp: ZERO,
@@ -674,7 +679,7 @@ describe("CDS", function () {
 
           await verifyVaultStatusOf({
             vault: vault,
-            target: cds.address,
+            target: reserve.address,
             attributions: ZERO, //decrease
             underlyingValue: ZERO, //decrease
             debt: ZERO,
@@ -685,16 +690,16 @@ describe("CDS", function () {
             userBalances: {
               [gov.address]: depositAmount, //increase. defund() goes to msg.sender (with onlyOwner modifier)
               [alice.address]: initialMint.sub(depositAmount),
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO, //decrease
             },
           });
 
           await verifyBalances({
-            token: cds,
+            token: reserve,
             userBalances: {
               [alice.address]: ZERO,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO,
             },
           });
@@ -702,21 +707,21 @@ describe("CDS", function () {
       });
 
       it("revert onlyOwner", async () => {
-        await expect(cds.connect(alice).defund(alice.address, depositAmount)).to.revertedWith("ERROR: ONLY_OWNER");
+        await expect(reserve.connect(alice).defund(alice.address, depositAmount)).to.revertedWith("ERROR: ONLY_OWNER");
       });
     });
 
     describe("requestWithdraw", function () {
       beforeEach(async () => {
-        let tx = await cds.connect(alice).deposit(depositAmount);
+        let tx = await reserve.connect(alice).deposit(depositAmount);
 
         {
           //sanity check
           let mintAmount = (await tx.wait()).events[3].args["value"]; //new minted LP
           await expect(mintAmount).to.equal(depositAmount);
 
-          await verifyCDSStatus({
-            cds: cds,
+          await verifyReserveStatus({
+            reserve: reserve,
             surplusPool: ZERO,
             crowdPool: depositAmount, //deposit goes into crowdPool
             totalSupply: mintAmount,
@@ -724,8 +729,8 @@ describe("CDS", function () {
             rate: defaultRate,
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount,
             withdrawTimestamp: ZERO,
@@ -742,7 +747,7 @@ describe("CDS", function () {
 
           await verifyVaultStatusOf({
             vault: vault,
-            target: cds.address,
+            target: reserve.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
             debt: ZERO,
@@ -752,16 +757,16 @@ describe("CDS", function () {
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: depositAmount,
             },
           });
 
           await verifyBalances({
-            token: cds,
+            token: reserve,
             userBalances: {
               [alice.address]: mintAmount,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO,
             },
           });
@@ -774,12 +779,12 @@ describe("CDS", function () {
         await setNextBlock(next);
 
         //EXECUTE
-        await expect(cds.connect(alice).requestWithdraw(depositAmount));
+        await expect(reserve.connect(alice).requestWithdraw(depositAmount));
 
         {
           //sanity check
-          await verifyCDSStatus({
-            cds: cds,
+          await verifyReserveStatus({
+            reserve: reserve,
             surplusPool: ZERO,
             crowdPool: depositAmount,
             totalSupply: depositAmount,
@@ -787,8 +792,8 @@ describe("CDS", function () {
             rate: defaultRate,
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount,
             withdrawTimestamp: next.add(WEEK), //set.  withdrawable time
@@ -805,7 +810,7 @@ describe("CDS", function () {
 
           await verifyVaultStatusOf({
             vault: vault,
-            target: cds.address,
+            target: reserve.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
             debt: ZERO,
@@ -815,16 +820,16 @@ describe("CDS", function () {
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: depositAmount,
             },
           });
 
           await verifyBalances({
-            token: cds,
+            token: reserve,
             userBalances: {
               [alice.address]: depositAmount,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO,
             },
           });
@@ -832,29 +837,29 @@ describe("CDS", function () {
       });
 
       it("revert when _amount exceed balance", async () => {
-        await expect(cds.connect(alice).requestWithdraw(depositAmount.add(1))).to.revertedWith(
+        await expect(reserve.connect(alice).requestWithdraw(depositAmount.add(1))).to.revertedWith(
           "ERROR: REQUEST_EXCEED_BALANCE"
         );
       });
 
       it("amount should not be zero", async () => {
-        await expect(cds.connect(alice).requestWithdraw(ZERO)).to.revertedWith("ERROR: REQUEST_ZERO");
+        await expect(reserve.connect(alice).requestWithdraw(ZERO)).to.revertedWith("ERROR: REQUEST_ZERO");
       });
     });
 
     describe("_beforeTokenTransfer", function () {
       beforeEach(async () => {
-        await cds.connect(alice).deposit(depositAmount);
+        await reserve.connect(alice).deposit(depositAmount);
 
         next = (await now()).add(10);
         await setNextBlock(next);
 
-        await expect(cds.connect(alice).requestWithdraw(depositAmount));
+        await expect(reserve.connect(alice).requestWithdraw(depositAmount));
 
         {
           //sanity check
-          await verifyCDSStatus({
-            cds: cds,
+          await verifyReserveStatus({
+            reserve: reserve,
             surplusPool: ZERO,
             crowdPool: depositAmount,
             totalSupply: depositAmount,
@@ -862,8 +867,8 @@ describe("CDS", function () {
             rate: defaultRate,
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount,
             withdrawTimestamp: next.add(WEEK), //set
@@ -880,7 +885,7 @@ describe("CDS", function () {
 
           await verifyVaultStatusOf({
             vault: vault,
-            target: cds.address,
+            target: reserve.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
             debt: ZERO,
@@ -890,16 +895,16 @@ describe("CDS", function () {
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: depositAmount,
             },
           });
 
           await verifyBalances({
-            token: cds,
+            token: reserve,
             userBalances: {
               [alice.address]: depositAmount,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO,
             },
           });
@@ -907,12 +912,12 @@ describe("CDS", function () {
       });
 
       it("should decrease the request amount", async () => {
-        await cds.connect(alice).transfer(bob.address, depositAmount.div(2)); //transfer half of LP token
+        await reserve.connect(alice).transfer(bob.address, depositAmount.div(2)); //transfer half of LP token
 
         {
           //sanity check
-          await verifyCDSStatus({
-            cds: cds,
+          await verifyReserveStatus({
+            reserve: reserve,
             surplusPool: ZERO,
             crowdPool: depositAmount,
             totalSupply: depositAmount,
@@ -920,8 +925,8 @@ describe("CDS", function () {
             rate: defaultRate,
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount.div(2), //changed
             withdrawTimestamp: next.add(WEEK), //set
@@ -938,7 +943,7 @@ describe("CDS", function () {
 
           await verifyVaultStatusOf({
             vault: vault,
-            target: cds.address,
+            target: reserve.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
             debt: ZERO,
@@ -948,17 +953,17 @@ describe("CDS", function () {
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: depositAmount,
             },
           });
 
           await verifyBalances({
-            token: cds,
+            token: reserve,
             userBalances: {
               [alice.address]: depositAmount.div(2), //decrease
               [bob.address]: depositAmount.div(2), //new holder
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO,
             },
           });
@@ -969,17 +974,17 @@ describe("CDS", function () {
     describe("withdraw", function () {
       //deposit and request withdraw
       beforeEach(async () => {
-        await cds.connect(alice).deposit(depositAmount);
+        await reserve.connect(alice).deposit(depositAmount);
 
         next = (await now()).add(10);
         await setNextBlock(next);
 
-        await expect(cds.connect(alice).requestWithdraw(depositAmount));
+        await expect(reserve.connect(alice).requestWithdraw(depositAmount));
 
         {
           //sanity check
-          await verifyCDSStatus({
-            cds: cds,
+          await verifyReserveStatus({
+            reserve: reserve,
             surplusPool: ZERO,
             crowdPool: depositAmount,
             totalSupply: depositAmount,
@@ -987,8 +992,8 @@ describe("CDS", function () {
             rate: defaultRate,
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount,
             withdrawTimestamp: next.add(WEEK), //set
@@ -1005,7 +1010,7 @@ describe("CDS", function () {
 
           await verifyVaultStatusOf({
             vault: vault,
-            target: cds.address,
+            target: reserve.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
             debt: ZERO,
@@ -1015,16 +1020,16 @@ describe("CDS", function () {
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: depositAmount,
             },
           });
 
           await verifyBalances({
-            token: cds,
+            token: reserve,
             userBalances: {
               [alice.address]: depositAmount,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO,
             },
           });
@@ -1034,15 +1039,15 @@ describe("CDS", function () {
       it("should decrease the crowd pool size and attributions", async () => {
         await moveForwardPeriods(7);
 
-        let tx = await cds.connect(alice).withdraw(depositAmount);
+        let tx = await reserve.connect(alice).withdraw(depositAmount);
         returnValue = (await tx.wait()).events[2].args["retVal"];
 
         await expect(returnValue).to.equal(depositAmount);
 
         {
           //sanity check
-          await verifyCDSStatus({
-            cds: cds,
+          await verifyReserveStatus({
+            reserve: reserve,
             surplusPool: ZERO,
             crowdPool: ZERO, //decrease
             totalSupply: ZERO,
@@ -1050,8 +1055,8 @@ describe("CDS", function () {
             rate: ZERO,
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: alice.address,
             valueOfUnderlying: ZERO,
             withdrawTimestamp: next.add(WEEK), //no change. user can withdraw half now, and half later.
@@ -1068,7 +1073,7 @@ describe("CDS", function () {
 
           await verifyVaultStatusOf({
             vault: vault,
-            target: cds.address,
+            target: reserve.address,
             attributions: ZERO,
             underlyingValue: ZERO,
             debt: ZERO,
@@ -1078,16 +1083,16 @@ describe("CDS", function () {
             token: usdc,
             userBalances: {
               [alice.address]: initialMint, //withdrawed to here
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO, //withdrawed from here
             },
           });
 
           await verifyBalances({
-            token: cds,
+            token: reserve,
             userBalances: {
               [alice.address]: ZERO, //should burn iToken
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO,
             },
           });
@@ -1095,47 +1100,49 @@ describe("CDS", function () {
       });
 
       it("reverts when the market is paused", async () => {
-        await cds.setPaused(true);
+        await reserve.setPaused(true);
 
         await moveForwardPeriods(7);
 
-        await expect(cds.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: PAUSED");
+        await expect(reserve.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: PAUSED");
       });
 
       it("reverts when lockup is not ends", async () => {
         await moveForwardPeriods(6);
 
-        await expect(cds.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: WITHDRAWAL_QUEUE");
+        await expect(reserve.connect(alice).withdraw(depositAmount)).to.revertedWith("ERROR: WITHDRAWAL_QUEUE");
       });
 
       it("reverts when withdrawable priod ends", async () => {
         await moveForwardPeriods(7);
         await moveForwardPeriods(14);
 
-        await expect(cds.connect(alice).withdraw(depositAmount)).to.revertedWith("WITHDRAWAL_NO_ACTIVE_REQUEST");
+        await expect(reserve.connect(alice).withdraw(depositAmount)).to.revertedWith("WITHDRAWAL_NO_ACTIVE_REQUEST");
       });
 
       it("reverts when the withdraw amount exceeded the request", async () => {
         await moveForwardPeriods(7);
 
-        await expect(cds.connect(alice).withdraw(depositAmount.add(1))).to.revertedWith("WITHDRAWAL_EXCEEDED_REQUEST");
+        await expect(reserve.connect(alice).withdraw(depositAmount.add(1))).to.revertedWith(
+          "WITHDRAWAL_EXCEEDED_REQUEST"
+        );
       });
 
       it("reverts when withdraw zero amount", async () => {
         await moveForwardPeriods(7);
 
-        await expect(cds.connect(alice).withdraw(ZERO)).to.revertedWith("ERROR: WITHDRAWAL_ZERO");
+        await expect(reserve.connect(alice).withdraw(ZERO)).to.revertedWith("ERROR: WITHDRAWAL_ZERO");
       });
     });
 
     describe("compensate", function () {
       beforeEach(async () => {
-        await cds.connect(alice).deposit(depositAmount);
+        await reserve.connect(alice).deposit(depositAmount);
 
         {
           //sanity check
-          await verifyCDSStatus({
-            cds: cds,
+          await verifyReserveStatus({
+            reserve: reserve,
             surplusPool: ZERO,
             crowdPool: depositAmount, //deposit goes into crowdPool
             totalSupply: depositAmount,
@@ -1143,8 +1150,8 @@ describe("CDS", function () {
             rate: defaultRate,
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount,
             withdrawTimestamp: ZERO,
@@ -1161,7 +1168,7 @@ describe("CDS", function () {
 
           await verifyVaultStatusOf({
             vault: vault,
-            target: cds.address,
+            target: reserve.address,
             attributions: depositAmount,
             underlyingValue: depositAmount,
             debt: ZERO,
@@ -1171,16 +1178,16 @@ describe("CDS", function () {
             token: usdc,
             userBalances: {
               [alice.address]: initialMint.sub(depositAmount),
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: depositAmount,
             },
           });
 
           await verifyBalances({
-            token: cds,
+            token: reserve,
             userBalances: {
               [alice.address]: depositAmount,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO,
             },
           });
@@ -1190,15 +1197,15 @@ describe("CDS", function () {
       it("should decrease the surplus pool and crowd pool", async () => {
         await registry.supportMarket(chad.address); //now bob can act like a market
 
-        await cds.connect(bob).fund(depositAmount);
+        await reserve.connect(bob).fund(depositAmount);
 
         let compensate = BigNumber.from("1000"); //since surplusPool and crowdPool have equal value, compensate evenly.
-        await cds.connect(chad).compensate(compensate);
+        await reserve.connect(chad).compensate(compensate);
 
         {
           //sanity check
-          await verifyCDSStatus({
-            cds: cds,
+          await verifyReserveStatus({
+            reserve: reserve,
             surplusPool: depositAmount.sub(compensate.div(2)), //compensate evenly
             crowdPool: depositAmount.sub(compensate.div(2)), //compensate evenly
             totalSupply: depositAmount,
@@ -1206,8 +1213,8 @@ describe("CDS", function () {
             rate: defaultRate.mul(depositAmount.sub(compensate.div(2))).div(depositAmount), //defaultRate * deposited balance / totalSupply
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: alice.address,
             valueOfUnderlying: depositAmount.sub(compensate.div(2)),
             withdrawTimestamp: ZERO,
@@ -1224,7 +1231,7 @@ describe("CDS", function () {
 
           await verifyVaultStatusOf({
             vault: vault,
-            target: cds.address,
+            target: reserve.address,
             attributions: depositAmount.mul(2).sub(compensate),
             underlyingValue: depositAmount.mul(2).sub(compensate),
             debt: ZERO,
@@ -1244,29 +1251,29 @@ describe("CDS", function () {
               [alice.address]: initialMint.sub(depositAmount),
               [bob.address]: initialMint.sub(depositAmount),
               [chad.address]: initialMint,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: depositAmount.mul(2),
             },
           });
 
           await verifyBalances({
-            token: cds,
+            token: reserve,
             userBalances: {
               [alice.address]: depositAmount,
               [bob.address]: ZERO,
               [chad.address]: ZERO,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO,
             },
           });
         }
       });
 
-      it("should decrease as much as deposited when CDS has insufficient amount", async () => {
+      it("should decrease as much as deposited when Reserve has insufficient amount", async () => {
         await registry.supportMarket(chad.address); //now chad can act like a market
 
         let compensate = depositAmount.add(1); //more than deposited
-        let tx = await cds.connect(chad).compensate(compensate);
+        let tx = await reserve.connect(chad).compensate(compensate);
 
         //should conpensete "depositedAmount", and shortage should be 1.
         let compensated = (await tx.wait()).events[0].args["amount"];
@@ -1276,8 +1283,8 @@ describe("CDS", function () {
 
         {
           //sanity check
-          await verifyCDSStatus({
-            cds: cds,
+          await verifyReserveStatus({
+            reserve: reserve,
             surplusPool: ZERO, //totally used
             crowdPool: ZERO, //totally used
             totalSupply: depositAmount,
@@ -1285,8 +1292,8 @@ describe("CDS", function () {
             rate: ZERO, //defaultRate * deposited balance / totalSupply
           });
 
-          await verifyCDSStatusOf({
-            cds: cds,
+          await verifyReserveStatusOf({
+            reserve: reserve,
             targetAddress: alice.address,
             valueOfUnderlying: ZERO,
             withdrawTimestamp: ZERO,
@@ -1303,7 +1310,7 @@ describe("CDS", function () {
 
           await verifyVaultStatusOf({
             vault: vault,
-            target: cds.address,
+            target: reserve.address,
             attributions: depositAmount.sub(depositAmount), //transfer from here
             underlyingValue: ZERO,
             debt: ZERO,
@@ -1331,18 +1338,18 @@ describe("CDS", function () {
               [alice.address]: initialMint.sub(depositAmount),
               [bob.address]: initialMint,
               [chad.address]: initialMint,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: depositAmount,
             },
           });
 
           await verifyBalances({
-            token: cds,
+            token: reserve,
             userBalances: {
               [alice.address]: depositAmount,
               [bob.address]: ZERO,
               [chad.address]: ZERO,
-              [cds.address]: ZERO,
+              [reserve.address]: ZERO,
               [vault.address]: ZERO,
             },
           });
@@ -1352,15 +1359,15 @@ describe("CDS", function () {
 
     describe("changeMetadata", function () {
       it("should change Metadata", async () => {
-        expect(await cds.metadata()).to.equal("Here is metadata.");
+        expect(await reserve.metadata()).to.equal("Here is metadata.");
 
-        await cds.changeMetadata("New metadata");
+        await reserve.changeMetadata("New metadata");
 
-        expect(await cds.metadata()).to.equal("New metadata");
+        expect(await reserve.metadata()).to.equal("New metadata");
       });
 
       it("revert when not admin", async () => {
-        await expect(cds.connect(alice).changeMetadata("New metadata")).to.revertedWith("ERROR: ONLY_OWNER");
+        await expect(reserve.connect(alice).changeMetadata("New metadata")).to.revertedWith("ERROR: ONLY_OWNER");
       });
     });
   });

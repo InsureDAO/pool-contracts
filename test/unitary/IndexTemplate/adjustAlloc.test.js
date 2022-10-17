@@ -11,7 +11,7 @@ const {
   verifyIndexStatus,
   verifyIndexStatusOf,
   verifyIndexStatusOfPool,
-  verifyCDSStatus,
+  verifyReserveStatus,
   verifyVaultStatus,
   verifyVaultStatusOf,
 } = require("../test-utils");
@@ -121,9 +121,9 @@ describe("Index", function () {
 
     const Ownership = await ethers.getContractFactory("Ownership");
     const USDC = await ethers.getContractFactory("TestERC20Mock");
-    const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+    const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
     const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
-    const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
+    const ReserveTemplate = await ethers.getContractFactory("ReserveTemplate");
     const Factory = await ethers.getContractFactory("Factory");
     const Vault = await ethers.getContractFactory("Vault");
     const Registry = await ethers.getContractFactory("Registry");
@@ -139,8 +139,8 @@ describe("Index", function () {
     premium = await PremiumModel.deploy();
     vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
 
-    poolTemplate = await PoolTemplate.deploy();
-    cdsTemplate = await CDSTemplate.deploy();
+    marketTemplate = await MarketTemplate.deploy();
+    reserveTemplate = await ReserveTemplate.deploy();
     indexTemplate = await IndexTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
     controller = await Controller.deploy(usdc.address, ownership.address);
@@ -156,22 +156,22 @@ describe("Index", function () {
 
     await registry.setFactory(factory.address);
 
-    await factory.approveTemplate(poolTemplate.address, true, false, true); //allow duplicate for test
+    await factory.approveTemplate(marketTemplate.address, true, false, true); //allow duplicate for test
     await factory.approveTemplate(indexTemplate.address, true, false, true);
-    await factory.approveTemplate(cdsTemplate.address, true, false, true);
+    await factory.approveTemplate(reserveTemplate.address, true, false, true);
 
-    await factory.approveReference(poolTemplate.address, 0, usdc.address, true);
-    await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
-    await factory.approveReference(poolTemplate.address, 2, registry.address, true);
-    await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
+    await factory.approveReference(marketTemplate.address, 0, usdc.address, true);
+    await factory.approveReference(marketTemplate.address, 1, usdc.address, true);
+    await factory.approveReference(marketTemplate.address, 2, registry.address, true);
+    await factory.approveReference(marketTemplate.address, 3, parameters.address, true);
 
     await factory.approveReference(indexTemplate.address, 0, usdc.address, true);
     await factory.approveReference(indexTemplate.address, 1, registry.address, true);
     await factory.approveReference(indexTemplate.address, 2, parameters.address, true);
 
-    await factory.approveReference(cdsTemplate.address, 0, usdc.address, true);
-    await factory.approveReference(cdsTemplate.address, 1, registry.address, true);
-    await factory.approveReference(cdsTemplate.address, 2, parameters.address, true);
+    await factory.approveReference(reserveTemplate.address, 0, usdc.address, true);
+    await factory.approveReference(reserveTemplate.address, 1, registry.address, true);
+    await factory.approveReference(reserveTemplate.address, 2, parameters.address, true);
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
@@ -187,16 +187,16 @@ describe("Index", function () {
     //create Single Pools
     for (let i = 0; i < 5; i++) {
       await factory.createMarket(
-        poolTemplate.address,
+        marketTemplate.address,
         "Here is metadata.",
         [0, 0],
         [usdc.address, usdc.address, registry.address, parameters.address]
       );
     }
 
-    //create CDS
+    //create Reserve
     await factory.createMarket(
-      cdsTemplate.address,
+      reserveTemplate.address,
       "Here is metadata.",
       [],
       [usdc.address, registry.address, parameters.address]
@@ -211,15 +211,15 @@ describe("Index", function () {
     );
 
     let markets = await registry.getAllMarkets();
-    market1 = await PoolTemplate.attach(markets[0]);
-    market2 = await PoolTemplate.attach(markets[1]);
-    market3 = await PoolTemplate.attach(markets[2]);
-    market4 = await PoolTemplate.attach(markets[3]);
-    market5 = await PoolTemplate.attach(markets[4]);
-    cds = await CDSTemplate.attach(markets[5]);
+    market1 = await MarketTemplate.attach(markets[0]);
+    market2 = await MarketTemplate.attach(markets[1]);
+    market3 = await MarketTemplate.attach(markets[2]);
+    market4 = await MarketTemplate.attach(markets[3]);
+    market5 = await MarketTemplate.attach(markets[4]);
+    reserve = await ReserveTemplate.attach(markets[5]);
     index = await IndexTemplate.attach(markets[6]);
 
-    await registry.setCDS(ZERO_ADDRESS, cds.address); //default CDS
+    await registry.setReserve(ZERO_ADDRESS, reserve.address); //default Reserve
 
     await controller.setVault(vault.address);
     await vault.setController(controller.address);

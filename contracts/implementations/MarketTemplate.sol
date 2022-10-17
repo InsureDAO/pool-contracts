@@ -8,7 +8,7 @@ pragma solidity 0.8.12;
 
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "./InsureDAOERC20.sol";
-import "../interfaces/IPoolTemplate.sol";
+import "../interfaces/IMarketTemplate.sol";
 import "../interfaces/IUniversalMarket.sol";
 import "../interfaces/IParameters.sol";
 import "../interfaces/IVault.sol";
@@ -16,7 +16,7 @@ import "../interfaces/IRegistry.sol";
 import "../interfaces/IIndexTemplate.sol";
 import "hardhat/console.sol";
 
-contract PoolTemplate is InsureDAOERC20, IPoolTemplate, IUniversalMarket {
+contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
     /**
      * EVENTS
      */

@@ -255,7 +255,7 @@ contract Vault is IVault {
     /**
      * @notice a registerd market can transfer their debt to system debt
      * @param _amount debt amount to transfer
-     * @dev will be called when CDS could not afford when resume the market.
+     * @dev will be called when Reserve could not afford when resume the market.
      */
     function transferDebt(uint256 _amount) external override onlyMarket {
         if (_amount != 0) {

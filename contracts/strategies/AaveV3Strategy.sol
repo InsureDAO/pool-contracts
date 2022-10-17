@@ -234,7 +234,7 @@ contract AaveV3Strategy is IController, OpsReady {
         if (_amount == 0) revert AmountZero();
         if (_minAmountOut == 0) revert AmountZero();
         uint256 _reward = aaveReward.claimRewards(supplyingAssets, _amount, address(this), _token);
-        IERC20(_token).safeApprove(exchangeLogic.swapper(), _reward);
+        IERC20(_token).safeIncreaseAllowance(exchangeLogic.swapper(), _reward);
         uint256 _swapped = _swap(_token, address(usdc), _reward, _minAmountOut);
         _utilize(_swapped);
     }
@@ -252,7 +252,7 @@ contract AaveV3Strategy is IController, OpsReady {
 
         // check if any reward is eligible for compound
         uint256 _rewardsLength = _tokens.length;
-        for (uint256 i = 0; i < _rewardsLength; i++) {
+        for (uint256 i = 0; i < _rewardsLength; ) {
             address _token = _tokens[i];
             uint256 _reward = _rewards[i];
             uint256 _estimatedOutUsdc = _reward != 0
@@ -264,6 +264,10 @@ contract AaveV3Strategy is IController, OpsReady {
             if (_canExec) {
                 _execPayload = abi.encodeWithSelector(this.compound.selector, _token, _reward, _minAmountOut);
                 break;
+            }
+
+            unchecked {
+                ++i;
             }
         }
     }
@@ -317,13 +321,17 @@ contract AaveV3Strategy is IController, OpsReady {
 
         // compound each reward tokens got
         uint256 _rewardsCount = _rewards.length;
-        for (uint256 i = 0; i < _rewardsCount; i++) {
+        for (uint256 i = 0; i < _rewardsCount; ) {
             address _rewardToken = _rewards[i];
             uint256 _amount = _gotRewards[i];
             if (_amount > 0) {
-                IERC20(_rewardToken).safeApprove(exchangeLogic.swapper(), _amount);
+                IERC20(_rewardToken).safeIncreaseAllowance(exchangeLogic.swapper(), _amount);
                 // execute swap regardless any slippage
                 _swap(_rewardToken, address(usdc), _amount, 1);
+            }
+
+            unchecked {
+                ++i;
             }
         }
     }
@@ -379,8 +387,12 @@ contract AaveV3Strategy is IController, OpsReady {
         address[] memory _rewards = aaveReward.getRewardsByAsset(address(ausdc));
         uint256 _rewardsCount = _rewards.length;
         //revoke allowance of current swapper
-        for (uint256 i = 0; i < _rewardsCount; i++) {
+        for (uint256 i = 0; i < _rewardsCount; ) {
             IERC20(_rewards[i]).safeApprove(_oldSwapper, 0);
+
+            unchecked {
+                ++i;
+            }
         }
 
         //update, and approve to new swapper

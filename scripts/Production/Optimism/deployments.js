@@ -5,9 +5,9 @@ const ParametersV2Address = "0xf29571145B421f660775fa3dEb16D9FF6085D0e6";
 const VaultAddress = "0xCa1FeE73b00c221966E5f25226402146BdffE259";
 const PremiumV2Address = "0xDB9b9797319e9458D4d3B6eaa86c4f15EdDb989C";
 
-const PoolTemplateAddress = "0x190dA1B9fA124BD872e9166bA3c7Dd656A11E8F8";
+const marketTemplateAddress = "0x190dA1B9fA124BD872e9166bA3c7Dd656A11E8F8";
 const IndexTemplateAddress = "0x0074976043140a371aeaD31189C2BE459950c816";
-const CDSTemplateAddress = "0x734afd33dFB5100Ee91EFE690526DfFdEdBE0cF4";
+const ReserveTemplateAddress = "0x734afd33dFB5100Ee91EFE690526DfFdEdBE0cF4";
 
 const Pools = [
   "0x9789dc4B4bb39566592B3761be42A9eB23EA5d34",
@@ -33,7 +33,7 @@ const Indicies = [
   "0x1B9f1Ea063A67e65dEFC19ba8312170708F1e591",
   "0xC26F93D44bF06932645953affD7EB942c5d8c254",
 ];
-const CDS = [];
+const Reserve = [];
 
 Object.assign(exports, {
   OwnershipAddress,
@@ -43,10 +43,10 @@ Object.assign(exports, {
   VaultAddress,
   PremiumV2Address,
 
-  PoolTemplateAddress,
+  marketTemplateAddress,
   IndexTemplateAddress,
-  CDSTemplateAddress,
+  ReserveTemplateAddress,
   Pools,
   Indicies,
-  CDS,
+  Reserve,
 });

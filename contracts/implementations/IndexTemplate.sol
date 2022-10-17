@@ -12,8 +12,8 @@ import "../interfaces/IUniversalMarket.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IRegistry.sol";
 import "../interfaces/IParameters.sol";
-import "../interfaces/IPoolTemplate.sol";
-import "../interfaces/ICDSTemplate.sol";
+import "../interfaces/IMarketTemplate.sol";
+import "../interfaces/IReserveTemplate.sol";
 import "hardhat/console.sol";
 
 /**
@@ -257,7 +257,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _maxLockedCredits;
 
         for (uint256 i; i < _length; ++i) {
-            (uint256 _allocated, uint256 _available) = IPoolTemplate(poolList[i]).pairValues(address(this));
+            (uint256 _allocated, uint256 _available) = IMarketTemplate(poolList[i]).pairValues(address(this));
             if (_allocated > _available) {
                 uint256 _locked = _allocated - _available;
                 _totalLockedCredits += _locked;
@@ -319,19 +319,19 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
             address _poolAddr = poolList[i];
             uint256 _current;
             uint256 _available;
-            (_current, _available) = IPoolTemplate(_poolAddr).pairValues(address(this));
+            (_current, _available) = IMarketTemplate(_poolAddr).pairValues(address(this));
             uint256 _allocation = allocPoints[_poolAddr];
 
             uint256 _freeableCredits = (_available > _current ? _current : _available);
-            if (IPoolTemplate(_poolAddr).marketStatus() == IPoolTemplate.MarketStatus.Payingout) {
+            if (IMarketTemplate(_poolAddr).marketStatus() == IMarketTemplate.MarketStatus.Payingout) {
                 _allocatablePoints -= _allocation;
                 _allocation = 0;
                 _freeableCredits = 0;
                 _totalFrozenCredits += _current;
-            } else if (_allocation == 0 || IPoolTemplate(_poolAddr).paused()) {
+            } else if (_allocation == 0 || IMarketTemplate(_poolAddr).paused()) {
                 _allocatablePoints -= _allocation;
                 _allocation = 0;
-                IPoolTemplate(_poolAddr).withdrawCredit(_freeableCredits);
+                IMarketTemplate(_poolAddr).withdrawCredit(_freeableCredits);
                 _totalAllocatedCredit -= _freeableCredits;
                 _current -= _freeableCredits;
                 _freeableCredits = 0;
@@ -357,7 +357,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         if (_totalFixedCredits >= _targetTotalCredits) {
             for (uint256 i; i < _poolLength; ++i) {
                 if (_pools[i]._freeableCredits > 0) {
-                    IPoolTemplate(_pools[i].addr).withdrawCredit(_pools[i]._freeableCredits);
+                    IMarketTemplate(_pools[i].addr).withdrawCredit(_pools[i]._freeableCredits);
                 }
             }
             totalAllocatedCredit = _totalAllocatedCredit - _totalFreeableCredits;
@@ -370,7 +370,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 uint256 _fixedCredits = _pools[i].current - _pools[i]._freeableCredits;
                 // when _fixedCredits > target, we should withdraw all freeable credits
                 if (_fixedCredits > _target) {
-                    IPoolTemplate(_pools[i].addr).withdrawCredit(_pools[i]._freeableCredits);
+                    IMarketTemplate(_pools[i].addr).withdrawCredit(_pools[i]._freeableCredits);
                     _totalAllocatedCredit -= _pools[i]._freeableCredits;
                 } else {
                     uint256 _shortage = _target - _fixedCredits;
@@ -385,11 +385,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
                 if (_reallocate >= _pools[i]._freeableCredits) {
                     // _freeableCredits is part of the `_reallocate`
                     uint256 _allocate = _reallocate - _pools[i]._freeableCredits;
-                    IPoolTemplate(_pools[i].addr).allocateCredit(_allocate);
+                    IMarketTemplate(_pools[i].addr).allocateCredit(_allocate);
                     _totalAllocatedCredit += _allocate;
                 } else {
                     uint256 _removal = _pools[i]._freeableCredits - _reallocate;
-                    IPoolTemplate(_pools[i].addr).withdrawCredit(_removal);
+                    IMarketTemplate(_pools[i].addr).withdrawCredit(_removal);
                     _totalAllocatedCredit -= _removal;
                 }
             }
@@ -407,7 +407,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @param _amount amount of liquidity to compensate for the called pool
      * We compensate underlying pools by the following steps
      * 1) Compensate underlying pools from the liquidity of this pool
-     * 2) If this pool is unable to cover a compensation, can get compensated from the CDS pool
+     * 2) If this pool is unable to cover a compensation, can get compensated from the Reserve pool
      */
     function compensate(uint256 _amount) external override returns (uint256 _compensated) {
         require(allocPoints[msg.sender] != 0, "COMPENSATE_UNAUTHORIZED_CALLER");
@@ -418,7 +418,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         } else {
             //Withdraw credit to cashout the earnings
             unchecked {
-                ICDSTemplate(registry.getCDS(address(this))).compensate(_amount - _value);
+                IReserveTemplate(registry.getReserve(address(this))).compensate(_amount - _value);
             }
             _compensated = vault.underlyingValue(address(this));
         }
@@ -439,7 +439,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         for (uint256 i; i < _poolLength; ) {
             require(
-                IPoolTemplate(poolList[i]).marketStatus() == IPoolTemplate.MarketStatus.Trading,
+                IMarketTemplate(poolList[i]).marketStatus() == IMarketTemplate.MarketStatus.Trading,
                 "ERROR: POOL_IS_PAYINGOUT"
             );
             unchecked {
@@ -625,7 +625,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         require(registry.isListed(_pool), "ERROR:UNREGISTERED_POOL");
 
         //register
-        IPoolTemplate(_pool).registerIndex();
+        IMarketTemplate(_pool).registerIndex();
 
         poolList.push(_pool);
 
@@ -648,7 +648,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         _adjustAlloc();
 
         //unregister
-        IPoolTemplate(_pool).unregisterIndex();
+        IMarketTemplate(_pool).unregisterIndex();
 
         uint256 _latestArrayIndex = poolList.length - 1;
         if (_latestArrayIndex != 0) {
@@ -688,7 +688,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _poolLength = poolList.length;
         for (uint256 i; i < _poolLength; ) {
             if (allocPoints[poolList[i]] != 0) {
-                _totalValue = _totalValue + IPoolTemplate(poolList[i]).pendingPremium(address(this));
+                _totalValue = _totalValue + IMarketTemplate(poolList[i]).pendingPremium(address(this));
             }
             unchecked {
                 ++i;

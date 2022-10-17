@@ -7,7 +7,7 @@ const {
   RegistryAddress,
   FactoryAddress,
   ParametersAddress,
-  PoolTemplateAddress,
+  marketTemplateAddress,
   OwnershipAddress,
 } = require("./deployments");
 
@@ -39,7 +39,7 @@ async function main() {
   const parameters = Parameters.attach(ParametersAddress);
 
   for (const pool of NEW_POOLS) {
-    const existence = await registry.connect(manager).confirmExistence(PoolTemplateAddress, pool.tokenAddress);
+    const existence = await registry.connect(manager).confirmExistence(marketTemplateAddress, pool.tokenAddress);
 
     // skip deployment if the pool is already exist
     if (existence) {
@@ -53,7 +53,7 @@ async function main() {
       try {
         console.log(`start deploying pool for ${pool.tokenAddress}...`);
         const createMarket = await factory.connect(manager).createMarket(
-          PoolTemplateAddress,
+          marketTemplateAddress,
           "0x",
           [0, 0],
           [pool.tokenAddress, USDC_ADDRESS, registry.address, parameters.address] // set minimum and initial deposit amount to 0

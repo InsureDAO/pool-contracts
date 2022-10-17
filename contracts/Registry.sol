@@ -14,11 +14,11 @@ contract Registry is IRegistry {
     event ExistenceSet(address indexed template, address indexed target);
     event NewMarketRegistered(address market);
     event FactorySet(address factory);
-    event CDSSet(address indexed target, address cds);
+    event ReserveSet(address indexed target, address reserve);
 
     address public factory;
 
-    mapping(address => address) cds; //index => cds
+    mapping(address => address) reserve; //index => reserve
     mapping(address => bool) markets; //true if the market is registered
     mapping(address => mapping(address => bool)) existence; //true if the certain id is already registered in market
     address[] allMarkets;
@@ -73,26 +73,26 @@ contract Registry is IRegistry {
     }
 
     /**
-     * @notice Register the cds address for a particular address
-     * @param _address address to set CDS
-     * @param _cds CDS contract address
+     * @notice Register the reserve address for a particular address
+     * @param _address address to set Reserve
+     * @param _reserve Reserve contract address
      */
-    function setCDS(address _address, address _cds) external override onlyOwner {
-        require(_cds != address(0), "ERROR: ZERO_ADDRESS");
+    function setReserve(address _address, address _reserve) external override onlyOwner {
+        require(_reserve != address(0), "ERROR: ZERO_ADDRESS");
 
-        cds[_address] = _cds;
-        emit CDSSet(_address, _cds);
+        reserve[_address] = _reserve;
+        emit ReserveSet(_address, _reserve);
     }
 
     /**
-     * @notice Get the cds address for a particular address
-     * @param _address address covered by CDS
-     * @return CDS contract address
+     * @notice Get the reserve address for a particular address
+     * @param _address address covered by Reserve
+     * @return Reserve contract address
      */
-    function getCDS(address _address) external view override returns (address) {
-        address _addr = cds[_address];
+    function getReserve(address _address) external view override returns (address) {
+        address _addr = reserve[_address];
         if (_addr == address(0)) {
-            return cds[address(0)];
+            return reserve[address(0)];
         } else {
             return _addr;
         }

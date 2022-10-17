@@ -573,7 +573,7 @@ describe("Pool", function () {
     await usdc.connect(depositor).approve(vault.address, depositAmount);
 
     let tx = await factory.createMarket(
-      poolTemplate.address,
+      marketTemplate.address,
       "Here is metadata.",
       [depositAmount, depositAmount], //initialDeposit
       references
@@ -604,7 +604,7 @@ describe("Pool", function () {
 
     const Ownership = await ethers.getContractFactory("Ownership");
     const USDC = await ethers.getContractFactory("TestERC20Mock");
-    const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+    const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
     const Factory = await ethers.getContractFactory("Factory");
     const Vault = await ethers.getContractFactory("Vault");
     const Registry = await ethers.getContractFactory("Registry");
@@ -618,7 +618,7 @@ describe("Pool", function () {
     factory = await Factory.deploy(registry.address, ownership.address);
     premium = await PremiumModel.deploy();
     vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
-    poolTemplate = await PoolTemplate.deploy();
+    marketTemplate = await MarketTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
 
     //set up
@@ -630,12 +630,12 @@ describe("Pool", function () {
 
     await registry.setFactory(factory.address);
 
-    await factory.approveTemplate(poolTemplate.address, true, false, true);
-    await factory.approveReference(poolTemplate.address, 0, usdc.address, true);
-    await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
-    await factory.approveReference(poolTemplate.address, 2, registry.address, true);
-    await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
-    await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true); //everyone can be initialDepositor
+    await factory.approveTemplate(marketTemplate.address, true, false, true);
+    await factory.approveReference(marketTemplate.address, 0, usdc.address, true);
+    await factory.approveReference(marketTemplate.address, 1, usdc.address, true);
+    await factory.approveReference(marketTemplate.address, 2, registry.address, true);
+    await factory.approveReference(marketTemplate.address, 3, parameters.address, true);
+    await factory.approveReference(marketTemplate.address, 4, ZERO_ADDRESS, true); //everyone can be initialDepositor
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
@@ -648,14 +648,14 @@ describe("Pool", function () {
     await parameters.setVault(usdc.address, vault.address);
 
     let tx = await factory.createMarket(
-      poolTemplate.address,
+      marketTemplate.address,
       "Here is metadata.",
       [0, 0], //deposit 0 USDC
       [usdc.address, usdc.address, registry.address, parameters.address]
     );
     let receipt = await tx.wait();
     const marketAddress = receipt.events[2].args[0];
-    market = await PoolTemplate.attach(marketAddress);
+    market = await MarketTemplate.attach(marketAddress);
   });
 
   beforeEach(async () => {
@@ -727,18 +727,18 @@ describe("Pool", function () {
     it("Should contracts be deployed", async () => {
       expect(usdc.address).to.exist;
       expect(factory.address).to.exist;
-      expect(poolTemplate.address).to.exist;
+      expect(marketTemplate.address).to.exist;
       expect(parameters.address).to.exist;
       expect(vault.address).to.exist;
       expect(market.address).to.exist;
     });
   });
 
-  describe("PoolTemplate", function () {
+  describe("MarketTemplate", function () {
     describe("initialize", function () {
       it("original contract cannot be initialize()", async () => {
-        const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
-        pool = await PoolTemplate.deploy();
+        const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
+        pool = await MarketTemplate.deploy();
 
         await expect(
           pool.initialize(
@@ -761,20 +761,20 @@ describe("Pool", function () {
           depositor: gov,
         });
 
-        const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
-        let market2 = await PoolTemplate.attach(market2Address);
+        const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
+        let market2 = await MarketTemplate.attach(market2Address);
 
         expect(await market2.balanceOf(gov.address)).to.equal(depositAmount);
       });
 
       it("fail when _references[0] is zero address", async () => {
         //approve whatever an address can be in _references[0].
-        await factory.approveReference(poolTemplate.address, 0, ZERO_ADDRESS, true);
+        await factory.approveReference(marketTemplate.address, 0, ZERO_ADDRESS, true);
 
-        //but this PoolTemplate doesn't want address(0)
+        //but this MarketTemplate doesn't want address(0)
         await expect(
           factory.createMarket(
-            poolTemplate.address,
+            marketTemplate.address,
             "Here is metadata.",
             [0, 0], //deposit 0 USDC
             [ZERO_ADDRESS, usdc.address, registry.address, parameters.address]
@@ -784,12 +784,12 @@ describe("Pool", function () {
 
       it("fail when _references[1] is zero address", async () => {
         //approve whatever an address can be in _references[1].
-        await factory.approveReference(poolTemplate.address, 1, ZERO_ADDRESS, true);
+        await factory.approveReference(marketTemplate.address, 1, ZERO_ADDRESS, true);
 
-        //but this PoolTemplate doesn't want address(0)
+        //but this MarketTemplate doesn't want address(0)
         await expect(
           factory.createMarket(
-            poolTemplate.address,
+            marketTemplate.address,
             "Here is metadata.",
             [0, 0], //deposit 0 USDC
             [usdc.address, ZERO_ADDRESS, registry.address, parameters.address]
@@ -799,12 +799,12 @@ describe("Pool", function () {
 
       it("fail when _references[2] is zero address", async () => {
         //approve whatever an address can be in _references[1].
-        await factory.approveReference(poolTemplate.address, 2, ZERO_ADDRESS, true);
+        await factory.approveReference(marketTemplate.address, 2, ZERO_ADDRESS, true);
 
-        //but this PoolTemplate doesn't want address(0)
+        //but this MarketTemplate doesn't want address(0)
         await expect(
           factory.createMarket(
-            poolTemplate.address,
+            marketTemplate.address,
             "Here is metadata.",
             [0, 0], //deposit 0 USDC
             [usdc.address, usdc.address, ZERO_ADDRESS, parameters.address]
@@ -814,12 +814,12 @@ describe("Pool", function () {
 
       it("fail when _references[3] is zero address", async () => {
         //approve whatever an address can be in _references[1].
-        await factory.approveReference(poolTemplate.address, 3, ZERO_ADDRESS, true);
+        await factory.approveReference(marketTemplate.address, 3, ZERO_ADDRESS, true);
 
-        //but this PoolTemplate doesn't want address(0)
+        //but this MarketTemplate doesn't want address(0)
         await expect(
           factory.createMarket(
-            poolTemplate.address,
+            marketTemplate.address,
             "Here is metadata.",
             [0, 0], //deposit 0 USDC
             [usdc.address, usdc.address, registry.address, ZERO_ADDRESS]
@@ -830,7 +830,7 @@ describe("Pool", function () {
       it("fail when bytes(_metaData).length == 0", async () => {
         await expect(
           factory.createMarket(
-            poolTemplate.address,
+            marketTemplate.address,
             "",
             [0, 0], //deposit 0 USDC
             [usdc.address, usdc.address, registry.address, parameters.address]

@@ -3,7 +3,7 @@ const ethers = hre.ethers;
 const fs = require("fs");
 
 /**
- * two pools, no index/cds, FlatPremiumV2, ParameterV2, openDeposit=false
+ * two pools, no index/reserve, FlatPremiumV2, ParameterV2, openDeposit=false
  */
 
 async function main() {
@@ -30,9 +30,9 @@ async function main() {
 
   const USDC = await ethers.getContractFactory("ERC20Mock");
   const Ownership = await ethers.getContractFactory("Ownership");
-  const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+  const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
   const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
-  const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
+  const ReserveTemplate = await ethers.getContractFactory("ReserveTemplate");
   const Factory = await ethers.getContractFactory("Factory");
   const Vault = await ethers.getContractFactory("Vault");
   const Registry = await ethers.getContractFactory("Registry");
@@ -68,37 +68,37 @@ async function main() {
   console.log("vault deployed to:", vault.address);
 
   //Pools Template
-  const poolTemplate = await PoolTemplate.deploy();
-  await poolTemplate.deployed();
-  console.log("poolTemplate deployed to:", poolTemplate.address);
+  const marketTemplate = await MarketTemplate.deploy();
+  await marketTemplate.deployed();
+  console.log("marketTemplate deployed to:", marketTemplate.address);
 
   const indexTemplate = await IndexTemplate.deploy();
   await indexTemplate.deployed();
   console.log("indexTemplate deployed to:", indexTemplate.address);
 
-  const cdsTemplate = await CDSTemplate.deploy();
-  await cdsTemplate.deployed();
-  console.log("cdsTemplate deployed to:", cdsTemplate.address);
+  const reserveTemplate = await ReserveTemplate.deploy();
+  await reserveTemplate.deployed();
+  console.log("reserveTemplate deployed to:", reserveTemplate.address);
 
   //----- SETUP -----//
   let tx = await registry.setFactory(factory.address);
   await tx.wait();
 
-  tx = await factory.approveTemplate(poolTemplate.address, true, false, false); //creation not public
+  tx = await factory.approveTemplate(marketTemplate.address, true, false, false); //creation not public
   await tx.wait();
   tx = await factory.approveTemplate(indexTemplate.address, true, false, false); //creation not public
   await tx.wait();
-  tx = await factory.approveTemplate(cdsTemplate.address, true, false, false); //creation not public
+  tx = await factory.approveTemplate(reserveTemplate.address, true, false, false); //creation not public
   await tx.wait();
 
   //pool setup
-  tx = await factory.approveReference(poolTemplate.address, 0, ZERO_ADDRESS, true);
+  tx = await factory.approveReference(marketTemplate.address, 0, ZERO_ADDRESS, true);
   await tx.wait();
-  tx = await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
+  tx = await factory.approveReference(marketTemplate.address, 1, usdc.address, true);
   await tx.wait();
-  tx = await factory.approveReference(poolTemplate.address, 2, registry.address, true);
+  tx = await factory.approveReference(marketTemplate.address, 2, registry.address, true);
   await tx.wait();
-  tx = await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
+  tx = await factory.approveReference(marketTemplate.address, 3, parameters.address, true);
   await tx.wait();
 
   //index setup
@@ -109,12 +109,12 @@ async function main() {
   tx = await factory.approveReference(indexTemplate.address, 2, parameters.address, true);
   await tx.wait();
 
-  //cds setup
-  tx = await factory.approveReference(cdsTemplate.address, 0, usdc.address, true);
+  //reserve setup
+  tx = await factory.approveReference(reserveTemplate.address, 0, usdc.address, true);
   await tx.wait();
-  tx = await factory.approveReference(cdsTemplate.address, 1, registry.address, true);
+  tx = await factory.approveReference(reserveTemplate.address, 1, registry.address, true);
   await tx.wait();
-  tx = await factory.approveReference(cdsTemplate.address, 2, parameters.address, true);
+  tx = await factory.approveReference(reserveTemplate.address, 2, parameters.address, true);
   await tx.wait();
 
   //set parameters
@@ -141,11 +141,11 @@ async function main() {
 
   tx = await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
 
-  //PoolTemplate
+  //MarketTemplate
   for (const addr of GOV_TOKENS) {
     console.log("creating pool for: ", addr);
     tx = await factory.createMarket(
-      poolTemplate.address,
+      marketTemplate.address,
       "0x",
       [0, 0], //initial deposit 0
       [addr, usdc.address, registry.address, parameters.address]
@@ -154,8 +154,8 @@ async function main() {
   }
   let markets = await registry.getAllMarkets();
 
-  let market1 = await PoolTemplate.attach(markets[0]);
-  let market2 = await PoolTemplate.attach(markets[1]);
+  let market1 = await MarketTemplate.attach(markets[0]);
+  let market2 = await MarketTemplate.attach(markets[1]);
   console.log("market1 deployed to: ", market1.address);
   console.log("market2 deployed to: ", market2.address);
 

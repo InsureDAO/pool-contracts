@@ -33,7 +33,7 @@ const DAY = 60; //FOR TEST!!!!
 const GovFeeRatio = 100000; //10% of total premium goes to InsureDAO
 const GracePeriod = DAY * 14; //period between invalidate and unlock insurance.
 const LockUpPeriod = DAY * 14; //period after requestWithdraw() and withdrawable timing
-const CDSLockUpPeriod = DAY * 7; //during private farming, we go for a week.
+const ReserveLockUpPeriod = DAY * 7; //during private farming, we go for a week.
 const MinDate = DAY * 7; //minimum date of policy
 const WithdrawablePeriod = DAY * 7;
 const MAX_LIST = 10;
@@ -55,7 +55,7 @@ Object.assign(exports, {
   GovFeeRatio,
   GracePeriod,
   LockUpPeriod,
-  CDSLockUpPeriod,
+  ReserveLockUpPeriod,
   WithdrawablePeriod,
   MinDate,
   MAX_LIST,

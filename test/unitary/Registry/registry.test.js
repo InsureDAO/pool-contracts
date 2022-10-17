@@ -14,7 +14,7 @@ async function restore(snapshotId) {
 describe("registry", function () {
   before(async () => {
     //import
-    [creator, alice, market1, market2, market3, cds1, cds2, factory] = await ethers.getSigners();
+    [creator, alice, market1, market2, market3, reserve1, reserve2, factory] = await ethers.getSigners();
     const Ownership = await ethers.getContractFactory("Ownership");
     const Registry = await ethers.getContractFactory("Registry");
     //deploy
@@ -103,20 +103,20 @@ describe("registry", function () {
     });
   });
 
-  describe("setCDS() / getCDS()", function () {
+  describe("setReserve() / getReserve()", function () {
     it("msgSender should be the owner address", async () => {
-      await registry.setCDS(market2.address, cds1.address);
-      await expect(registry.connect(factory).setCDS(market2.address, cds1.address)).to.revertedWith(
+      await registry.setReserve(market2.address, reserve1.address);
+      await expect(registry.connect(factory).setReserve(market2.address, reserve1.address)).to.revertedWith(
         "Caller is not allowed to operate"
       );
     });
-    it("cds address should not be zero address", async () => {
-      await expect(registry.setCDS(market2.address, ZERO_ADDRESS)).to.revertedWith("ERROR: ZERO_ADDRESS");
+    it("reserve address should not be zero address", async () => {
+      await expect(registry.setReserve(market2.address, ZERO_ADDRESS)).to.revertedWith("ERROR: ZERO_ADDRESS");
     });
-    it("should set CDS address", async () => {
-      await registry.setCDS(market2.address, cds1.address);
-      expect(await registry.getCDS(market2.address)).to.equal(cds1.address);
-      expect(await registry.getCDS(market1.address)).to.equal(ZERO_ADDRESS);
+    it("should set Reserve address", async () => {
+      await registry.setReserve(market2.address, reserve1.address);
+      expect(await registry.getReserve(market2.address)).to.equal(reserve1.address);
+      expect(await registry.getReserve(market1.address)).to.equal(ZERO_ADDRESS);
     });
   });
 });

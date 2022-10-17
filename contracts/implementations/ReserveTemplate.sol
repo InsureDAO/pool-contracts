@@ -2,7 +2,7 @@ pragma solidity 0.8.12;
 
 /**
  * @author InsureDAO
- * @title InsureDAO CDS template contract
+ * @title InsureDAO Reserve template contract
  * SPDX-License-Identifier: GPL-3.0
  */
 
@@ -11,9 +11,9 @@ import "./InsureDAOERC20.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IRegistry.sol";
 import "../interfaces/IParameters.sol";
-import "../interfaces/ICDSTemplate.sol";
+import "../interfaces/IReserveTemplate.sol";
 
-contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
+contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalMarket {
     /**
      * EVENTS
      */
@@ -222,7 +222,7 @@ contract CDSTemplate is InsureDAOERC20, ICDSTemplate, IUniversalMarket {
         uint256 _crowdAttribution = crowdPool;
         uint256 _attributionLoss;
 
-        //when CDS cannot afford, pay as much as possible
+        //when Reserve cannot afford, pay as much as possible
         _compensated = _available >= _amount ? _amount : _available;
         _attributionLoss = vault.transferValue(_compensated, msg.sender);
         emit Compensated(msg.sender, _compensated);

@@ -3,7 +3,7 @@ const ethers = hre.ethers;
 const fs = require("fs");
 
 /**
- * two pools, no index/cds, FlatPremiumV2, ParameterV2, openDeposit=false
+ * two pools, no index/reserve, FlatPremiumV2, ParameterV2, openDeposit=false
  */
 
 async function main() {
@@ -34,14 +34,14 @@ async function main() {
     FactoryAddress,
     VaultAddress,
     ParametersAddress,
-    PoolTemplateAddress,
+    marketTemplateAddress,
   } = require("./deployments");
 
   const USDC = await ethers.getContractFactory("ERC20Mock");
   const Ownership = await ethers.getContractFactory("Ownership");
-  const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+  const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
   const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
-  const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
+  const ReserveTemplate = await ethers.getContractFactory("ReserveTemplate");
   const Factory = await ethers.getContractFactory("Factory");
   const Vault = await ethers.getContractFactory("Vault");
   const Registry = await ethers.getContractFactory("Registry");
@@ -61,8 +61,8 @@ async function main() {
   const vault = await Vault.attach(VaultAddress);
   console.log("vault attached to:", vault.address);
 
-  const poolTemplate = await PoolTemplate.attach(PoolTemplateAddress);
-  console.log("poolTemplate attached to:", PoolTemplateAddress);
+  const marketTemplate = await MarketTemplate.attach(marketTemplateAddress);
+  console.log("marketTemplate attached to:", marketTemplateAddress);
 
   const premiumV2 = await FlatPremiumV2.deploy(ownership.address, defaultRate);
   await premiumV2.deployed();
@@ -74,11 +74,11 @@ async function main() {
 
   //----- SETUP -----//
   //Turn Off the old parameters
-  tx = await factory.approveReference(PoolTemplateAddress, 3, ParametersAddress, false);
+  tx = await factory.approveReference(marketTemplateAddress, 3, ParametersAddress, false);
   await tx.wait();
 
   //Turn On the new parameters
-  tx = await factory.approveReference(PoolTemplateAddress, 3, parametersV2.address, true);
+  tx = await factory.approveReference(marketTemplateAddress, 3, parametersV2.address, true);
   await tx.wait();
 
   //set parameters
@@ -105,11 +105,11 @@ async function main() {
 
   tx = await parametersV2.setPremiumModel(ZERO_ADDRESS, premiumV2.address);
 
-  //PoolTemplate
+  //MarketTemplate
   for (const addr of GOV_TOKENS) {
     console.log("creating pool for: ", addr);
     tx = await factory.createMarket(
-      poolTemplate.address,
+      marketTemplate.address,
       "0x",
       [0, 0], //initial deposit 0
       [addr, usdc.address, registry.address, parameters.address]
@@ -118,8 +118,8 @@ async function main() {
   }
   let markets = await registry.getAllMarkets();
 
-  let market1 = await PoolTemplate.attach(markets[0]);
-  let market2 = await PoolTemplate.attach(markets[1]);
+  let market1 = await MarketTemplate.attach(markets[0]);
+  let market2 = await MarketTemplate.attach(markets[1]);
   console.log("market1 deployed to: ", market1.address);
   console.log("market2 deployed to: ", market2.address);
 

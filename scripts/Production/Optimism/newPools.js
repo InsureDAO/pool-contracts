@@ -13,13 +13,13 @@ async function main() {
     FactoryAddress,
     ParametersV2Address,
     PremiumV2Address,
-    PoolTemplateAddress,
+    marketTemplateAddress,
     IndexTemplateAddress,
   } = require("./deployments");
 
   const { USDC_ADDRESS, ZERO_ADDRESS } = require("./config");
 
-  const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+  const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
   const Registry = await ethers.getContractFactory("Registry");
   const Factory = await ethers.getContractFactory("Factory");
   const Parameters = await ethers.getContractFactory("Parameters");
@@ -112,7 +112,7 @@ async function main() {
   for (const addr of GOV_TOKENS) {
     console.log("creating pool for: ", addr);
     tx = await factory.connect(manager).createMarket(
-      PoolTemplateAddress,
+      marketTemplateAddress,
       "0x",
       [0, 0], //initial deposit 0
       [addr, USDC_ADDRESS, registry.address, parametersV2.address]
@@ -122,7 +122,7 @@ async function main() {
 
   let markets = await registry.getAllMarkets();
   for (let i = 0; i < markets.length; i++) {
-    let market = await PoolTemplate.attach(markets[i]);
+    let market = await MarketTemplate.attach(markets[i]);
 
     await premiumV2.connect(manager).setRate(market.address, RATES[i]);
     console.log("market", i, "deployed to:", market.address);
@@ -144,7 +144,7 @@ async function main() {
   markets = await registry.getAllMarkets();
   let pools = [];
   let indicies = [];
-  let cds = [];
+  let reserve = [];
   for (let i = 0; i < markets.length; i++) {
     let addr = markets[i];
 
@@ -153,13 +153,13 @@ async function main() {
     } else if (i < INDEX_LIST.length + DEPLOYED_ADDRESS.length) {
       indicies.push(addr);
     } else {
-      cds.push(addr);
+      reserve.push(addr);
     }
   }
 
   console.log("pools:", pools);
   console.log("indicies:", indicies);
-  console.log("cds:", cds);
+  console.log("reserve:", reserve);
 
   for (let i = 0; i < INDEX_LIST.length; i++) {
     let index = await IndexTemplate.attach(indicies[i]);
