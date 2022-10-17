@@ -1014,7 +1014,7 @@ describe("Index", function () {
 
     it("revert when the market is paused", async function () {
       await index.setPaused(true);
-      await expect(index.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: DEPOSIT_DISABLED");
+      await expect(index.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: PAUSED");
     });
 
     it("revert when the deposit amount is zero", async function () {

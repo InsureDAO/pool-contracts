@@ -230,8 +230,8 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
      */
     function _depositFrom(uint256 _amount, address _from) internal returns (uint256 _mintAmount) {
         require(_amount != 0, "ERROR: DEPOSIT_ZERO");
-        require(marketStatus == MarketStatus.Trading, "ERROR: DEPOSIT_DISABLED(1)");
-        require(!paused, "ERROR: DEPOSIT_DISABLED(2)");
+        require(marketStatus == MarketStatus.Trading, "ERROR: Payingout");
+        require(!paused, "ERROR: PAUSED");
 
         _mintAmount = worth(_amount);
 

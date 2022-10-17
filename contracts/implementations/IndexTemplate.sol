@@ -2,7 +2,7 @@ pragma solidity 0.8.12;
 
 /**
  * @author InsureDAO
- * @title InsureDAO market template contract
+ * @title Index Pool Template
  * SPDX-License-Identifier: GPL-3.0
  */
 
@@ -14,23 +14,19 @@ import "../interfaces/IRegistry.sol";
 import "../interfaces/IParameters.sol";
 import "../interfaces/IMarketTemplate.sol";
 import "../interfaces/IReserveTemplate.sol";
-import "hardhat/console.sol";
 
 /**
- * An index pool can index a certain number of pools with leverage.
+ * An index pool can index a certain number of markets with leverage.
  *
  * Index A
- * 　├ Pool A
- * 　├ Pool B
- * 　├ Pool C
+ * 　├ Market A
+ * 　├ Market B
+ * 　├ Market C
  * 　...
  *
  */
 
 contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
-    /**
-     * EVENTS
-     */
     event Deposit(address indexed depositor, uint256 amount, uint256 mint);
     event WithdrawRequested(address indexed withdrawer, uint256 amount, uint256 unlockTime);
     event Withdraw(address indexed withdrawer, uint256 amount, uint256 retVal);
@@ -41,9 +37,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     event MetadataChanged(string metadata);
     event LeverageSet(uint256 target);
     event newAllocation(address market, uint256 allocPoints);
-    /**
-     * Storage
-     */
+
     /// @notice Market setting
     bool public initialized;
     bool public paused;
@@ -56,14 +50,17 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     IRegistry public registry;
 
     /// @notice Market variables for margin account
-    uint256 public totalAllocatedCredit; //total allocated credit(liquidity)
-    mapping(address => uint256) public allocPoints; //allocation point for each pool
-    uint256 public totalAllocPoint; //total allocation point
-    address[] public poolList; //list of all pools
-    uint256 public targetLev; //1x = MAGIC_SCALE_1E6
-    //The allocated credits are deemed as liquidity in each underlying pool
-    //Credit amount(liquidity) will be determined by the following math
-    //credit for a pool = total liquidity of this pool * leverage rate * allocation point for a pool / total allocation point
+    uint256 public totalAllocatedCredit;
+    mapping(address => uint256) public allocPoints;
+    uint256 public totalAllocPoint;
+    address[] public marketList;
+    uint256 public targetLev; //1e6 = x1
+    /**
+     * @notice
+     * The allocated credits are deemed as liquidity in each underlying market
+     * Credit amount(liquidity) will be determined by the following math
+     * credit for a market = total liquidity of this pool * leverage rate * allocation point for a market / total allocation point
+     */
 
     ///@notice user status management
     struct Withdrawal {
@@ -72,7 +69,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     }
     mapping(address => Withdrawal) public withdrawalReq;
 
-    struct PoolStatus {
+    struct MarketStatus {
         uint256 current;
         uint256 available;
         uint256 allocation;
@@ -84,9 +81,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     ///@notice magic numbers
     uint256 private constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
 
-    /**
-     * @notice Throws if called by any account other than the owner.
-     */
     modifier onlyOwner() {
         require(msg.sender == parameters.getOwner(), "Caller is not allowed to operate");
         _;
@@ -95,10 +89,6 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     constructor() {
         initialized = true;
     }
-
-    /**
-     * Initialize interaction
-     */
 
     /**
      * @notice Initialize market
@@ -141,16 +131,13 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     }
 
     /**
-     * Pool interactions
-     */
-
-    /**
-     * @notice A liquidity provider supplies collateral to the pool and receives iTokens
+     * @notice Supply coverage to this pool and receive LP token.
      * @param _amount amount of token to deposit
-     * @return _mintAmount the amount of iToken minted from the transaction
+     * @return _mintAmount the amount of LP token minted
      */
     function deposit(uint256 _amount) external returns (uint256 _mintAmount) {
-        require(!locked && !paused, "ERROR: DEPOSIT_DISABLED");
+        require(!locked, "ERROR: LOCKED");
+        require(!paused, "ERROR: PAUSED");
         require(_amount != 0, "ERROR: DEPOSIT_ZERO");
 
         uint256 _supply = totalSupply();
@@ -244,7 +231,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * Withdrawable amount = Index liquidity - necessary amount to support credit liquidity
      * necessary amount = totalLockedCredits / leverageRate
      * eg. if leverageRate = 2, then necessary amount = totalLockedCredits / 2
-     * we should also reserve 100% the lockedCredits for the pool with most locked
+     * we should also reserve 100% the lockedCredits for the market with most locked
      * @return withdrawable amount
      */
     function withdrawable() public view returns (uint256) {
@@ -252,18 +239,22 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         if (_totalLiquidity == 0) return 0;
 
-        uint256 _length = poolList.length;
+        uint256 _length = marketList.length;
         uint256 _totalLockedCredits;
         uint256 _maxLockedCredits;
 
-        for (uint256 i; i < _length; ++i) {
-            (uint256 _allocated, uint256 _available) = IMarketTemplate(poolList[i]).pairValues(address(this));
+        for (uint256 i; i < _length; ) {
+            (uint256 _allocated, uint256 _available) = IMarketTemplate(marketList[i]).pairValues(address(this));
             if (_allocated > _available) {
                 uint256 _locked = _allocated - _available;
                 _totalLockedCredits += _locked;
                 if (_locked > _maxLockedCredits) {
                     _maxLockedCredits = _locked;
                 }
+            }
+
+            unchecked {
+                ++i;
             }
         }
 
@@ -299,39 +290,39 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @dev credit adjustment is done based on _liquidity and targetLeverage
      *
      * 1) calculate goal amount of totalCredits
-     * 2) perform calculation for un-usual pools (get _totalFreeableCredits)
+     * 2) perform calculation for un-usual markets (get _totalFreeableCredits)
      * 3) if _targetTotalCredits <= (_totalAllocatedCredit - _totalFreeableCredits), go with withdraw-only mode
-     * 4) else allocate the allocatable credits to the pools proportionally to the shortage of each pool
+     * 4) else allocate the allocatable credits to the markets proportionally to the shortage of each market
      */
     function _adjustAlloc(uint256 _liquidity) internal {
         uint256 _targetTotalCredits = (targetLev * _liquidity) / MAGIC_SCALE_1E6;
 
         uint256 _allocatablePoints = totalAllocPoint;
         uint256 _totalAllocatedCredit = totalAllocatedCredit;
-        uint256 _poolLength = poolList.length;
+        uint256 _marketLength = marketList.length;
 
         uint256 _totalFreeableCredits;
         uint256 _totalFrozenCredits;
 
-        PoolStatus[] memory _pools = new PoolStatus[](_poolLength);
+        MarketStatus[] memory _markets = new MarketStatus[](_marketLength);
 
-        for (uint256 i; i < _poolLength; ++i) {
-            address _poolAddr = poolList[i];
+        for (uint256 i; i < _marketLength; ) {
+            address _marketAddr = marketList[i];
             uint256 _current;
             uint256 _available;
-            (_current, _available) = IMarketTemplate(_poolAddr).pairValues(address(this));
-            uint256 _allocation = allocPoints[_poolAddr];
+            (_current, _available) = IMarketTemplate(_marketAddr).pairValues(address(this));
+            uint256 _allocation = allocPoints[_marketAddr];
 
             uint256 _freeableCredits = (_available > _current ? _current : _available);
-            if (IMarketTemplate(_poolAddr).marketStatus() == IMarketTemplate.MarketStatus.Payingout) {
+            if (IMarketTemplate(_marketAddr).marketStatus() == IMarketTemplate.MarketStatus.Payingout) {
                 _allocatablePoints -= _allocation;
                 _allocation = 0;
                 _freeableCredits = 0;
                 _totalFrozenCredits += _current;
-            } else if (_allocation == 0 || IMarketTemplate(_poolAddr).paused()) {
+            } else if (_allocation == 0 || IMarketTemplate(_marketAddr).paused()) {
                 _allocatablePoints -= _allocation;
                 _allocation = 0;
-                IMarketTemplate(_poolAddr).withdrawCredit(_freeableCredits);
+                IMarketTemplate(_marketAddr).withdrawCredit(_freeableCredits);
                 _totalAllocatedCredit -= _freeableCredits;
                 _current -= _freeableCredits;
                 _freeableCredits = 0;
@@ -340,11 +331,15 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
             _totalFreeableCredits += _freeableCredits;
 
-            _pools[i].addr = _poolAddr;
-            _pools[i].current = _current;
-            _pools[i].available = _available;
-            _pools[i]._freeableCredits = _freeableCredits;
-            _pools[i].allocation = _allocation;
+            _markets[i].addr = _marketAddr;
+            _markets[i].current = _current;
+            _markets[i].available = _available;
+            _markets[i]._freeableCredits = _freeableCredits;
+            _markets[i].allocation = _allocation;
+
+            unchecked {
+                ++i;
+            }
         }
 
         if (_targetTotalCredits <= _totalFrozenCredits) {
@@ -355,41 +350,46 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         uint256 _totalFixedCredits = _totalAllocatedCredit - _totalFreeableCredits - _totalFrozenCredits;
         // if target credit is less than _totalFixedCredits, we go withdraw-only mode
         if (_totalFixedCredits >= _targetTotalCredits) {
-            for (uint256 i; i < _poolLength; ++i) {
-                if (_pools[i]._freeableCredits > 0) {
-                    IMarketTemplate(_pools[i].addr).withdrawCredit(_pools[i]._freeableCredits);
+            for (uint256 i; i < _marketLength; ) {
+                if (_markets[i]._freeableCredits > 0) {
+                    IMarketTemplate(_markets[i].addr).withdrawCredit(_markets[i]._freeableCredits);
+                }
+                unchecked {
+                    ++i;
                 }
             }
             totalAllocatedCredit = _totalAllocatedCredit - _totalFreeableCredits;
         } else {
             uint256 _totalAllocatableCredits = _targetTotalCredits - _totalFixedCredits;
             uint256 _totalShortage;
-            for (uint256 i; i < _poolLength; ++i) {
-                if (_pools[i].allocation == 0) continue;
-                uint256 _target = (_targetTotalCredits * _pools[i].allocation) / _allocatablePoints;
-                uint256 _fixedCredits = _pools[i].current - _pools[i]._freeableCredits;
+
+            for (uint256 i; i < _marketLength; ++i) {
+                if (_markets[i].allocation == 0) continue;
+                uint256 _target = (_targetTotalCredits * _markets[i].allocation) / _allocatablePoints;
+                uint256 _fixedCredits = _markets[i].current - _markets[i]._freeableCredits;
                 // when _fixedCredits > target, we should withdraw all freeable credits
                 if (_fixedCredits > _target) {
-                    IMarketTemplate(_pools[i].addr).withdrawCredit(_pools[i]._freeableCredits);
-                    _totalAllocatedCredit -= _pools[i]._freeableCredits;
+                    IMarketTemplate(_markets[i].addr).withdrawCredit(_markets[i]._freeableCredits);
+                    _totalAllocatedCredit -= _markets[i]._freeableCredits;
                 } else {
                     uint256 _shortage = _target - _fixedCredits;
                     _totalShortage += _shortage;
-                    _pools[i].shortage = _shortage;
+                    _markets[i].shortage = _shortage;
                 }
             }
-            for (uint256 i; i < _poolLength; ++i) {
-                if (_pools[i].shortage == 0) continue;
-                uint256 _reallocate = (_totalAllocatableCredits * _pools[i].shortage) / _totalShortage;
+
+            for (uint256 i; i < _marketLength; ++i) {
+                if (_markets[i].shortage == 0) continue;
+                uint256 _reallocate = (_totalAllocatableCredits * _markets[i].shortage) / _totalShortage;
                 // when _reallocate >= _freeableCredits, we deposit
-                if (_reallocate >= _pools[i]._freeableCredits) {
+                if (_reallocate >= _markets[i]._freeableCredits) {
                     // _freeableCredits is part of the `_reallocate`
-                    uint256 _allocate = _reallocate - _pools[i]._freeableCredits;
-                    IMarketTemplate(_pools[i].addr).allocateCredit(_allocate);
+                    uint256 _allocate = _reallocate - _markets[i]._freeableCredits;
+                    IMarketTemplate(_markets[i].addr).allocateCredit(_allocate);
                     _totalAllocatedCredit += _allocate;
                 } else {
-                    uint256 _removal = _pools[i]._freeableCredits - _reallocate;
-                    IMarketTemplate(_pools[i].addr).withdrawCredit(_removal);
+                    uint256 _removal = _markets[i]._freeableCredits - _reallocate;
+                    IMarketTemplate(_markets[i].addr).withdrawCredit(_removal);
                     _totalAllocatedCredit -= _removal;
                 }
             }
@@ -399,18 +399,15 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     }
 
     /**
-     * Insurance interactions
-     */
-
-    /**
-     * @notice Make a payout if an accident occured in a underlying pool
-     * @param _amount amount of liquidity to compensate for the called pool
-     * We compensate underlying pools by the following steps
-     * 1) Compensate underlying pools from the liquidity of this pool
+     * @notice Make a payout to underlying market
+     * @param _amount amount of liquidity to compensate for the called market
+     * We compensate underlying markets by the following steps
+     * 1) Compensate underlying markets from the liquidity of this pool
      * 2) If this pool is unable to cover a compensation, can get compensated from the Reserve pool
      */
     function compensate(uint256 _amount) external override returns (uint256 _compensated) {
         require(allocPoints[msg.sender] != 0, "COMPENSATE_UNAUTHORIZED_CALLER");
+
         uint256 _value = vault.underlyingValue(address(this));
         if (_value >= _amount) {
             //When the deposited value without earned premium is enough to cover
@@ -425,7 +422,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         vault.offsetDebt(_compensated, msg.sender);
 
-        // totalLiquity has been changed, adjustAlloc() will be called by the pool contract
+        // totalLiquity has been changed, adjustAlloc() will be called by the market contract
 
         emit Compensated(msg.sender, _compensated);
     }
@@ -435,12 +432,12 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      */
     function resume() external override {
         require(locked, "ERROR: MARKET_IS_NOT_LOCKED");
-        uint256 _poolLength = poolList.length;
+        uint256 _marketLength = marketList.length;
 
-        for (uint256 i; i < _poolLength; ) {
+        for (uint256 i; i < _marketLength; ) {
             require(
-                IMarketTemplate(poolList[i]).marketStatus() == IMarketTemplate.MarketStatus.Trading,
-                "ERROR: POOL_IS_PAYINGOUT"
+                IMarketTemplate(marketList[i]).marketStatus() == IMarketTemplate.MarketStatus.Trading,
+                "ERROR: MARKET_IS_PAYINGOUT"
             );
             unchecked {
                 ++i;
@@ -479,11 +476,15 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     }
 
     /**
-     * @notice total Liquidity of the pool (how much can the pool sell cover)
-     * @return total liquidity of the pool
+     * @notice Return total Liquidity of this pool (how much can the pool sell cover)
+     * @return liquidity of this pool
      */
     function totalLiquidity() public view returns (uint256) {
         return vault.underlyingValue(address(this)) + _accruedPremiums();
+    }
+
+    function accruedPremiums() external view returns (uint256) {
+        return _accruedPremiums();
     }
 
     /**
@@ -511,11 +512,11 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     }
 
     /**
-     * @notice Get all underlying pools
-     * @return pool array
+     * @notice Get all indexed markets
+     * @return market array
      */
-    function getAllPools() external view returns (address[] memory) {
-        return poolList;
+    function getAllMarkets() external view returns (address[] memory) {
+        return marketList;
     }
 
     /**
@@ -553,110 +554,110 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         emit LeverageSet(_target);
     }
 
-    //update allocPoint
-    function set(uint256 _poolListIndex, uint256 _allocPoint) public onlyOwner {
-        address _currentPool = poolList[_poolListIndex];
-        _updateAllocPoint(_currentPool, _allocPoint);
-        _adjustAlloc();
-    }
-
     /**
      * @notice Incorporate market into this index pool. That market gains capacity for additional insurance sales.
-     * @param _poolListIndex array's index to add, remove, or update.
-     * @param _pool address of a market. Set address(0) when removing market.
-     * @param _allocPoint allocation point of the _pool. Use 1e18 as default.
+     * @param _marketListIndex array's index to add, remove, or update.
+     * @param _market address of a market. Set address(0) when removing market.
+     * @param _allocPoint allocation point of the _market. Use 1e18 as default.
      *
      * @dev if branches are based on following purposes.
-     * A. add new pool (latest _poolListIndex, new pool)
-     * B. update allocPoint (exist _poolListIndex. same pool as _poolListIndex)
-     * C. remove pool (exist _poolListIndex. pool is address(0) )
-     * D. overwrite pool (exist _poolListIndex. pool is new)
+     * A. add new market (latest _marketListIndex, new market)
+     * B. update allocPoint (exist _marketListIndex. same market as _marketListIndex)
+     * C. remove market (exist _marketListIndex. market is address(0) )
+     * D. overwrite market (exist _marketListIndex. market is new)
      */
     function set(
-        uint256 _poolListIndex,
-        address _pool,
+        uint256 _marketListIndex,
+        address _market,
         uint256 _allocPoint
     ) external onlyOwner {
-        require(_poolListIndex <= parameters.getMaxList(address(this)), "ERROR: EXCEEEDED_MAX_INDEX");
+        require(_marketListIndex <= parameters.getMaxList(address(this)), "ERROR: EXCEEEDED_MAX_INDEX");
 
-        uint256 _poollength = poolList.length;
+        uint256 _marketLength = marketList.length;
 
-        if (_poolListIndex >= _poollength) {
-            //register new pool
-            require(_poolListIndex == _poollength, "NOT_NEXT_SLOT");
-            _addPool(_pool, _allocPoint);
+        if (_marketListIndex >= _marketLength) {
+            //register new market
+            require(_marketListIndex == _marketLength, "NOT_NEXT_SLOT");
+            _addMarket(_market, _allocPoint);
         } else {
-            //update/remove/overwrite a registered pool
-            address _currentPool = poolList[_poolListIndex];
-            require(_currentPool != address(0), "_currentPool is address(0)"); //this should never happen
+            //update/remove/overwrite a registered market
+            address _currentMarket = marketList[_marketListIndex];
+            require(_currentMarket != address(0), "_currentMarket is address(0)"); //this should never happen
 
-            if (_pool == _currentPool) {
-                _updateAllocPoint(_currentPool, _allocPoint);
-            } else if (_pool == address(0)) {
-                _removePool(_currentPool, _poolListIndex);
+            if (_market == _currentMarket) {
+                _updateAllocPoint(_currentMarket, _allocPoint);
+            } else if (_market == address(0)) {
+                _removeMarket(_currentMarket, _marketListIndex);
             } else {
-                _removePool(_currentPool, _poolListIndex);
-                _addPool(_pool, _allocPoint);
+                _removeMarket(_currentMarket, _marketListIndex);
+                _addMarket(_market, _allocPoint);
             }
         }
 
         _adjustAlloc();
     }
 
+    //update allocPoint ver.
+    function set(uint256 _marketListIndex, uint256 _allocPoint) public onlyOwner {
+        address _currentMarket = marketList[_marketListIndex];
+        _updateAllocPoint(_currentMarket, _allocPoint);
+        _adjustAlloc();
+    }
+
     /**
      * @notice update allocPoint.
-     * @param _pool address of a market. Set address(0) when removing market.
-     * @param _allocPoint allocation point of the _pool. Use 1e18 as default.
+     * @param _market address of a market. Set address(0) when removing market.
+     * @param _allocPoint allocation point of the _market. Use 1e18 as default.
      */
-    function _updateAllocPoint(address _pool, uint256 _allocPoint) internal {
-        totalAllocPoint -= allocPoints[_pool];
+    function _updateAllocPoint(address _market, uint256 _allocPoint) internal {
+        totalAllocPoint -= allocPoints[_market];
         totalAllocPoint += _allocPoint;
-        allocPoints[_pool] = _allocPoint;
+        allocPoints[_market] = _allocPoint;
 
-        emit newAllocation(_pool, _allocPoint);
+        emit newAllocation(_market, _allocPoint);
     }
 
     /**
      * @notice register new market
-     * @param _pool address of a market.
-     * @param _allocPoint allocation point of the _pool. Use 1e18 as default.
+     * @param _market address of a market.
+     * @param _allocPoint allocation point of the _market. Use 1e18 as default.
      */
-    function _addPool(address _pool, uint256 _allocPoint) internal {
-        require(registry.isListed(_pool), "ERROR:UNREGISTERED_POOL");
+    function _addMarket(address _market, uint256 _allocPoint) internal {
+        require(registry.isListed(_market), "ERROR:UNLISTED_POOL");
 
         //register
-        IMarketTemplate(_pool).registerIndex();
+        IMarketTemplate(_market).registerIndex();
 
-        poolList.push(_pool);
+        marketList.push(_market);
 
         //update allocPoint
         totalAllocPoint += _allocPoint;
-        allocPoints[_pool] = _allocPoint;
+        allocPoints[_market] = _allocPoint;
 
-        emit newAllocation(_pool, _allocPoint);
+        emit newAllocation(_market, _allocPoint);
     }
 
     /**
      * @notice remove registered market
-     * @param _pool address of a market.
-     * @param _poolListIndex array's index to remove.
+     * @param _market address of a market.
+     * @param _marketListIndex array's index to remove.
      */
-    function _removePool(address _pool, uint256 _poolListIndex) internal {
-        //adjustAlloc has to be done first before removing pool from poolList to remove credits from the removing pool.
-        totalAllocPoint -= allocPoints[_pool];
-        allocPoints[_pool] = 0;
+    function _removeMarket(address _market, uint256 _marketListIndex) internal {
+        //adjustAlloc has to be done first before removing market from marketList to remove credits from the removing market.
+        totalAllocPoint -= allocPoints[_market];
+        allocPoints[_market] = 0;
         _adjustAlloc();
 
         //unregister
-        IMarketTemplate(_pool).unregisterIndex();
+        IMarketTemplate(_market).unregisterIndex();
 
-        uint256 _latestArrayIndex = poolList.length - 1;
+        uint256 _latestArrayIndex = marketList.length - 1;
         if (_latestArrayIndex != 0) {
-            poolList[_poolListIndex] = poolList[_latestArrayIndex];
+            marketList[_marketListIndex] = marketList[_latestArrayIndex];
         }
-        poolList.pop();
+        marketList.pop();
 
-        emit newAllocation(_pool, 0);
+        emit newAllocation(_market, 0);
     }
 
     /**
@@ -682,13 +683,13 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
     /**
      * @notice Get the total equivalent value of credit to token
-     * @return _totalValue accrued but yet claimed premium within underlying pools
+     * @return _totalValue accrued but yet claimed premium within underlying markets
      */
     function _accruedPremiums() internal view returns (uint256 _totalValue) {
-        uint256 _poolLength = poolList.length;
-        for (uint256 i; i < _poolLength; ) {
-            if (allocPoints[poolList[i]] != 0) {
-                _totalValue = _totalValue + IMarketTemplate(poolList[i]).pendingPremium(address(this));
+        uint256 _marketLength = marketList.length;
+        for (uint256 i; i < _marketLength; ) {
+            if (allocPoints[marketList[i]] != 0) {
+                _totalValue = _totalValue + IMarketTemplate(marketList[i]).pendingPremium(address(this));
             }
             unchecked {
                 ++i;

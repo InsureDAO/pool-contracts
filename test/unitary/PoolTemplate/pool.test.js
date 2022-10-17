@@ -867,7 +867,7 @@ describe("Pool", function () {
           incidentTimestamp: incident,
         });
 
-        await expect(market.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: DEPOSIT_DISABLED");
+        await expect(market.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: Payingout");
       });
 
       it("fail when amount is not more than zero", async () => {
@@ -1353,7 +1353,7 @@ describe("Pool", function () {
       await market.setPaused(true);
 
       await usdc.connect(alice).approve(vault.address, depositAmount);
-      await expect(market.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: DEPOSIT_DISABLED");
+      await expect(market.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: PAUSED");
 
       await moveForwardPeriods(8);
 

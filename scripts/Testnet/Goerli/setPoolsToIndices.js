@@ -50,7 +50,7 @@ async function main() {
         continue;
       }
 
-      const pools = await index.getAllPools();
+      const pools = await index.getAllMarkets();
       const newPoolPositionForIndex = pools.length;
 
       // get target index number index should be set
