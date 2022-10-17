@@ -39,7 +39,7 @@ async function main() {
 
   const USDC = await ethers.getContractFactory("ERC20Mock");
   const Ownership = await ethers.getContractFactory("Ownership");
-  const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+  const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
   const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
   const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
   const Factory = await ethers.getContractFactory("Factory");
@@ -61,7 +61,7 @@ async function main() {
   const vault = await Vault.attach(VaultAddress);
   console.log("vault attached to:", vault.address);
 
-  const poolTemplate = await PoolTemplate.attach(PoolTemplateAddress);
+  const poolTemplate = await MarketTemplate.attach(PoolTemplateAddress);
   console.log("poolTemplate attached to:", PoolTemplateAddress);
 
   const premiumV2 = await FlatPremiumV2.deploy(ownership.address, defaultRate);
@@ -105,7 +105,7 @@ async function main() {
 
   tx = await parametersV2.setPremiumModel(ZERO_ADDRESS, premiumV2.address);
 
-  //PoolTemplate
+  //MarketTemplate
   for (const addr of GOV_TOKENS) {
     console.log("creating pool for: ", addr);
     tx = await factory.createMarket(
@@ -118,8 +118,8 @@ async function main() {
   }
   let markets = await registry.getAllMarkets();
 
-  let market1 = await PoolTemplate.attach(markets[0]);
-  let market2 = await PoolTemplate.attach(markets[1]);
+  let market1 = await MarketTemplate.attach(markets[0]);
+  let market2 = await MarketTemplate.attach(markets[1]);
   console.log("market1 deployed to: ", market1.address);
   console.log("market2 deployed to: ", market2.address);
 

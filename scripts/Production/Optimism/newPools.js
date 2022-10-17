@@ -19,7 +19,7 @@ async function main() {
 
   const { USDC_ADDRESS, ZERO_ADDRESS } = require("./config");
 
-  const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+  const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
   const Registry = await ethers.getContractFactory("Registry");
   const Factory = await ethers.getContractFactory("Factory");
   const Parameters = await ethers.getContractFactory("Parameters");
@@ -122,7 +122,7 @@ async function main() {
 
   let markets = await registry.getAllMarkets();
   for (let i = 0; i < markets.length; i++) {
-    let market = await PoolTemplate.attach(markets[i]);
+    let market = await MarketTemplate.attach(markets[i]);
 
     await premiumV2.connect(manager).setRate(market.address, RATES[i]);
     console.log("market", i, "deployed to:", market.address);

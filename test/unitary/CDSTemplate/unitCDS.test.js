@@ -56,7 +56,7 @@ describe("CDS", function () {
     [gov, alice, bob, chad, tom] = await ethers.getSigners();
     const Ownership = await ethers.getContractFactory("Ownership");
     const USDC = await ethers.getContractFactory("TestERC20Mock");
-    const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+    const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
     const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
     const Factory = await ethers.getContractFactory("Factory");
     const Vault = await ethers.getContractFactory("Vault");
@@ -72,7 +72,7 @@ describe("CDS", function () {
     premium = await PremiumModel.deploy();
     vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
 
-    poolTemplate = await PoolTemplate.deploy();
+    poolTemplate = await MarketTemplate.deploy();
     cdsTemplate = await CDSTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
 
@@ -125,7 +125,7 @@ describe("CDS", function () {
     );
     let receipt = await tx.wait();
     const marketAddress1 = receipt.events[2].args[0];
-    market1 = await PoolTemplate.attach(marketAddress1);
+    market1 = await MarketTemplate.attach(marketAddress1);
 
     tx = await factory.createMarket(
       cdsTemplate.address,

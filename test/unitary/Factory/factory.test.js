@@ -20,7 +20,7 @@ describe("Factory", function () {
     [creator, alice, bob, chad, fake] = await ethers.getSigners();
     const Ownership = await ethers.getContractFactory("Ownership");
     const DAI = await ethers.getContractFactory("TestERC20Mock");
-    const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+    const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
     const Factory = await ethers.getContractFactory("Factory");
     const Vault = await ethers.getContractFactory("Vault");
     const Registry = await ethers.getContractFactory("Registry");
@@ -36,7 +36,7 @@ describe("Factory", function () {
     premium = await PremiumModel.deploy();
     controller = await Contorller.deploy(dai.address, ownership.address);
     vault = await Vault.deploy(dai.address, registry.address, controller.address, ownership.address);
-    poolTemplate = await PoolTemplate.deploy();
+    poolTemplate = await MarketTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
     await registry.setFactory(factory.address);
     await parameters.setVault(dai.address, vault.address);
@@ -81,7 +81,7 @@ describe("Factory", function () {
       [dai.address, dai.address, registry.address, parameters.address]
     );
     const marketAddress = await factory.markets(0);
-    market = await PoolTemplate.attach(marketAddress);
+    market = await MarketTemplate.attach(marketAddress);
     */
   });
 

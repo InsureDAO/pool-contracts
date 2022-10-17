@@ -119,7 +119,7 @@ describe("Pool", function () {
 
     const Ownership = await ethers.getContractFactory("Ownership");
     const USDC = await ethers.getContractFactory("TestERC20Mock");
-    const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+    const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
     const Factory = await ethers.getContractFactory("Factory");
     const Vault = await ethers.getContractFactory("Vault");
     const Registry = await ethers.getContractFactory("Registry");
@@ -133,7 +133,7 @@ describe("Pool", function () {
     factory = await Factory.deploy(registry.address, ownership.address);
     premium = await PremiumModel.deploy();
     vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
-    poolTemplate = await PoolTemplate.deploy();
+    poolTemplate = await MarketTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
 
     //set up
@@ -171,7 +171,7 @@ describe("Pool", function () {
     );
     let receipt = await tx.wait();
     const marketAddress = receipt.events[2].args[0];
-    market = await PoolTemplate.attach(marketAddress);
+    market = await MarketTemplate.attach(marketAddress);
   });
 
   beforeEach(async () => {
@@ -182,7 +182,7 @@ describe("Pool", function () {
     await restore(snapshotId);
   });
 
-  describe("PoolTemplate", function () {
+  describe("MarketTemplate", function () {
     describe("metadata", function () {
       it("should return correct metadata", async () => {
         expect(await market.name()).to.equal("InsureDAO DAI Insurance LP");

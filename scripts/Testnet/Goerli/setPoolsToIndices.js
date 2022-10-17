@@ -22,7 +22,7 @@ async function main() {
   const [, manager] = await ethers.getSigners();
   console.log("manager address: ", manager.address);
 
-  const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+  const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
   const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
   const Registry = await ethers.getContractFactory("Registry");
 
@@ -38,7 +38,7 @@ async function main() {
       if (!indexExist) throw new Error(`Index is not listed: ${indexAddress}`);
 
       const index = IndexTemplate.attach(indexAddress);
-      const pool = PoolTemplate.attach(poolAddress);
+      const pool = MarketTemplate.attach(poolAddress);
 
       // check if connection already established
       const indexConnection = await pool.indices(indexAddress);

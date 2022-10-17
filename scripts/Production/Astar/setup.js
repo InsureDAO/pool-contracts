@@ -18,7 +18,7 @@ async function main() {
   const { OwnershipAddress, VaultAddress, Pools, Premiums } = require("./deployments");
 
   const USDC = await ethers.getContractFactory("ERC20Mock");
-  const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+  const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
   const Vault = await ethers.getContractFactory("Vault");
   const FlatPremiumV1 = await ethers.getContractFactory("FlatPremium");
   const Ownership = await ethers.getContractFactory("Ownership");
@@ -27,10 +27,10 @@ async function main() {
   const usdc = await USDC.attach(USDC_ADDRESS);
   const vault = await Vault.attach(VaultAddress);
 
-  const market1 = await PoolTemplate.attach(Pools[0]);
+  const market1 = await MarketTemplate.attach(Pools[0]);
   const premium1 = await FlatPremiumV1.attach(Premiums[0]);
 
-  const market2 = await PoolTemplate.attach(Pools[1]);
+  const market2 = await MarketTemplate.attach(Pools[1]);
   const premium2 = await FlatPremiumV1.attach(Premiums[1]);
 
   let tx;

@@ -1,6 +1,6 @@
 pragma solidity 0.8.12;
 
-interface IPoolTemplate {
+interface IMarketTemplate {
     enum MarketStatus {
         Trading,
         Payingout

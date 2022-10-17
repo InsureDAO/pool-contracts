@@ -1,8 +1,8 @@
 pragma solidity 0.8.12;
 
-import "../implementations/PoolTemplate.sol";
+import "../implementations/MarketTemplate.sol";
 
-contract MarketMock is PoolTemplate {
+contract MarketMock is MarketTemplate {
     constructor() {}
 
     function mint(address _to, uint256 _amount) public {

@@ -64,7 +64,7 @@ describe("multiIndex", function () {
 
     const Ownership = await ethers.getContractFactory("Ownership");
     const USDC = await ethers.getContractFactory("TestERC20Mock");
-    const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+    const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
     IndexTemplate = await ethers.getContractFactory("IndexTemplate");
     const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
     const Factory = await ethers.getContractFactory("Factory");
@@ -81,7 +81,7 @@ describe("multiIndex", function () {
     premium = await PremiumModel.deploy();
     vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
 
-    poolTemplate = await PoolTemplate.deploy();
+    poolTemplate = await MarketTemplate.deploy();
     cdsTemplate = await CDSTemplate.deploy();
     indexTemplate = await IndexTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
@@ -219,11 +219,11 @@ describe("multiIndex", function () {
 
     //attach markets
     let markets = await registry.getAllMarkets();
-    market1 = await PoolTemplate.attach(markets[0]);
-    market2 = await PoolTemplate.attach(markets[1]);
-    market3 = await PoolTemplate.attach(markets[2]);
-    market4 = await PoolTemplate.attach(markets[3]);
-    market5 = await PoolTemplate.attach(markets[4]);
+    market1 = await MarketTemplate.attach(markets[0]);
+    market2 = await MarketTemplate.attach(markets[1]);
+    market3 = await MarketTemplate.attach(markets[2]);
+    market4 = await MarketTemplate.attach(markets[3]);
+    market5 = await MarketTemplate.attach(markets[4]);
     cds = await CDSTemplate.attach(markets[5]);
     index1 = await IndexTemplate.attach(markets[6]);
     index2 = await IndexTemplate.attach(markets[7]);

@@ -604,7 +604,7 @@ describe("Pool", function () {
 
     const Ownership = await ethers.getContractFactory("Ownership");
     const USDC = await ethers.getContractFactory("TestERC20Mock");
-    const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
+    const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
     const Factory = await ethers.getContractFactory("Factory");
     const Vault = await ethers.getContractFactory("Vault");
     const Registry = await ethers.getContractFactory("Registry");
@@ -618,7 +618,7 @@ describe("Pool", function () {
     factory = await Factory.deploy(registry.address, ownership.address);
     premium = await PremiumModel.deploy();
     vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
-    poolTemplate = await PoolTemplate.deploy();
+    poolTemplate = await MarketTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
 
     //set up
@@ -655,7 +655,7 @@ describe("Pool", function () {
     );
     let receipt = await tx.wait();
     const marketAddress = receipt.events[2].args[0];
-    market = await PoolTemplate.attach(marketAddress);
+    market = await MarketTemplate.attach(marketAddress);
   });
 
   beforeEach(async () => {
@@ -734,11 +734,11 @@ describe("Pool", function () {
     });
   });
 
-  describe("PoolTemplate", function () {
+  describe("MarketTemplate", function () {
     describe("initialize", function () {
       it("original contract cannot be initialize()", async () => {
-        const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
-        pool = await PoolTemplate.deploy();
+        const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
+        pool = await MarketTemplate.deploy();
 
         await expect(
           pool.initialize(
@@ -761,8 +761,8 @@ describe("Pool", function () {
           depositor: gov,
         });
 
-        const PoolTemplate = await ethers.getContractFactory("PoolTemplate");
-        let market2 = await PoolTemplate.attach(market2Address);
+        const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
+        let market2 = await MarketTemplate.attach(market2Address);
 
         expect(await market2.balanceOf(gov.address)).to.equal(depositAmount);
       });
@@ -771,7 +771,7 @@ describe("Pool", function () {
         //approve whatever an address can be in _references[0].
         await factory.approveReference(poolTemplate.address, 0, ZERO_ADDRESS, true);
 
-        //but this PoolTemplate doesn't want address(0)
+        //but this MarketTemplate doesn't want address(0)
         await expect(
           factory.createMarket(
             poolTemplate.address,
@@ -786,7 +786,7 @@ describe("Pool", function () {
         //approve whatever an address can be in _references[1].
         await factory.approveReference(poolTemplate.address, 1, ZERO_ADDRESS, true);
 
-        //but this PoolTemplate doesn't want address(0)
+        //but this MarketTemplate doesn't want address(0)
         await expect(
           factory.createMarket(
             poolTemplate.address,
@@ -801,7 +801,7 @@ describe("Pool", function () {
         //approve whatever an address can be in _references[1].
         await factory.approveReference(poolTemplate.address, 2, ZERO_ADDRESS, true);
 
-        //but this PoolTemplate doesn't want address(0)
+        //but this MarketTemplate doesn't want address(0)
         await expect(
           factory.createMarket(
             poolTemplate.address,
@@ -816,7 +816,7 @@ describe("Pool", function () {
         //approve whatever an address can be in _references[1].
         await factory.approveReference(poolTemplate.address, 3, ZERO_ADDRESS, true);
 
-        //but this PoolTemplate doesn't want address(0)
+        //but this MarketTemplate doesn't want address(0)
         await expect(
           factory.createMarket(
             poolTemplate.address,
