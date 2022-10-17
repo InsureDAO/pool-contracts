@@ -4,7 +4,7 @@ const FactoryAddress = "0xb3eedd22b3B5973A33bc373458f561790CEaE9AB";
 const ParametersAddress = "0xB27C57278421E461830065E49F27aeC78eFb0FCA";
 const VaultAddress = "0xa502874cc59B9c44db1E9a063BF89e881bE93CD3";
 
-const PoolTemplateAddress = "0x88584690247969bb275eC9882a0c99728a16F6C6";
+const marketTemplateAddress = "0x88584690247969bb275eC9882a0c99728a16F6C6";
 const IndexTemplateAddress = "0x9700E2ed3d73f072F83b10CD69C4176C012d867F";
 // const CDSTemplateAddress = "";
 
@@ -21,7 +21,7 @@ Object.assign(exports, {
   FactoryAddress,
   ParametersAddress,
   VaultAddress,
-  PoolTemplateAddress,
+  marketTemplateAddress,
   IndexTemplateAddress,
   // CDSTemplateAddress,
   Pools,

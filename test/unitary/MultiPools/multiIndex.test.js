@@ -81,7 +81,7 @@ describe("multiIndex", function () {
     premium = await PremiumModel.deploy();
     vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
 
-    poolTemplate = await MarketTemplate.deploy();
+    marketTemplate = await MarketTemplate.deploy();
     cdsTemplate = await CDSTemplate.deploy();
     indexTemplate = await IndexTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
@@ -97,16 +97,16 @@ describe("multiIndex", function () {
 
     await registry.setFactory(factory.address);
 
-    await factory.approveTemplate(poolTemplate.address, true, true, true);
+    await factory.approveTemplate(marketTemplate.address, true, true, true);
     await factory.approveTemplate(indexTemplate.address, true, false, true);
     await factory.approveTemplate(cdsTemplate.address, true, false, true);
 
-    await factory.setCondition(poolTemplate.address, 0, INITIAL_DEPOSIT); //initial deposit
+    await factory.setCondition(marketTemplate.address, 0, INITIAL_DEPOSIT); //initial deposit
 
-    await factory.approveReference(poolTemplate.address, 0, usdc.address, true);
-    await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
-    await factory.approveReference(poolTemplate.address, 2, registry.address, true);
-    await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
+    await factory.approveReference(marketTemplate.address, 0, usdc.address, true);
+    await factory.approveReference(marketTemplate.address, 1, usdc.address, true);
+    await factory.approveReference(marketTemplate.address, 2, registry.address, true);
+    await factory.approveReference(marketTemplate.address, 3, parameters.address, true);
 
     await factory.approveReference(indexTemplate.address, 0, usdc.address, true);
     await factory.approveReference(indexTemplate.address, 1, registry.address, true);
@@ -134,7 +134,7 @@ describe("multiIndex", function () {
       let tx = await factory
         .connect(alice)
         .createMarket(
-          poolTemplate.address,
+          marketTemplate.address,
           "Here is metadata.",
           [0, INITIAL_DEPOSIT],
           [usdc.address, usdc.address, registry.address, parameters.address]
@@ -145,7 +145,7 @@ describe("multiIndex", function () {
       tx = await factory
         .connect(alice)
         .createMarket(
-          poolTemplate.address,
+          marketTemplate.address,
           "Here is metadata.",
           [0, INITIAL_DEPOSIT],
           [usdc.address, usdc.address, registry.address, parameters.address]
@@ -155,7 +155,7 @@ describe("multiIndex", function () {
       tx = await factory
         .connect(alice)
         .createMarket(
-          poolTemplate.address,
+          marketTemplate.address,
           "Here is metadata.",
           [0, INITIAL_DEPOSIT],
           [usdc.address, usdc.address, registry.address, parameters.address]
@@ -165,7 +165,7 @@ describe("multiIndex", function () {
       tx = await factory
         .connect(alice)
         .createMarket(
-          poolTemplate.address,
+          marketTemplate.address,
           "Here is metadata.",
           [0, INITIAL_DEPOSIT],
           [usdc.address, usdc.address, registry.address, parameters.address]
@@ -175,7 +175,7 @@ describe("multiIndex", function () {
       tx = await factory
         .connect(alice)
         .createMarket(
-          poolTemplate.address,
+          marketTemplate.address,
           "Here is metadata.",
           [0, INITIAL_DEPOSIT],
           [usdc.address, usdc.address, registry.address, parameters.address]

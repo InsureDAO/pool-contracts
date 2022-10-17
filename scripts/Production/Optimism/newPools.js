@@ -13,7 +13,7 @@ async function main() {
     FactoryAddress,
     ParametersV2Address,
     PremiumV2Address,
-    PoolTemplateAddress,
+    marketTemplateAddress,
     IndexTemplateAddress,
   } = require("./deployments");
 
@@ -112,7 +112,7 @@ async function main() {
   for (const addr of GOV_TOKENS) {
     console.log("creating pool for: ", addr);
     tx = await factory.connect(manager).createMarket(
-      PoolTemplateAddress,
+      marketTemplateAddress,
       "0x",
       [0, 0], //initial deposit 0
       [addr, USDC_ADDRESS, registry.address, parametersV2.address]

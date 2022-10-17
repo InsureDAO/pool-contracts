@@ -72,7 +72,7 @@ describe("CDS", function () {
     premium = await PremiumModel.deploy();
     vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
 
-    poolTemplate = await MarketTemplate.deploy();
+    marketTemplate = await MarketTemplate.deploy();
     cdsTemplate = await CDSTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
 
@@ -87,14 +87,14 @@ describe("CDS", function () {
 
     await registry.setFactory(factory.address);
 
-    await factory.approveTemplate(poolTemplate.address, true, false, true);
+    await factory.approveTemplate(marketTemplate.address, true, false, true);
     await factory.approveTemplate(cdsTemplate.address, true, false, true);
 
-    await factory.approveReference(poolTemplate.address, 0, usdc.address, true);
-    await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
-    await factory.approveReference(poolTemplate.address, 2, registry.address, true);
-    await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
-    await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true);
+    await factory.approveReference(marketTemplate.address, 0, usdc.address, true);
+    await factory.approveReference(marketTemplate.address, 1, usdc.address, true);
+    await factory.approveReference(marketTemplate.address, 2, registry.address, true);
+    await factory.approveReference(marketTemplate.address, 3, parameters.address, true);
+    await factory.approveReference(marketTemplate.address, 4, ZERO_ADDRESS, true);
 
     await factory.approveReference(cdsTemplate.address, 2, parameters.address, true);
     await factory.approveReference(cdsTemplate.address, 0, usdc.address, true);
@@ -118,7 +118,7 @@ describe("CDS", function () {
 
     //market1
     let tx = await factory.createMarket(
-      poolTemplate.address,
+      marketTemplate.address,
       "Here is metadata.",
       [0, 0],
       [usdc.address, usdc.address, registry.address, parameters.address]

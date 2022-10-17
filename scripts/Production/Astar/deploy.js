@@ -68,9 +68,9 @@ async function main() {
   console.log("vault deployed to:", vault.address);
 
   //Pools Template
-  const poolTemplate = await MarketTemplate.deploy();
-  await poolTemplate.deployed();
-  console.log("poolTemplate deployed to:", poolTemplate.address);
+  const marketTemplate = await MarketTemplate.deploy();
+  await marketTemplate.deployed();
+  console.log("marketTemplate deployed to:", marketTemplate.address);
 
   const indexTemplate = await IndexTemplate.deploy();
   await indexTemplate.deployed();
@@ -84,7 +84,7 @@ async function main() {
   let tx = await registry.setFactory(factory.address);
   await tx.wait();
 
-  tx = await factory.approveTemplate(poolTemplate.address, true, false, false); //creation not public
+  tx = await factory.approveTemplate(marketTemplate.address, true, false, false); //creation not public
   await tx.wait();
   tx = await factory.approveTemplate(indexTemplate.address, true, false, false); //creation not public
   await tx.wait();
@@ -92,13 +92,13 @@ async function main() {
   await tx.wait();
 
   //pool setup
-  tx = await factory.approveReference(poolTemplate.address, 0, ZERO_ADDRESS, true);
+  tx = await factory.approveReference(marketTemplate.address, 0, ZERO_ADDRESS, true);
   await tx.wait();
-  tx = await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
+  tx = await factory.approveReference(marketTemplate.address, 1, usdc.address, true);
   await tx.wait();
-  tx = await factory.approveReference(poolTemplate.address, 2, registry.address, true);
+  tx = await factory.approveReference(marketTemplate.address, 2, registry.address, true);
   await tx.wait();
-  tx = await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
+  tx = await factory.approveReference(marketTemplate.address, 3, parameters.address, true);
   await tx.wait();
 
   //index setup
@@ -146,7 +146,7 @@ async function main() {
   for (const addr of GOV_TOKENS) {
     console.log("creating pool for: ", addr);
     tx = await factory.createMarket(
-      poolTemplate.address,
+      marketTemplate.address,
       "0x",
       [0, 0], //initial deposit 0
       [addr, usdc.address, registry.address, parameters.address]

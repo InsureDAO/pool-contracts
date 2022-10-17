@@ -136,7 +136,7 @@ describe("Index", function () {
     premium = await PremiumModel.deploy();
     vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
 
-    poolTemplate = await MarketTemplate.deploy();
+    marketTemplate = await MarketTemplate.deploy();
     cdsTemplate = await CDSTemplate.deploy();
     indexTemplate = await IndexTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
@@ -152,17 +152,17 @@ describe("Index", function () {
 
     await registry.setFactory(factory.address);
 
-    await factory.approveTemplate(poolTemplate.address, true, false, true);
+    await factory.approveTemplate(marketTemplate.address, true, false, true);
     await factory.approveTemplate(indexTemplate.address, true, false, true);
     await factory.approveTemplate(cdsTemplate.address, true, false, true);
 
-    await factory.approveReference(poolTemplate.address, 0, usdc.address, true);
-    await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
-    await factory.approveReference(poolTemplate.address, 2, registry.address, true);
-    await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
+    await factory.approveReference(marketTemplate.address, 0, usdc.address, true);
+    await factory.approveReference(marketTemplate.address, 1, usdc.address, true);
+    await factory.approveReference(marketTemplate.address, 2, registry.address, true);
+    await factory.approveReference(marketTemplate.address, 3, parameters.address, true);
 
     //initial depositor
-    await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true);
+    await factory.approveReference(marketTemplate.address, 4, ZERO_ADDRESS, true);
 
     await factory.approveReference(indexTemplate.address, 0, usdc.address, true);
     await factory.approveReference(indexTemplate.address, 1, registry.address, true);
@@ -185,7 +185,7 @@ describe("Index", function () {
 
     //create Single Pools
     let tx = await factory.createMarket(
-      poolTemplate.address,
+      marketTemplate.address,
       "Here is metadata.",
       [0, 0],
       [usdc.address, usdc.address, registry.address, parameters.address]
@@ -193,7 +193,7 @@ describe("Index", function () {
     let receipt = await tx.wait();
     const marketAddress1 = receipt.events[2].args[0];
     tx = await factory.createMarket(
-      poolTemplate.address,
+      marketTemplate.address,
       "Here is metadata.",
       [0, 0],
       [usdc.address, usdc.address, registry.address, parameters.address]

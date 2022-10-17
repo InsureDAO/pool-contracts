@@ -133,7 +133,7 @@ describe("Pool", function () {
     factory = await Factory.deploy(registry.address, ownership.address);
     premium = await PremiumModel.deploy();
     vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
-    poolTemplate = await MarketTemplate.deploy();
+    marketTemplate = await MarketTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
 
     //set up
@@ -145,12 +145,12 @@ describe("Pool", function () {
 
     await registry.setFactory(factory.address);
 
-    await factory.approveTemplate(poolTemplate.address, true, false, true);
-    await factory.approveReference(poolTemplate.address, 0, ZERO_ADDRESS, true);
-    await factory.approveReference(poolTemplate.address, 1, usdc.address, true);
-    await factory.approveReference(poolTemplate.address, 2, registry.address, true);
-    await factory.approveReference(poolTemplate.address, 3, parameters.address, true);
-    await factory.approveReference(poolTemplate.address, 4, ZERO_ADDRESS, true); //everyone can be initialDepositor
+    await factory.approveTemplate(marketTemplate.address, true, false, true);
+    await factory.approveReference(marketTemplate.address, 0, ZERO_ADDRESS, true);
+    await factory.approveReference(marketTemplate.address, 1, usdc.address, true);
+    await factory.approveReference(marketTemplate.address, 2, registry.address, true);
+    await factory.approveReference(marketTemplate.address, 3, parameters.address, true);
+    await factory.approveReference(marketTemplate.address, 4, ZERO_ADDRESS, true); //everyone can be initialDepositor
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
@@ -164,7 +164,7 @@ describe("Pool", function () {
     await parameters.setMaxList(ZERO_ADDRESS, "10");
 
     let tx = await factory.createMarket(
-      poolTemplate.address,
+      marketTemplate.address,
       "Here is metadata.",
       [0, 0], //deposit 0 USDC
       [usdc.address, usdc.address, registry.address, parameters.address]
