@@ -201,9 +201,6 @@ contract Vault is IVault {
      */
     function borrowValue(uint256 _amount, address _to) external override onlyMarket {
         if (_amount != 0) {
-            debts[msg.sender] += _amount;
-            totalDebt += _amount;
-
             uint256 _available = available();
 
             if (_available < _amount) {
@@ -216,6 +213,9 @@ contract Vault is IVault {
 
                 require(available() >= _amount, "Withdraw amount > Available");
             }
+
+            debts[msg.sender] += _amount;
+            totalDebt += _amount;
 
             IERC20(token).safeTransfer(_to, _amount);
         }
