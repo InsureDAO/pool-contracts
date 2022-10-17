@@ -43,7 +43,7 @@ const DAY = 60; //TEST
 const GovFeeRatio = 100000; //10%
 const GracePeriod = DAY * 14;
 const LockUpPeriod = DAY * 14;
-const CDSLockUpPeriod = DAY * 21;
+const ReserveLockUpPeriod = DAY * 21;
 const MinDate = DAY * 7;
 const WithdrawablePeriod = DAY * 7;
 const MAX_LIST = 10;
@@ -60,7 +60,7 @@ Object.assign(exports, {
   GovFeeRatio,
   GracePeriod,
   LockUpPeriod,
-  CDSLockUpPeriod,
+  ReserveLockUpPeriod,
   WithdrawablePeriod,
   MinDate,
   MAX_LIST,

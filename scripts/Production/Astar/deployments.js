@@ -6,7 +6,7 @@ const VaultAddress = "0x190dA1B9fA124BD872e9166bA3c7Dd656A11E8F8";
 
 const marketTemplateAddress = "0x0074976043140a371aeaD31189C2BE459950c816";
 const IndexTemplateAddress = "0x734afd33dFB5100Ee91EFE690526DfFdEdBE0cF4";
-const CDSTemplateAddress = "0xf4dB9926aE02469D730A25AD7422764BBD45d36F";
+const ReserveTemplateAddress = "0xf4dB9926aE02469D730A25AD7422764BBD45d36F";
 
 const Pools = {
   starlay: {
@@ -62,7 +62,7 @@ const Indices = {
   highRisk: "0x9d5AD4016BB6b70fd2b2228471664a8cB5b97125",
 };
 
-const CDS = [];
+const Reserve = [];
 
 Object.assign(exports, {
   OwnershipAddress,
@@ -72,9 +72,9 @@ Object.assign(exports, {
   VaultAddress,
   marketTemplateAddress,
   IndexTemplateAddress,
-  CDSTemplateAddress,
+  ReserveTemplateAddress,
   Pools,
   Premiums,
   Indices,
-  CDS,
+  Reserve,
 });

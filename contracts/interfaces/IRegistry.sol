@@ -3,7 +3,7 @@ pragma solidity 0.8.12;
 interface IRegistry {
     function isListed(address _market) external view returns (bool);
 
-    function getCDS(address _address) external view returns (address);
+    function getReserve(address _address) external view returns (address);
 
     function confirmExistence(address _template, address _target) external view returns (bool);
 
@@ -14,5 +14,5 @@ interface IRegistry {
 
     function setExistence(address _template, address _target) external;
 
-    function setCDS(address _address, address _cds) external;
+    function setReserve(address _address, address _reserve) external;
 }

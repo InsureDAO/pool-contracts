@@ -188,25 +188,31 @@ const verifyIndexStatusOfPool = async ({ index, poolAddress, allocPoints }) => {
   expect(await index.allocPoints(poolAddress)).to.equal(allocPoints);
 };
 
-//======== CDS ========//
-const verifyCDSStatus = async ({ cds, surplusPool, crowdPool, totalSupply, totalLiquidity, rate }) => {
-  expect(await cds.surplusPool()).to.equal(surplusPool);
-  expect(await cds.crowdPool()).to.equal(crowdPool);
-  expect(await cds.totalSupply()).to.equal(totalSupply);
-  expect(await cds.totalLiquidity()).to.equal(totalLiquidity);
-  expect(await cds.rate()).to.equal(rate);
+//======== Reserve ========//
+const verifyReserveStatus = async ({ reserve, surplusPool, crowdPool, totalSupply, totalLiquidity, rate }) => {
+  expect(await reserve.surplusPool()).to.equal(surplusPool);
+  expect(await reserve.crowdPool()).to.equal(crowdPool);
+  expect(await reserve.totalSupply()).to.equal(totalSupply);
+  expect(await reserve.totalLiquidity()).to.equal(totalLiquidity);
+  expect(await reserve.rate()).to.equal(rate);
 };
 
-const verifyCDSStatusOf = async ({ cds, targetAddress, valueOfUnderlying, withdrawTimestamp, withdrawAmount }) => {
-  expect(await cds.valueOfUnderlying(targetAddress)).to.equal(valueOfUnderlying);
-  expect((await cds.withdrawalReq(targetAddress)).timestamp).to.equal(withdrawTimestamp);
-  expect((await cds.withdrawalReq(targetAddress)).amount).to.equal(withdrawAmount);
+const verifyReserveStatusOf = async ({
+  reserve,
+  targetAddress,
+  valueOfUnderlying,
+  withdrawTimestamp,
+  withdrawAmount,
+}) => {
+  expect(await reserve.valueOfUnderlying(targetAddress)).to.equal(valueOfUnderlying);
+  expect((await reserve.withdrawalReq(targetAddress)).timestamp).to.equal(withdrawTimestamp);
+  expect((await reserve.withdrawalReq(targetAddress)).amount).to.equal(withdrawAmount);
 };
 
-const verifyCDSStatus_legacy = async ({ cds, totalSupply, totalLiquidity, rate }) => {
-  expect(await cds.totalSupply()).to.equal(totalSupply);
-  expect(await cds.totalLiquidity()).to.equal(totalLiquidity);
-  expect(await cds.rate()).to.equal(rate);
+const verifyReserveStatus_legacy = async ({ reserve, totalSupply, totalLiquidity, rate }) => {
+  expect(await reserve.totalSupply()).to.equal(totalSupply);
+  expect(await reserve.totalLiquidity()).to.equal(totalLiquidity);
+  expect(await reserve.rate()).to.equal(rate);
 };
 
 //======== VAULT ========//
@@ -271,10 +277,10 @@ Object.assign(exports, {
   verifyIndexStatusOf,
   verifyIndexStatusOfPool,
 
-  //cds
-  verifyCDSStatus,
-  verifyCDSStatusOf,
-  verifyCDSStatus_legacy,
+  //reserve
+  verifyReserveStatus,
+  verifyReserveStatusOf,
+  verifyReserveStatus_legacy,
 
   //vault
   verifyDebtOf,

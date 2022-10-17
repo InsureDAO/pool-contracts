@@ -8,7 +8,7 @@ const VaultAddress = "0x661eA927Ba61d5AF601E9D24e7e2Be8d1ea4e4Ca";
 
 const marketTemplateAddress = "0x8B41d28EA2ef8aa4CbbA74a80AcfD0e358a7DA71";
 const IndexTemplateAddress = "0xB7690347A4F448A94fFEfc50D8217509df104F9d";
-const CDSTemplateAddress = "0x7d6984d68eBaE702Ea2ed080f42D4573f93C0dB3";
+const ReserveTemplateAddress = "0x7d6984d68eBaE702Ea2ed080f42D4573f93C0dB3";
 
 const Pools = [
   "0xD78752e7aFDC3De6D043Ca768DF2Fd985D11ec7f",
@@ -37,7 +37,7 @@ const Indicies = [
   "0xc332b88D83bE27bB870B5a628a58FeA634DA4143",
 ];
 
-const CDS = ["0x6Ffaba24b9335b5f5dcad0a8Dc6431c1597b6F25"];
+const Reserve = ["0x6Ffaba24b9335b5f5dcad0a8Dc6431c1597b6F25"];
 
 Object.assign(exports, {
   USDCAddress,
@@ -49,8 +49,8 @@ Object.assign(exports, {
   VaultAddress,
   marketTemplateAddress,
   IndexTemplateAddress,
-  CDSTemplateAddress,
+  ReserveTemplateAddress,
   Pools,
   Indicies,
-  CDS,
+  Reserve,
 });

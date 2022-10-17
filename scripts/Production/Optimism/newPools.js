@@ -144,7 +144,7 @@ async function main() {
   markets = await registry.getAllMarkets();
   let pools = [];
   let indicies = [];
-  let cds = [];
+  let reserve = [];
   for (let i = 0; i < markets.length; i++) {
     let addr = markets[i];
 
@@ -153,13 +153,13 @@ async function main() {
     } else if (i < INDEX_LIST.length + DEPLOYED_ADDRESS.length) {
       indicies.push(addr);
     } else {
-      cds.push(addr);
+      reserve.push(addr);
     }
   }
 
   console.log("pools:", pools);
   console.log("indicies:", indicies);
-  console.log("cds:", cds);
+  console.log("reserve:", reserve);
 
   for (let i = 0; i < INDEX_LIST.length; i++) {
     let index = await IndexTemplate.attach(indicies[i]);

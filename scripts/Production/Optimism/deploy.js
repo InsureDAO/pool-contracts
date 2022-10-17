@@ -3,7 +3,7 @@ const ethers = hre.ethers;
 const fs = require("fs");
 
 /**
- * two pools, no index/cds, FlatPremiumV2, ParameterV2, openDeposit=false
+ * two pools, no index/reserve, FlatPremiumV2, ParameterV2, openDeposit=false
  */
 
 async function main() {
@@ -32,7 +32,7 @@ async function main() {
   const Ownership = await ethers.getContractFactory("Ownership");
   const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
   const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
-  const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
+  const ReserveTemplate = await ethers.getContractFactory("ReserveTemplate");
   const Factory = await ethers.getContractFactory("Factory");
   const Vault = await ethers.getContractFactory("Vault");
   const Registry = await ethers.getContractFactory("Registry");
@@ -76,9 +76,9 @@ async function main() {
   await indexTemplate.deployed();
   console.log("indexTemplate deployed to:", indexTemplate.address);
 
-  const cdsTemplate = await CDSTemplate.deploy();
-  await cdsTemplate.deployed();
-  console.log("cdsTemplate deployed to:", cdsTemplate.address);
+  const reserveTemplate = await ReserveTemplate.deploy();
+  await reserveTemplate.deployed();
+  console.log("reserveTemplate deployed to:", reserveTemplate.address);
 
   //----- SETUP -----//
   let tx = await registry.setFactory(factory.address);
@@ -88,7 +88,7 @@ async function main() {
   await tx.wait();
   tx = await factory.approveTemplate(indexTemplate.address, true, false, false); //creation not public
   await tx.wait();
-  tx = await factory.approveTemplate(cdsTemplate.address, true, false, false); //creation not public
+  tx = await factory.approveTemplate(reserveTemplate.address, true, false, false); //creation not public
   await tx.wait();
 
   //pool setup
@@ -109,12 +109,12 @@ async function main() {
   tx = await factory.approveReference(indexTemplate.address, 2, parametersV2.address, true);
   await tx.wait();
 
-  //cds setup
-  tx = await factory.approveReference(cdsTemplate.address, 0, usdc.address, true);
+  //reserve setup
+  tx = await factory.approveReference(reserveTemplate.address, 0, usdc.address, true);
   await tx.wait();
-  tx = await factory.approveReference(cdsTemplate.address, 1, registry.address, true);
+  tx = await factory.approveReference(reserveTemplate.address, 1, registry.address, true);
   await tx.wait();
-  tx = await factory.approveReference(cdsTemplate.address, 2, parametersV2.address, true);
+  tx = await factory.approveReference(reserveTemplate.address, 2, parametersV2.address, true);
   await tx.wait();
 
   //set parametersV2

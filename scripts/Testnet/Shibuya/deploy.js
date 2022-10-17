@@ -34,7 +34,7 @@ async function main() {
   const Ownership = await ethers.getContractFactory("Ownership");
   const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
   const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
-  const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
+  const ReserveTemplate = await ethers.getContractFactory("ReserveTemplate");
   const Factory = await ethers.getContractFactory("Factory");
   const Vault = await ethers.getContractFactory("Vault");
   const Registry = await ethers.getContractFactory("Registry");
@@ -78,8 +78,8 @@ async function main() {
   const indexTemplate = await IndexTemplate.deploy();
   console.log("indexTemplate deployed to:", indexTemplate.address);
 
-  const cdsTemplate = await CDSTemplate.deploy();
-  console.log("cdsTemplate deployed to:", cdsTemplate.address);
+  const reserveTemplate = await ReserveTemplate.deploy();
+  console.log("reserveTemplate deployed to:", reserveTemplate.address);
 
   //----- SETUP -----//
   let tx = await registry.setFactory(factory.address);

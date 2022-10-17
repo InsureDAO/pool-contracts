@@ -13,7 +13,7 @@ import "../interfaces/IVault.sol";
 import "../interfaces/IRegistry.sol";
 import "../interfaces/IParameters.sol";
 import "../interfaces/IMarketTemplate.sol";
-import "../interfaces/ICDSTemplate.sol";
+import "../interfaces/IReserveTemplate.sol";
 import "hardhat/console.sol";
 
 /**
@@ -407,7 +407,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @param _amount amount of liquidity to compensate for the called pool
      * We compensate underlying pools by the following steps
      * 1) Compensate underlying pools from the liquidity of this pool
-     * 2) If this pool is unable to cover a compensation, can get compensated from the CDS pool
+     * 2) If this pool is unable to cover a compensation, can get compensated from the Reserve pool
      */
     function compensate(uint256 _amount) external override returns (uint256 _compensated) {
         require(allocPoints[msg.sender] != 0, "COMPENSATE_UNAUTHORIZED_CALLER");
@@ -418,7 +418,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         } else {
             //Withdraw credit to cashout the earnings
             unchecked {
-                ICDSTemplate(registry.getCDS(address(this))).compensate(_amount - _value);
+                IReserveTemplate(registry.getReserve(address(this))).compensate(_amount - _value);
             }
             _compensated = vault.underlyingValue(address(this));
         }

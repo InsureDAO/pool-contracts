@@ -472,9 +472,9 @@ describe("Vault", function () {
      * When resume(), The Pool tries to make his debt clean.
      *
      *  1. Pool lets Index pay for Pool's debt => offsetDebt()
-     *    1.2 If Index cannot afford, the Index let CDS help the Index => transferValue()
+     *    1.2 If Index cannot afford, the Index let Reserve help the Index => transferValue()
      *    1.3 Index pay for Pool's debt => offsetDebt()
-     *    1.4 When CDS couldn't afford, Index pays insufficient.
+     *    1.4 When Reserve couldn't afford, Index pays insufficient.
      *
      *  2. Pool, hisself, pay for his debt = offsetDebt()
      *

@@ -66,7 +66,7 @@ describe("multiIndex", function () {
     const USDC = await ethers.getContractFactory("TestERC20Mock");
     const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
     IndexTemplate = await ethers.getContractFactory("IndexTemplate");
-    const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
+    const ReserveTemplate = await ethers.getContractFactory("ReserveTemplate");
     const Factory = await ethers.getContractFactory("Factory");
     const Vault = await ethers.getContractFactory("Vault");
     const Registry = await ethers.getContractFactory("Registry");
@@ -82,7 +82,7 @@ describe("multiIndex", function () {
     vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
 
     marketTemplate = await MarketTemplate.deploy();
-    cdsTemplate = await CDSTemplate.deploy();
+    reserveTemplate = await ReserveTemplate.deploy();
     indexTemplate = await IndexTemplate.deploy();
     parameters = await Parameters.deploy(ownership.address);
 
@@ -99,7 +99,7 @@ describe("multiIndex", function () {
 
     await factory.approveTemplate(marketTemplate.address, true, true, true);
     await factory.approveTemplate(indexTemplate.address, true, false, true);
-    await factory.approveTemplate(cdsTemplate.address, true, false, true);
+    await factory.approveTemplate(reserveTemplate.address, true, false, true);
 
     await factory.setCondition(marketTemplate.address, 0, INITIAL_DEPOSIT); //initial deposit
 
@@ -112,9 +112,9 @@ describe("multiIndex", function () {
     await factory.approveReference(indexTemplate.address, 1, registry.address, true);
     await factory.approveReference(indexTemplate.address, 2, parameters.address, true);
 
-    await factory.approveReference(cdsTemplate.address, 0, usdc.address, true);
-    await factory.approveReference(cdsTemplate.address, 1, registry.address, true);
-    await factory.approveReference(cdsTemplate.address, 2, parameters.address, true);
+    await factory.approveReference(reserveTemplate.address, 0, usdc.address, true);
+    await factory.approveReference(reserveTemplate.address, 1, registry.address, true);
+    await factory.approveReference(reserveTemplate.address, 2, parameters.address, true);
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
@@ -182,9 +182,9 @@ describe("multiIndex", function () {
         );
       receipt = await tx.wait();
 
-      //create CDS
+      //create Reserve
       tx = await factory.createMarket(
-        cdsTemplate.address,
+        reserveTemplate.address,
         "Here is metadata.",
         [],
         [usdc.address, registry.address, parameters.address]
@@ -224,11 +224,11 @@ describe("multiIndex", function () {
     market3 = await MarketTemplate.attach(markets[2]);
     market4 = await MarketTemplate.attach(markets[3]);
     market5 = await MarketTemplate.attach(markets[4]);
-    cds = await CDSTemplate.attach(markets[5]);
+    reserve = await ReserveTemplate.attach(markets[5]);
     index1 = await IndexTemplate.attach(markets[6]);
     index2 = await IndexTemplate.attach(markets[7]);
     index3 = await IndexTemplate.attach(markets[8]);
-    await registry.setCDS(ZERO_ADDRESS, cds.address); //default CDS
+    await registry.setReserve(ZERO_ADDRESS, reserve.address); //default Reserve
 
     //index1 setup
     await index1.setLeverage(targetLeverage); //2x

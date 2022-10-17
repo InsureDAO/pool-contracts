@@ -3,7 +3,7 @@ const ethers = hre.ethers;
 const fs = require("fs");
 
 /**
- * two pools, no index/cds, FlatPremiumV2, ParameterV2, openDeposit=false
+ * two pools, no index/reserve, FlatPremiumV2, ParameterV2, openDeposit=false
  */
 
 async function main() {
@@ -41,7 +41,7 @@ async function main() {
   const Ownership = await ethers.getContractFactory("Ownership");
   const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
   const IndexTemplate = await ethers.getContractFactory("IndexTemplate");
-  const CDSTemplate = await ethers.getContractFactory("CDSTemplate");
+  const ReserveTemplate = await ethers.getContractFactory("ReserveTemplate");
   const Factory = await ethers.getContractFactory("Factory");
   const Vault = await ethers.getContractFactory("Vault");
   const Registry = await ethers.getContractFactory("Registry");
