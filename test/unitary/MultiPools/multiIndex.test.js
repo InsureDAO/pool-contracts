@@ -118,11 +118,11 @@ describe("multiIndex", function () {
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
-    await parameters.setGrace(ZERO_ADDRESS, WEEK.mul(2));
-    await parameters.setLockup(ZERO_ADDRESS, WEEK);
-    await parameters.setWithdrawable(ZERO_ADDRESS, WEEK.mul(2));
-    await parameters.setMaxDate(ZERO_ADDRESS, YEAR);
-    await parameters.setMinDate(ZERO_ADDRESS, WEEK);
+    await parameters.setUnlockGrace(ZERO_ADDRESS, WEEK.mul(2));
+    await parameters.setRequestDuration(ZERO_ADDRESS, WEEK);
+    await parameters.setWithdrawableTime(ZERO_ADDRESS, WEEK.mul(2));
+    await parameters.setMaxInsureSpan(ZERO_ADDRESS, YEAR);
+    await parameters.setMinInsureSpan(ZERO_ADDRESS, WEEK);
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
     await parameters.setVault(usdc.address, vault.address);
     await parameters.setMaxList(ZERO_ADDRESS, "10");

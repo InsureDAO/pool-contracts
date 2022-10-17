@@ -99,19 +99,19 @@ async function main() {
   tx = await parameters.setFeeRate(ZERO_ADDRESS, GovFeeRatio);
   await tx.wait();
 
-  tx = await parameters.setGrace(ZERO_ADDRESS, GracePeriod);
+  tx = await parameters.setUnlockGrace(ZERO_ADDRESS, GracePeriod);
   await tx.wait();
 
-  tx = await parameters.setLockup(ZERO_ADDRESS, LockUpPeriod);
+  tx = await parameters.setRequestDuration(ZERO_ADDRESS, LockUpPeriod);
   await tx.wait();
 
-  tx = await parameters.setMaxDate(ZERO_ADDRESS, MaxDate);
+  tx = await parameters.setMaxInsureSpan(ZERO_ADDRESS, MaxDate);
   await tx.wait();
 
-  tx = await parameters.setMinDate(ZERO_ADDRESS, MinDate);
+  tx = await parameters.setMinInsureSpan(ZERO_ADDRESS, MinDate);
   await tx.wait();
 
-  tx = await parameters.setWithdrawable(ZERO_ADDRESS, WithdrawablePeriod);
+  tx = await parameters.setWithdrawableTime(ZERO_ADDRESS, WithdrawablePeriod);
   await tx.wait();
 
   tx = await parameters.setVault(usdc.address, vault.address);

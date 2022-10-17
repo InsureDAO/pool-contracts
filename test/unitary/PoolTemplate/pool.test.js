@@ -639,12 +639,12 @@ describe("Pool", function () {
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
-    await parameters.setGrace(ZERO_ADDRESS, "259200");
-    await parameters.setLockup(ZERO_ADDRESS, "604800");
-    await parameters.setMaxDate(ZERO_ADDRESS, YEAR);
-    await parameters.setMinDate(ZERO_ADDRESS, "604800");
+    await parameters.setUnlockGrace(ZERO_ADDRESS, "259200");
+    await parameters.setRequestDuration(ZERO_ADDRESS, "604800");
+    await parameters.setMaxInsureSpan(ZERO_ADDRESS, YEAR);
+    await parameters.setMinInsureSpan(ZERO_ADDRESS, "604800");
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
-    await parameters.setWithdrawable(ZERO_ADDRESS, "2592000");
+    await parameters.setWithdrawableTime(ZERO_ADDRESS, "2592000");
     await parameters.setVault(usdc.address, vault.address);
 
     let tx = await factory.createMarket(

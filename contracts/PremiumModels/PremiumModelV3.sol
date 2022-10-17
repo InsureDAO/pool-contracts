@@ -9,7 +9,6 @@ pragma solidity 0.8.12;
 
 import "../interfaces/IPremiumModelV3.sol";
 import "../interfaces/IOwnership.sol";
-import "hardhat/console.sol";
 
 contract PremiumModelV3 is IPremiumModelV3 {
     IOwnership public immutable ownership;

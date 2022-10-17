@@ -33,10 +33,10 @@ async function main() {
     for (let id = 0; id < count; id++) {
       //check if unlockable
       let policy = await market.insurances(id);
-      let gracePeriod = new BigNumber.from(await parameters.getGrace(market.address));
+      let gracePeriod = new BigNumber.from(await parameters.getUnlockGrace(market.address));
       let endtime = new BigNumber.from(policy.endTime);
 
-      //insurances[_id].status && insurances[_id].endTime + parameters.getGrace(address(this)) < block.timestamp,
+      //insurances[_id].status && insurances[_id].endTime + parameters.getUnlockGrace(address(this)) < block.timestamp,
       if (policy.status == true && endtime.add(gracePeriod).lt(now)) {
         console.log("id", id, "is unlockable");
         markets[i].ids.push(id);

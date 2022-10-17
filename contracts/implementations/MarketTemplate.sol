@@ -2,7 +2,7 @@ pragma solidity 0.8.12;
 
 /**
  * @author InsureDAO
- * @title InsureDAO pool template contract
+ * @title Market Template Contract
  * SPDX-License-Identifier: GPL-3.0
  */
 
@@ -14,12 +14,8 @@ import "../interfaces/IParameters.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IRegistry.sol";
 import "../interfaces/IIndexTemplate.sol";
-import "hardhat/console.sol";
 
 contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
-    /**
-     * EVENTS
-     */
     event Deposit(address indexed depositor, uint256 amount, uint256 mint);
     event WithdrawRequested(address indexed withdrawer, uint256 amount, uint256 unlockTime);
     event Withdraw(address indexed withdrawer, uint256 amount, uint256 retVal);
@@ -53,10 +49,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
     event SetOpenDeposit(bool openDeposit);
     event MetadataChanged(string metadata);
 
-    /**
-     * Storage
-     */
-    /// @notice Market setting
+    /// @notice Pool setting
     bool public initialized;
     bool public override paused;
     bool public openDeposit;
@@ -68,9 +61,9 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
     IVault public vault;
 
     /// @notice Market variables
-    uint256 public attributionDebt; //pool's attribution for indices
-    uint256 public override lockedAmount; //Liquidity locked when utilized
-    uint256 public override totalCredit; //Liquidity from index
+    uint256 public attributionDebt; //market's attribution for indices
+    uint256 public override lockedAmount;
+    uint256 public override totalCredit;
     uint256 public rewardPerCredit; //Times MAGIC_SCALE_1E6. To avoid reward decimal truncation *See explanation below.
     uint256 public pendingEnd; //pending time when paying out
 
@@ -83,21 +76,6 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
 
     mapping(address => IndexInfo) public indices;
     address[] public indexList;
-
-    //
-    // * We do some fancy math for premium calculation of indices.
-    // Basically, any point in time, the amount of premium entitled to an index but is pending to be distributed is:
-    //
-    //   pending reward = (index.credit * rewardPerCredit) - index.rewardDebt
-    //
-    // When the pool receives premium, it updates rewardPerCredit
-    //
-    // Whenever an index deposits, withdraws credit to a pool, Here's what happens:
-    //   1. The index receives the pending reward sent to the index vault.
-    //   2. The index's rewardDebt get updated.
-    //
-    // This mechanism is widely used (e.g. SushiSwap: MasterChef.sol)
-    //
 
     ///@notice Market status transition management
     MarketStatus public marketStatus;
@@ -209,16 +187,12 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
     }
 
     /**
-     * Pool interactions
-     */
-
-    /**
-     * @notice A liquidity provider supplies tokens to the pool and receives iTokens
+     * @notice A liquidity provider supplies tokens to the market and receives iTokens
      * @param _amount amount of tokens to deposit
-     * @return _mintAmount the amount of iTokens minted from the transaction
+     * @return _mintAmount the amount of iTokens minted
      */
     function deposit(uint256 _amount) external returns (uint256 _mintAmount) {
-        require(openDeposit == true || msg.sender == parameters.getOwner(), "deposit prohibit");
+        require(openDeposit == true || msg.sender == parameters.getOwner(), "Deposit Prohibit");
         _mintAmount = _depositFrom(_amount, msg.sender);
     }
 
@@ -251,7 +225,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
         require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
 
-        uint256 _unlocksAt = block.timestamp + parameters.getLockup(address(this));
+        uint256 _unlocksAt = block.timestamp + parameters.getRequestDuration(address(this));
 
         withdrawalReq[msg.sender].timestamp = _unlocksAt;
         withdrawalReq[msg.sender].amount = _amount;
@@ -259,7 +233,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
     }
 
     /**
-     * @notice A liquidity provider burns iTokens and receives collateral from the pool
+     * @notice A liquidity provider burns iTokens and receives collateral from the Market
      * @param _amount amount of iTokens to burn
      * @return _retVal the amount underlying tokens returned
      */
@@ -270,7 +244,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
 
         require(request.timestamp < block.timestamp, "ERROR: WITHDRAWAL_QUEUE");
         require(
-            request.timestamp + parameters.getWithdrawable(address(this)) > block.timestamp,
+            request.timestamp + parameters.getWithdrawableTime(address(this)) > block.timestamp,
             "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(request.amount >= _amount, "WITHDRAWAL_EXCEEDED_REQUEST");
@@ -327,7 +301,8 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
      */
     function _unlock(uint256 _id) internal {
         require(
-            insurances[_id].status && insurances[_id].endTime + parameters.getGrace(address(this)) < block.timestamp,
+            insurances[_id].status &&
+                insurances[_id].endTime + parameters.getUnlockGrace(address(this)) < block.timestamp,
             "ERROR: UNLOCK_BAD_COINDITIONS"
         );
         insurances[_id].status = false;
@@ -390,7 +365,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
 
     /**
      * @notice Allocate credit from an index. Allocated credits are deemed as equivalent liquidity as real token deposits.
-     * @param _credit credit (liquidity amount) to be added to this pool
+     * @param _credit credit (liquidity amount) to be added to this market
      * @return _pending pending preium for the caller index
      */
 
@@ -417,12 +392,12 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
 
     /**
      * @notice An index withdraw credit and earn accrued premium
-     * @param _credit credit (liquidity amount) to be withdrawn from this pool
+     * @param _credit credit (liquidity amount) to be withdrawn from this market
      * @return _pending pending preium for the caller index
      * @dev called from index pool
      */
     function withdrawCredit(uint256 _credit) external override returns (uint256) {
-        require(marketStatus == MarketStatus.Trading, "POOL_IS_NOT_IN_TRADING_STATUS");
+        require(marketStatus == MarketStatus.Trading, "MARKET_IS_NOT_IN_TRADING_STATUS");
 
         return _withdrawCredit(_credit, msg.sender);
     }
@@ -485,8 +460,8 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
         require(marketStatus == MarketStatus.Trading, "ERROR: INSURE_MARKET_PENDING");
         require(_amount <= _availableBalance(), "INSURE_EXCEEDED_AVAIL_BALANCE");
 
-        require(_span <= parameters.getMaxDate(address(this)), "ERROR: INSURE_EXCEEDED_MAX_SPAN");
-        require(parameters.getMinDate(address(this)) <= _span, "ERROR: INSURE_SPAN_BELOW_MIN");
+        require(_span <= parameters.getMaxInsureSpan(address(this)), "ERROR: INSURE_EXCEEDED_MAX_SPAN");
+        require(parameters.getMinInsureSpan(address(this)) <= _span, "ERROR: INSURE_SPAN_BELOW_MIN");
 
         //Distribute premium and fee
         uint256 _premium = getPremium(_amount, _span);
@@ -680,7 +655,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
      * @notice Anyone can resume the market after a pending period ends
      */
     function resume() external {
-        require(marketStatus == MarketStatus.Payingout && pendingEnd < block.timestamp, "ERROR: UNABLE_TO_RESUME");
+        require(marketStatus == MarketStatus.Payingout && block.timestamp > pendingEnd, "ERROR: UNABLE_TO_RESUME");
 
         _liquidation();
 
@@ -723,11 +698,11 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
             }
         }
 
-        uint256 _deductionFromPool = _debt - _deductionFromIndex;
+        uint256 _deductionFromMarket = _debt - _deductionFromIndex;
         uint256 _shortage = _deductionFromIndex - _actualDeduction;
 
-        if (_deductionFromPool != 0) {
-            vault.offsetDebt(_deductionFromPool, address(this));
+        if (_deductionFromMarket != 0) {
+            vault.offsetDebt(_deductionFromMarket, address(this));
         }
 
         vault.transferDebt(_shortage);
@@ -806,7 +781,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
 
     /**
      * @notice Returns the amount of underlying tokens available for withdrawals
-     * @return available liquidity of this pool
+     * @return available liquidity of this market
      */
     function availableBalance() external view override returns (uint256) {
         return _availableBalance();
@@ -820,7 +795,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
     }
 
     /**
-     * @notice Returns the utilization rate for this pool. Scaled by 1e6 (100% = 1e6)
+     * @notice Returns the utilization rate for this market. Scaled by 1e6 (100% = 1e6)
      * @return utilization rate
      */
     function utilizationRate() external view override returns (uint256) {
@@ -833,16 +808,16 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
     }
 
     /**
-     * @notice Pool's Liquidity + Liquidity from Index (how much can the pool sell cover)
-     * @return total liquidity of this pool
+     * @notice Market's Total Liquidity (total insurable amount)
+     * @return total liquidity of this market
      */
     function totalLiquidity() public view override returns (uint256) {
         return originalLiquidity() + totalCredit;
     }
 
     /**
-     * @notice Pool's Liquidity
-     * @return total liquidity of this pool
+     * @notice Market's Pure Liquidity
+     * @return total liquidity of this market
      */
     function originalLiquidity() public view returns (uint256) {
         return vault.underlyingValue(address(this)) - vault.attributionValue(attributionDebt);

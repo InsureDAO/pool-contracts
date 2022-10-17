@@ -2,7 +2,7 @@ pragma solidity 0.8.12;
 
 /**
  * @author InsureDAO
- * @title InsureDAO CDS template contract
+ * @title Reserve Template Contract
  * SPDX-License-Identifier: GPL-3.0
  */
 
@@ -14,23 +14,16 @@ import "../interfaces/IParameters.sol";
 import "../interfaces/IReserveTemplate.sol";
 
 contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalMarket {
-    /**
-     * EVENTS
-     */
     event Deposit(address indexed depositor, uint256 amount, uint256 mint);
     event Fund(address indexed depositor, uint256 amount, uint256 attribution);
     event Defund(address indexed depositor, uint256 amount, uint256 attribution);
-
     event WithdrawRequested(address indexed withdrawer, uint256 amount, uint256 unlockTime);
     event Withdraw(address indexed withdrawer, uint256 amount, uint256 retVal);
     event Compensated(address indexed index, uint256 amount);
     event Paused(bool paused);
     event MetadataChanged(string metadata);
 
-    /**
-     * Storage
-     */
-    /// @notice Market setting
+    /// @notice Pool setting
     bool public initialized;
     bool public paused;
     string public metadata;
@@ -39,6 +32,7 @@ contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalMarket {
     IParameters public parameters;
     IRegistry public registry;
     IVault public vault;
+
     uint256 public surplusPool;
     uint256 public crowdPool;
     uint256 private constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
@@ -50,9 +44,6 @@ contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalMarket {
     }
     mapping(address => Withdrawal) public withdrawalReq;
 
-    /**
-     * @notice Throws if called by any account other than the owner.
-     */
     modifier onlyOwner() {
         require(msg.sender == parameters.getOwner(), "ERROR: ONLY_OWNER");
         _;
@@ -61,10 +52,6 @@ contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalMarket {
     constructor() {
         initialized = true;
     }
-
-    /**
-     * Initialize interaction
-     */
 
     /**
      * @notice Initialize market
@@ -164,7 +151,7 @@ contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalMarket {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
         require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
 
-        uint256 _unlocksAt = block.timestamp + parameters.getLockup(address(this));
+        uint256 _unlocksAt = block.timestamp + parameters.getRequestDuration(address(this));
 
         withdrawalReq[msg.sender].timestamp = _unlocksAt;
         withdrawalReq[msg.sender].amount = _amount;
@@ -185,7 +172,7 @@ contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalMarket {
 
         require(request.timestamp < block.timestamp, "ERROR: WITHDRAWAL_QUEUE");
         require(
-            request.timestamp + parameters.getWithdrawable(address(this)) > block.timestamp,
+            request.timestamp + parameters.getWithdrawableTime(address(this)) > block.timestamp,
             "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(request.amount >= _amount, "WITHDRAWAL_EXCEEDED_REQUEST");
@@ -222,7 +209,7 @@ contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalMarket {
         uint256 _crowdAttribution = crowdPool;
         uint256 _attributionLoss;
 
-        //when CDS cannot afford, pay as much as possible
+        //when Reserve Pool cannot afford, pay as much as possible
         _compensated = _available >= _amount ? _amount : _available;
         _attributionLoss = vault.transferValue(_compensated, msg.sender);
         emit Compensated(msg.sender, _compensated);

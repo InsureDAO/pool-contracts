@@ -70,7 +70,7 @@ contract Parameters is IParameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setLockup(address _address, uint256 _target) external override onlyOwner {
+    function setRequestDuration(address _address, uint256 _target) external override onlyOwner {
         _lockup[_address] = _target;
         emit LockupSet(_address, _target);
     }
@@ -80,7 +80,7 @@ contract Parameters is IParameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setGrace(address _address, uint256 _target) external override onlyOwner {
+    function setUnlockGrace(address _address, uint256 _target) external override onlyOwner {
         _grace[_address] = _target;
         emit GraceSet(_address, _target);
     }
@@ -90,7 +90,7 @@ contract Parameters is IParameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setMaxDate(address _address, uint256 _target) external override onlyOwner {
+    function setMaxInsureSpan(address _address, uint256 _target) external override onlyOwner {
         require(_min[_address] <= _target, "smaller than MinDate");
         _max[_address] = _target;
         emit MaxDateSet(_address, _target);
@@ -101,7 +101,7 @@ contract Parameters is IParameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setMinDate(address _address, uint256 _target) external override onlyOwner {
+    function setMinInsureSpan(address _address, uint256 _target) external override onlyOwner {
         require(_target <= _max[_address], "greater than MaxDate");
         _min[_address] = _target;
         emit MinDateSet(_address, _target);
@@ -132,7 +132,7 @@ contract Parameters is IParameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setWithdrawable(address _address, uint256 _target) external override onlyOwner {
+    function setWithdrawableTime(address _address, uint256 _target) external override onlyOwner {
         _withdrawable[_address] = _target;
         emit WithdrawableSet(_address, _target);
     }
@@ -268,7 +268,7 @@ contract Parameters is IParameters {
      * @param _target target contract's address
      * @return lock up period
      */
-    function getLockup(address _target) external view override returns (uint256) {
+    function getRequestDuration(address _target) external view override returns (uint256) {
         uint256 _targetLockup = _lockup[_target];
         if (_targetLockup == 0) {
             return _lockup[address(0)];
@@ -282,7 +282,7 @@ contract Parameters is IParameters {
      * @param _target target contract's address
      * @return withdrawable period
      */
-    function getWithdrawable(address _target) external view override returns (uint256) {
+    function getWithdrawableTime(address _target) external view override returns (uint256) {
         uint256 _targetWithdrawable = _withdrawable[_target];
         if (_targetWithdrawable == 0) {
             return _withdrawable[address(0)];
@@ -296,7 +296,7 @@ contract Parameters is IParameters {
      * @param _target target contract's address
      * @return grace period
      */
-    function getGrace(address _target) external view override returns (uint256) {
+    function getUnlockGrace(address _target) external view override returns (uint256) {
         uint256 _targetGrace = _grace[_target];
         if (_targetGrace == 0) {
             return _grace[address(0)];
@@ -310,7 +310,7 @@ contract Parameters is IParameters {
      * @param _target target contract's address
      * @return minimum lenght of policy
      */
-    function getMaxDate(address _target) external view override returns (uint256) {
+    function getMaxInsureSpan(address _target) external view override returns (uint256) {
         uint256 _maxDate = _max[_target];
         if (_maxDate == 0) {
             return _max[address(0)];
@@ -324,7 +324,7 @@ contract Parameters is IParameters {
      * @param _target target contract's address
      * @return minimum lenght of policy
      */
-    function getMinDate(address _target) external view override returns (uint256) {
+    function getMinInsureSpan(address _target) external view override returns (uint256) {
         uint256 _minDate = _min[_target];
         if (_minDate == 0) {
             return _min[address(0)];

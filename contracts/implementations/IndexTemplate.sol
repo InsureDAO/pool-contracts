@@ -38,7 +38,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
     event LeverageSet(uint256 target);
     event newAllocation(address market, uint256 allocPoints);
 
-    /// @notice Market setting
+    /// @notice Pool setting
     bool public initialized;
     bool public paused;
     bool public locked;
@@ -171,7 +171,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
         require(_amount != 0, "ERROR: REQUEST_ZERO");
         require(balanceOf(msg.sender) >= _amount, "ERROR: REQUEST_EXCEED_BALANCE");
 
-        uint64 _unlocksAt = (uint64)(block.timestamp + parameters.getLockup(address(this)));
+        uint64 _unlocksAt = (uint64)(block.timestamp + parameters.getRequestDuration(address(this)));
 
         withdrawalReq[msg.sender].timestamp = _unlocksAt;
         withdrawalReq[msg.sender].amount = (uint192)(_amount);
@@ -192,7 +192,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         require(request.timestamp < block.timestamp, "ERROR: WITHDRAWAL_QUEUE");
         require(
-            request.timestamp + parameters.getWithdrawable(address(this)) > block.timestamp,
+            request.timestamp + parameters.getWithdrawableTime(address(this)) > block.timestamp,
             "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(request.amount >= _amount, "WITHDRAWAL_EXCEEDED_REQUEST");
