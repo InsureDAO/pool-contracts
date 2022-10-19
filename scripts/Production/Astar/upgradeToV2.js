@@ -2,10 +2,6 @@ const hre = require("hardhat");
 const ethers = hre.ethers;
 const fs = require("fs");
 
-/**
- * two pools, no index/reserve, FlatPremiumV2, ParameterV2, openDeposit=false
- */
-
 async function main() {
   //----- IMPORT -----//
   [creator] = await ethers.getSigners();
@@ -45,8 +41,8 @@ async function main() {
   const Factory = await ethers.getContractFactory("Factory");
   const Vault = await ethers.getContractFactory("Vault");
   const Registry = await ethers.getContractFactory("Registry");
-  const FlatPremiumV2 = await ethers.getContractFactory("FlatPremiumV2"); //V2
-  const ParametersV2 = await ethers.getContractFactory("ParametersV2"); //V2
+  const FlatPremium = await ethers.getContractFactory("FlatPremium");
+  const Parameters = await ethers.getContractFactory("Parameters");
 
   //----- DEPLOY -----//
   const ownership = await Ownership.attach(OwnershipAddress);
@@ -64,11 +60,11 @@ async function main() {
   const marketTemplate = await MarketTemplate.attach(marketTemplateAddress);
   console.log("marketTemplate attached to:", marketTemplateAddress);
 
-  const premiumV2 = await FlatPremiumV2.deploy(ownership.address, defaultRate);
+  const premiumV2 = await FlatPremium.deploy(ownership.address, defaultRate);
   await premiumV2.deployed();
   console.log("premiumV2 deployed to:", premiumV2.address);
 
-  const parametersV2 = await ParametersV2.deploy(ownership.address);
+  const parametersV2 = await Parameters.deploy(ownership.address);
   await parametersV2.deployed();
   console.log("parametersV2 deployed to:", parametersV2.address);
 

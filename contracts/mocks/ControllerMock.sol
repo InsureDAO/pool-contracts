@@ -42,14 +42,6 @@ contract ControllerMock is IController {
         vault = IVault(_address);
     }
 
-    /**
-    function yield() external onlyOwner {
-        uint256 _num = vault.utilize();
-        uint256 _mint = (_num * 5) / 10;
-        token.mint(address(this), _mint);
-    }
-    */
-
     function pullFund(uint256 _amount) external {
         //do something for yield here in real contracts
         token.mint(address(this), _amount);

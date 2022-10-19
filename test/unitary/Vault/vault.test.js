@@ -90,35 +90,6 @@ describe("Vault", function () {
       await dai.connect(alice).approve(vault.address, 10000);
     });
 
-    it.skip("allows add and withdraw value", async () => {
-      await vault.connect(alice).addValue(10000, alice.address, alice.address);
-      await controller.yield();
-
-      expect(await vault["underlyingValue(address)"](alice.address)).to.equal(17500);
-      expect(await vault.getPricePerFullShare()).to.equal("1750000");
-
-      await vault.connect(alice).withdrawAllAttribution(alice.address);
-
-      expect(await dai.balanceOf(alice.address)).to.equal(107500);
-    });
-
-    it.skip("allows transfer value", async () => {
-      await vault.connect(alice).addValue(10000, alice.address, alice.address);
-      await controller.yield();
-
-      expect(await vault["underlyingValue(address)"](alice.address)).to.equal(17500);
-
-      await vault.connect(alice).transferValue(17500, bob.address);
-
-      expect(await vault["underlyingValue(address)"](bob.address)).to.equal(17500);
-      expect(await vault.attributionOf(bob.address)).to.equal(10000);
-
-      await vault.connect(bob).transferAttribution(10000, chad.address);
-      await vault.connect(chad).withdrawAllAttribution(chad.address);
-
-      expect(await dai.balanceOf(chad.address)).to.equal(17500);
-    });
-
     it("doesn't count direct transfer", async () => {
       await dai.connect(alice).transfer(vault.address, 10000);
 

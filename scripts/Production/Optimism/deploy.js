@@ -3,7 +3,7 @@ const ethers = hre.ethers;
 const fs = require("fs");
 
 /**
- * two pools, no index/reserve, FlatPremiumV2, ParameterV2, openDeposit=false
+ * two pools, no index/reserve, FlatPremium, ParameterV2, openDeposit=false
  */
 
 async function main() {
@@ -36,8 +36,8 @@ async function main() {
   const Factory = await ethers.getContractFactory("Factory");
   const Vault = await ethers.getContractFactory("Vault");
   const Registry = await ethers.getContractFactory("Registry");
-  const FlatPremiumV2 = await ethers.getContractFactory("FlatPremiumV2"); //V2
-  const ParametersV2 = await ethers.getContractFactory("ParametersV2"); //V2
+  const FlatPremium = await ethers.getContractFactory("FlatPremium"); //V2
+  const Parameters = await ethers.getContractFactory("Parameters"); //V2
 
   const usdc = await USDC.attach(USDC_ADDRESS);
   console.log("usdc attached to:", usdc.address);
@@ -55,11 +55,11 @@ async function main() {
   await factory.deployed();
   console.log("factory deployed to:", factory.address);
 
-  const premiumV2 = await FlatPremiumV2.deploy(ownership.address, defaultRate);
+  const premiumV2 = await FlatPremium.deploy(ownership.address, defaultRate);
   await premiumV2.deployed();
   console.log("premiumV2 deployed to:", premiumV2.address);
 
-  const parametersV2 = await ParametersV2.deploy(ownership.address);
+  const parametersV2 = await Parameters.deploy(ownership.address);
   await parametersV2.deployed();
   console.log("parametersV2 deployed to:", parametersV2.address);
 

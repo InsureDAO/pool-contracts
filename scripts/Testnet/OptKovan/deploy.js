@@ -3,7 +3,7 @@ const ethers = hre.ethers;
 const fs = require("fs");
 
 /**
- * two pools, no index/reserve, FlatPremiumV2, ParameterV2, openDeposit=false
+ * two pools, no index/reserve, FlatPremium, ParameterV2, openDeposit=false
  */
 
 async function main() {
@@ -36,8 +36,8 @@ async function main() {
   const Factory = await ethers.getContractFactory("Factory");
   const Vault = await ethers.getContractFactory("Vault");
   const Registry = await ethers.getContractFactory("Registry");
-  const PremiumModel = await ethers.getContractFactory("FlatPremiumV2"); //V2
-  const Parameters = await ethers.getContractFactory("ParametersV2"); //V2
+  const PremiumModel = await ethers.getContractFactory("FlatPremium"); //V2
+  const Parameters = await ethers.getContractFactory("Parameters"); //V2
 
   const usdc = await USDC.deploy(creator.address);
   console.log("usdc deployed to:", usdc.address);

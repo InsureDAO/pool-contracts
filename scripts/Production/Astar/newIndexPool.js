@@ -10,7 +10,7 @@ async function main() {
 
   const Registry = await ethers.getContractFactory("Registry");
   const Factory = await ethers.getContractFactory("Factory");
-  const Parameters = await ethers.getContractFactory("ParametersV2");
+  const Parameters = await ethers.getContractFactory("Parameters");
 
   const registry = Registry.attach(RegistryAddress);
   const factory = Factory.attach(FactoryAddress);

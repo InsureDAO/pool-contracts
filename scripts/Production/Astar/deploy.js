@@ -2,10 +2,6 @@ const hre = require("hardhat");
 const ethers = hre.ethers;
 const fs = require("fs");
 
-/**
- * two pools, no index/reserve, FlatPremiumV2, ParameterV2, openDeposit=false
- */
-
 async function main() {
   //----- IMPORT -----//
   [creator] = await ethers.getSigners();
@@ -36,8 +32,8 @@ async function main() {
   const Factory = await ethers.getContractFactory("Factory");
   const Vault = await ethers.getContractFactory("Vault");
   const Registry = await ethers.getContractFactory("Registry");
-  const PremiumModel = await ethers.getContractFactory("FlatPremiumV2"); //V2
-  const Parameters = await ethers.getContractFactory("ParametersV2"); //V2
+  const PremiumModel = await ethers.getContractFactory("FlatPremium");
+  const Parameters = await ethers.getContractFactory("Parameters");
 
   const usdc = await USDC.attach(USDC_ADDRESS);
   console.log("usdc attached to:", usdc.address);

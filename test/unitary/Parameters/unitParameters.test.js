@@ -73,6 +73,8 @@ describe("Parameters", function () {
       //detailed tests for the premium model, please see ../PremiumModels
       it("should allow setting by the admin address", async () => {
         await parameters.setPremiumModel(TEST_ADDRESS, premiumModel.address);
+
+        expect(await parameters.getPremiumModel(TEST_ADDRESS)).to.equal(premiumModel.address);
       });
 
       it("should only allow setting attempt by the admin", async () => {
@@ -82,6 +84,8 @@ describe("Parameters", function () {
       });
       it("should return the dafault value if the address not registered", async () => {
         await parameters.setPremiumModel(ZERO_ADDRESS, premiumModel.address);
+
+        expect(await parameters.getPremiumModel(TEST_ADDRESS)).to.equal(premiumModel.address);
         expect(await parameters.getPremium(10000, 100, 100, 100, TEST_ADDRESS)).to.equal(1000);
       });
 
@@ -91,7 +95,7 @@ describe("Parameters", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setPremiumModel(TEST_ADDRESS, TEST_ADDRESS)).to.emit(parameters, "PremiumSet");
+        await expect(parameters.setPremiumModel(TEST_ADDRESS, TEST_ADDRESS)).to.emit(parameters, "PremiumModelSet");
       });
     });
 
@@ -118,7 +122,7 @@ describe("Parameters", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setRequestDuration(TEST_ADDRESS, 86400)).to.emit(parameters, "LockupSet");
+        await expect(parameters.setRequestDuration(TEST_ADDRESS, 86400)).to.emit(parameters, "RequestDurationSet");
       });
     });
 
@@ -145,7 +149,7 @@ describe("Parameters", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setUnlockGracePeriod(TEST_ADDRESS, 86400)).to.emit(parameters, "GraceSet");
+        await expect(parameters.setUnlockGracePeriod(TEST_ADDRESS, 86400)).to.emit(parameters, "UnlockGracePeriodSet");
       });
     });
 
@@ -172,7 +176,7 @@ describe("Parameters", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setMaxInsureSpan(TEST_ADDRESS, 604800)).to.emit(parameters, "MaxDateSet");
+        await expect(parameters.setMaxInsureSpan(TEST_ADDRESS, 604800)).to.emit(parameters, "MaxInsureSpanSet");
       });
     });
     describe("setMinInsureSpan", function () {
@@ -203,7 +207,7 @@ describe("Parameters", function () {
 
       it("should emit the event", async () => {
         await parameters.setMaxInsureSpan(TEST_ADDRESS, 604801);
-        await expect(parameters.setMinInsureSpan(TEST_ADDRESS, 604800)).to.emit(parameters, "MinDateSet");
+        await expect(parameters.setMinInsureSpan(TEST_ADDRESS, 604800)).to.emit(parameters, "MinInsureSpanSet");
       });
     });
 
@@ -230,7 +234,7 @@ describe("Parameters", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setUpperSlack(TEST_ADDRESS, 5000)).to.emit(parameters, "UpperSlack");
+        await expect(parameters.setUpperSlack(TEST_ADDRESS, 5000)).to.emit(parameters, "UpperSlackSet");
       });
     });
 
@@ -262,7 +266,7 @@ describe("Parameters", function () {
 
       it("should emit the event", async () => {
         await parameters.setUpperSlack(TEST_ADDRESS, 6000);
-        await expect(parameters.setLowerSlack(TEST_ADDRESS, 5000)).to.emit(parameters, "LowerSlack");
+        await expect(parameters.setLowerSlack(TEST_ADDRESS, 5000)).to.emit(parameters, "LowerSlackSet");
       });
     });
     describe("setWithdrawableDuration", function () {
@@ -288,7 +292,10 @@ describe("Parameters", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setWithdrawableDuration(TEST_ADDRESS, 604800)).to.emit(parameters, "WithdrawableSet");
+        await expect(parameters.setWithdrawableDuration(TEST_ADDRESS, 604800)).to.emit(
+          parameters,
+          "WithdrawableDurationSet"
+        );
       });
     });
 

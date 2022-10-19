@@ -8,6 +8,7 @@ contract TestPremiumModel {
     constructor() {}
 
     function getPremium(
+        address _market,
         uint256 _amount,
         uint256 _term,
         uint256 _totalLiquidity,

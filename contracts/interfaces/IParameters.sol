@@ -56,4 +56,6 @@ interface IParameters {
     function getMaxList(address _target) external view returns (uint256);
 
     function getCondition(bytes32 _reference) external view returns (bytes32);
+
+    function getPremiumModel(address _market) external view returns (address);
 }

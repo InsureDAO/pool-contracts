@@ -38,8 +38,8 @@ async function main() {
   const Factory = await ethers.getContractFactory("Factory");
   const Vault = await ethers.getContractFactory("Vault");
   const Registry = await ethers.getContractFactory("Registry");
-  const PremiumModel = await ethers.getContractFactory("FlatPremiumV2");
-  const Parameters = await ethers.getContractFactory("ParametersV2");
+  const PremiumModel = await ethers.getContractFactory("FlatPremium");
+  const Parameters = await ethers.getContractFactory("Parameters");
 
   const usdc = await USDC.deploy(creator.address);
   console.log("usdc deployed to:", usdc.address);
