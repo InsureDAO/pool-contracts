@@ -97,7 +97,7 @@ async function main() {
   tx = await parametersV2.setMinInsureSpan(ZERO_ADDRESS, MinDate);
   await tx.wait();
 
-  tx = await parametersV2.setWithdrawableTime(ZERO_ADDRESS, WithdrawablePeriod);
+  tx = await parametersV2.setWithdrawableDuration(ZERO_ADDRESS, WithdrawablePeriod);
   await tx.wait();
 
   tx = await parametersV2.setVault(USDC_ADDRESS, vault.address);
@@ -116,10 +116,10 @@ async function main() {
     );
     await tx.wait();
   }
-  let markets = await registry.getAllMarkets();
+  let pools = await registry.getAllPools();
 
-  let market1 = await MarketTemplate.attach(markets[2]);
-  let market2 = await MarketTemplate.attach(markets[3]);
+  let market1 = await MarketTemplate.attach(pools[2]);
+  let market2 = await MarketTemplate.attach(pools[3]);
   console.log("market1 deployed to: ", market1.address);
   console.log("market2 deployed to: ", market2.address);
 

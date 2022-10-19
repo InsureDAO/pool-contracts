@@ -192,7 +192,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
 
         require(request.timestamp < block.timestamp, "ERROR: WITHDRAWAL_QUEUE");
         require(
-            request.timestamp + parameters.getWithdrawableTime(address(this)) > block.timestamp,
+            request.timestamp + parameters.getWithdrawableDuration(address(this)) > block.timestamp,
             "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(request.amount >= _amount, "WITHDRAWAL_EXCEEDED_REQUEST");
@@ -515,7 +515,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @notice Get all indexed markets
      * @return market array
      */
-    function getAllMarkets() external view returns (address[] memory) {
+    function getAllPools() external view returns (address[] memory) {
         return marketList;
     }
 

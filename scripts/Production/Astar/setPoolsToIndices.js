@@ -101,7 +101,7 @@ async function main() {
         continue;
       }
 
-      const pools = await index.getAllMarkets();
+      const pools = await index.getAllPools();
       const newPoolPositionForIndex = pools.length;
 
       console.log("index position", newPoolPositionForIndex);

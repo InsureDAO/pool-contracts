@@ -122,7 +122,7 @@ contract Factory is IFactory {
     }
 
     /**
-     * @notice A function to create markets.
+     * @notice A function to create pools.
      * This function is market model agnostic.
      * @param _template template address, which must be registered
      * @param _metaData arbitrary string to store market information
@@ -173,7 +173,7 @@ contract Factory is IFactory {
         //create market
         IUniversalMarket market = IUniversalMarket(_createClone(address(_template)));
 
-        IRegistry(_registry).supportMarket(address(market));
+        IRegistry(_registry).addPool(address(market));
 
         //initialize
         market.initialize(msg.sender, _metaData, _conditions, _references);

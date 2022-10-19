@@ -95,7 +95,7 @@ describe("ParametersV2", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setPremiumModel(TEST_ADDRESS, TEST_ADDRESS)).to.emit(parameters, "PremiumSet");
+        await expect(parameters.setPremiumModel(TEST_ADDRESS, TEST_ADDRESS)).to.emit(parameters, "PremiumModelSet");
       });
     });
 
@@ -122,7 +122,7 @@ describe("ParametersV2", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setRequestDuration(TEST_ADDRESS, 86400)).to.emit(parameters, "LockupSet");
+        await expect(parameters.setRequestDuration(TEST_ADDRESS, 86400)).to.emit(parameters, "RequestDurationSet");
       });
     });
 
@@ -149,7 +149,7 @@ describe("ParametersV2", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setUnlockGracePeriod(TEST_ADDRESS, 86400)).to.emit(parameters, "GraceSet");
+        await expect(parameters.setUnlockGracePeriod(TEST_ADDRESS, 86400)).to.emit(parameters, "UnlockGracePeriodSet");
       });
     });
 
@@ -176,7 +176,7 @@ describe("ParametersV2", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setMaxInsureSpan(TEST_ADDRESS, 604800)).to.emit(parameters, "MaxDateSet");
+        await expect(parameters.setMaxInsureSpan(TEST_ADDRESS, 604800)).to.emit(parameters, "MaxInsureSpanSet");
       });
     });
     describe("setMinInsureSpan", function () {
@@ -207,7 +207,7 @@ describe("ParametersV2", function () {
 
       it("should emit the event", async () => {
         await parameters.setMaxInsureSpan(TEST_ADDRESS, 604801);
-        await expect(parameters.setMinInsureSpan(TEST_ADDRESS, 604800)).to.emit(parameters, "MinDateSet");
+        await expect(parameters.setMinInsureSpan(TEST_ADDRESS, 604800)).to.emit(parameters, "MinInsureSpanSet");
       });
     });
 
@@ -234,7 +234,7 @@ describe("ParametersV2", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setUpperSlack(TEST_ADDRESS, 5000)).to.emit(parameters, "UpperSlack");
+        await expect(parameters.setUpperSlack(TEST_ADDRESS, 5000)).to.emit(parameters, "UpperSlackSet");
       });
     });
 
@@ -266,33 +266,36 @@ describe("ParametersV2", function () {
 
       it("should emit the event", async () => {
         await parameters.setUpperSlack(TEST_ADDRESS, 6000);
-        await expect(parameters.setLowerSlack(TEST_ADDRESS, 5000)).to.emit(parameters, "LowerSlack");
+        await expect(parameters.setLowerSlack(TEST_ADDRESS, 5000)).to.emit(parameters, "LowerSlackSet");
       });
     });
-    describe("setWithdrawableTime", function () {
+    describe("setWithdrawableDuration", function () {
       it("should allow setting by the admin address", async () => {
-        await parameters.setWithdrawableTime(TEST_ADDRESS, 604800);
-        expect(await parameters.getWithdrawableTime(TEST_ADDRESS)).to.equal(604800);
+        await parameters.setWithdrawableDuration(TEST_ADDRESS, 604800);
+        expect(await parameters.getWithdrawableDuration(TEST_ADDRESS)).to.equal(604800);
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await expect(parameters.connect(alice).setWithdrawableTime(TEST_ADDRESS, 604800)).to.revertedWith(
+        await expect(parameters.connect(alice).setWithdrawableDuration(TEST_ADDRESS, 604800)).to.revertedWith(
           "Caller is not allowed to operate"
         );
       });
 
       it("should return the dafault value if the address not registered", async () => {
-        await parameters.setWithdrawableTime(ZERO_ADDRESS, 604800);
-        expect(await parameters.getWithdrawableTime(TEST_ADDRESS)).to.equal(604800);
+        await parameters.setWithdrawableDuration(ZERO_ADDRESS, 604800);
+        expect(await parameters.getWithdrawableDuration(TEST_ADDRESS)).to.equal(604800);
       });
 
       it("should return the value if registered", async () => {
-        await parameters.setWithdrawableTime(TEST_ADDRESS, 1000);
-        expect(await parameters.getWithdrawableTime(TEST_ADDRESS)).to.equal(1000);
+        await parameters.setWithdrawableDuration(TEST_ADDRESS, 1000);
+        expect(await parameters.getWithdrawableDuration(TEST_ADDRESS)).to.equal(1000);
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setWithdrawableTime(TEST_ADDRESS, 604800)).to.emit(parameters, "WithdrawableSet");
+        await expect(parameters.setWithdrawableDuration(TEST_ADDRESS, 604800)).to.emit(
+          parameters,
+          "WithdrawableDurationSet"
+        );
       });
     });
 

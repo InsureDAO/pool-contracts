@@ -66,7 +66,7 @@ describe("Vault", function () {
     await tokenA.mint(alice.address, (100000).toString());
     await controller.setVault(vault.address);
 
-    await registry.supportMarket(alice.address);
+    await registry.addPool(alice.address);
   });
 
   beforeEach(async () => {

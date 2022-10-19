@@ -10,7 +10,7 @@ interface IRegistry {
     //onlyOwner
     function setFactory(address _factory) external;
 
-    function supportMarket(address _market) external;
+    function addPool(address _market) external;
 
     function setExistence(address _template, address _target) external;
 

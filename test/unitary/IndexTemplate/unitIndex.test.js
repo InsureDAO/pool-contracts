@@ -176,7 +176,7 @@ describe("Index", function () {
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
     await parameters.setUnlockGracePeriod(ZERO_ADDRESS, DAY.mul("3"));
     await parameters.setRequestDuration(ZERO_ADDRESS, WEEK);
-    await parameters.setWithdrawableTime(ZERO_ADDRESS, WEEK.mul(2));
+    await parameters.setWithdrawableDuration(ZERO_ADDRESS, WEEK.mul(2));
     await parameters.setMaxInsureSpan(ZERO_ADDRESS, YEAR);
     await parameters.setMinInsureSpan(ZERO_ADDRESS, WEEK);
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);

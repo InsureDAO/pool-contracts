@@ -265,30 +265,30 @@ describe("Parameters", function () {
         await expect(parameters.setLowerSlack(TEST_ADDRESS, 5000)).to.emit(parameters, "LowerSlack");
       });
     });
-    describe("setWithdrawableTime", function () {
+    describe("setWithdrawableDuration", function () {
       it("should allow setting by the admin address", async () => {
-        await parameters.setWithdrawableTime(TEST_ADDRESS, 604800);
-        expect(await parameters.getWithdrawableTime(TEST_ADDRESS)).to.equal(604800);
+        await parameters.setWithdrawableDuration(TEST_ADDRESS, 604800);
+        expect(await parameters.getWithdrawableDuration(TEST_ADDRESS)).to.equal(604800);
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await expect(parameters.connect(alice).setWithdrawableTime(TEST_ADDRESS, 604800)).to.revertedWith(
+        await expect(parameters.connect(alice).setWithdrawableDuration(TEST_ADDRESS, 604800)).to.revertedWith(
           "Caller is not allowed to operate"
         );
       });
 
       it("should return the dafault value if the address not registered", async () => {
-        await parameters.setWithdrawableTime(ZERO_ADDRESS, 604800);
-        expect(await parameters.getWithdrawableTime(TEST_ADDRESS)).to.equal(604800);
+        await parameters.setWithdrawableDuration(ZERO_ADDRESS, 604800);
+        expect(await parameters.getWithdrawableDuration(TEST_ADDRESS)).to.equal(604800);
       });
 
       it("should return the value if registered", async () => {
-        await parameters.setWithdrawableTime(TEST_ADDRESS, 1000);
-        expect(await parameters.getWithdrawableTime(TEST_ADDRESS)).to.equal(1000);
+        await parameters.setWithdrawableDuration(TEST_ADDRESS, 1000);
+        expect(await parameters.getWithdrawableDuration(TEST_ADDRESS)).to.equal(1000);
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setWithdrawableTime(TEST_ADDRESS, 604800)).to.emit(parameters, "WithdrawableSet");
+        await expect(parameters.setWithdrawableDuration(TEST_ADDRESS, 604800)).to.emit(parameters, "WithdrawableSet");
       });
     });
 

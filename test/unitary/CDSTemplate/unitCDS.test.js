@@ -106,7 +106,7 @@ describe("Reserve", function () {
     await parameters.setUnlockGracePeriod(ZERO_ADDRESS, DAY.mul("3"));
 
     await parameters.setRequestDuration(ZERO_ADDRESS, WEEK);
-    await parameters.setWithdrawableTime(ZERO_ADDRESS, WEEK.mul(2));
+    await parameters.setWithdrawableDuration(ZERO_ADDRESS, WEEK.mul(2));
 
     await parameters.setMaxInsureSpan(ZERO_ADDRESS, YEAR);
     await parameters.setMinInsureSpan(ZERO_ADDRESS, WEEK);
@@ -345,7 +345,7 @@ describe("Reserve", function () {
         //setup
         await reserve.connect(bob).deposit(depositAmount); //LP:USDC = 1:1
 
-        await registry.supportMarket(chad.address); //now bob can act like a market
+        await registry.addPool(chad.address); //now bob can act like a market
 
         let compensate = depositAmount.div(2);
         await reserve.connect(chad).compensate(compensate); //LP:USDC = 1:0.5
@@ -439,7 +439,7 @@ describe("Reserve", function () {
       it("dilute LP value when Reserve system is failed", async () => {
         await reserve.connect(alice).deposit(depositAmount);
 
-        await registry.supportMarket(chad.address); //now chad can act like a market
+        await registry.addPool(chad.address); //now chad can act like a market
 
         let compensate = depositAmount.add(1); //more than deposited
         await reserve.connect(chad).compensate(compensate);
@@ -1195,7 +1195,7 @@ describe("Reserve", function () {
       });
 
       it("should decrease the surplus pool and crowd pool", async () => {
-        await registry.supportMarket(chad.address); //now bob can act like a market
+        await registry.addPool(chad.address); //now bob can act like a market
 
         await reserve.connect(bob).fund(depositAmount);
 
@@ -1270,7 +1270,7 @@ describe("Reserve", function () {
       });
 
       it("should decrease as much as deposited when Reserve has insufficient amount", async () => {
-        await registry.supportMarket(chad.address); //now chad can act like a market
+        await registry.addPool(chad.address); //now chad can act like a market
 
         let compensate = depositAmount.add(1); //more than deposited
         let tx = await reserve.connect(chad).compensate(compensate);

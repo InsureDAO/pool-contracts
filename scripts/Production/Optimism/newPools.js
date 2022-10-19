@@ -120,9 +120,9 @@ async function main() {
     await tx.wait();
   }
 
-  let markets = await registry.getAllMarkets();
-  for (let i = 0; i < markets.length; i++) {
-    let market = await MarketTemplate.attach(markets[i]);
+  let pools = await registry.getAllPools();
+  for (let i = 0; i < pools.length; i++) {
+    let market = await MarketTemplate.attach(pools[i]);
 
     await premiumV2.connect(manager).setRate(market.address, RATES[i]);
     console.log("market", i, "deployed to:", market.address);
@@ -141,12 +141,12 @@ async function main() {
   }
 
   //set Index
-  markets = await registry.getAllMarkets();
+  pools = await registry.getAllPools();
   let pools = [];
   let indicies = [];
   let reserve = [];
-  for (let i = 0; i < markets.length; i++) {
-    let addr = markets[i];
+  for (let i = 0; i < pools.length; i++) {
+    let addr = pools[i];
 
     if (i < DEPLOYED_ADDRESS.length) {
       pools.push(addr);

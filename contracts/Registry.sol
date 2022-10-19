@@ -19,9 +19,9 @@ contract Registry is IRegistry {
     address public factory;
 
     mapping(address => address) reserve; //index => reserve
-    mapping(address => bool) markets; //true if the market is registered
+    mapping(address => bool) pools; //true if the pool is registered
     mapping(address => mapping(address => bool)) existence; //true if the certain id is already registered in market
-    address[] allMarkets;
+    address[] poolList;
 
     IOwnership public immutable ownership;
 
@@ -48,16 +48,16 @@ contract Registry is IRegistry {
 
     /**
      * @notice Register a new market.
-     * @param _market market address to register
+     * @param _pool pool address to register
      */
-    function supportMarket(address _market) external override {
-        require(!markets[_market], "ERROR: ALREADY_REGISTERED");
+    function addPool(address _pool) external override {
+        require(!pools[_pool], "ERROR: ALREADY_REGISTERED");
         require(msg.sender == factory || msg.sender == ownership.owner(), "ERROR: UNAUTHORIZED_CALLER");
-        require(_market != address(0), "ERROR: ZERO_ADDRESS");
+        require(_pool != address(0), "ERROR: ZERO_ADDRESS");
 
-        allMarkets.push(_market);
-        markets[_market] = true;
-        emit NewMarketRegistered(_market);
+        poolList.push(_pool);
+        pools[_pool] = true;
+        emit NewMarketRegistered(_pool);
     }
 
     /**
@@ -114,14 +114,14 @@ contract Registry is IRegistry {
      * @return true if listed
      */
     function isListed(address _market) external view override returns (bool) {
-        return markets[_market];
+        return pools[_market];
     }
 
     /**
      * @notice Get all market
-     * @return all markets
+     * @return all pools
      */
-    function getAllMarkets() external view returns (address[] memory) {
-        return allMarkets;
+    function getAllPools() external view returns (address[] memory) {
+        return poolList;
     }
 }

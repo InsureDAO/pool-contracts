@@ -120,7 +120,7 @@ describe("multiIndex", function () {
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
     await parameters.setUnlockGracePeriod(ZERO_ADDRESS, WEEK.mul(2));
     await parameters.setRequestDuration(ZERO_ADDRESS, WEEK);
-    await parameters.setWithdrawableTime(ZERO_ADDRESS, WEEK.mul(2));
+    await parameters.setWithdrawableDuration(ZERO_ADDRESS, WEEK.mul(2));
     await parameters.setMaxInsureSpan(ZERO_ADDRESS, YEAR);
     await parameters.setMinInsureSpan(ZERO_ADDRESS, WEEK);
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
@@ -217,17 +217,17 @@ describe("multiIndex", function () {
       receipt = await tx.wait();
     }
 
-    //attach markets
-    let markets = await registry.getAllMarkets();
-    market1 = await MarketTemplate.attach(markets[0]);
-    market2 = await MarketTemplate.attach(markets[1]);
-    market3 = await MarketTemplate.attach(markets[2]);
-    market4 = await MarketTemplate.attach(markets[3]);
-    market5 = await MarketTemplate.attach(markets[4]);
-    reserve = await ReserveTemplate.attach(markets[5]);
-    index1 = await IndexTemplate.attach(markets[6]);
-    index2 = await IndexTemplate.attach(markets[7]);
-    index3 = await IndexTemplate.attach(markets[8]);
+    //attach pools
+    let pools = await registry.getAllPools();
+    market1 = await MarketTemplate.attach(pools[0]);
+    market2 = await MarketTemplate.attach(pools[1]);
+    market3 = await MarketTemplate.attach(pools[2]);
+    market4 = await MarketTemplate.attach(pools[3]);
+    market5 = await MarketTemplate.attach(pools[4]);
+    reserve = await ReserveTemplate.attach(pools[5]);
+    index1 = await IndexTemplate.attach(pools[6]);
+    index2 = await IndexTemplate.attach(pools[7]);
+    index3 = await IndexTemplate.attach(pools[8]);
     await registry.setReserve(ZERO_ADDRESS, reserve.address); //default Reserve
 
     //index1 setup
@@ -262,7 +262,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("0", market1.address, ten_to_the_18);
 
       //check
-      expect((await index1.getAllMarkets()).length).equal(1);
+      expect((await index1.getAllPools()).length).equal(1);
       expect(await index1.marketList(0)).equal(market1.address);
       await verifyIndexInfo({
         pool: market1,
@@ -278,7 +278,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("1", market2.address, ten_to_the_18);
 
       //check
-      expect((await index1.getAllMarkets()).length).equal(2);
+      expect((await index1.getAllPools()).length).equal(2);
 
       expect(await index1.marketList(0)).equal(market1.address);
       await verifyIndexInfo({
@@ -305,7 +305,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("2", market3.address, ten_to_the_18);
 
       //check
-      expect((await index1.getAllMarkets()).length).equal(3);
+      expect((await index1.getAllPools()).length).equal(3);
 
       expect(await index1.marketList(0)).equal(market1.address);
       expect(await index1.marketList(1)).equal(market2.address);
@@ -325,7 +325,7 @@ describe("multiIndex", function () {
       await index2["set(uint256,address,uint256)"]("0", market1.address, ten_to_the_18);
 
       //check
-      expect((await index1.getAllMarkets()).length).equal(1);
+      expect((await index1.getAllPools()).length).equal(1);
       expect(await index1.marketList(0)).equal(market1.address);
       await verifyIndexInfo({
         pool: market1,
@@ -335,7 +335,7 @@ describe("multiIndex", function () {
         slot: 1,
       });
 
-      expect((await index2.getAllMarkets()).length).equal(1);
+      expect((await index2.getAllPools()).length).equal(1);
       expect(await index2.marketList(0)).equal(market1.address);
       await verifyIndexInfo({
         pool: market1,
@@ -352,7 +352,7 @@ describe("multiIndex", function () {
       await index3["set(uint256,address,uint256)"]("0", market1.address, ten_to_the_18);
 
       //check
-      expect((await index1.getAllMarkets()).length).equal(1);
+      expect((await index1.getAllPools()).length).equal(1);
       expect(await index1.marketList(0)).equal(market1.address);
       expect((await market1.getIndicies()).length).equal(3);
 
@@ -387,7 +387,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("0", market1.address, ten_to_the_18);
 
       //check index
-      expect((await index1.getAllMarkets()).length).equal(1);
+      expect((await index1.getAllPools()).length).equal(1);
       expect(await index1.marketList(0)).equal(market1.address);
       expect(await index1.totalAllocPoint()).equal(ten_to_the_18);
 
@@ -406,7 +406,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("0", market1.address, ZERO);
 
       //check index
-      expect((await index1.getAllMarkets()).length).equal(1);
+      expect((await index1.getAllPools()).length).equal(1);
       expect(await index1.marketList(0)).equal(market1.address);
       expect(await index1.allocPoints(market1.address)).equal(ZERO);
 
@@ -424,7 +424,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("0", ZERO_ADDRESS, ZERO);
 
       //check
-      expect((await index1.getAllMarkets()).length).equal(0);
+      expect((await index1.getAllPools()).length).equal(0);
       await verifyIndexInfo({
         pool: market1,
         index: index1.address,
@@ -438,7 +438,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("0", market2.address, ten_to_the_18);
 
       //check index
-      expect((await index1.getAllMarkets()).length).equal(1);
+      expect((await index1.getAllPools()).length).equal(1);
       expect(await index1.marketList(0)).equal(market2.address);
       expect(await index1.totalAllocPoint()).equal(ten_to_the_18);
 
@@ -471,7 +471,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("0", market1.address, ten_to_the_18);
 
       //check index
-      expect((await index1.getAllMarkets()).length).equal(1);
+      expect((await index1.getAllPools()).length).equal(1);
       expect(await index1.marketList(0)).equal(market1.address);
       expect(await index1.totalAllocPoint()).equal(ten_to_the_18);
 
@@ -502,7 +502,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("0", market1.address, ZERO); //[market1: 0]
 
       //check index
-      expect((await index1.getAllMarkets()).length).equal(1);
+      expect((await index1.getAllPools()).length).equal(1);
       expect(await index1.marketList(0)).equal(market1.address);
       expect(await index1.allocPoints(market1.address)).equal(ZERO);
 
@@ -532,7 +532,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("0", ZERO_ADDRESS, ZERO); //[address(0): ]
 
       //check
-      expect((await index1.getAllMarkets()).length).equal(0);
+      expect((await index1.getAllPools()).length).equal(0);
       await verifyIndexInfo({
         pool: market1,
         index: index1.address,
@@ -550,7 +550,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("1", market2.address, ten_to_the_18);
 
       //check index
-      expect((await index1.getAllMarkets()).length).equal(2);
+      expect((await index1.getAllPools()).length).equal(2);
       expect(await index1.marketList(0)).equal(market1.address);
       expect(await index1.marketList(1)).equal(market2.address);
       expect(await index1.totalAllocPoint()).equal(ten_to_the_18.mul(2));
@@ -571,7 +571,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("0", market1.address, ZERO);
 
       //check index
-      expect((await index1.getAllMarkets()).length).equal(2);
+      expect((await index1.getAllPools()).length).equal(2);
       expect(await index1.marketList(0)).equal(market1.address);
       expect(await index1.totalAllocPoint()).equal(ten_to_the_18);
       expect(await index1.allocPoints(market1.address)).equal(ZERO);
@@ -589,7 +589,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("1", market2.address, ZERO);
 
       //check index
-      expect((await index1.getAllMarkets()).length).equal(2);
+      expect((await index1.getAllPools()).length).equal(2);
       expect(await index1.marketList(1)).equal(market2.address);
       expect(await index1.totalAllocPoint()).equal(ZERO);
       expect(await index1.allocPoints(market2.address)).equal(ZERO);
@@ -609,7 +609,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("0", ZERO_ADDRESS, ZERO);
 
       //check
-      expect((await index1.getAllMarkets()).length).equal(1);
+      expect((await index1.getAllPools()).length).equal(1);
       expect(await index1.marketList(0)).equal(market2.address);
 
       await verifyIndexInfo({
@@ -632,7 +632,7 @@ describe("multiIndex", function () {
     it("D", async function () {
       await index1["set(uint256,address,uint256)"]("0", market3.address, ONE);
       //check index
-      expect((await index1.getAllMarkets()).length).equal(2);
+      expect((await index1.getAllPools()).length).equal(2);
       expect(await index1.marketList(0)).equal(market2.address);
       expect(await index1.marketList(1)).equal(market3.address);
       expect(await index1.totalAllocPoint()).equal(ten_to_the_18.add(ONE));
@@ -671,7 +671,7 @@ describe("multiIndex", function () {
     it("D2", async function () {
       await index1["set(uint256,address,uint256)"]("1", market3.address, ONE);
       //check index
-      expect((await index1.getAllMarkets()).length).equal(2);
+      expect((await index1.getAllPools()).length).equal(2);
       expect(await index1.marketList(0)).equal(market1.address);
       expect(await index1.marketList(1)).equal(market3.address);
       expect(await index1.totalAllocPoint()).equal(ten_to_the_18.add(ONE));
@@ -733,7 +733,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("0", market1.address, ZERO);
 
       //check index
-      expect((await index1.getAllMarkets()).length).equal(3);
+      expect((await index1.getAllPools()).length).equal(3);
       expect(await index1.marketList(0)).equal(market1.address);
       expect(await index1.totalAllocPoint()).equal(ten_to_the_18.mul(2));
       expect(await index1.allocPoints(market1.address)).equal(ZERO);
@@ -751,7 +751,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,uint256)"]("1", ZERO);
 
       //check index
-      expect((await index1.getAllMarkets()).length).equal(3);
+      expect((await index1.getAllPools()).length).equal(3);
       expect(await index1.marketList(1)).equal(market2.address);
       expect(await index1.totalAllocPoint()).equal(ten_to_the_18);
       expect(await index1.allocPoints(market2.address)).equal(ZERO);
@@ -771,7 +771,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,uint256)"]("1", ZERO);
 
       //check index
-      expect((await index1.getAllMarkets()).length).equal(3);
+      expect((await index1.getAllPools()).length).equal(3);
       expect(await index1.marketList(1)).equal(market2.address);
       expect(await index1.totalAllocPoint()).equal(ten_to_the_18.mul(2));
       expect(await index1.allocPoints(market2.address)).equal(ZERO);
@@ -805,7 +805,7 @@ describe("multiIndex", function () {
        */
 
       //check
-      expect((await index1.getAllMarkets()).length).equal(2);
+      expect((await index1.getAllPools()).length).equal(2);
       expect(await index1.marketList(0)).equal(market3.address);
       expect(await index1.marketList(1)).equal(market2.address);
 
@@ -856,7 +856,7 @@ describe("multiIndex", function () {
        */
 
       //check
-      expect((await index1.getAllMarkets()).length).equal(2);
+      expect((await index1.getAllPools()).length).equal(2);
       expect(await index1.marketList(0)).equal(market1.address);
       expect(await index1.marketList(1)).equal(market3.address);
 
@@ -907,7 +907,7 @@ describe("multiIndex", function () {
        */
 
       //check
-      expect((await index1.getAllMarkets()).length).equal(2);
+      expect((await index1.getAllPools()).length).equal(2);
       expect(await index1.marketList(0)).equal(market1.address);
       expect(await index1.marketList(1)).equal(market2.address);
 
@@ -949,7 +949,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("1", market5.address, ten_to_the_18); //[1,4,5]
       await index1["set(uint256,address,uint256)"]("1", ZERO_ADDRESS, ten_to_the_18); //[1,5]
 
-      expect((await index1.getAllMarkets()).length).equal(2);
+      expect((await index1.getAllPools()).length).equal(2);
       expect(await index1.marketList(0)).equal(market1.address);
       expect(await index1.marketList(1)).equal(market5.address);
       expect(await index1.totalAllocPoint()).equal(ten_to_the_18.mul(2));
@@ -958,7 +958,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,address,uint256)"]("3", market4.address, ten_to_the_18); //[1,5,3,4]
       await index1["set(uint256,address,uint256)"]("0", market2.address, ten_to_the_18); //[4,5,3,2]
 
-      expect((await index1.getAllMarkets()).length).equal(4);
+      expect((await index1.getAllPools()).length).equal(4);
       expect(await index1.marketList(0)).equal(market4.address);
       expect(await index1.marketList(1)).equal(market5.address);
       expect(await index1.marketList(2)).equal(market3.address);
@@ -1128,7 +1128,7 @@ describe("multiIndex", function () {
       await index1["set(uint256,uint256)"]("1", ten_to_the_18); //[4,5,3]
 
       {
-        expect((await index1.getAllMarkets()).length).equal(3);
+        expect((await index1.getAllPools()).length).equal(3);
         expect(await index1.marketList(0)).equal(market4.address);
         expect(await index1.marketList(1)).equal(market5.address);
         expect(await index1.marketList(2)).equal(market3.address);

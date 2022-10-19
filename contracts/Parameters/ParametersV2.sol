@@ -3,7 +3,7 @@ pragma solidity 0.8.12;
 /**
  * @title ParametersV2
  * @author @InsureDAO
- * @notice This contract manages parameters of markets.
+ * @notice This contract manages parameters of pools.
  * SPDX-License-Identifier: GPL-3.0
  */
 
@@ -15,7 +15,7 @@ contract ParametersV2 is IParametersV2 {
     event VaultSet(address indexed token, address vault);
     event FeeRateSet(address indexed pool, uint256 rate);
     event RequestDurationSet(address indexed pool, uint256 duration);
-    event WithdrawableTimeSet(address indexed pool, uint256 time);
+    event WithdrawableDurationSet(address indexed pool, uint256 time);
     event MaxListSet(address pool, uint256 max);
     event ConditionSet(bytes32 indexed ref, bytes32 condition);
 
@@ -132,12 +132,12 @@ contract ParametersV2 is IParametersV2 {
      * @param _pool address to set the parameter
      * @param _time parameter
      */
-    function setWithdrawableTime(address _pool, uint256 _time) external override onlyOwner {
+    function setWithdrawableDuration(address _pool, uint256 _time) external override onlyOwner {
         _withdrawableTime[_pool] = _time;
-        emit WithdrawableTimeSet(_pool, _time);
+        emit WithdrawableDurationSet(_pool, _time);
     }
 
-    function getWithdrawableTime(address _pool) external view override returns (uint256) {
+    function getWithdrawableDuration(address _pool) external view override returns (uint256) {
         uint256 _targetWithdrawable = _withdrawableTime[_pool];
         if (_targetWithdrawable == 0) {
             return _withdrawableTime[address(0)];

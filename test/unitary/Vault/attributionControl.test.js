@@ -49,8 +49,8 @@ describe("Vault", function () {
     await usdc.mint(bob.address, initialMint);
     await usdc.connect(bob).approve(vault.address, initialMint);
 
-    await registry.supportMarket(alice.address); //now alice can perform as markets
-    await registry.supportMarket(creator.address);
+    await registry.addPool(alice.address); //now alice can perform as pools
+    await registry.addPool(creator.address);
   });
 
   beforeEach(async () => {

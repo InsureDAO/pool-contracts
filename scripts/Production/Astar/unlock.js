@@ -21,12 +21,12 @@ async function main() {
   console.log("now:", now);
 
   //unlock-able pools
-  let markets = await registry.getAllMarkets();
-  console.log("markets:", markets);
-  for (let i = 0; i < markets.length; i++) {
-    let market = await MarketTemplate.attach(markets[i]);
+  let pools = await registry.getAllPools();
+  console.log("pools:", pools);
+  for (let i = 0; i < pools.length; i++) {
+    let market = await MarketTemplate.attach(pools[i]);
 
-    markets[i].ids = [];
+    pools[i].ids = [];
     let count = await market.allInsuranceCount();
     console.log("market:", market.address, ", totalPolicyCount:", count);
 
@@ -39,12 +39,12 @@ async function main() {
       //insurances[_id].status && insurances[_id].endTime + parameters.getUnlockGracePeriod(address(this)) < block.timestamp,
       if (policy.status == true && endtime.add(gracePeriod).lt(now)) {
         console.log("id", id, "is unlockable");
-        markets[i].ids.push(id);
+        pools[i].ids.push(id);
       }
     }
   }
 
-  console.log(markets);
+  console.log(pools);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

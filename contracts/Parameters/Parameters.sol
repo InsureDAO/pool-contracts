@@ -3,7 +3,7 @@ pragma solidity 0.8.12;
 /**
  * @title Parameters
  * @author @InsureDAO
- * @notice This contract manages parameters of markets.
+ * @notice This contract manages parameters of pools.
  * SPDX-License-Identifier: GPL-3.0
  */
 
@@ -132,7 +132,7 @@ contract Parameters is IParameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setWithdrawableTime(address _address, uint256 _target) external override onlyOwner {
+    function setWithdrawableDuration(address _address, uint256 _target) external override onlyOwner {
         _withdrawable[_address] = _target;
         emit WithdrawableSet(_address, _target);
     }
@@ -282,7 +282,7 @@ contract Parameters is IParameters {
      * @param _target target contract's address
      * @return withdrawable period
      */
-    function getWithdrawableTime(address _target) external view override returns (uint256) {
+    function getWithdrawableDuration(address _target) external view override returns (uint256) {
         uint256 _targetWithdrawable = _withdrawable[_target];
         if (_targetWithdrawable == 0) {
             return _withdrawable[address(0)];

@@ -15,7 +15,7 @@ interface IParameters {
 
     function setLowerSlack(address _address, uint256 _target) external;
 
-    function setWithdrawableTime(address _address, uint256 _target) external;
+    function setWithdrawableDuration(address _address, uint256 _target) external;
 
     function setPremiumModel(address _address, address _target) external;
 
@@ -45,7 +45,7 @@ interface IParameters {
 
     function getRequestDuration(address _target) external view returns (uint256);
 
-    function getWithdrawableTime(address _target) external view returns (uint256);
+    function getWithdrawableDuration(address _target) external view returns (uint256);
 
     function getUnlockGracePeriod(address _target) external view returns (uint256);
 

@@ -159,7 +159,7 @@ describe("Pool", function () {
     await parameters.setMaxInsureSpan(ZERO_ADDRESS, YEAR);
     await parameters.setMinInsureSpan(ZERO_ADDRESS, "604800");
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
-    await parameters.setWithdrawableTime(ZERO_ADDRESS, "2592000");
+    await parameters.setWithdrawableDuration(ZERO_ADDRESS, "2592000");
     await parameters.setVault(usdc.address, vault.address);
     await parameters.setMaxList(ZERO_ADDRESS, "10");
 
@@ -479,8 +479,8 @@ describe("Pool", function () {
 
     describe("registerIndex", function () {
       beforeEach(async () => {
-        await registry.supportMarket(chad.address);
-        await registry.supportMarket(tom.address);
+        await registry.addPool(chad.address);
+        await registry.addPool(tom.address);
       });
 
       it("success", async () => {
@@ -534,9 +534,9 @@ describe("Pool", function () {
 
     describe("unregisterIndex", function () {
       beforeEach(async () => {
-        await registry.supportMarket(chad.address);
-        await registry.supportMarket(tom.address);
-        await registry.supportMarket(bob.address);
+        await registry.addPool(chad.address);
+        await registry.addPool(tom.address);
+        await registry.addPool(bob.address);
 
         await market.connect(chad).registerIndex(); // [chad]
       });

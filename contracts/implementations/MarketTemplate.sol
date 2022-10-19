@@ -244,7 +244,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
 
         require(request.timestamp < block.timestamp, "ERROR: WITHDRAWAL_QUEUE");
         require(
-            request.timestamp + parameters.getWithdrawableTime(address(this)) > block.timestamp,
+            request.timestamp + parameters.getWithdrawableDuration(address(this)) > block.timestamp,
             "WITHDRAWAL_NO_ACTIVE_REQUEST"
         );
         require(request.amount >= _amount, "WITHDRAWAL_EXCEEDED_REQUEST");
