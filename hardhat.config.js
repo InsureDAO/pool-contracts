@@ -10,7 +10,6 @@ const {
   DEPLOY_KEY,
   CONTROL_KEY,
 
-  SHIBUYA_URL,
   ASTAR_URL,
   MUMBAI_URL,
   GOERLI_URL,
@@ -66,39 +65,12 @@ module.exports = {
       url: `https://optimism-mainnet.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROL_KEY}`],
     },
-    rinkeby: {
-      url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
-      accounts: [`0x${TEST_KEY}`],
-      gas: 6e6,
-      gasPrice: 5e10, //50GWei
-      timeout: 2000000000,
-    },
-    ropsten: {
-      url: `https://ropsten.infura.io/v3/${INFURA_KEY}`,
-      accounts: [`0x${TEST_KEY}`],
-      gas: 6e6,
-      gasPrice: 1e10, //10Gwei
-      timeout: 2000000000,
-    },
-    rinkarbitrum: {
-      url: "https://rinkeby.arbitrum.io/rpc",
-      accounts: [`0x${TEST_KEY}`],
-    },
-    shibuya: {
-      url: SHIBUYA_URL,
-      accounts: [`0x${TEST_KEY}`],
-      timeout: 2000000000,
-    },
     goerli: {
       url: GOERLI_URL,
       accounts: [`0x${TEST_KEY}`],
     },
     mumbai: {
       url: MUMBAI_URL,
-      accounts: [`0x${TEST_KEY}`],
-    },
-    optkovan: {
-      url: `https://optimism-kovan.infura.io/v3/${INFURA_KEY}`,
       accounts: [`0x${TEST_KEY}`],
     },
   },
@@ -114,11 +86,8 @@ module.exports = {
     disambiguatePaths: false,
   },
   etherscan: {
-    // Your API key for Etherscan
-    // Obtain one at https://etherscan.io/
     apiKey: {
       mainnet: `${ETHERSCAN_API}`,
-      optimisticKovan: `${OPT_ETHERSCAN_API}`,
       optimisticEthereum: `${OPT_ETHERSCAN_API}`,
     },
   },
