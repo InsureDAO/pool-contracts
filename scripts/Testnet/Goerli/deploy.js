@@ -99,7 +99,7 @@ async function main() {
   tx = await parameters.setFeeRate(ZERO_ADDRESS, GovFeeRatio);
   await tx.wait();
 
-  tx = await parameters.setUnlockGrace(ZERO_ADDRESS, GracePeriod);
+  tx = await parameters.setUnlockGracePeriod(ZERO_ADDRESS, GracePeriod);
   await tx.wait();
 
   tx = await parameters.setRequestDuration(ZERO_ADDRESS, LockUpPeriod);

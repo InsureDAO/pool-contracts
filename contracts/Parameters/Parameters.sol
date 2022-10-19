@@ -80,7 +80,7 @@ contract Parameters is IParameters {
      * @param _address address to set the parameter
      * @param _target parameter
      */
-    function setUnlockGrace(address _address, uint256 _target) external override onlyOwner {
+    function setUnlockGracePeriod(address _address, uint256 _target) external override onlyOwner {
         _grace[_address] = _target;
         emit GraceSet(_address, _target);
     }
@@ -296,7 +296,7 @@ contract Parameters is IParameters {
      * @param _target target contract's address
      * @return grace period
      */
-    function getUnlockGrace(address _target) external view override returns (uint256) {
+    function getUnlockGracePeriod(address _target) external view override returns (uint256) {
         uint256 _targetGrace = _grace[_target];
         if (_targetGrace == 0) {
             return _grace[address(0)];

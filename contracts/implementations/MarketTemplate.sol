@@ -302,7 +302,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
     function _unlock(uint256 _id) internal {
         require(
             insurances[_id].status &&
-                insurances[_id].endTime + parameters.getUnlockGrace(address(this)) < block.timestamp,
+                insurances[_id].endTime + parameters.getUnlockGracePeriod(address(this)) < block.timestamp,
             "ERROR: UNLOCK_BAD_COINDITIONS"
         );
         insurances[_id].status = false;

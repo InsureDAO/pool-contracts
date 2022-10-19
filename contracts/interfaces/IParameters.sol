@@ -5,7 +5,7 @@ interface IParameters {
 
     function setRequestDuration(address _address, uint256 _target) external;
 
-    function setUnlockGrace(address _address, uint256 _target) external;
+    function setUnlockGracePeriod(address _address, uint256 _target) external;
 
     function setMaxInsureSpan(address _address, uint256 _target) external;
 
@@ -47,7 +47,7 @@ interface IParameters {
 
     function getWithdrawableTime(address _target) external view returns (uint256);
 
-    function getUnlockGrace(address _target) external view returns (uint256);
+    function getUnlockGracePeriod(address _target) external view returns (uint256);
 
     function getMaxInsureSpan(address _target) external view returns (uint256);
 

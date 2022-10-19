@@ -13,17 +13,19 @@ import "../interfaces/IPremiumModelV2.sol";
 
 contract ParametersV2 is IParametersV2 {
     event VaultSet(address indexed token, address vault);
-    event FeeRateSet(address indexed target, uint256 rate);
-    event PremiumSet(address indexed target, address model);
-    event UpperSlack(address indexed target, uint256 rate);
-    event LowerSlack(address indexed target, uint256 rate);
-    event LockupSet(address indexed target, uint256 span);
-    event GraceSet(address indexed target, uint256 span);
-    event MaxDateSet(address indexed target, uint256 span);
-    event MinDateSet(address indexed target, uint256 span);
-    event WithdrawableSet(address indexed target, uint256 span);
+    event FeeRateSet(address indexed pool, uint256 rate);
+    event RequestDurationSet(address indexed pool, uint256 duration);
+    event WithdrawableTimeSet(address indexed pool, uint256 time);
+    event MaxListSet(address pool, uint256 max);
     event ConditionSet(bytes32 indexed ref, bytes32 condition);
-    event MaxListSet(address target, uint256 max);
+
+    event PremiumModelSet(address indexed market, address model);
+    event UnlockGracePeriodSet(address indexed market, uint256 period);
+    event MaxInsureSpanSet(address indexed market, uint256 span);
+    event MinInsureSpanSet(address indexed market, uint256 span);
+
+    event UpperSlackSet(address indexed index, uint256 rate);
+    event LowerSlackSet(address indexed index, uint256 rate);
 
     address public immutable ownership;
 
@@ -113,7 +115,7 @@ contract ParametersV2 is IParametersV2 {
      */
     function setRequestDuration(address _pool, uint256 _duration) external override onlyOwner {
         _requestDuration[_pool] = _duration;
-        emit LockupSet(_pool, _duration);
+        emit RequestDurationSet(_pool, _duration);
     }
 
     function getRequestDuration(address _pool) external view override returns (uint256) {
@@ -132,7 +134,7 @@ contract ParametersV2 is IParametersV2 {
      */
     function setWithdrawableTime(address _pool, uint256 _time) external override onlyOwner {
         _withdrawableTime[_pool] = _time;
-        emit WithdrawableSet(_pool, _time);
+        emit WithdrawableTimeSet(_pool, _time);
     }
 
     function getWithdrawableTime(address _pool) external view override returns (uint256) {
@@ -167,11 +169,11 @@ contract ParametersV2 is IParametersV2 {
     /**
      * @notice set the condition in bytes32 corresponding to bytes32
      * @param _reference bytes32 value to refer the parameter
-     * @param _target parameter
+     * @param _condition parameter
      */
-    function setCondition(bytes32 _reference, bytes32 _target) external override onlyOwner {
-        _conditions[_reference] = _target;
-        emit ConditionSet(_reference, _target);
+    function setCondition(bytes32 _reference, bytes32 _condition) external override onlyOwner {
+        _conditions[_reference] = _condition;
+        emit ConditionSet(_reference, _condition);
     }
 
     function getCondition(bytes32 _reference) external view override returns (bytes32) {
@@ -190,7 +192,7 @@ contract ParametersV2 is IParametersV2 {
     function setPremiumModel(address _market, address _model) external override onlyOwner {
         require(_model != address(0), "dev: zero address");
         _premiumModel[_market] = _model;
-        emit PremiumSet(_market, _model);
+        emit PremiumModelSet(_market, _model);
     }
 
     function getPremiumModel(address _market) external view override returns (address) {
@@ -238,12 +240,12 @@ contract ParametersV2 is IParametersV2 {
      * @param _market address to set the parameter
      * @param _period parameter
      */
-    function setUnlockGrace(address _market, uint256 _period) external override onlyOwner {
+    function setUnlockGracePeriod(address _market, uint256 _period) external override onlyOwner {
         _grace[_market] = _period;
-        emit GraceSet(_market, _period);
+        emit UnlockGracePeriodSet(_market, _period);
     }
 
-    function getUnlockGrace(address _market) external view override returns (uint256) {
+    function getUnlockGracePeriod(address _market) external view override returns (uint256) {
         uint256 _targetGrace = _grace[_market];
         if (_targetGrace == 0) {
             return _grace[address(0)];
@@ -260,7 +262,7 @@ contract ParametersV2 is IParametersV2 {
     function setMaxInsureSpan(address _market, uint256 _span) external override onlyOwner {
         require(_min[_market] <= _span, "smaller than MinDate");
         _max[_market] = _span;
-        emit MaxDateSet(_market, _span);
+        emit MaxInsureSpanSet(_market, _span);
     }
 
     function getMaxInsureSpan(address _market) external view override returns (uint256) {
@@ -280,7 +282,7 @@ contract ParametersV2 is IParametersV2 {
     function setMinInsureSpan(address _market, uint256 _span) external override onlyOwner {
         require(_span <= _max[_market], "greater than MaxDate");
         _min[_market] = _span;
-        emit MinDateSet(_market, _span);
+        emit MinInsureSpanSet(_market, _span);
     }
 
     function getMinInsureSpan(address _market) external view override returns (uint256) {
@@ -298,16 +300,16 @@ contract ParametersV2 is IParametersV2 {
 
     /**
      * @notice set slack rate of leverage before adjustAlloc
-     * @param _pool address to set the parameter
+     * @param _index address to set the parameter
      * @param _rate parameter (slack rate 100% = 1e6
      */
-    function setUpperSlack(address _pool, uint256 _rate) external override onlyOwner {
-        _upperSlack[_pool] = _rate;
-        emit UpperSlack(_pool, _rate);
+    function setUpperSlack(address _index, uint256 _rate) external override onlyOwner {
+        _upperSlack[_index] = _rate;
+        emit UpperSlackSet(_index, _rate);
     }
 
-    function getUpperSlack(address _pool) external view override returns (uint256) {
-        uint256 _targetUpperSlack = _upperSlack[_pool];
+    function getUpperSlack(address _index) external view override returns (uint256) {
+        uint256 _targetUpperSlack = _upperSlack[_index];
         if (_targetUpperSlack == 0) {
             return _upperSlack[address(0)];
         } else {
@@ -317,16 +319,16 @@ contract ParametersV2 is IParametersV2 {
 
     /**
      * @notice set slack rate of leverage before adjustAlloc
-     * @param _pool address to set the parameter
+     * @param _index address to set the parameter
      * @param _rate parameter (slack rate 100% = 1000
      */
-    function setLowerSlack(address _pool, uint256 _rate) external override onlyOwner {
-        _lowerSlack[_pool] = _rate;
-        emit LowerSlack(_pool, _rate);
+    function setLowerSlack(address _index, uint256 _rate) external override onlyOwner {
+        _lowerSlack[_index] = _rate;
+        emit LowerSlackSet(_index, _rate);
     }
 
-    function getLowerSlack(address _pool) external view override returns (uint256) {
-        uint256 _targetLowerSlack = _lowerSlack[_pool];
+    function getLowerSlack(address _index) external view override returns (uint256) {
+        uint256 _targetLowerSlack = _lowerSlack[_index];
         if (_targetLowerSlack == 0) {
             return _lowerSlack[address(0)];
         } else {

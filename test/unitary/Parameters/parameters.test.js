@@ -122,30 +122,30 @@ describe("Parameters", function () {
       });
     });
 
-    describe("setUnlockGrace", function () {
+    describe("setUnlockGracePeriod", function () {
       it("should allow setting by the admin address", async () => {
-        await parameters.setUnlockGrace(TEST_ADDRESS, 86400);
-        expect(await parameters.getUnlockGrace(TEST_ADDRESS)).to.equal(86400);
+        await parameters.setUnlockGracePeriod(TEST_ADDRESS, 86400);
+        expect(await parameters.getUnlockGracePeriod(TEST_ADDRESS)).to.equal(86400);
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await expect(parameters.connect(alice).setUnlockGrace(TEST_ADDRESS, 86400)).to.revertedWith(
+        await expect(parameters.connect(alice).setUnlockGracePeriod(TEST_ADDRESS, 86400)).to.revertedWith(
           "Caller is not allowed to operate"
         );
       });
 
       it("should return the dafault value if the address not registered", async () => {
-        await parameters.setUnlockGrace(ZERO_ADDRESS, 86400);
-        expect(await parameters.getUnlockGrace(TEST_ADDRESS)).to.equal(86400);
+        await parameters.setUnlockGracePeriod(ZERO_ADDRESS, 86400);
+        expect(await parameters.getUnlockGracePeriod(TEST_ADDRESS)).to.equal(86400);
       });
 
       it("should return the value if registered", async () => {
-        await parameters.setUnlockGrace(NULL_ADDRESS, 86400);
-        expect(await parameters.getUnlockGrace(NULL_ADDRESS)).to.equal(86400);
+        await parameters.setUnlockGracePeriod(NULL_ADDRESS, 86400);
+        expect(await parameters.getUnlockGracePeriod(NULL_ADDRESS)).to.equal(86400);
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setUnlockGrace(TEST_ADDRESS, 86400)).to.emit(parameters, "GraceSet");
+        await expect(parameters.setUnlockGracePeriod(TEST_ADDRESS, 86400)).to.emit(parameters, "GraceSet");
       });
     });
 

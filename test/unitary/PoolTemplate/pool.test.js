@@ -639,7 +639,7 @@ describe("Pool", function () {
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
-    await parameters.setUnlockGrace(ZERO_ADDRESS, "259200");
+    await parameters.setUnlockGracePeriod(ZERO_ADDRESS, "259200");
     await parameters.setRequestDuration(ZERO_ADDRESS, "604800");
     await parameters.setMaxInsureSpan(ZERO_ADDRESS, YEAR);
     await parameters.setMinInsureSpan(ZERO_ADDRESS, "604800");
