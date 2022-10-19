@@ -7,9 +7,9 @@ pragma solidity 0.8.12;
  * SPDX-License-Identifier: GPL-3.0
  */
 
-import "../interfaces/IOwnership.sol";
-import "../interfaces/IParameters.sol";
-import "../interfaces/IPremiumModel.sol";
+import "./interfaces/IOwnership.sol";
+import "./interfaces/IParameters.sol";
+import "./interfaces/IPremiumModel.sol";
 
 contract Parameters is IParameters {
     event VaultSet(address indexed token, address vault);
