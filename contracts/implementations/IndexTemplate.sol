@@ -105,7 +105,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalPool {
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external override {
+    ) external {
         require(
             !initialized &&
                 bytes(_metaData).length != 0 &&
@@ -405,7 +405,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalPool {
      * 1) Compensate underlying markets from the liquidity of this pool
      * 2) If this pool is unable to cover a compensation, can get compensated from the Reserve pool
      */
-    function compensate(uint256 _amount) external override returns (uint256 _compensated) {
+    function compensate(uint256 _amount) external returns (uint256 _compensated) {
         require(allocPoints[msg.sender] != 0, "COMPENSATE_UNAUTHORIZED_CALLER");
 
         uint256 _value = vault.underlyingValue(address(this));
@@ -430,7 +430,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalPool {
     /**
      * @notice Resume market
      */
-    function resume() external override {
+    function resume() external {
         require(locked, "ERROR: MARKET_IS_NOT_LOCKED");
         uint256 _marketLength = marketList.length;
 
@@ -451,7 +451,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalPool {
     /**
      * @notice lock market withdrawal
      */
-    function lock() external override {
+    function lock() external {
         require(allocPoints[msg.sender] != 0);
 
         locked = true;
@@ -527,7 +527,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalPool {
      * @notice Used for changing settlementFeeRecipient
      * @param _state true to set paused and vice versa
      */
-    function setPaused(bool _state) external override onlyOwner {
+    function setPaused(bool _state) external onlyOwner {
         if (paused != _state) {
             paused = _state;
             emit Paused(_state);
@@ -538,7 +538,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalPool {
      * @notice Change metadata string
      * @param _metadata new metadata string
      */
-    function changeMetadata(string calldata _metadata) external override onlyOwner {
+    function changeMetadata(string calldata _metadata) external onlyOwner {
         metadata = _metadata;
         emit MetadataChanged(_metadata);
     }
@@ -547,7 +547,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalPool {
      * @notice Change target leverate rate for this index x 1e6
      * @param _target new leverage rate
      */
-    function setLeverage(uint256 _target) external override onlyOwner {
+    function setLeverage(uint256 _target) external onlyOwner {
         require(_target >= MAGIC_SCALE_1E6, "leverage must be x1 or higher");
         targetLev = _target;
         _adjustAlloc();

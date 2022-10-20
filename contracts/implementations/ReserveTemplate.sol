@@ -68,7 +68,7 @@ contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalPool {
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external override {
+    ) external {
         require(
             !initialized &&
                 bytes(_metaData).length != 0 &&
@@ -134,7 +134,7 @@ contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalPool {
         emit Fund(msg.sender, _amount, _attribution);
     }
 
-    function defund(address _to, uint256 _amount) external override onlyOwner {
+    function defund(address _to, uint256 _amount) external onlyOwner {
         require(!paused, "ERROR: PAUSED");
 
         uint256 _attribution = vault.withdrawValue(_amount, _to);
@@ -202,7 +202,7 @@ contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalPool {
      * @notice Compensate the shortage if an index is insolvent
      * @param _amount amount of underlier token to compensate shortage within index
      */
-    function compensate(uint256 _amount) external override returns (uint256 _compensated) {
+    function compensate(uint256 _amount) external returns (uint256 _compensated) {
         require(registry.isListed(msg.sender), "ERROR:UNREGISTERED");
 
         uint256 _available = vault.underlyingValue(address(this));
@@ -265,7 +265,7 @@ contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalPool {
      * @notice Change metadata string
      * @param _metadata new metadata string
      */
-    function changeMetadata(string calldata _metadata) external override onlyOwner {
+    function changeMetadata(string calldata _metadata) external onlyOwner {
         metadata = _metadata;
         emit MetadataChanged(_metadata);
     }
@@ -274,7 +274,7 @@ contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalPool {
      * @notice Used for changing settlementFeeRecipient
      * @param _state true to set paused and vice versa
      */
-    function setPaused(bool _state) external override onlyOwner {
+    function setPaused(bool _state) external onlyOwner {
         if (paused != _state) {
             paused = _state;
             emit Paused(_state);

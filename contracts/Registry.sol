@@ -39,7 +39,7 @@ contract Registry is IRegistry {
      * @notice Set the factory address and allow it to regiser a new market
      * @param _factory factory address
      */
-    function setFactory(address _factory) external override onlyOwner {
+    function setFactory(address _factory) external onlyOwner {
         require(_factory != address(0), "ERROR: ZERO_ADDRESS");
 
         factory = _factory;
@@ -50,7 +50,7 @@ contract Registry is IRegistry {
      * @notice Register a new market.
      * @param _pool pool address to register
      */
-    function addPool(address _pool) external override {
+    function addPool(address _pool) external {
         require(!pools[_pool], "ERROR: ALREADY_REGISTERED");
         require(msg.sender == factory || msg.sender == ownership.owner(), "ERROR: UNAUTHORIZED_CALLER");
         require(_pool != address(0), "ERROR: ZERO_ADDRESS");
@@ -65,7 +65,7 @@ contract Registry is IRegistry {
      * @param _template template address
      * @param _target target address
      */
-    function setExistence(address _template, address _target) external override {
+    function setExistence(address _template, address _target) external {
         require(msg.sender == factory || msg.sender == ownership.owner(), "ERROR: UNAUTHORIZED_CALLER");
 
         existence[_template][_target] = true;
@@ -77,7 +77,7 @@ contract Registry is IRegistry {
      * @param _address address to set Reserve
      * @param _reserve Reserve contract address
      */
-    function setReserve(address _address, address _reserve) external override onlyOwner {
+    function setReserve(address _address, address _reserve) external onlyOwner {
         require(_reserve != address(0), "ERROR: ZERO_ADDRESS");
 
         reserve[_address] = _reserve;
@@ -89,7 +89,7 @@ contract Registry is IRegistry {
      * @param _address address covered by Reserve
      * @return Reserve contract address
      */
-    function getReserve(address _address) external view override returns (address) {
+    function getReserve(address _address) external view returns (address) {
         address _addr = reserve[_address];
         if (_addr == address(0)) {
             return reserve[address(0)];
@@ -104,7 +104,7 @@ contract Registry is IRegistry {
      * @param _target target address
      * @return true if the id within the market already exists
      */
-    function confirmExistence(address _template, address _target) external view override returns (bool) {
+    function confirmExistence(address _template, address _target) external view returns (bool) {
         return existence[_template][_target];
     }
 
@@ -113,7 +113,7 @@ contract Registry is IRegistry {
      * @param _market market address to inquire
      * @return true if listed
      */
-    function isListed(address _market) external view override returns (bool) {
+    function isListed(address _market) external view returns (bool) {
         return pools[_market];
     }
 

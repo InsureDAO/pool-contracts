@@ -51,7 +51,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
 
     /// @notice Pool setting
     bool public initialized;
-    bool public override paused;
+    bool public paused;
     bool public openDeposit;
     string public metadata;
 
@@ -62,8 +62,8 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
 
     /// @notice Market variables
     uint256 public attributionDebt; //market's attribution for indices
-    uint256 public override lockedAmount;
-    uint256 public override totalCredit;
+    uint256 public lockedAmount;
+    uint256 public totalCredit;
     uint256 public rewardPerCredit; //Times MAGIC_SCALE_1E6. To avoid reward decimal truncation *See explanation below.
     uint256 public pendingEnd; //pending time when paying out
 
@@ -142,7 +142,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
         string calldata _metaData,
         uint256[] calldata _conditions,
         address[] calldata _references
-    ) external override {
+    ) external {
         require(
             !initialized &&
                 bytes(_metaData).length != 0 &&
@@ -369,7 +369,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
      * @return _pending pending preium for the caller index
      */
 
-    function allocateCredit(uint256 _credit) external override returns (uint256 _pending) {
+    function allocateCredit(uint256 _credit) external returns (uint256 _pending) {
         IndexInfo storage _index = indices[msg.sender];
         require(_index.slot != 0, "ALLOCATE_CREDIT_BAD_CONDITIONS");
 
@@ -396,7 +396,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
      * @return _pending pending preium for the caller index
      * @dev called from index pool
      */
-    function withdrawCredit(uint256 _credit) external override returns (uint256) {
+    function withdrawCredit(uint256 _credit) external returns (uint256) {
         require(marketStatus == MarketStatus.Trading, "MARKET_IS_NOT_IN_TRADING_STATUS");
 
         return _withdrawCredit(_credit, msg.sender);
@@ -583,7 +583,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
         bytes32 _merkleRoot,
         string calldata _rawdata,
         string calldata _memo
-    ) external override onlyOwner {
+    ) external onlyOwner {
         require(_incidentTimestamp < block.timestamp, "ERROR: INCIDENT_DATE");
 
         incident.payoutNumerator = _payoutNumerator;
@@ -614,7 +614,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
         emit MarketStatusChanged(MarketStatus.Payingout);
     }
 
-    function applyBounty(uint256 _amount, address _contributor, uint256[] calldata _ids) external override onlyOwner {
+    function applyBounty(uint256 _amount, address _contributor, uint256[] calldata _ids) external onlyOwner {
         require(marketStatus == MarketStatus.Trading, "ERROR: NOT_TRADING_STATUS");
 
         //borrow value just like redeem()
@@ -720,7 +720,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
      * @param _owner the target address to look up value
      * @return The balance of underlying tokens for the specified address
      */
-    function valueOfUnderlying(address _owner) external view override returns (uint256) {
+    function valueOfUnderlying(address _owner) external view returns (uint256) {
         uint256 _balance = balanceOf(_owner);
         uint256 _totalSupply = totalSupply();
 
@@ -734,7 +734,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
      * @param _index the address of index
      * @return The pending premium for the specified index
      */
-    function pendingPremium(address _index) external view override returns (uint256) {
+    function pendingPremium(address _index) external view returns (uint256) {
         uint256 _credit = indices[_index].credit;
         if (_credit != 0) {
             return _sub((_credit * rewardPerCredit) / MAGIC_SCALE_1E6, indices[_index].rewardDebt);
@@ -763,7 +763,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
      * @param _index address of an index
      * @return The balance of credit allocated by the specified index
      */
-    function pairValues(address _index) external view override returns (uint256, uint256) {
+    function pairValues(address _index) external view returns (uint256, uint256) {
         return (indices[_index].credit, _availableBalance());
     }
 
@@ -771,7 +771,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
      * @notice Returns the amount of underlying tokens available for withdrawals
      * @return available liquidity of this market
      */
-    function availableBalance() external view override returns (uint256) {
+    function availableBalance() external view returns (uint256) {
         return _availableBalance();
     }
 
@@ -786,7 +786,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
      * @notice Returns the utilization rate for this market. Scaled by 1e6 (100% = 1e6)
      * @return utilization rate
      */
-    function utilizationRate() external view override returns (uint256) {
+    function utilizationRate() external view returns (uint256) {
         uint256 _lockedAmount = lockedAmount;
         uint256 _totalLiquidity = totalLiquidity();
 
@@ -799,7 +799,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
      * @notice Market's Total Liquidity (total insurable amount)
      * @return total liquidity of this market
      */
-    function totalLiquidity() public view override returns (uint256) {
+    function totalLiquidity() public view returns (uint256) {
         return originalLiquidity() + totalCredit;
     }
 
@@ -819,7 +819,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
      * @notice Used for changing settlementFeeRecipient
      * @param _state true to set paused and vice versa
      */
-    function setPaused(bool _state) external override onlyOwner {
+    function setPaused(bool _state) external onlyOwner {
         if (paused != _state) {
             paused = _state;
             emit Paused(_state);
@@ -837,7 +837,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
      * @notice Change metadata string
      * @param _metadata new metadata string
      */
-    function changeMetadata(string calldata _metadata) external override onlyOwner {
+    function changeMetadata(string calldata _metadata) external onlyOwner {
         metadata = _metadata;
         emit MetadataChanged(_metadata);
     }

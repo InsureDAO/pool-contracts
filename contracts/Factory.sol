@@ -75,7 +75,6 @@ contract Factory is IFactory {
      */
     function approveTemplate(IUniversalPool _template, bool _approval, bool _isOpen, bool _duplicate)
         external
-        override
         onlyOwner
     {
         require(address(_template) != address(0), "ERROR_ZERO_ADDRESS");
@@ -94,7 +93,6 @@ contract Factory is IFactory {
      */
     function approveReference(IUniversalPool _template, uint256 _slot, address _target, bool _approval)
         external
-        override
         onlyOwner
     {
         require(templates[address(_template)].approval, "ERROR: UNAUTHORIZED_TEMPLATE");
@@ -109,7 +107,7 @@ contract Factory is IFactory {
      * @param _slot the index within condition array
      * @param _target the condition uint
      */
-    function setCondition(IUniversalPool _template, uint256 _slot, uint256 _target) external override onlyOwner {
+    function setCondition(IUniversalPool _template, uint256 _slot, uint256 _target) external onlyOwner {
         require(templates[address(_template)].approval, "ERROR: UNAUTHORIZED_TEMPLATE");
         conditionlist[address(_template)][_slot] = _target;
         emit ConditionApproval(_template, _slot, _target);
@@ -129,7 +127,7 @@ contract Factory is IFactory {
         string calldata _metaData,
         uint256[] memory _conditions,
         address[] calldata _references
-    ) external override returns (address) {
+    ) external returns (address) {
         //check eligibility
         require(templates[address(_template)].approval, "ERROR: UNAUTHORIZED_TEMPLATE");
         if (!templates[address(_template)].isOpen) {
