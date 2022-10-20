@@ -9,13 +9,13 @@ pragma solidity 0.8.12;
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import "./InsureDAOERC20.sol";
 import "../interfaces/IMarketTemplate.sol";
-import "../interfaces/IUniversalMarket.sol";
+import "../interfaces/IUniversalPool.sol";
 import "../interfaces/IParameters.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IRegistry.sol";
 import "../interfaces/IIndexTemplate.sol";
 
-contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
+contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
     event Deposit(address indexed depositor, uint256 amount, uint256 mint);
     event WithdrawRequested(address indexed withdrawer, uint256 amount, uint256 unlockTime);
     event Withdraw(address indexed withdrawer, uint256 amount, uint256 retVal);

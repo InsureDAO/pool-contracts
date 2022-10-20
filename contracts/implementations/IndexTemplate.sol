@@ -8,7 +8,7 @@ pragma solidity 0.8.12;
 
 import "./InsureDAOERC20.sol";
 import "../interfaces/IIndexTemplate.sol";
-import "../interfaces/IUniversalMarket.sol";
+import "../interfaces/IUniversalPool.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IRegistry.sol";
 import "../interfaces/IParameters.sol";
@@ -26,7 +26,7 @@ import "../interfaces/IReserveTemplate.sol";
  *
  */
 
-contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
+contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalPool {
     event Deposit(address indexed depositor, uint256 amount, uint256 mint);
     event WithdrawRequested(address indexed withdrawer, uint256 amount, uint256 unlockTime);
     event Withdraw(address indexed withdrawer, uint256 amount, uint256 retVal);
@@ -566,11 +566,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * C. remove market (exist _marketListIndex. market is address(0) )
      * D. overwrite market (exist _marketListIndex. market is new)
      */
-    function set(
-        uint256 _marketListIndex,
-        address _market,
-        uint256 _allocPoint
-    ) external onlyOwner {
+    function set(uint256 _marketListIndex, address _market, uint256 _allocPoint) external onlyOwner {
         require(_marketListIndex <= parameters.getMaxList(address(this)), "ERROR: EXCEEEDED_MAX_INDEX");
 
         uint256 _marketLength = marketList.length;
@@ -666,11 +662,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalMarket {
      * @param to a
      * @param amount the amount of token to offset
      */
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual override {
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
 
         if (from != address(0)) {

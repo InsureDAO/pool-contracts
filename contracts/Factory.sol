@@ -8,7 +8,7 @@ pragma solidity 0.8.12;
  */
 
 import "./interfaces/IOwnership.sol";
-import "./interfaces/IUniversalMarket.sol";
+import "./interfaces/IUniversalPool.sol";
 import "./interfaces/IRegistry.sol";
 import "./interfaces/IFactory.sol";
 
@@ -20,9 +20,9 @@ contract Factory is IFactory {
         uint256[] conditions,
         address[] references
     );
-    event TemplateApproval(IUniversalMarket indexed template, bool approval, bool isOpen, bool duplicate);
-    event ReferenceApproval(IUniversalMarket indexed template, uint256 indexed slot, address target, bool approval);
-    event ConditionApproval(IUniversalMarket indexed template, uint256 indexed slot, uint256 target);
+    event TemplateApproval(IUniversalPool indexed template, bool approval, bool isOpen, bool duplicate);
+    event ReferenceApproval(IUniversalPool indexed template, uint256 indexed slot, address target, bool approval);
+    event ConditionApproval(IUniversalPool indexed template, uint256 indexed slot, uint256 target);
 
     struct Template {
         bool approval; //true if the template exists
@@ -73,12 +73,11 @@ contract Factory is IFactory {
      * @param _isOpen true if anyone can create a market based on the template
      * @param _duplicate true if a market with duplicate target id is allowed
      */
-    function approveTemplate(
-        IUniversalMarket _template,
-        bool _approval,
-        bool _isOpen,
-        bool _duplicate
-    ) external override onlyOwner {
+    function approveTemplate(IUniversalPool _template, bool _approval, bool _isOpen, bool _duplicate)
+        external
+        override
+        onlyOwner
+    {
         require(address(_template) != address(0), "ERROR_ZERO_ADDRESS");
         Template memory approvedTemplate = Template(_approval, _isOpen, _duplicate);
         templates[address(_template)] = approvedTemplate;
@@ -93,12 +92,11 @@ contract Factory is IFactory {
      * @param _target the reference  address
      * @param _approval true if the reference is approved
      */
-    function approveReference(
-        IUniversalMarket _template,
-        uint256 _slot,
-        address _target,
-        bool _approval
-    ) external override onlyOwner {
+    function approveReference(IUniversalPool _template, uint256 _slot, address _target, bool _approval)
+        external
+        override
+        onlyOwner
+    {
         require(templates[address(_template)].approval, "ERROR: UNAUTHORIZED_TEMPLATE");
         reflist[address(_template)][_slot][_target] = _approval;
         emit ReferenceApproval(_template, _slot, _target, _approval);
@@ -111,11 +109,7 @@ contract Factory is IFactory {
      * @param _slot the index within condition array
      * @param _target the condition uint
      */
-    function setCondition(
-        IUniversalMarket _template,
-        uint256 _slot,
-        uint256 _target
-    ) external override onlyOwner {
+    function setCondition(IUniversalPool _template, uint256 _slot, uint256 _target) external override onlyOwner {
         require(templates[address(_template)].approval, "ERROR: UNAUTHORIZED_TEMPLATE");
         conditionlist[address(_template)][_slot] = _target;
         emit ConditionApproval(_template, _slot, _target);
@@ -131,7 +125,7 @@ contract Factory is IFactory {
      * @return created market address
      */
     function createMarket(
-        IUniversalMarket _template,
+        IUniversalPool _template,
         string calldata _metaData,
         uint256[] memory _conditions,
         address[] calldata _references
@@ -171,7 +165,7 @@ contract Factory is IFactory {
         }
 
         //create market
-        IUniversalMarket market = IUniversalMarket(_createClone(address(_template)));
+        IUniversalPool market = IUniversalPool(_createClone(address(_template)));
 
         IRegistry(_registry).addPool(address(market));
 

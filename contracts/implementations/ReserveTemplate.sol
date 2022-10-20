@@ -6,14 +6,14 @@ pragma solidity 0.8.12;
  * SPDX-License-Identifier: GPL-3.0
  */
 
-import "../interfaces/IUniversalMarket.sol";
+import "../interfaces/IUniversalPool.sol";
 import "./InsureDAOERC20.sol";
 import "../interfaces/IVault.sol";
 import "../interfaces/IRegistry.sol";
 import "../interfaces/IParameters.sol";
 import "../interfaces/IReserveTemplate.sol";
 
-contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalMarket {
+contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalPool {
     event Deposit(address indexed depositor, uint256 amount, uint256 mint);
     event Fund(address indexed depositor, uint256 amount, uint256 attribution);
     event Defund(address indexed depositor, uint256 amount, uint256 attribution);
@@ -291,11 +291,7 @@ contract ReserveTemplate is InsureDAOERC20, IReserveTemplate, IUniversalMarket {
      * @param to a
      * @param amount the amount of token to offset
      */
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual override {
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
 
         if (from != address(0)) {
