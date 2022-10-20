@@ -21,53 +21,7 @@ const {
 /**
  * @type {PoolConfig[]}
  */
-const NEW_POOLS = [
-  /* algem */
-  {
-    tokenAddress: "0xE511ED88575C57767BAfb72BfD10775413E3F2b0",
-    rate: 5,
-  },
-  /* AstridDAO */
-  {
-    tokenAddress: "0x5271D85CE4241b310C0B34b7C2f1f036686A6d7C",
-    rate: 12,
-  },
-  /* Sirius-finance */
-  {
-    tokenAddress: "0x9448610696659de8F72e1831d392214aE1ca4838",
-    rate: 12,
-  },
-  /* Avault */
-  {
-    tokenAddress: "0x03065E84748a9e4a1AEbef15AC89da1Cdf18B202",
-    rate: 12,
-  },
-  /* SiO2 Finance */
-  {
-    tokenAddress: "0xcCA488aEEf7A1D5C633f877453784F025e7cF160",
-    rate: 12,
-  },
-  /* Zenlink */
-  {
-    tokenAddress: "0x998082C488e548820F970Df5173bD2061Ce90635",
-    rate: 12,
-  },
-  /* AstarFarm */
-  {
-    tokenAddress: "0x992bad137Fc8a50a486B5C6375f581964b4A15FC",
-    rate: 5,
-  },
-  /* Muuu */
-  {
-    tokenAddress: "0xc5BcAC31cf55806646017395AD119aF2441Aee37",
-    rate: 12,
-  },
-  /* KAGLA Finance */
-  {
-    tokenAddress: "0x257f1a047948f73158DaDd03eB84b34498bCDc60",
-    rate: 10,
-  },
-];
+const NEW_POOLS = [];
 
 async function main() {
   const start = process.hrtime();
@@ -77,8 +31,7 @@ async function main() {
 
   const Registry = await ethers.getContractFactory("Registry");
   const Factory = await ethers.getContractFactory("Factory");
-  const Parameters = await ethers.getContractFactory("ParametersV2");
-  const PremiumV1 = await ethers.getContractFactory("FlatPremium");
+  const Parameters = await ethers.getContractFactory("Parameters");
 
   const registry = Registry.attach(RegistryAddress);
   const factory = Factory.attach(FactoryAddress);
@@ -98,12 +51,14 @@ async function main() {
     const marketAddress = await (async () => {
       try {
         console.log(`start deploying pool for ${pool.tokenAddress}...`);
-        const createMarket = await factory.connect(manager).createMarket(
-          marketTemplateAddress,
-          "0x",
-          [0, 0],
-          [pool.tokenAddress, USDC_ADDRESS, registry.address, parameters.address] // set minimum and initial deposit amount to 0
-        );
+        const createMarket = await factory
+          .connect(manager)
+          .createMarket(
+            marketTemplateAddress,
+            "0x",
+            [0, 0],
+            [pool.tokenAddress, USDC_ADDRESS, registry.address, parameters.address]
+          );
 
         const receipt = await createMarket.wait();
 
@@ -118,18 +73,6 @@ async function main() {
     })();
 
     if (!marketAddress) throw new Error(`An error occurred while deploying the token address: ${pool.tokenAddress}`);
-
-    // deploy premium model for pool
-    const premium = await PremiumV1.connect(manager).deploy(OwnershipAddress);
-    await premium.deployed();
-
-    // setting premium rate
-    const setParameter = await parameters.connect(manager).setPremiumModel(marketAddress, premium.address);
-    await setParameter.wait();
-
-    const rate = BigNumber.from((PREMIUM_RATE_BASE * pool.rate) / 100);
-    const setPremium = await premium.setPremiumParameters(rate.toString(), "0", "0", "0");
-    await setPremium.wait();
 
     console.log(
       `new pool for ${

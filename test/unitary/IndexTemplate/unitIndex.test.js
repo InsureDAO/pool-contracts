@@ -174,11 +174,11 @@ describe("Index", function () {
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
-    await parameters.setGrace(ZERO_ADDRESS, DAY.mul("3"));
-    await parameters.setLockup(ZERO_ADDRESS, WEEK);
-    await parameters.setWithdrawable(ZERO_ADDRESS, WEEK.mul(2));
-    await parameters.setMaxDate(ZERO_ADDRESS, YEAR);
-    await parameters.setMinDate(ZERO_ADDRESS, WEEK);
+    await parameters.setUnlockGracePeriod(ZERO_ADDRESS, DAY.mul("3"));
+    await parameters.setRequestDuration(ZERO_ADDRESS, WEEK);
+    await parameters.setWithdrawableDuration(ZERO_ADDRESS, WEEK.mul(2));
+    await parameters.setMaxInsureSpan(ZERO_ADDRESS, YEAR);
+    await parameters.setMinInsureSpan(ZERO_ADDRESS, WEEK);
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
     await parameters.setVault(usdc.address, vault.address);
     await parameters.setMaxList(ZERO_ADDRESS, "10");
@@ -1014,7 +1014,7 @@ describe("Index", function () {
 
     it("revert when the market is paused", async function () {
       await index.setPaused(true);
-      await expect(index.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: DEPOSIT_DISABLED");
+      await expect(index.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: PAUSED");
     });
 
     it("revert when the deposit amount is zero", async function () {

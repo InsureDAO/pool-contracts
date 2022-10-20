@@ -2,31 +2,17 @@
 
 pragma solidity 0.8.12;
 
-import "./IUniversalMarket.sol";
+import "./IUniversalPool.sol";
 
 interface IFactory {
-    function approveTemplate(
-        IUniversalMarket _template,
-        bool _approval,
-        bool _isOpen,
-        bool _duplicate
-    ) external;
+    function approveTemplate(IUniversalPool _template, bool _approval, bool _isOpen, bool _duplicate) external;
 
-    function approveReference(
-        IUniversalMarket _template,
-        uint256 _slot,
-        address _target,
-        bool _approval
-    ) external;
+    function approveReference(IUniversalPool _template, uint256 _slot, address _target, bool _approval) external;
 
-    function setCondition(
-        IUniversalMarket _template,
-        uint256 _slot,
-        uint256 _target
-    ) external;
+    function setCondition(IUniversalPool _template, uint256 _slot, uint256 _target) external;
 
     function createMarket(
-        IUniversalMarket _template,
+        IUniversalPool _template,
         string memory _metaData,
         uint256[] memory _conditions,
         address[] memory _references

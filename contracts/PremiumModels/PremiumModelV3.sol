@@ -7,11 +7,10 @@ pragma solidity 0.8.12;
  * SPDX-License-Identifier: GPL-3.0
  */
 
-import "../interfaces/IPremiumModelV3.sol";
+import "../interfaces/IPremiumModel.sol";
 import "../interfaces/IOwnership.sol";
-import "hardhat/console.sol";
 
-contract PremiumModelV3 is IPremiumModelV3 {
+contract PremiumModelV3 is IPremiumModel {
     IOwnership public immutable ownership;
 
     struct Rate {

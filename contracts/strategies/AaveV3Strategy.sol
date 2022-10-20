@@ -110,12 +110,12 @@ contract AaveV3Strategy is IController, OpsReady {
      */
 
     /// @inheritdoc IController
-    function managingFund() public view override returns (uint256) {
+    function managingFund() public view returns (uint256) {
         return ausdc.balanceOf(address(this));
     }
 
     /// @inheritdoc IController
-    function adjustFund() external override {
+    function adjustFund() external {
         uint256 expectUtilizeAmount = (totalValueAll() * maxManagingRatio) / MAGIC_SCALE_1E6;
         if (expectUtilizeAmount > managingFund()) {
             unchecked {
@@ -134,13 +134,13 @@ contract AaveV3Strategy is IController, OpsReady {
     }
 
     /// @inheritdoc IController
-    function setMaxManagingRatio(uint256 _ratio) external override onlyOwner withinValidRatio(_ratio) {
+    function setMaxManagingRatio(uint256 _ratio) external onlyOwner withinValidRatio(_ratio) {
         maxManagingRatio = _ratio;
         emit MaxManagingRatioSet(_ratio);
     }
 
     /// @inheritdoc IController
-    function emigrate(address _to) external override onlyVault {
+    function emigrate(address _to) external onlyVault {
         if (_to == address(0)) revert ZeroAddress();
 
         // liquidate all positions
@@ -161,7 +161,7 @@ contract AaveV3Strategy is IController, OpsReady {
     }
 
     /// @inheritdoc IController
-    function immigrate(address _from) external override {
+    function immigrate(address _from) external {
         if (_from == address(0)) revert ZeroAddress();
         if (_from == address(this)) revert MigrateToSelf();
         if (managingFund() != 0) revert AlreadyInUse();
@@ -225,11 +225,7 @@ contract AaveV3Strategy is IController, OpsReady {
      * @param _minAmountOut minimum amount of USDC caller expects to receive.
      *                      This prevent MEV attacks.
      */
-    function compound(
-        address _token,
-        uint256 _amount,
-        uint256 _minAmountOut
-    ) external onlyOps {
+    function compound(address _token, uint256 _amount, uint256 _minAmountOut) external onlyOps {
         if (_token == address(0)) revert ZeroAddress();
         if (_amount == 0) revert AmountZero();
         if (_minAmountOut == 0) revert AmountZero();
@@ -404,12 +400,10 @@ contract AaveV3Strategy is IController, OpsReady {
      * @dev Swap function to be used reward token conversion.
      *      You can see more details in the IExchangeLogic interface.
      */
-    function _swap(
-        address _tokenIn,
-        address _tokenOut,
-        uint256 _amountIn,
-        uint256 _minAmountOut
-    ) internal returns (uint256) {
+    function _swap(address _tokenIn, address _tokenOut, uint256 _amountIn, uint256 _minAmountOut)
+        internal
+        returns (uint256)
+    {
         address _swapper = exchangeLogic.swapper();
         (bool _success, bytes memory _res) = _swapper.call(
             exchangeLogic.abiEncodeSwap(_tokenIn, _tokenOut, _amountIn, _minAmountOut, address(this))

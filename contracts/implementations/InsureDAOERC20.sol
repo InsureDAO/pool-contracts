@@ -22,11 +22,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
     string private _symbol = "iLP";
     uint8 private _decimals = 18;
 
-    function initializeToken(
-        string memory name_,
-        string memory symbol_,
-        uint8 decimals_
-    ) internal {
+    function initializeToken(string memory name_, string memory symbol_, uint8 decimals_) internal {
         /***
          *@notice initialize token. Only called internally.
          *
@@ -41,7 +37,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
     /**
      * @dev Returns the name of the token.
      */
-    function name() external view virtual override returns (string memory) {
+    function name() external view virtual returns (string memory) {
         return _name;
     }
 
@@ -49,7 +45,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * @dev Returns the symbol of the token, usually a shorter version of the
      * name.
      */
-    function symbol() external view virtual override returns (string memory) {
+    function symbol() external view virtual returns (string memory) {
         return _symbol;
     }
 
@@ -66,21 +62,21 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * no way affects any of the arithmetic of the contract, including
      * {IERC20-balanceOf} and {IERC20-transfer}.
      */
-    function decimals() external view virtual override returns (uint8) {
+    function decimals() external view virtual returns (uint8) {
         return _decimals;
     }
 
     /**
      * @dev See {IERC20-totalSupply}.
      */
-    function totalSupply() public view virtual override returns (uint256) {
+    function totalSupply() public view virtual returns (uint256) {
         return _totalSupply;
     }
 
     /**
      * @dev See {IERC20-balanceOf}.
      */
-    function balanceOf(address account) public view virtual override returns (uint256) {
+    function balanceOf(address account) public view virtual returns (uint256) {
         return _balances[account];
     }
 
@@ -92,7 +88,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount) external virtual override returns (bool) {
+    function transfer(address recipient, uint256 amount) external virtual returns (bool) {
         _transfer(msg.sender, recipient, amount);
         return true;
     }
@@ -100,7 +96,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
     /**
      * @dev See {IERC20-allowance}.
      */
-    function allowance(address owner, address spender) external view virtual override returns (uint256) {
+    function allowance(address owner, address spender) external view virtual returns (uint256) {
         return _allowances[owner][spender];
     }
 
@@ -111,7 +107,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      *
      * - `spender` cannot be the zero address.
      */
-    function approve(address spender, uint256 amount) external virtual override returns (bool) {
+    function approve(address spender, uint256 amount) external virtual returns (bool) {
         _approve(msg.sender, spender, amount);
         return true;
     }
@@ -129,11 +125,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * - the caller must have allowance for ``sender``'s tokens of at least
      * `amount`.
      */
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) external virtual override returns (bool) {
+    function transferFrom(address sender, address recipient, uint256 amount) external virtual returns (bool) {
         if (amount != 0) {
             uint256 currentAllowance = _allowances[sender][msg.sender];
             if (currentAllowance != type(uint256).max) {
@@ -207,11 +199,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * - `recipient` cannot be the zero address.
      * - `sender` must have a balance of at least `amount`.
      */
-    function _transfer(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) internal virtual {
+    function _transfer(address sender, address recipient, uint256 amount) internal virtual {
         if (amount != 0) {
             require(sender != address(0), "Transfer from the zero address");
             require(recipient != address(0), "Transfer to the zero address");
@@ -300,11 +288,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      * - `owner` cannot be the zero address.
      * - `spender` cannot be the zero address.
      */
-    function _approve(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal virtual {
+    function _approve(address owner, address spender, uint256 amount) internal virtual {
         require(owner != address(0), "Approve from the zero address");
         require(spender != address(0), "Approve to the zero address");
 
@@ -326,11 +310,7 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {}
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual {}
 
     /**
      * @dev Hook that is called after any transfer of tokens. This includes
@@ -346,9 +326,5 @@ contract InsureDAOERC20 is Context, IERC20, IERC20Metadata {
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {}
+    function _afterTokenTransfer(address from, address to, uint256 amount) internal virtual {}
 }

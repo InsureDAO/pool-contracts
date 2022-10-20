@@ -27,11 +27,11 @@ contract Ownership is IOwnership {
     /**
      * @dev Returns the address of the current owner.
      */
-    function owner() external view override returns (address) {
+    function owner() external view returns (address) {
         return _owner;
     }
 
-    function futureOwner() external view override returns (address) {
+    function futureOwner() external view returns (address) {
         return _futureOwner;
     }
 
@@ -48,7 +48,7 @@ contract Ownership is IOwnership {
         _;
     }
 
-    function commitTransferOwnership(address newOwner) external override onlyOwner {
+    function commitTransferOwnership(address newOwner) external onlyOwner {
         /***
          *@notice Transfer ownership of GaugeController to `newOwner`
          *@param newOwner Address to have ownership transferred to
@@ -57,7 +57,7 @@ contract Ownership is IOwnership {
         emit CommitNewOwnership(newOwner);
     }
 
-    function acceptTransferOwnership() external override onlyFutureOwner {
+    function acceptTransferOwnership() external onlyFutureOwner {
         /***
          *@notice Accept a transfer of ownership
          */

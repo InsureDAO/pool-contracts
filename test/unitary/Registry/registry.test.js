@@ -55,35 +55,33 @@ describe("registry", function () {
     });
   });
 
-  describe("supportMarket() / isListed()", function () {
+  describe("addPool() / isListed()", function () {
     it("should only register once", async () => {
       it("reverts", async function () {
-        await registry.supportMarket(market1.address);
-        await expect(registry.supportMarket(market1.address)).to.revertedWith("ERROR: ALREADY_REGISTERED");
+        await registry.addPool(market1.address);
+        await expect(registry.addPool(market1.address)).to.revertedWith("ERROR: ALREADY_REGISTERED");
       });
     });
     it("msgSender should be either the factory address or the owner address", async () => {
       await registry.setFactory(factory.address);
-      await registry.supportMarket(market1.address);
-      await registry.connect(factory).supportMarket(market2.address);
-      await expect(registry.connect(alice).supportMarket(market3.address)).to.revertedWith(
-        "ERROR: UNAUTHORIZED_CALLER"
-      );
+      await registry.addPool(market1.address);
+      await registry.connect(factory).addPool(market2.address);
+      await expect(registry.connect(alice).addPool(market3.address)).to.revertedWith("ERROR: UNAUTHORIZED_CALLER");
     });
 
     it("market address should not be zero address", async () => {
-      await expect(registry.supportMarket(ZERO_ADDRESS)).to.revertedWith("ERROR: ZERO_ADDRESS");
+      await expect(registry.addPool(ZERO_ADDRESS)).to.revertedWith("ERROR: ZERO_ADDRESS");
     });
 
     it("should return true if registered", async () => {
-      await registry.supportMarket(market1.address);
+      await registry.addPool(market1.address);
       expect(await registry.isListed(market1.address)).to.equal(true);
       expect(await registry.isListed(market2.address)).to.equal(false);
     });
 
     it("should push data to all market array", async () => {
-      await registry.supportMarket(market1.address);
-      expect(await registry.getAllMarkets()).to.deep.equal([market1.address]);
+      await registry.addPool(market1.address);
+      expect(await registry.getAllPools()).to.deep.equal([market1.address]);
     });
   });
 

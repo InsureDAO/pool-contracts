@@ -19,9 +19,9 @@ contract Registry is IRegistry {
     address public factory;
 
     mapping(address => address) reserve; //index => reserve
-    mapping(address => bool) markets; //true if the market is registered
+    mapping(address => bool) pools; //true if the pool is registered
     mapping(address => mapping(address => bool)) existence; //true if the certain id is already registered in market
-    address[] allMarkets;
+    address[] poolList;
 
     IOwnership public immutable ownership;
 
@@ -39,7 +39,7 @@ contract Registry is IRegistry {
      * @notice Set the factory address and allow it to regiser a new market
      * @param _factory factory address
      */
-    function setFactory(address _factory) external override onlyOwner {
+    function setFactory(address _factory) external onlyOwner {
         require(_factory != address(0), "ERROR: ZERO_ADDRESS");
 
         factory = _factory;
@@ -48,16 +48,16 @@ contract Registry is IRegistry {
 
     /**
      * @notice Register a new market.
-     * @param _market market address to register
+     * @param _pool pool address to register
      */
-    function supportMarket(address _market) external override {
-        require(!markets[_market], "ERROR: ALREADY_REGISTERED");
+    function addPool(address _pool) external {
+        require(!pools[_pool], "ERROR: ALREADY_REGISTERED");
         require(msg.sender == factory || msg.sender == ownership.owner(), "ERROR: UNAUTHORIZED_CALLER");
-        require(_market != address(0), "ERROR: ZERO_ADDRESS");
+        require(_pool != address(0), "ERROR: ZERO_ADDRESS");
 
-        allMarkets.push(_market);
-        markets[_market] = true;
-        emit NewMarketRegistered(_market);
+        poolList.push(_pool);
+        pools[_pool] = true;
+        emit NewMarketRegistered(_pool);
     }
 
     /**
@@ -65,7 +65,7 @@ contract Registry is IRegistry {
      * @param _template template address
      * @param _target target address
      */
-    function setExistence(address _template, address _target) external override {
+    function setExistence(address _template, address _target) external {
         require(msg.sender == factory || msg.sender == ownership.owner(), "ERROR: UNAUTHORIZED_CALLER");
 
         existence[_template][_target] = true;
@@ -77,7 +77,7 @@ contract Registry is IRegistry {
      * @param _address address to set Reserve
      * @param _reserve Reserve contract address
      */
-    function setReserve(address _address, address _reserve) external override onlyOwner {
+    function setReserve(address _address, address _reserve) external onlyOwner {
         require(_reserve != address(0), "ERROR: ZERO_ADDRESS");
 
         reserve[_address] = _reserve;
@@ -89,7 +89,7 @@ contract Registry is IRegistry {
      * @param _address address covered by Reserve
      * @return Reserve contract address
      */
-    function getReserve(address _address) external view override returns (address) {
+    function getReserve(address _address) external view returns (address) {
         address _addr = reserve[_address];
         if (_addr == address(0)) {
             return reserve[address(0)];
@@ -104,7 +104,7 @@ contract Registry is IRegistry {
      * @param _target target address
      * @return true if the id within the market already exists
      */
-    function confirmExistence(address _template, address _target) external view override returns (bool) {
+    function confirmExistence(address _template, address _target) external view returns (bool) {
         return existence[_template][_target];
     }
 
@@ -113,15 +113,15 @@ contract Registry is IRegistry {
      * @param _market market address to inquire
      * @return true if listed
      */
-    function isListed(address _market) external view override returns (bool) {
-        return markets[_market];
+    function isListed(address _market) external view returns (bool) {
+        return pools[_market];
     }
 
     /**
      * @notice Get all market
-     * @return all markets
+     * @return all pools
      */
-    function getAllMarkets() external view returns (address[] memory) {
-        return allMarkets;
+    function getAllPools() external view returns (address[] memory) {
+        return poolList;
     }
 }

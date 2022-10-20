@@ -175,11 +175,11 @@ describe("Index", function () {
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
-    await parameters.setGrace(ZERO_ADDRESS, DAY.mul("3"));
-    await parameters.setLockup(ZERO_ADDRESS, WEEK);
-    await parameters.setWithdrawable(ZERO_ADDRESS, WEEK.mul(2));
-    await parameters.setMaxDate(ZERO_ADDRESS, YEAR);
-    await parameters.setMinDate(ZERO_ADDRESS, WEEK);
+    await parameters.setUnlockGracePeriod(ZERO_ADDRESS, DAY.mul("3"));
+    await parameters.setRequestDuration(ZERO_ADDRESS, WEEK);
+    await parameters.setWithdrawableDuration(ZERO_ADDRESS, WEEK.mul(2));
+    await parameters.setMaxInsureSpan(ZERO_ADDRESS, YEAR);
+    await parameters.setMinInsureSpan(ZERO_ADDRESS, WEEK);
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
     await parameters.setVault(usdc.address, vault.address);
     await parameters.setMaxList(ZERO_ADDRESS, "10");
@@ -210,14 +210,14 @@ describe("Index", function () {
       [usdc.address, registry.address, parameters.address]
     );
 
-    let markets = await registry.getAllMarkets();
-    market1 = await MarketTemplate.attach(markets[0]);
-    market2 = await MarketTemplate.attach(markets[1]);
-    market3 = await MarketTemplate.attach(markets[2]);
-    market4 = await MarketTemplate.attach(markets[3]);
-    market5 = await MarketTemplate.attach(markets[4]);
-    reserve = await ReserveTemplate.attach(markets[5]);
-    index = await IndexTemplate.attach(markets[6]);
+    let pools = await registry.getAllPools();
+    market1 = await MarketTemplate.attach(pools[0]);
+    market2 = await MarketTemplate.attach(pools[1]);
+    market3 = await MarketTemplate.attach(pools[2]);
+    market4 = await MarketTemplate.attach(pools[3]);
+    market5 = await MarketTemplate.attach(pools[4]);
+    reserve = await ReserveTemplate.attach(pools[5]);
+    index = await IndexTemplate.attach(pools[6]);
 
     await registry.setReserve(ZERO_ADDRESS, reserve.address); //default Reserve
 

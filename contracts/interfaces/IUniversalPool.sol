@@ -1,6 +1,6 @@
 pragma solidity 0.8.12;
 
-interface IUniversalMarket {
+interface IUniversalPool {
     function initialize(
         address _depositor,
         string calldata _metaData,

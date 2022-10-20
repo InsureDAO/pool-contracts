@@ -2,7 +2,7 @@ pragma solidity 0.8.12;
 /**
  * @title FlatPremium
  * @author @InsureDAO
- * @notice Flat Premium Calculator for single pool
+ * @notice General Flat Premium Calculator
  * SPDX-License-Identifier: GPL-3.0
  */
 
@@ -13,7 +13,8 @@ contract FlatPremium is IPremiumModel {
     IOwnership public immutable ownership;
 
     //variables
-    uint256 public rate;
+    mapping(address => uint256) public rates;
+
     uint256 public constant MAX_RATE = 1e6;
     uint256 private constant RATE_DENOMINATOR = 1e6;
 
@@ -22,57 +23,60 @@ contract FlatPremium is IPremiumModel {
         _;
     }
 
-    constructor(address _ownership) {
+    constructor(address _ownership, uint256 _defaultRate) {
         require(_ownership != address(0), "zero address");
+        require(_defaultRate != 0, "rate is zero");
+
         ownership = IOwnership(_ownership);
+        rates[address(0)] = _defaultRate;
     }
 
-    function getCurrentPremiumRate(uint256 _totalLiquidity, uint256 _lockedAmount)
+    function getCurrentPremiumRate(address _market, uint256 _totalLiquidity, uint256 _lockedAmount)
         external
         view
-        override
         returns (uint256)
     {
-        return rate;
+        return _getRate(_market);
     }
 
-    function getPremiumRate(
-        uint256 _amount,
-        uint256 _totalLiquidity,
-        uint256 _lockedAmount
-    ) public view override returns (uint256) {
-        return rate;
+    function getPremiumRate(address _market, uint256 _amount, uint256 _totalLiquidity, uint256 _lockedAmount)
+        public
+        view
+        returns (uint256)
+    {
+        return _getRate(_market);
     }
 
-    function getPremium(
-        uint256 _amount,
-        uint256 _term,
-        uint256 _totalLiquidity,
-        uint256 _lockedAmount
-    ) external view override returns (uint256) {
+    function getPremium(address _market, uint256 _amount, uint256 _term, uint256 _totalLiquidity, uint256 _lockedAmount)
+        external
+        view
+        returns (uint256)
+    {
         require(_amount + _lockedAmount <= _totalLiquidity, "Amount exceeds total liquidity");
 
         if (_amount == 0) {
             return 0;
         }
 
-        uint256 premium = (_amount * rate * _term) / 365 days / RATE_DENOMINATOR;
+        uint256 premium = (_amount * _getRate(_market) * _term) / 365 days / RATE_DENOMINATOR;
 
         return premium;
     }
 
-    /**
-     * @notice Set a premium model
-     * @param _rate new rate
-     */
-    function setPremiumParameters(
-        uint256 _rate,
-        uint256 _a_zero,
-        uint256 _b_zero,
-        uint256 _c_zero
-    ) external override onlyOwner {
-        require(_rate < MAX_RATE && _a_zero == 0 && _b_zero == 0 && _c_zero == 0, "input invalid number");
+    function setRate(address _market, uint256 _rate) external onlyOwner {
+        rates[_market] = _rate;
+    }
 
-        rate = _rate;
+    function getRate(address _market) external view returns (uint256) {
+        return _getRate(_market);
+    }
+
+    function _getRate(address _market) internal view returns (uint256) {
+        uint256 _rate = rates[_market];
+        if (_rate == 0) {
+            return rates[address(0)];
+        } else {
+            return _rate;
+        }
     }
 }

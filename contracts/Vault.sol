@@ -21,16 +21,16 @@ contract Vault is IVault {
      * Storage
      */
 
-    address public override token;
+    address public token;
     IController public controller;
     IRegistry public registry;
     IOwnership public immutable ownership;
 
-    mapping(address => uint256) public override debts;
+    mapping(address => uint256) public debts;
     mapping(address => uint256) public attributions;
     uint256 public totalAttributions;
 
-    uint256 public override balance; //balance of underlying token
+    uint256 public balance; //balance of underlying token
     uint256 public totalDebt; //total debt balance. 1debt:1token
 
     uint256 private constant MAGIC_SCALE_1E6 = 1e6; //internal multiplication scale 1e6 to reduce decimal truncation
@@ -52,12 +52,7 @@ contract Vault is IVault {
         _;
     }
 
-    constructor(
-        address _token,
-        address _registry,
-        address _controller,
-        address _ownership
-    ) {
+    constructor(address _token, address _registry, address _controller, address _ownership) {
         require(_token != address(0), "ERROR_ZERO_ADDRESS");
         require(_registry != address(0), "ERROR_ZERO_ADDRESS");
         require(_ownership != address(0), "ERROR_ZERO_ADDRESS");
@@ -86,7 +81,7 @@ contract Vault is IVault {
         address _from,
         address[2] calldata _beneficiaries,
         uint256[2] calldata _shares
-    ) external override onlyMarket returns (uint256[2] memory _allocations) {
+    ) external onlyMarket returns (uint256[2] memory _allocations) {
         require(_shares[0] + _shares[1] == 1000000, "ERROR_INCORRECT_SHARE");
 
         uint256 _attributions;
@@ -119,11 +114,11 @@ contract Vault is IVault {
      * @return _attributions attribution amount generated from the transaction
      */
 
-    function addValue(
-        uint256 _amount,
-        address _from,
-        address _beneficiary
-    ) external override onlyMarket returns (uint256 _attributions) {
+    function addValue(uint256 _amount, address _from, address _beneficiary)
+        external
+        onlyMarket
+        returns (uint256 _attributions)
+    {
         if (totalAttributions == 0) {
             _attributions = _amount;
         } else {
@@ -142,7 +137,7 @@ contract Vault is IVault {
      * @param _to address to get underlying tokens
      * @return _attributions amount of attributions burnet
      */
-    function withdrawValue(uint256 _amount, address _to) external override returns (uint256 _attributions) {
+    function withdrawValue(uint256 _amount, address _to) external returns (uint256 _attributions) {
         require(_to != address(0), "ERROR_ZERO_ADDRESS");
 
         uint256 _valueAll = valueAll();
@@ -180,7 +175,7 @@ contract Vault is IVault {
      * @param _destination reciepient of value
      */
 
-    function transferValue(uint256 _amount, address _destination) external override returns (uint256 _attributions) {
+    function transferValue(uint256 _amount, address _destination) external returns (uint256 _attributions) {
         require(_destination != address(0), "ERROR_ZERO_ADDRESS");
 
         uint256 _valueAll = valueAll();
@@ -199,7 +194,7 @@ contract Vault is IVault {
      * @param _amount borrow amount
      * @param _to borrower's address
      */
-    function borrowValue(uint256 _amount, address _to) external override onlyMarket {
+    function borrowValue(uint256 _amount, address _to) external onlyMarket {
         if (_amount != 0) {
             uint256 _available = available();
 
@@ -238,7 +233,7 @@ contract Vault is IVault {
      * @param _target borrower's address
      */
 
-    function offsetDebt(uint256 _amount, address _target) external override returns (uint256 _attributions) {
+    function offsetDebt(uint256 _amount, address _target) external returns (uint256 _attributions) {
         uint256 _valueAll = valueAll();
         require(
             attributions[msg.sender] != 0 && underlyingValue(msg.sender, _valueAll) >= _amount,
@@ -257,7 +252,7 @@ contract Vault is IVault {
      * @param _amount debt amount to transfer
      * @dev will be called when Reserve could not afford when resume the market.
      */
-    function transferDebt(uint256 _amount) external override onlyMarket {
+    function transferDebt(uint256 _amount) external onlyMarket {
         if (_amount != 0) {
             debts[msg.sender] -= _amount;
             debts[address(0)] += _amount;
@@ -269,7 +264,7 @@ contract Vault is IVault {
      * @param _amount debt amount to repay
      * @param _target borrower's address
      */
-    function repayDebt(uint256 _amount, address _target) external override {
+    function repayDebt(uint256 _amount, address _target) external {
         uint256 _debt = debts[_target];
 
         if (_debt > _amount) {
@@ -290,7 +285,7 @@ contract Vault is IVault {
      * @param _to beneficiary's address
      * @return _retVal number of tokens withdrawn from the transaction
      */
-    function withdrawAttribution(uint256 _attribution, address _to) external override returns (uint256 _retVal) {
+    function withdrawAttribution(uint256 _attribution, address _to) external returns (uint256 _retVal) {
         require(_to != address(0), "ERROR_ZERO_ADDRESS");
 
         _retVal = _withdrawAttribution(_attribution, _to);
@@ -301,7 +296,7 @@ contract Vault is IVault {
      * @param _to beneficiary's address
      * @return _retVal number of tokens withdrawn from the transaction
      */
-    function withdrawAllAttribution(address _to) external override returns (uint256 _retVal) {
+    function withdrawAllAttribution(address _to) external returns (uint256 _retVal) {
         require(_to != address(0), "ERROR_ZERO_ADDRESS");
 
         _retVal = _withdrawAttribution(attributions[msg.sender], _to);
@@ -372,7 +367,7 @@ contract Vault is IVault {
      * @param _amount amount of attribution to transfer
      * @param _destination reciepient of attribution
      */
-    function transferAttribution(uint256 _amount, address _destination) external override {
+    function transferAttribution(uint256 _amount, address _destination) external {
         require(_destination != address(0), "ERROR_ZERO_ADDRESS");
 
         require(_amount != 0 && attributions[msg.sender] >= _amount, "TRANSFER-ATTRIBUTION_BADCONS");
@@ -389,7 +384,7 @@ contract Vault is IVault {
      * @return amount of attritbution
      */
 
-    function attributionOf(address _target) external view override returns (uint256) {
+    function attributionOf(address _target) external view returns (uint256) {
         return attributions[_target];
     }
 
@@ -406,7 +401,7 @@ contract Vault is IVault {
      * @param _attribution amount of attribution
      * @return token value of input attribution
      */
-    function attributionValue(uint256 _attribution) external view override returns (uint256) {
+    function attributionValue(uint256 _attribution) external view returns (uint256) {
         uint256 _totalAttributions = totalAttributions;
 
         if (_totalAttributions != 0 && _attribution != 0) {
@@ -419,7 +414,7 @@ contract Vault is IVault {
      * @param _target target address
      * @return token value of target address
      */
-    function underlyingValue(address _target) public view override returns (uint256) {
+    function underlyingValue(address _target) public view returns (uint256) {
         uint256 _valueAll = valueAll();
         uint256 attribution = attributions[_target];
 
@@ -509,7 +504,7 @@ contract Vault is IVault {
      * @param _token token address
      * @param _to beneficiary's address
      */
-    function withdrawRedundant(address _token, address _to) external override onlyOwner {
+    function withdrawRedundant(address _token, address _to) external onlyOwner {
         uint256 _balance = balance;
         uint256 _tokenBalance = IERC20(_token).balanceOf(address(this));
         if (_token == token && _balance < _tokenBalance) {
@@ -532,7 +527,7 @@ contract Vault is IVault {
      * @notice admin function to set controller address
      * @param _controller address of the controller
      */
-    function setController(address _controller) external override onlyOwner {
+    function setController(address _controller) external onlyOwner {
         require(_controller != address(0), "ERROR_ZERO_ADDRESS");
 
         if (address(controller) != address(0)) {

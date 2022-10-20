@@ -66,11 +66,11 @@ describe("Factory", function () {
     await parameters.setFeeRate(ZERO_ADDRESS, "10000");
     await parameters.setLowerSlack(ZERO_ADDRESS, "500");
     await parameters.setUpperSlack(ZERO_ADDRESS, "500");
-    await parameters.setGrace(ZERO_ADDRESS, "259200");
-    await parameters.setLockup(ZERO_ADDRESS, "604800");
-    await parameters.setMinDate(ZERO_ADDRESS, "604800");
+    await parameters.setUnlockGracePeriod(ZERO_ADDRESS, "259200");
+    await parameters.setRequestDuration(ZERO_ADDRESS, "604800");
+    await parameters.setMinInsureSpan(ZERO_ADDRESS, "604800");
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
-    await parameters.setWithdrawable(ZERO_ADDRESS, "2592000");
+    await parameters.setWithdrawableDuration(ZERO_ADDRESS, "2592000");
     
     await parameters.setMaxList(ZERO_ADDRESS, "10");
 
@@ -80,7 +80,7 @@ describe("Factory", function () {
       [0,0],
       [dai.address, dai.address, registry.address, parameters.address]
     );
-    const marketAddress = await factory.markets(0);
+    const marketAddress = await factory.pools(0);
     market = await MarketTemplate.attach(marketAddress);
     */
   });

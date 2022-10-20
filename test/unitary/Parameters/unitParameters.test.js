@@ -73,6 +73,8 @@ describe("Parameters", function () {
       //detailed tests for the premium model, please see ../PremiumModels
       it("should allow setting by the admin address", async () => {
         await parameters.setPremiumModel(TEST_ADDRESS, premiumModel.address);
+
+        expect(await parameters.getPremiumModel(TEST_ADDRESS)).to.equal(premiumModel.address);
       });
 
       it("should only allow setting attempt by the admin", async () => {
@@ -82,6 +84,8 @@ describe("Parameters", function () {
       });
       it("should return the dafault value if the address not registered", async () => {
         await parameters.setPremiumModel(ZERO_ADDRESS, premiumModel.address);
+
+        expect(await parameters.getPremiumModel(TEST_ADDRESS)).to.equal(premiumModel.address);
         expect(await parameters.getPremium(10000, 100, 100, 100, TEST_ADDRESS)).to.equal(1000);
       });
 
@@ -91,119 +95,119 @@ describe("Parameters", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setPremiumModel(TEST_ADDRESS, TEST_ADDRESS)).to.emit(parameters, "PremiumSet");
+        await expect(parameters.setPremiumModel(TEST_ADDRESS, TEST_ADDRESS)).to.emit(parameters, "PremiumModelSet");
       });
     });
 
-    describe("setLockup", function () {
+    describe("setRequestDuration", function () {
       it("should allow setting by the admin address", async () => {
-        await parameters.setLockup(TEST_ADDRESS, 86400);
-        expect(await parameters.getLockup(TEST_ADDRESS)).to.equal(86400);
+        await parameters.setRequestDuration(TEST_ADDRESS, 86400);
+        expect(await parameters.getRequestDuration(TEST_ADDRESS)).to.equal(86400);
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await expect(parameters.connect(alice).setLockup(TEST_ADDRESS, 86400)).to.revertedWith(
+        await expect(parameters.connect(alice).setRequestDuration(TEST_ADDRESS, 86400)).to.revertedWith(
           "Caller is not allowed to operate"
         );
       });
 
       it("should return the dafault value if the address not registered", async () => {
-        await parameters.setLockup(ZERO_ADDRESS, 86400);
-        expect(await parameters.getLockup(TEST_ADDRESS)).to.equal(86400);
+        await parameters.setRequestDuration(ZERO_ADDRESS, 86400);
+        expect(await parameters.getRequestDuration(TEST_ADDRESS)).to.equal(86400);
       });
 
       it("should return the value if registered", async () => {
-        await parameters.setLockup(NULL_ADDRESS, 86400);
-        expect(await parameters.getLockup(NULL_ADDRESS)).to.equal(86400);
+        await parameters.setRequestDuration(NULL_ADDRESS, 86400);
+        expect(await parameters.getRequestDuration(NULL_ADDRESS)).to.equal(86400);
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setLockup(TEST_ADDRESS, 86400)).to.emit(parameters, "LockupSet");
+        await expect(parameters.setRequestDuration(TEST_ADDRESS, 86400)).to.emit(parameters, "RequestDurationSet");
       });
     });
 
-    describe("setGrace", function () {
+    describe("setUnlockGracePeriod", function () {
       it("should allow setting by the admin address", async () => {
-        await parameters.setGrace(TEST_ADDRESS, 86400);
-        expect(await parameters.getGrace(TEST_ADDRESS)).to.equal(86400);
+        await parameters.setUnlockGracePeriod(TEST_ADDRESS, 86400);
+        expect(await parameters.getUnlockGracePeriod(TEST_ADDRESS)).to.equal(86400);
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await expect(parameters.connect(alice).setGrace(TEST_ADDRESS, 86400)).to.revertedWith(
+        await expect(parameters.connect(alice).setUnlockGracePeriod(TEST_ADDRESS, 86400)).to.revertedWith(
           "Caller is not allowed to operate"
         );
       });
 
       it("should return the dafault value if the address not registered", async () => {
-        await parameters.setGrace(ZERO_ADDRESS, 86400);
-        expect(await parameters.getGrace(TEST_ADDRESS)).to.equal(86400);
+        await parameters.setUnlockGracePeriod(ZERO_ADDRESS, 86400);
+        expect(await parameters.getUnlockGracePeriod(TEST_ADDRESS)).to.equal(86400);
       });
 
       it("should return the value if registered", async () => {
-        await parameters.setGrace(NULL_ADDRESS, 86400);
-        expect(await parameters.getGrace(NULL_ADDRESS)).to.equal(86400);
+        await parameters.setUnlockGracePeriod(NULL_ADDRESS, 86400);
+        expect(await parameters.getUnlockGracePeriod(NULL_ADDRESS)).to.equal(86400);
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setGrace(TEST_ADDRESS, 86400)).to.emit(parameters, "GraceSet");
+        await expect(parameters.setUnlockGracePeriod(TEST_ADDRESS, 86400)).to.emit(parameters, "UnlockGracePeriodSet");
       });
     });
 
-    describe("setMaxDate", function () {
+    describe("setMaxInsureSpan", function () {
       it("should allow setting by the admin address", async () => {
-        await parameters.setMaxDate(ZERO_ADDRESS, 604800);
-        expect(await parameters.getMaxDate(TEST_ADDRESS)).to.equal(604800);
+        await parameters.setMaxInsureSpan(ZERO_ADDRESS, 604800);
+        expect(await parameters.getMaxInsureSpan(TEST_ADDRESS)).to.equal(604800);
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await expect(parameters.connect(alice).setMaxDate(TEST_ADDRESS, 604800)).to.revertedWith(
+        await expect(parameters.connect(alice).setMaxInsureSpan(TEST_ADDRESS, 604800)).to.revertedWith(
           "Caller is not allowed to operate"
         );
       });
 
       it("should return the dafault value if the address not registered", async () => {
-        await parameters.setMaxDate(ZERO_ADDRESS, 604800);
-        expect(await parameters.getMaxDate(TEST_ADDRESS)).to.equal(604800);
+        await parameters.setMaxInsureSpan(ZERO_ADDRESS, 604800);
+        expect(await parameters.getMaxInsureSpan(TEST_ADDRESS)).to.equal(604800);
       });
 
       it("should return the value if registered", async () => {
-        await parameters.setMaxDate(NULL_ADDRESS, 604800);
-        expect(await parameters.getMaxDate(NULL_ADDRESS)).to.equal(604800);
+        await parameters.setMaxInsureSpan(NULL_ADDRESS, 604800);
+        expect(await parameters.getMaxInsureSpan(NULL_ADDRESS)).to.equal(604800);
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setMaxDate(TEST_ADDRESS, 604800)).to.emit(parameters, "MaxDateSet");
+        await expect(parameters.setMaxInsureSpan(TEST_ADDRESS, 604800)).to.emit(parameters, "MaxInsureSpanSet");
       });
     });
-    describe("setMinDate", function () {
+    describe("setMinInsureSpan", function () {
       it("should allow setting by the admin address", async () => {
-        await parameters.setMaxDate(TEST_ADDRESS, 604801);
-        await parameters.setMinDate(TEST_ADDRESS, 604800);
-        expect(await parameters.getMinDate(TEST_ADDRESS)).to.equal(604800);
+        await parameters.setMaxInsureSpan(TEST_ADDRESS, 604801);
+        await parameters.setMinInsureSpan(TEST_ADDRESS, 604800);
+        expect(await parameters.getMinInsureSpan(TEST_ADDRESS)).to.equal(604800);
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await parameters.setMaxDate(TEST_ADDRESS, 604801);
-        await expect(parameters.connect(alice).setMinDate(TEST_ADDRESS, 604800)).to.revertedWith(
+        await parameters.setMaxInsureSpan(TEST_ADDRESS, 604801);
+        await expect(parameters.connect(alice).setMinInsureSpan(TEST_ADDRESS, 604800)).to.revertedWith(
           "Caller is not allowed to operate"
         );
       });
 
       it("should return the dafault value if the address not registered", async () => {
-        await parameters.setMaxDate(ZERO_ADDRESS, 604801);
-        await parameters.setMinDate(ZERO_ADDRESS, 604800);
-        expect(await parameters.getMinDate(TEST_ADDRESS)).to.equal(604800);
+        await parameters.setMaxInsureSpan(ZERO_ADDRESS, 604801);
+        await parameters.setMinInsureSpan(ZERO_ADDRESS, 604800);
+        expect(await parameters.getMinInsureSpan(TEST_ADDRESS)).to.equal(604800);
       });
 
       it("should return the value if registered", async () => {
-        await parameters.setMaxDate(NULL_ADDRESS, 604801);
-        await parameters.setMinDate(NULL_ADDRESS, 604800);
-        expect(await parameters.getMinDate(NULL_ADDRESS)).to.equal(604800);
+        await parameters.setMaxInsureSpan(NULL_ADDRESS, 604801);
+        await parameters.setMinInsureSpan(NULL_ADDRESS, 604800);
+        expect(await parameters.getMinInsureSpan(NULL_ADDRESS)).to.equal(604800);
       });
 
       it("should emit the event", async () => {
-        await parameters.setMaxDate(TEST_ADDRESS, 604801);
-        await expect(parameters.setMinDate(TEST_ADDRESS, 604800)).to.emit(parameters, "MinDateSet");
+        await parameters.setMaxInsureSpan(TEST_ADDRESS, 604801);
+        await expect(parameters.setMinInsureSpan(TEST_ADDRESS, 604800)).to.emit(parameters, "MinInsureSpanSet");
       });
     });
 
@@ -230,7 +234,7 @@ describe("Parameters", function () {
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setUpperSlack(TEST_ADDRESS, 5000)).to.emit(parameters, "UpperSlack");
+        await expect(parameters.setUpperSlack(TEST_ADDRESS, 5000)).to.emit(parameters, "UpperSlackSet");
       });
     });
 
@@ -262,33 +266,36 @@ describe("Parameters", function () {
 
       it("should emit the event", async () => {
         await parameters.setUpperSlack(TEST_ADDRESS, 6000);
-        await expect(parameters.setLowerSlack(TEST_ADDRESS, 5000)).to.emit(parameters, "LowerSlack");
+        await expect(parameters.setLowerSlack(TEST_ADDRESS, 5000)).to.emit(parameters, "LowerSlackSet");
       });
     });
-    describe("setWithdrawable", function () {
+    describe("setWithdrawableDuration", function () {
       it("should allow setting by the admin address", async () => {
-        await parameters.setWithdrawable(TEST_ADDRESS, 604800);
-        expect(await parameters.getWithdrawable(TEST_ADDRESS)).to.equal(604800);
+        await parameters.setWithdrawableDuration(TEST_ADDRESS, 604800);
+        expect(await parameters.getWithdrawableDuration(TEST_ADDRESS)).to.equal(604800);
       });
 
       it("should only allow setting attempt by the admin", async () => {
-        await expect(parameters.connect(alice).setWithdrawable(TEST_ADDRESS, 604800)).to.revertedWith(
+        await expect(parameters.connect(alice).setWithdrawableDuration(TEST_ADDRESS, 604800)).to.revertedWith(
           "Caller is not allowed to operate"
         );
       });
 
       it("should return the dafault value if the address not registered", async () => {
-        await parameters.setWithdrawable(ZERO_ADDRESS, 604800);
-        expect(await parameters.getWithdrawable(TEST_ADDRESS)).to.equal(604800);
+        await parameters.setWithdrawableDuration(ZERO_ADDRESS, 604800);
+        expect(await parameters.getWithdrawableDuration(TEST_ADDRESS)).to.equal(604800);
       });
 
       it("should return the value if registered", async () => {
-        await parameters.setWithdrawable(TEST_ADDRESS, 1000);
-        expect(await parameters.getWithdrawable(TEST_ADDRESS)).to.equal(1000);
+        await parameters.setWithdrawableDuration(TEST_ADDRESS, 1000);
+        expect(await parameters.getWithdrawableDuration(TEST_ADDRESS)).to.equal(1000);
       });
 
       it("should emit the event", async () => {
-        await expect(parameters.setWithdrawable(TEST_ADDRESS, 604800)).to.emit(parameters, "WithdrawableSet");
+        await expect(parameters.setWithdrawableDuration(TEST_ADDRESS, 604800)).to.emit(
+          parameters,
+          "WithdrawableDurationSet"
+        );
       });
     });
 

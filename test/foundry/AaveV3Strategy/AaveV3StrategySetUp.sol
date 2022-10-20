@@ -80,9 +80,9 @@ abstract contract AaveV3StrategySetUp is Test {
         vault.setController(address(strategy));
 
         // treated as market
-        registry.supportMarket(dealer);
-        registry.supportMarket(alice);
-        registry.supportMarket(bob);
+        registry.addPool(dealer);
+        registry.addPool(alice);
+        registry.addPool(bob);
         vm.stopPrank();
 
         deal(usdc, dealer, 1_000_000 * 1e6);

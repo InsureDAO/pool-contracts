@@ -639,12 +639,12 @@ describe("Pool", function () {
 
     //set default parameters
     await parameters.setFeeRate(ZERO_ADDRESS, governanceFeeRate);
-    await parameters.setGrace(ZERO_ADDRESS, "259200");
-    await parameters.setLockup(ZERO_ADDRESS, "604800");
-    await parameters.setMaxDate(ZERO_ADDRESS, YEAR);
-    await parameters.setMinDate(ZERO_ADDRESS, "604800");
+    await parameters.setUnlockGracePeriod(ZERO_ADDRESS, "259200");
+    await parameters.setRequestDuration(ZERO_ADDRESS, "604800");
+    await parameters.setMaxInsureSpan(ZERO_ADDRESS, YEAR);
+    await parameters.setMinInsureSpan(ZERO_ADDRESS, "604800");
     await parameters.setPremiumModel(ZERO_ADDRESS, premium.address);
-    await parameters.setWithdrawable(ZERO_ADDRESS, "2592000");
+    await parameters.setWithdrawableDuration(ZERO_ADDRESS, "2592000");
     await parameters.setVault(usdc.address, vault.address);
 
     let tx = await factory.createMarket(
@@ -867,7 +867,7 @@ describe("Pool", function () {
           incidentTimestamp: incident,
         });
 
-        await expect(market.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: DEPOSIT_DISABLED");
+        await expect(market.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: Payingout");
       });
 
       it("fail when amount is not more than zero", async () => {
@@ -1353,7 +1353,7 @@ describe("Pool", function () {
       await market.setPaused(true);
 
       await usdc.connect(alice).approve(vault.address, depositAmount);
-      await expect(market.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: DEPOSIT_DISABLED");
+      await expect(market.connect(alice).deposit(depositAmount)).to.revertedWith("ERROR: PAUSED");
 
       await moveForwardPeriods(8);
 

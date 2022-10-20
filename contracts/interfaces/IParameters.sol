@@ -3,19 +3,19 @@ pragma solidity 0.8.12;
 interface IParameters {
     function setVault(address _token, address _vault) external;
 
-    function setLockup(address _address, uint256 _target) external;
+    function setRequestDuration(address _address, uint256 _target) external;
 
-    function setGrace(address _address, uint256 _target) external;
+    function setUnlockGracePeriod(address _address, uint256 _target) external;
 
-    function setMaxDate(address _address, uint256 _target) external;
+    function setMaxInsureSpan(address _address, uint256 _target) external;
 
-    function setMinDate(address _address, uint256 _target) external;
+    function setMinInsureSpan(address _address, uint256 _target) external;
 
     function setUpperSlack(address _address, uint256 _target) external;
 
     function setLowerSlack(address _address, uint256 _target) external;
 
-    function setWithdrawable(address _address, uint256 _target) external;
+    function setWithdrawableDuration(address _address, uint256 _target) external;
 
     function setPremiumModel(address _address, address _target) external;
 
@@ -43,17 +43,19 @@ interface IParameters {
 
     function getLowerSlack(address _target) external view returns (uint256);
 
-    function getLockup(address _target) external view returns (uint256);
+    function getRequestDuration(address _target) external view returns (uint256);
 
-    function getWithdrawable(address _target) external view returns (uint256);
+    function getWithdrawableDuration(address _target) external view returns (uint256);
 
-    function getGrace(address _target) external view returns (uint256);
+    function getUnlockGracePeriod(address _target) external view returns (uint256);
 
-    function getMaxDate(address _target) external view returns (uint256);
+    function getMaxInsureSpan(address _target) external view returns (uint256);
 
-    function getMinDate(address _target) external view returns (uint256);
+    function getMinInsureSpan(address _target) external view returns (uint256);
 
     function getMaxList(address _target) external view returns (uint256);
 
     function getCondition(bytes32 _reference) external view returns (bytes32);
+
+    function getPremiumModel(address _market) external view returns (address);
 }
