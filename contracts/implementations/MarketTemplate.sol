@@ -446,14 +446,10 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
      * @param _target Insurance type id. eg Smart Contract Hacking Cover = 0x00..00
      * @return id of the insurance policy
      */
-    function insure(
-        uint256 _amount,
-        uint256 _maxCost,
-        uint256 _span,
-        bytes32 _target,
-        address _for,
-        address _agent
-    ) external returns (uint256) {
+    function insure(uint256 _amount, uint256 _maxCost, uint256 _span, bytes32 _target, address _for, address _agent)
+        external
+        returns (uint256)
+    {
         require(!paused, "ERROR: INSURE_MARKET_PAUSED");
         require(_for != address(0), "ERROR: ZERO_ADDRESS");
         require(_agent != address(0), "ERROR: ZERO_ADDRESS");
@@ -518,11 +514,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
      * @param _merkleProof merkle proof (similar to "verify" function of MerkleProof.sol of OpenZeppelin
      * Ref: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/MerkleProof.sol
      */
-    function redeem(
-        uint256 _id,
-        uint256 _loss,
-        bytes32[] calldata _merkleProof
-    ) external {
+    function redeem(uint256 _id, uint256 _loss, bytes32[] calldata _merkleProof) external {
         require(marketStatus == MarketStatus.Payingout, "ERROR: NO_APPLICABLE_INCIDENT");
 
         Insurance memory _insurance = insurances[_id];
@@ -622,11 +614,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
         emit MarketStatusChanged(MarketStatus.Payingout);
     }
 
-    function applyBounty(
-        uint256 _amount,
-        address _contributor,
-        uint256[] calldata _ids
-    ) external override onlyOwner {
+    function applyBounty(uint256 _amount, address _contributor, uint256[] calldata _ids) external override onlyOwner {
         require(marketStatus == MarketStatus.Trading, "ERROR: NOT_TRADING_STATUS");
 
         //borrow value just like redeem()
@@ -718,10 +706,10 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
      */
     function rate() external view returns (uint256) {
         uint256 _supply = totalSupply();
-        uint256 originalLiquidity = originalLiquidity();
+        uint256 _originalLiquidity = originalLiquidity();
 
-        if (originalLiquidity != 0 && _supply != 0) {
-            return (originalLiquidity * MAGIC_SCALE_1E6) / _supply;
+        if (_originalLiquidity != 0 && _supply != 0) {
+            return (_originalLiquidity * MAGIC_SCALE_1E6) / _supply;
         } else {
             return 0;
         }
@@ -864,11 +852,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalMarket {
      * @param to a
      * @param amount the amount of tokens to offset
      */
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual override {
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         super._beforeTokenTransfer(from, to, amount);
 
         if (from != address(0)) {

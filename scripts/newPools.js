@@ -32,7 +32,6 @@ async function main() {
   const Registry = await ethers.getContractFactory("Registry");
   const Factory = await ethers.getContractFactory("Factory");
   const Parameters = await ethers.getContractFactory("Parameters");
-  const PremiumV1 = await ethers.getContractFactory("FlatPremium");
 
   const registry = Registry.attach(RegistryAddress);
   const factory = Factory.attach(FactoryAddress);
@@ -52,12 +51,14 @@ async function main() {
     const marketAddress = await (async () => {
       try {
         console.log(`start deploying pool for ${pool.tokenAddress}...`);
-        const createMarket = await factory.connect(manager).createMarket(
-          marketTemplateAddress,
-          "0x",
-          [0, 0],
-          [pool.tokenAddress, USDC_ADDRESS, registry.address, parameters.address] // set minimum and initial deposit amount to 0
-        );
+        const createMarket = await factory
+          .connect(manager)
+          .createMarket(
+            marketTemplateAddress,
+            "0x",
+            [0, 0],
+            [pool.tokenAddress, USDC_ADDRESS, registry.address, parameters.address]
+          );
 
         const receipt = await createMarket.wait();
 
@@ -72,18 +73,6 @@ async function main() {
     })();
 
     if (!marketAddress) throw new Error(`An error occurred while deploying the token address: ${pool.tokenAddress}`);
-
-    // deploy premium model for pool
-    const premium = await PremiumV1.connect(manager).deploy(OwnershipAddress);
-    await premium.deployed();
-
-    // setting premium rate
-    const setParameter = await parameters.connect(manager).setPremiumModel(marketAddress, premium.address);
-    await setParameter.wait();
-
-    const rate = BigNumber.from((PREMIUM_RATE_BASE * pool.rate) / 100);
-    const setPremium = await premium.setPremiumParameters(rate.toString(), "0", "0", "0");
-    await setPremium.wait();
 
     console.log(
       `new pool for ${

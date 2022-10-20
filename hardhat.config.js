@@ -5,21 +5,6 @@ require("hardhat-contract-sizer");
 require("@nomiclabs/hardhat-etherscan");
 require("dotenv").config();
 
-const {
-  TEST_KEY,
-  DEPLOY_KEY,
-  CONTROL_KEY,
-
-  ASTAR_URL,
-  MUMBAI_URL,
-  GOERLI_URL,
-
-  INFURA_KEY,
-  ETHERSCAN_API,
-  OPT_ETHERSCAN_API,
-  FORK_URL,
-} = process.env;
-
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
@@ -50,28 +35,32 @@ module.exports = {
       */
     },
     mainnet: {
-      url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
-      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROL_KEY}`],
+      url: `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
+      accounts: [`0x${process.env.DEPLOY_KEY}`, `0x${process.env.CONTROL_KEY}`],
       gas: 6e6,
       gasPrice: 8e10, //80Gwei
       timeout: 2000000000,
     },
     astar: {
-      url: ASTAR_URL,
-      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROL_KEY}`],
-      gasPrice: 3e9, //3Gwei
+      url: process.env.ASTAR_URL,
+      accounts: [`0x${process.env.DEPLOY_KEY}`, `0x${process.env.CONTROL_KEY}`],
+      gasPrice: 3e9,
     },
     optimisticEthereum: {
-      url: `https://optimism-mainnet.infura.io/v3/${INFURA_KEY}`,
-      accounts: [`0x${DEPLOY_KEY}`, `0x${CONTROL_KEY}`],
+      url: `https://optimism-mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
+      accounts: [`0x${process.env.DEPLOY_KEY}`, `0x${process.env.CONTROL_KEY}`],
     },
     goerli: {
-      url: GOERLI_URL,
-      accounts: [`0x${TEST_KEY}`],
+      url: process.env.GOERLI_URL,
+      accounts: [`0x${process.env.TEST_KEY}`],
+    },
+    optimisticGoerli: {
+      url: process.env.OP_GOERLI_URL,
+      accounts: [`0x${process.env.TEST_KEY}`],
     },
     mumbai: {
-      url: MUMBAI_URL,
-      accounts: [`0x${TEST_KEY}`],
+      url: process.env.MUMBAI_URL,
+      accounts: [`0x${process.env.TEST_KEY}`],
     },
   },
   paths: {
@@ -87,8 +76,9 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      mainnet: `${ETHERSCAN_API}`,
-      optimisticEthereum: `${OPT_ETHERSCAN_API}`,
+      mainnet: `${process.env.ETHERSCAN_API}`,
+      optimisticEthereum: `${process.env.OPT_ETHERSCAN_API}`,
+      optimisticGoerli: `${process.env.OPT_ETHERSCAN_API}`,
     },
   },
   mocha: {
