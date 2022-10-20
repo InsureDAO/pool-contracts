@@ -35,7 +35,7 @@ module.exports = {
       */
     },
     mainnet: {
-      url: `https://mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
+      url: `${process.env.MAINNET_URL}`,
       accounts: [`0x${process.env.DEPLOY_KEY}`, `0x${process.env.CONTROL_KEY}`],
       gas: 6e6,
       gasPrice: 8e10, //80Gwei
@@ -47,7 +47,7 @@ module.exports = {
       gasPrice: 3e9,
     },
     optimisticEthereum: {
-      url: `https://optimism-mainnet.infura.io/v3/${process.env.INFURA_KEY}`,
+      url: `${process.env.OPTIMISM_URL}`,
       accounts: [`0x${process.env.DEPLOY_KEY}`, `0x${process.env.CONTROL_KEY}`],
     },
     goerli: {
