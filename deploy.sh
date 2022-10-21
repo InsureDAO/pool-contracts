@@ -1,5 +1,7 @@
 echo 'running build.sh'
 
+npx hardhat clean
+
 if [ -z "$NETWORK" ]; then
   echo "ERROR: NETWORK environment variable required"
   exit 1

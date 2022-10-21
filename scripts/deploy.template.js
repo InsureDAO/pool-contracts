@@ -11,9 +11,9 @@ async function main() {
 
   [creator] = await ethers.getSigners();
 
+  const DEFAULT_RATE = 1e6;
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
   const USDC_ADDRESS = "{{USDC_ADDRESS}}";
-  const TokenList = ["{{TokenList}}"];
 
   const Params = {
     FeeRate: "{{Params.FeeRate}}",
@@ -36,6 +36,21 @@ async function main() {
     OptimalUtilizeRatio: "{{PMV3.OptimalUtilizeRatio}}",
   };
 
+
+  /* eslint-disable */
+  const LaunchMarkets = [
+    {{#LaunchPools.markets}}
+    {name:"{{name}}", address: "{{address}}"},
+    {{/LaunchPools.markets}}
+  ];
+  //
+  const LaunchIndicies = [
+    {{#LaunchPools.indicies}}
+    {name:"{{name}}", poolListIndex: [ {{#markets}} {{.}}, {{/markets}} ]},
+    {{/LaunchPools.indicies}}
+  ];
+  /* eslint-enable */
+
   const USDC = await ethers.getContractFactory("ERC20Mock");
   const Ownership = await ethers.getContractFactory("Ownership");
   const MarketTemplate = await ethers.getContractFactory("MarketTemplate");
@@ -47,29 +62,38 @@ async function main() {
   const PremiumModelV3 = await ethers.getContractFactory("PremiumModelV3");
   const Parameters = await ethers.getContractFactory("Parameters");
 
-  const usdc = await USDC.attach(USDC_ADDRESS);
-  console.log("usdc attached to:", usdc.address);
+  let usdc;
+  if(USDC_ADDRESS == ZERO_ADDRESS){
+    usdc = await USDC.deploy(creator.address);
+    await usdc.deployed();
+    console.log("\x1b[32m usdc deployed to:", usdc.address);
+  }else{
+    usdc = await USDC.attach(USDC_ADDRESS);
+    console.log("usdc attached to:", usdc.address);
+  }
+
+  
 
   //----- DEPLOY -----//
   const ownership = await Ownership.deploy();
   await ownership.deployed();
-  console.log("ownership deployed to:", ownership.address);
+  console.log("\x1b[32m ownership deployed to:", ownership.address);
 
   const registry = await Registry.deploy(ownership.address);
   await registry.deployed();
-  console.log("registry deployed to:", registry.address);
+  console.log(" registry deployed to:", registry.address);
 
   const factory = await Factory.deploy(registry.address, ownership.address);
   await factory.deployed();
-  console.log("factory deployed to:", factory.address);
+  console.log(" factory deployed to:", factory.address);
 
   const parameters = await Parameters.deploy(ownership.address);
   await parameters.deployed();
-  console.log("parameters deployed to:", parameters.address);
+  console.log(" parameters deployed to:", parameters.address);
 
   const vault = await Vault.deploy(usdc.address, registry.address, ZERO_ADDRESS, ownership.address);
   await vault.deployed();
-  console.log("vault deployed to:", vault.address);
+  console.log(" vault deployed to:", vault.address);
 
   //premiumV3
   const premium = await PremiumModelV3.deploy(
@@ -81,7 +105,7 @@ async function main() {
   );
   await premium.deployed();
 
-  console.log("PremiumModel deployed to:", premium.address);
+  console.log(" PremiumModel deployed to:", premium.address);
 
   //----- SETUP -----//
   let tx = await registry.setFactory(factory.address);
@@ -90,7 +114,7 @@ async function main() {
   //MarketTemplates
   const marketTemplate = await MarketTemplate.deploy();
   await marketTemplate.deployed();
-  console.log("marketTemplate deployed to:", marketTemplate.address);
+  console.log(" marketTemplate deployed to:", marketTemplate.address);
 
   tx = await factory.approveTemplate(marketTemplate.address, true, true, false); //approval, isOpen, allowDuplicate
   await tx.wait();
@@ -110,7 +134,7 @@ async function main() {
   //IndexTemplate
   const indexTemplate = await IndexTemplate.deploy();
   await indexTemplate.deployed();
-  console.log("indexTemplate deployed to:", indexTemplate.address);
+  console.log(" indexTemplate deployed to:", indexTemplate.address);
 
   tx = await factory.approveTemplate(indexTemplate.address, true, false, true); //approval, isOpen, allowDuplicate
   await tx.wait();
@@ -128,7 +152,7 @@ async function main() {
   const reserveTemplate = await ReserveTemplate.deploy();
   await reserveTemplate.deployed();
 
-  console.log("reserveTemplate deployed to:", reserveTemplate.address);
+  console.log(" reserveTemplate deployed to:", reserveTemplate.address," \x1b[37m");
 
   tx = await factory.approveTemplate(reserveTemplate.address, true, false, true); //approval, isOpen, allowDuplicate
   await tx.wait();
@@ -178,6 +202,64 @@ async function main() {
   tx = await parameters.setLowerSlack(ZERO_ADDRESS, Params.LowerSlack);
   await tx.wait();
 
+  
+  //Deploy Markets and Indicies if applicable
+  let markets = [];
+
+  for (const info of LaunchMarkets) {
+      console.log(`Deploying market for ${info.name}: ${info.address.slice(0,5)}..${info.address.slice(-3)}`);
+
+      const createMarket = await factory.createMarket(
+        marketTemplate.address,
+        info.name,
+        [0, 0],
+        [info.address, usdc.address, registry.address, parameters.address]
+      );
+      const receipt = await createMarket.wait();
+
+      const marketCreatedEvent = receipt.events[2];
+      const marketAddress = marketCreatedEvent.args[0];
+
+      markets.push(marketAddress);
+      console.log(`\x1b[32m New market at ${marketAddress} \x1b[37m`);
+  }
+
+  for (const info of LaunchIndicies){
+      console.log(`Deploying index ${info.name}`);
+      const createIndex = await factory.createMarket(
+        indexTemplate.address,
+        info.name,
+        [0],
+        [usdc.address, registry.address, parameters.address]
+      );
+      const receipt = await createIndex.wait();
+      const marketCreated = receipt.events.find((event) => "event" in event && event.event === "MarketCreated");
+      const indexAddress = marketCreated.args[0];
+
+      console.log(`\x1b[32m New index at ${indexAddress} \x1b[37m`);
+
+      const index = await IndexTemplate.attach(indexAddress);
+
+      for(let i = 0; i<info.poolListIndex.length; i++){
+        console.log(`Set${i} market ${markets[i].slice(0,5)}..${markets[i].slice(-3)}`);
+
+        tx = await index["set(uint256,address,uint256)"](
+          i,
+          markets[i],
+          DEFAULT_RATE
+        )
+        await tx.wait();
+      }
+  }
+
+
+
+
+
+
+
+
+  {{#verify}}
   //Verification
   {
     await hre.run("verify:verify", {
@@ -231,6 +313,7 @@ async function main() {
       constructorArguments: [],
     });
   }
+  {{/verify}}
 
   const end = process.hrtime(start);
   console.log("✨ finished (%ds %dms)", end[0], end[1] / 100000);

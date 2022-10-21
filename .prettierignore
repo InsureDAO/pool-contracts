@@ -5,3 +5,4 @@ node_modules
 artifacts
 cache
 out
+scripts/deploy.template.js

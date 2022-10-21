@@ -54,6 +54,7 @@
     "cov:forge": "source scripts/test/check-coverage.sh",
     "prepare": "husky install",
     "deploy:goerli": "NETWORK=goerli ./deploy.sh",
-    "deploy:optimisticGoerli": "NETWORK=optimisticGoerli ./deploy.sh"
+    "deploy:optimisticGoerli": "NETWORK=optimisticGoerli ./deploy.sh",
+    "deploy:local": "NETWORK=hardhat ./deploy.sh"
   }
 }
