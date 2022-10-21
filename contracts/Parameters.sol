@@ -15,7 +15,7 @@ contract Parameters is IParameters {
     event VaultSet(address indexed token, address vault);
     event FeeRateSet(address indexed pool, uint256 rate);
     event RequestDurationSet(address indexed pool, uint256 duration);
-    event WithdrawableDurationSet(address indexed pool, uint256 time);
+    event WithdrawableDurationSet(address indexed pool, uint256 duration);
     event MaxListSet(address pool, uint256 max);
     event ConditionSet(bytes32 indexed ref, bytes32 condition);
 
@@ -210,26 +210,26 @@ contract Parameters is IParameters {
      * @param _term term length
      * @param _totalLiquidity liquidity of the target contract's pool
      * @param _lockedAmount locked amount of the total liquidity
-     * @param _target address of insurance market
+     * @param _market address of insurance market
      * @return premium amount
      */
-    function getPremium(uint256 _amount, uint256 _term, uint256 _totalLiquidity, uint256 _lockedAmount, address _target)
+    function getPremium(uint256 _amount, uint256 _term, uint256 _totalLiquidity, uint256 _lockedAmount, address _market)
         external
         view
         returns (uint256)
     {
-        address _targetPremium = _premiumModel[_target];
+        address _targetPremium = _premiumModel[_market];
         if (_targetPremium == address(0)) {
             return
                 IPremiumModel(_premiumModel[address(0)]).getPremium(
-                    _target,
+                    _market,
                     _amount,
                     _term,
                     _totalLiquidity,
                     _lockedAmount
                 );
         } else {
-            return IPremiumModel(_targetPremium).getPremium(_target, _amount, _term, _totalLiquidity, _lockedAmount);
+            return IPremiumModel(_targetPremium).getPremium(_market, _amount, _term, _totalLiquidity, _lockedAmount);
         }
     }
 
