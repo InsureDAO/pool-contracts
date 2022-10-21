@@ -36,8 +36,6 @@ async function main() {
     OptimalUtilizeRatio: "{{PMV3.OptimalUtilizeRatio}}",
   };
 
-
-  /* eslint-disable */
   const LaunchMarkets = [
     {{#LaunchPools.markets}}
     {name:"{{name}}", address: "{{address}}"},
@@ -49,7 +47,6 @@ async function main() {
     {name:"{{name}}", poolListIndex: [ {{#markets}} {{.}}, {{/markets}} ]},
     {{/LaunchPools.indicies}}
   ];
-  /* eslint-enable */
 
   const USDC = await ethers.getContractFactory("ERC20Mock");
   const Ownership = await ethers.getContractFactory("Ownership");
@@ -252,66 +249,95 @@ async function main() {
       }
   }
 
-
-
-
-
-
-
-
   {{#verify}}
   //Verification
   {
-    await hre.run("verify:verify", {
-      address: ownership.address,
-      constructorArguments: [],
-    });
+    try{
+      await hre.run("verify:verify", {
+        address: ownership.address,
+        constructorArguments: [],
+      });
+    }catch{
+      console.log("verify for ownership skipped");
+    }
 
-    await hre.run("verify:verify", {
-      address: registry.address,
-      constructorArguments: [ownership.address],
-    });
+    try{
+      await hre.run("verify:verify", {
+        address: registry.address,
+        constructorArguments: [ownership.address],
+      });
+    }catch{
+      console.log("verify for registry skipped");
+    }
 
-    await hre.run("verify:verify", {
-      address: factory.address,
-      constructorArguments: [registry.address, ownership.address],
-    });
+    try{
+      await hre.run("verify:verify", {
+        address: factory.address,
+        constructorArguments: [registry.address, ownership.address],
+      });
+    }catch{
+      console.log("verify for factory skipped");
+    }
 
-    await hre.run("verify:verify", {
-      address: parameters.address,
-      constructorArguments: [ownership.address],
-    });
+    try{
+      await hre.run("verify:verify", {
+        address: parameters.address,
+        constructorArguments: [ownership.address],
+      });
+    }catch{
+      console.log("verify for parameters skipped");
+    }
 
-    await hre.run("verify:verify", {
-      address: vault.address,
-      constructorArguments: [usdc.address, registry.address, ZERO_ADDRESS, ownership.address],
-    });
+    try{
+      await hre.run("verify:verify", {
+        address: vault.address,
+        constructorArguments: [usdc.address, registry.address, ZERO_ADDRESS, ownership.address],
+      });
+    }catch{
+      console.log("verify for vault skipped");
+    }
 
-    await hre.run("verify:verify", {
-      address: premium.address,
-      constructorArguments: [
-        ownership.address,
-        PMV3.DefaultRate,
-        PMV3.DefaultRateSlope1,
-        PMV3.DefaultRateSlope2,
-        PMV3.OptimalUtilizeRatio,
-      ],
-    });
+    try{
+      await hre.run("verify:verify", {
+        address: premium.address,
+        constructorArguments: [
+          ownership.address,
+          PMV3.DefaultRate,
+          PMV3.DefaultRateSlope1,
+          PMV3.DefaultRateSlope2,
+          PMV3.OptimalUtilizeRatio,
+        ],
+      });
+    }catch{
+      console.log("verify for premium skipped");
+    }
 
-    await hre.run("verify:verify", {
-      address: marketTemplate.address,
-      constructorArguments: [],
-    });
+    try{
+      await hre.run("verify:verify", {
+        address: marketTemplate.address,
+        constructorArguments: [],
+      });
+    }catch{
+      console.log("verify for marketTemplate skipped");
+    }
 
-    await hre.run("verify:verify", {
-      address: indexTemplate.address,
-      constructorArguments: [],
-    });
+    try{
+      await hre.run("verify:verify", {
+        address: indexTemplate.address,
+        constructorArguments: [],
+      });
+    }catch{
+      console.log("verify for indexTemplate skipped");
+    }
 
-    await hre.run("verify:verify", {
-      address: reserveTemplate.address,
-      constructorArguments: [],
-    });
+    try{
+      await hre.run("verify:verify", {
+        address: reserveTemplate.address,
+        constructorArguments: [],
+      });
+    }catch{
+      console.log("verify for reserveTemplate skipped");
+    }
   }
   {{/verify}}
 
