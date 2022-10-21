@@ -209,13 +209,13 @@ async function main() {
   for (const info of LaunchMarkets) {
       console.log(`Deploying market for ${info.name}: ${info.address.slice(0,5)}..${info.address.slice(-3)}`);
 
-      const createMarket = await factory.createMarket(
+      const createPool = await factory.createPool(
         marketTemplate.address,
         info.name,
         [0, 0],
         [info.address, usdc.address, registry.address, parameters.address]
       );
-      const receipt = await createMarket.wait();
+      const receipt = await createPool.wait();
 
       const marketCreatedEvent = receipt.events[2];
       const marketAddress = marketCreatedEvent.args[0];
@@ -226,14 +226,14 @@ async function main() {
 
   for (const info of LaunchIndicies){
       console.log(`Deploying index ${info.name}`);
-      const createIndex = await factory.createMarket(
+      const createIndex = await factory.createPool(
         indexTemplate.address,
         info.name,
         [0],
         [usdc.address, registry.address, parameters.address]
       );
       const receipt = await createIndex.wait();
-      const marketCreated = receipt.events.find((event) => "event" in event && event.event === "MarketCreated");
+      const marketCreated = receipt.events.find((event) => "event" in event && event.event === "PoolCreated");
       const indexAddress = marketCreated.args[0];
 
       console.log(`\x1b[32m New index at ${indexAddress} \x1b[37m`);

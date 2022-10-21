@@ -186,7 +186,7 @@ describe("Index", function () {
 
     //create Single Pools
     for (let i = 0; i < 5; i++) {
-      await factory.createMarket(
+      await factory.createPool(
         marketTemplate.address,
         "Here is metadata.",
         [0, 0],
@@ -195,7 +195,7 @@ describe("Index", function () {
     }
 
     //create Reserve
-    await factory.createMarket(
+    await factory.createPool(
       reserveTemplate.address,
       "Here is metadata.",
       [],
@@ -203,7 +203,7 @@ describe("Index", function () {
     );
 
     //create Index
-    await factory.createMarket(
+    await factory.createPool(
       indexTemplate.address,
       "Here is metadata.",
       [],

@@ -11,7 +11,7 @@ interface IFactory {
 
     function setCondition(IUniversalPool _template, uint256 _slot, uint256 _target) external;
 
-    function createMarket(
+    function createPool(
         IUniversalPool _template,
         string memory _metaData,
         uint256[] memory _conditions,

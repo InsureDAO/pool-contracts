@@ -3,7 +3,7 @@ pragma solidity 0.8.12;
 /**
  * @title Factory
  * @author @InsureDAO
- * @notice This contract is the functory contract that manages functions related to market creation activities.
+ * @notice This contract is the functory contract that manages functions related to pool creation activities.
  * SPDX-License-Identifier: GPL-3.0
  */
 
@@ -13,8 +13,8 @@ import "./interfaces/IRegistry.sol";
 import "./interfaces/IFactory.sol";
 
 contract Factory is IFactory {
-    event MarketCreated(
-        address indexed market,
+    event PoolCreated(
+        address indexed pool,
         address indexed template,
         string _metaData,
         uint256[] conditions,
@@ -26,14 +26,14 @@ contract Factory is IFactory {
 
     struct Template {
         bool approval; //true if the template exists
-        bool isOpen; //true if the market allows anyone to create a market
-        bool allowDuplicate; //true if the market with same ID is allowed
+        bool isOpen; //true if the pool allows anyone to create a pool
+        bool allowDuplicate; //true if the pool with same ID is allowed
     }
     mapping(address => Template) public templates;
-    //mapping of authorized market template address
+    //mapping of authorized pool template address
 
     mapping(address => mapping(uint256 => mapping(address => bool))) public reflist;
-    //Authorized reference(address) list for market market template
+    //Authorized reference(address) list for pool pool template
     //Each template has different set of references
     //true if that address is authorized within the template
     // Example reference list for pool template v1
@@ -43,7 +43,7 @@ contract Factory is IFactory {
     // references[3] = parameter
 
     mapping(address => mapping(uint256 => uint256)) public conditionlist;
-    //Authorized condition(uint256) list for market temaplate
+    //Authorized condition(uint256) list for pool temaplate
     //Each template has different set of conditions
     //true if that address is authorized within the template
     // Example condition list for pool template v1
@@ -69,9 +69,9 @@ contract Factory is IFactory {
      * @notice A function to approve or disapprove templates.
      * Only owner of the contract can operate.
      * @param _template template address, which must be registered
-     * @param _approval true if a market is allowed to create based on the template
-     * @param _isOpen true if anyone can create a market based on the template
-     * @param _duplicate true if a market with duplicate target id is allowed
+     * @param _approval true if a pool is allowed to create based on the template
+     * @param _isOpen true if anyone can create a pool based on the template
+     * @param _duplicate true if a pool with duplicate target id is allowed
      */
     function approveTemplate(IUniversalPool _template, bool _approval, bool _isOpen, bool _duplicate)
         external
@@ -115,14 +115,14 @@ contract Factory is IFactory {
 
     /**
      * @notice A function to create pools.
-     * This function is market model agnostic.
+     * This function is pool model agnostic.
      * @param _template template address, which must be registered
-     * @param _metaData arbitrary string to store market information
+     * @param _metaData arbitrary string to store pool information
      * @param _conditions array of conditions
      * @param _references array of references
-     * @return created market address
+     * @return . created pool address
      */
-    function createMarket(
+    function createPool(
         IUniversalPool _template,
         string calldata _metaData,
         uint256[] memory _conditions,
@@ -159,20 +159,20 @@ contract Factory is IFactory {
         if (!IRegistry(_registry).confirmExistence(address(_template), _references[0])) {
             IRegistry(_registry).setExistence(address(_template), _references[0]);
         } else if (!templates[address(_template)].allowDuplicate) {
-            revert("ERROR: DUPLICATE_MARKET");
+            revert("ERROR: DUPLICATE_POOL");
         }
 
-        //create market
-        IUniversalPool market = IUniversalPool(_createClone(address(_template)));
+        //create pool
+        IUniversalPool pool = IUniversalPool(_createClone(address(_template)));
 
-        IRegistry(_registry).addPool(address(market));
+        IRegistry(_registry).addPool(address(pool));
 
         //initialize
-        market.initialize(msg.sender, _metaData, _conditions, _references);
+        pool.initialize(msg.sender, _metaData, _conditions, _references);
 
-        emit MarketCreated(address(market), address(_template), _metaData, _conditions, _references);
+        emit PoolCreated(address(pool), address(_template), _metaData, _conditions, _references);
 
-        return address(market);
+        return address(pool);
     }
 
     /**

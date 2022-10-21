@@ -184,7 +184,7 @@ describe("Index", function () {
     await parameters.setMaxList(ZERO_ADDRESS, "10");
 
     //create Single Pools
-    let tx = await factory.createMarket(
+    let tx = await factory.createPool(
       marketTemplate.address,
       "Here is metadata.",
       [0, 0],
@@ -192,7 +192,7 @@ describe("Index", function () {
     );
     let receipt = await tx.wait();
     const marketAddress1 = receipt.events[2].args[0];
-    tx = await factory.createMarket(
+    tx = await factory.createPool(
       marketTemplate.address,
       "Here is metadata.",
       [0, 0],
@@ -205,7 +205,7 @@ describe("Index", function () {
     market2 = await MarketTemplate.attach(marketAddress2);
 
     //create Reserve
-    tx = await factory.createMarket(
+    tx = await factory.createPool(
       reserveTemplate.address,
       "Here is metadata.",
       [],
@@ -215,7 +215,7 @@ describe("Index", function () {
     const marketAddress3 = receipt.events[2].args[0];
 
     //create Index
-    tx = await factory.createMarket(
+    tx = await factory.createPool(
       indexTemplate.address,
       "Here is metadata.",
       [],
@@ -484,11 +484,11 @@ describe("Index", function () {
       await factory.approveReference(indexTemplate.address, 2, ZERO_ADDRESS, true);
 
       await expect(
-        factory.createMarket(indexTemplate.address, "", [], [usdc.address, registry.address, parameters.address])
+        factory.createPool(indexTemplate.address, "", [], [usdc.address, registry.address, parameters.address])
       ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
 
       await expect(
-        factory.createMarket(
+        factory.createPool(
           indexTemplate.address,
           "Here is metadata.",
           [],
@@ -497,7 +497,7 @@ describe("Index", function () {
       ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
 
       await expect(
-        factory.createMarket(
+        factory.createPool(
           indexTemplate.address,
           "Here is metadata.",
           [],
@@ -506,7 +506,7 @@ describe("Index", function () {
       ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
 
       await expect(
-        factory.createMarket(
+        factory.createPool(
           indexTemplate.address,
           "Here is metadata.",
           [],

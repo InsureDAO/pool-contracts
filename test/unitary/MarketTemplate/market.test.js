@@ -569,10 +569,10 @@ describe("Pool", function () {
     });
   };
 
-  const createMarket = async ({ depositAmount, references, depositor }) => {
+  const createPool = async ({ depositAmount, references, depositor }) => {
     await usdc.connect(depositor).approve(vault.address, depositAmount);
 
-    let tx = await factory.createMarket(
+    let tx = await factory.createPool(
       marketTemplate.address,
       "Here is metadata.",
       [depositAmount, depositAmount], //initialDeposit
@@ -580,7 +580,7 @@ describe("Pool", function () {
     );
 
     let receipt = await tx.wait();
-    let createdMarketAddress = receipt.events[5].args["market"];
+    let createdMarketAddress = receipt.events[5].args["pool"];
 
     //update vault
     u[`${depositor.address}`].balance = u[`${depositor.address}`].balance.sub(depositAmount);
@@ -647,7 +647,7 @@ describe("Pool", function () {
     await parameters.setWithdrawableDuration(ZERO_ADDRESS, "2592000");
     await parameters.setVault(usdc.address, vault.address);
 
-    let tx = await factory.createMarket(
+    let tx = await factory.createPool(
       marketTemplate.address,
       "Here is metadata.",
       [0, 0], //deposit 0 USDC
@@ -755,7 +755,7 @@ describe("Pool", function () {
 
         let depositAmount = "1";
 
-        let market2Address = await createMarket({
+        let market2Address = await createPool({
           depositAmount: depositAmount,
           references: [usdc.address, usdc.address, registry.address, parameters.address, gov.address],
           depositor: gov,
@@ -773,7 +773,7 @@ describe("Pool", function () {
 
         //but this MarketTemplate doesn't want address(0)
         await expect(
-          factory.createMarket(
+          factory.createPool(
             marketTemplate.address,
             "Here is metadata.",
             [0, 0], //deposit 0 USDC
@@ -788,7 +788,7 @@ describe("Pool", function () {
 
         //but this MarketTemplate doesn't want address(0)
         await expect(
-          factory.createMarket(
+          factory.createPool(
             marketTemplate.address,
             "Here is metadata.",
             [0, 0], //deposit 0 USDC
@@ -803,7 +803,7 @@ describe("Pool", function () {
 
         //but this MarketTemplate doesn't want address(0)
         await expect(
-          factory.createMarket(
+          factory.createPool(
             marketTemplate.address,
             "Here is metadata.",
             [0, 0], //deposit 0 USDC
@@ -818,7 +818,7 @@ describe("Pool", function () {
 
         //but this MarketTemplate doesn't want address(0)
         await expect(
-          factory.createMarket(
+          factory.createPool(
             marketTemplate.address,
             "Here is metadata.",
             [0, 0], //deposit 0 USDC
@@ -829,7 +829,7 @@ describe("Pool", function () {
 
       it("fail when bytes(_metaData).length == 0", async () => {
         await expect(
-          factory.createMarket(
+          factory.createPool(
             marketTemplate.address,
             "",
             [0, 0], //deposit 0 USDC

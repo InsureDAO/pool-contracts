@@ -163,7 +163,7 @@ describe("Pool", function () {
     await parameters.setVault(usdc.address, vault.address);
     await parameters.setMaxList(ZERO_ADDRESS, "10");
 
-    let tx = await factory.createMarket(
+    let tx = await factory.createPool(
       marketTemplate.address,
       "Here is metadata.",
       [0, 0], //deposit 0 USDC

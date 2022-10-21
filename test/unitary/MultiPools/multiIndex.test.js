@@ -133,7 +133,7 @@ describe("multiIndex", function () {
     {
       let tx = await factory
         .connect(alice)
-        .createMarket(
+        .createPool(
           marketTemplate.address,
           "Here is metadata.",
           [0, INITIAL_DEPOSIT],
@@ -144,7 +144,7 @@ describe("multiIndex", function () {
 
       tx = await factory
         .connect(alice)
-        .createMarket(
+        .createPool(
           marketTemplate.address,
           "Here is metadata.",
           [0, INITIAL_DEPOSIT],
@@ -154,7 +154,7 @@ describe("multiIndex", function () {
 
       tx = await factory
         .connect(alice)
-        .createMarket(
+        .createPool(
           marketTemplate.address,
           "Here is metadata.",
           [0, INITIAL_DEPOSIT],
@@ -164,7 +164,7 @@ describe("multiIndex", function () {
 
       tx = await factory
         .connect(alice)
-        .createMarket(
+        .createPool(
           marketTemplate.address,
           "Here is metadata.",
           [0, INITIAL_DEPOSIT],
@@ -174,7 +174,7 @@ describe("multiIndex", function () {
 
       tx = await factory
         .connect(alice)
-        .createMarket(
+        .createPool(
           marketTemplate.address,
           "Here is metadata.",
           [0, INITIAL_DEPOSIT],
@@ -183,7 +183,7 @@ describe("multiIndex", function () {
       receipt = await tx.wait();
 
       //create Reserve
-      tx = await factory.createMarket(
+      tx = await factory.createPool(
         reserveTemplate.address,
         "Here is metadata.",
         [],
@@ -191,7 +191,7 @@ describe("multiIndex", function () {
       );
 
       //create Index
-      tx = await factory.createMarket(
+      tx = await factory.createPool(
         indexTemplate.address,
         "Here is metadata.",
         [],
@@ -199,7 +199,7 @@ describe("multiIndex", function () {
       );
 
       //create Index
-      tx = await factory.createMarket(
+      tx = await factory.createPool(
         indexTemplate.address,
         "Here is metadata.",
         [],
@@ -208,7 +208,7 @@ describe("multiIndex", function () {
       receipt = await tx.wait();
 
       //create Index
-      tx = await factory.createMarket(
+      tx = await factory.createPool(
         indexTemplate.address,
         "Here is metadata.",
         [],

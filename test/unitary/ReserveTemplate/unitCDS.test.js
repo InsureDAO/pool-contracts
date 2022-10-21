@@ -117,7 +117,7 @@ describe("Reserve", function () {
     await parameters.setMaxList(ZERO_ADDRESS, "10");
 
     //market1
-    let tx = await factory.createMarket(
+    let tx = await factory.createPool(
       marketTemplate.address,
       "Here is metadata.",
       [0, 0],
@@ -127,7 +127,7 @@ describe("Reserve", function () {
     const marketAddress1 = receipt.events[2].args[0];
     market1 = await MarketTemplate.attach(marketAddress1);
 
-    tx = await factory.createMarket(
+    tx = await factory.createPool(
       reserveTemplate.address,
       "Here is metadata.",
       [0, 0],
@@ -232,7 +232,7 @@ describe("Reserve", function () {
         await factory.approveReference(reserveTemplate.address, 0, ZERO_ADDRESS, true);
 
         await expect(
-          factory.createMarket(
+          factory.createPool(
             reserveTemplate.address,
             "Here is metadata.",
             [0, 0],
@@ -245,7 +245,7 @@ describe("Reserve", function () {
         await factory.approveReference(reserveTemplate.address, 1, ZERO_ADDRESS, true);
 
         await expect(
-          factory.createMarket(
+          factory.createPool(
             reserveTemplate.address,
             "Here is metadata.",
             [0, 0],
@@ -258,7 +258,7 @@ describe("Reserve", function () {
         await factory.approveReference(reserveTemplate.address, 2, ZERO_ADDRESS, true);
 
         await expect(
-          factory.createMarket(
+          factory.createPool(
             reserveTemplate.address,
             "Here is metadata.",
             [0, 0],
@@ -269,12 +269,7 @@ describe("Reserve", function () {
 
       it("reverts when address is zero and/or metadata is empty 4", async () => {
         await expect(
-          factory.createMarket(
-            reserveTemplate.address,
-            "",
-            [0, 0],
-            [usdc.address, registry.address, parameters.address]
-          )
+          factory.createPool(reserveTemplate.address, "", [0, 0], [usdc.address, registry.address, parameters.address])
         ).to.revertedWith("INITIALIZATION_BAD_CONDITIONS");
       });
     });

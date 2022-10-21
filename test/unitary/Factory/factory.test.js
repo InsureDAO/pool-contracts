@@ -74,7 +74,7 @@ describe("Factory", function () {
     
     await parameters.setMaxList(ZERO_ADDRESS, "10");
 
-    await factory.createMarket(
+    await factory.createPool(
       marketTemplate.address,
       "Here is metadata.",
       [0,0],
@@ -116,7 +116,7 @@ describe("Factory", function () {
       await factory.approveReference(marketTemplate.address, 2, registry.address, true);
       await factory.approveReference(marketTemplate.address, 3, parameters.address, true);
       await factory.approveReference(marketTemplate.address, 4, ZERO_ADDRESS, true);
-      let market = await factory.createMarket(
+      let market = await factory.createPool(
         marketTemplate.address,
         "Here is metadata.",
         [0, 0],
@@ -127,12 +127,12 @@ describe("Factory", function () {
     it("Reverts when creating a market if the specified template is not registered", async () => {
       await factory.approveTemplate(fake.address, true, true, true);
       await expect(
-        factory.connect(alice).createMarket(marketTemplate.address, "Here is metadata.", [], [])
+        factory.connect(alice).createPool(marketTemplate.address, "Here is metadata.", [], [])
       ).to.revertedWith("ERROR: UNAUTHORIZED_TEMPLATE");
     });
     it("Reverts when creating a market by non-admin if the template does not allow open market creation", async () => {
       await factory.approveTemplate(fake.address, true, false, true);
-      await expect(factory.connect(alice).createMarket(fake.address, "Here is metadata.", [], [])).to.revertedWith(
+      await expect(factory.connect(alice).createPool(fake.address, "Here is metadata.", [], [])).to.revertedWith(
         "ERROR: UNAUTHORIZED_SENDER"
       );
     });
@@ -145,7 +145,7 @@ describe("Factory", function () {
       await factory.approveReference(marketTemplate.address, 4, ZERO_ADDRESS, true);
       await factory
         .connect(alice)
-        .createMarket(
+        .createPool(
           marketTemplate.address,
           "Here is metadata.",
           [0, 0],
@@ -154,13 +154,13 @@ describe("Factory", function () {
       await expect(
         factory
           .connect(alice)
-          .createMarket(
+          .createPool(
             marketTemplate.address,
             "Here is metadata.",
             [0, 0],
             [dai.address, dai.address, registry.address, parameters.address]
           )
-      ).to.revertedWith("ERROR: DUPLICATE_MARKET");
+      ).to.revertedWith("ERROR: DUPLICATE_POOL");
     });
   });
 
@@ -190,7 +190,7 @@ describe("Factory", function () {
       await factory.approveReference(marketTemplate.address, 2, registry.address, true);
       await factory.approveReference(marketTemplate.address, 3, parameters.address, true);
       await factory.approveReference(marketTemplate.address, 4, ZERO_ADDRESS, true);
-      let market = await factory.createMarket(
+      let market = await factory.createPool(
         marketTemplate.address,
         "Here is metadata.",
         [0, 0],
@@ -206,7 +206,7 @@ describe("Factory", function () {
       await factory.approveReference(marketTemplate.address, 2, registry.address, true);
       await factory.approveReference(marketTemplate.address, 3, parameters.address, true);
       await expect(
-        factory.createMarket(
+        factory.createPool(
           marketTemplate.address,
           "Here is metadata.",
           [0, 0],
@@ -222,7 +222,7 @@ describe("Factory", function () {
       await factory.approveReference(marketTemplate.address, 2, ZERO_ADDRESS, true);
       await factory.approveReference(marketTemplate.address, 3, ZERO_ADDRESS, true);
       await factory.approveReference(marketTemplate.address, 4, ZERO_ADDRESS, true);
-      let market = await factory.createMarket(
+      let market = await factory.createPool(
         marketTemplate.address,
         "Here is metadata.",
         [0, 0],
@@ -258,7 +258,7 @@ describe("Factory", function () {
       await factory.setCondition(marketTemplate.address, 0, 0);
       let market = await factory
         .connect(alice)
-        .createMarket(
+        .createPool(
           marketTemplate.address,
           "Here is metadata.",
           [0, 0],
