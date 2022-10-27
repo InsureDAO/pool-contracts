@@ -85,6 +85,16 @@ module.exports = {
       optimisticGoerli: `${process.env.OPT_ETHERSCAN_API}`,
       arbitrumGoerli: `${process.env.ARB_ETHERSCAN_API}`,
     },
+    customChains: [
+      {
+        network: "arbitrumGoerli",
+        chainId: 421613,
+        urls: {
+          apiURL: "https://api-goerli.arbiscan.io/api",
+          browserURL: "https://goerli.arbiscan.io/",
+        },
+      },
+    ],
   },
   mocha: {
     timeout: 20000000,
