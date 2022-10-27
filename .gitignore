@@ -25,3 +25,4 @@ package-lock.json
 lcov.info
 out/
 scripts/deploy.js
+scripts/deploy_investment.js

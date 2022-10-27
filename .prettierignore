@@ -6,3 +6,4 @@ artifacts
 cache
 out
 scripts/deploy.template.js
+scripts/deploy_investment.template.js

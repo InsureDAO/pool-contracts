@@ -53,6 +53,7 @@ module.exports = {
     goerli: {
       url: process.env.GOERLI_URL,
       accounts: [`0x${process.env.TEST_KEY}`],
+      gasPrice: 8e10, //80Gwei
     },
     optimisticGoerli: {
       url: process.env.OP_GOERLI_URL,
@@ -81,6 +82,7 @@ module.exports = {
   etherscan: {
     apiKey: {
       mainnet: `${process.env.ETHERSCAN_API}`,
+      goerli: `${process.env.ETHERSCAN_API}`,
       optimisticEthereum: `${process.env.OPT_ETHERSCAN_API}`,
       optimisticGoerli: `${process.env.OPT_ETHERSCAN_API}`,
       arbitrumGoerli: `${process.env.ARB_ETHERSCAN_API}`,
