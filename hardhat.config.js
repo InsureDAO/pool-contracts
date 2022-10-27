@@ -58,6 +58,10 @@ module.exports = {
       url: process.env.OP_GOERLI_URL,
       accounts: [`0x${process.env.TEST_KEY}`],
     },
+    arbitrumGoerli: {
+      url: process.env.ARB_GOERLI_URL,
+      accounts: [`0x${process.env.TEST_KEY}`],
+    },
     mumbai: {
       url: process.env.MUMBAI_URL,
       accounts: [`0x${process.env.TEST_KEY}`],
@@ -79,6 +83,7 @@ module.exports = {
       mainnet: `${process.env.ETHERSCAN_API}`,
       optimisticEthereum: `${process.env.OPT_ETHERSCAN_API}`,
       optimisticGoerli: `${process.env.OPT_ETHERSCAN_API}`,
+      arbitrumGoerli: `${process.env.ARB_ETHERSCAN_API}`,
     },
   },
   mocha: {
