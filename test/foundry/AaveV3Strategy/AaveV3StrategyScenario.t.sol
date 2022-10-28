@@ -23,7 +23,7 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
          * current strategy managing fund shortage: 1_100 = 10% of freeable(2_000) - managing fund(900)
          */
         strategy.adjustFund(); // pull fund to cover shortage(1_100)
-        assertEq(strategy.managingFund(), 2_000 * 1e6);
+        assertApproxEqRel(strategy.managingFund(), 2_000 * 1e6, 0.001e18);
         assertEq(vault.available(), 18_000 * 1e6); // available asset(19_100) - pulled fund(1_100)
         assertEq(vault.balance(), 20_000 * 1e6); // balance(21_100) - pulled fund(1_100)
 
