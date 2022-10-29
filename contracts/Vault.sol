@@ -47,6 +47,14 @@ contract Vault is IVault {
         _;
     }
 
+    modifier onlyMarketOrOwner() {
+        require(
+            IRegistry(registry).isListed(msg.sender) || ownership.owner() == msg.sender,
+            "ERROR_ONLY_MARKET_OR_OWNER"
+        );
+        _;
+    }
+
     modifier onlyController() {
         require(address(controller) == msg.sender, "Caller is not allowed to operate");
         _;
@@ -222,7 +230,7 @@ contract Vault is IVault {
      * @dev This performs like investment feature. Good to use for distributing revenue for all underwriters.
      * This function results increasing of attributionValue().
      */
-    function addBalance(uint256 _amount) external onlyMarket {
+    function addBalance(uint256 _amount) external onlyMarketOrOwner {
         IERC20(token).safeTransferFrom(msg.sender, address(this), _amount);
         balance += _amount;
     }
