@@ -130,7 +130,7 @@ describe("Vault", function () {
 
     it("revert when address is not registered", async () => {
       //transfer alice's debt to the system's debt.
-      await expect(vault.connect(chad).transferDebt(depositAmount)).to.revertedWith("ERROR_ONLY_MARKET");
+      await expect(vault.connect(chad).transferDebt(depositAmount)).to.revertedWith("Caller is not allowed to operate");
     });
   });
 
@@ -200,7 +200,7 @@ describe("Vault", function () {
 
     it("revert when address is not registered", async () => {
       //transfer alice's debt to the system's debt.
-      await expect(vault.connect(chad).transferDebt(depositAmount)).to.revertedWith("ERROR_ONLY_MARKET");
+      await expect(vault.connect(chad).transferDebt(depositAmount)).to.revertedWith("Caller is not allowed to operate");
     });
   });
 

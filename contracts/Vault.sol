@@ -43,14 +43,14 @@ contract Vault is IVault {
     }
 
     modifier onlyMarket() {
-        require(IRegistry(registry).isListed(msg.sender), "ERROR_ONLY_MARKET");
+        require(IRegistry(registry).isListed(msg.sender), "Caller is not allowed to operate");
         _;
     }
 
     modifier onlyMarketOrOwner() {
         require(
             IRegistry(registry).isListed(msg.sender) || ownership.owner() == msg.sender,
-            "ERROR_ONLY_MARKET_OR_OWNER"
+            "Caller is not allowed to operate"
         );
         _;
     }

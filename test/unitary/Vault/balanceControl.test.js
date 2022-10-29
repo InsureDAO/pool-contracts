@@ -29,6 +29,12 @@ describe("Vault", function () {
   before(async () => {
     //import
     [creator, alice, bob, chad] = await ethers.getSigners();
+    /**
+     * creator: Owner
+     * alice: Market
+     * bob: Market
+     * chad: User
+     */
 
     const Ownership = await ethers.getContractFactory("Ownership");
     const USDC = await ethers.getContractFactory("TestERC20Mock");
@@ -52,8 +58,11 @@ describe("Vault", function () {
     await usdc.mint(bob.address, initialMint);
     await usdc.connect(bob).approve(vault.address, initialMint);
 
-    await registry.addPool(alice.address); //now alice can do the same as pools
-    await registry.addPool(creator.address);
+    await usdc.mint(chad.address, initialMint);
+    await usdc.connect(chad).approve(vault.address, initialMint);
+
+    await registry.addPool(alice.address);
+    await registry.addPool(bob.address);
   });
 
   beforeEach(async () => {
@@ -92,8 +101,7 @@ describe("Vault", function () {
       });
 
       //EXECUTE
-
-      await vault.addValue(depositAmount, alice.address, alice.address);
+      await vault.connect(alice).addValue(depositAmount, chad.address, alice.address);
 
       //sanity check after
       await verifyVaultStatus({
@@ -116,7 +124,7 @@ describe("Vault", function () {
       await verifyBalances({
         token: usdc,
         userBalances: {
-          [alice.address]: initialMint.sub(depositAmount),
+          [chad.address]: initialMint.sub(depositAmount),
           [vault.address]: depositAmount,
         },
       });
@@ -124,10 +132,10 @@ describe("Vault", function () {
 
     it("should succeed when totalAttributions != 0", async () => {
       //setup
-      await vault.addValue(depositAmount, alice.address, alice.address);
+      await vault.connect(alice).addValue(depositAmount, chad.address, alice.address);
 
       //EXECUTE
-      await vault.addValue(depositAmount, alice.address, alice.address);
+      await vault.connect(alice).addValue(depositAmount, chad.address, alice.address);
 
       //sanity check
       await verifyVaultStatus({
@@ -150,7 +158,7 @@ describe("Vault", function () {
       await verifyBalances({
         token: usdc,
         userBalances: {
-          [alice.address]: initialMint.sub(depositAmount.mul(2)),
+          [chad.address]: initialMint.sub(depositAmount.mul(2)),
           [vault.address]: depositAmount.mul(2),
         },
       });
@@ -158,15 +166,17 @@ describe("Vault", function () {
 
     it("revert when market is not registered", async () => {
       //setup
-      await expect(vault.connect(chad).addValue(depositAmount, alice.address, alice.address)).to.revertedWith(
-        "ERROR_ONLY_MARKET"
+      await expect(vault.connect(chad).addValue(depositAmount, chad.address, alice.address)).to.revertedWith(
+        "Caller is not allowed to operate"
       );
     });
   });
 
   describe("addValueBatch", function () {
     it("should succeed when totalAttributions == 0: all for alice", async () => {
-      await vault.addValueBatch(depositAmount, alice.address, [alice.address, bob.address], [1000000, 0]);
+      await vault
+        .connect(alice)
+        .addValueBatch(depositAmount, chad.address, [alice.address, creator.address], [1000000, 0]);
 
       //sanity check after
       await verifyVaultStatus({
@@ -187,7 +197,7 @@ describe("Vault", function () {
 
       await verifyVaultStatusOf({
         vault: vault,
-        target: bob.address,
+        target: creator.address,
         attributions: ZERO,
         underlyingValue: ZERO,
         debt: ZERO,
@@ -197,15 +207,16 @@ describe("Vault", function () {
       await verifyBalances({
         token: usdc,
         userBalances: {
-          [alice.address]: initialMint.sub(depositAmount),
-          [bob.address]: initialMint,
+          [chad.address]: initialMint.sub(depositAmount),
           [vault.address]: depositAmount,
         },
       });
     });
 
     it("should succeed  when totalAttributions == 0: half and half", async () => {
-      await vault.addValueBatch(depositAmount, alice.address, [alice.address, bob.address], [500000, 500000]);
+      await vault
+        .connect(alice)
+        .addValueBatch(depositAmount, chad.address, [alice.address, creator.address], [500000, 500000]);
 
       //sanity check after
       await verifyVaultStatus({
@@ -226,7 +237,7 @@ describe("Vault", function () {
 
       await verifyVaultStatusOf({
         vault: vault,
-        target: bob.address,
+        target: creator.address,
         attributions: depositAmount.div(2),
         underlyingValue: depositAmount.div(2),
         debt: ZERO,
@@ -236,43 +247,8 @@ describe("Vault", function () {
       await verifyBalances({
         token: usdc,
         userBalances: {
-          [alice.address]: initialMint.sub(depositAmount),
-          [bob.address]: initialMint,
+          [chad.address]: initialMint.sub(depositAmount),
           [vault.address]: depositAmount,
-        },
-      });
-    });
-
-    it("should succeed  when totalAttributions != 0", async () => {
-      //setup
-      await vault.addValue(depositAmount, alice.address, alice.address);
-
-      //EXECUTE
-      await vault.addValueBatch(depositAmount, alice.address, [alice.address, bob.address], [1000000, 0]);
-
-      //sanity check
-      await verifyVaultStatus({
-        vault: vault,
-        balance: depositAmount.mul(2),
-        valueAll: depositAmount.mul(2),
-        totalAttributions: depositAmount.mul(2),
-        totalDebt: ZERO,
-      });
-
-      await verifyVaultStatusOf({
-        vault: vault,
-        target: alice.address,
-        attributions: depositAmount.mul(2),
-        underlyingValue: depositAmount.mul(2),
-        debt: ZERO,
-      });
-
-      //transfer has done successfully
-      await verifyBalances({
-        token: usdc,
-        userBalances: {
-          [alice.address]: initialMint.sub(depositAmount.mul(2)),
-          [vault.address]: depositAmount.mul(2),
         },
       });
     });
@@ -281,13 +257,13 @@ describe("Vault", function () {
       //setup
       await expect(
         vault.connect(chad).addValueBatch(depositAmount, alice.address, [alice.address, alice.address], [1000000, 0])
-      ).to.revertedWith("ERROR_ONLY_MARKET");
+      ).to.revertedWith("Caller is not allowed to operate");
     });
   });
 
   describe("withdrawValue", function () {
     beforeEach(async () => {
-      await vault.addValue(depositAmount, alice.address, alice.address);
+      await vault.connect(alice).addValue(depositAmount, chad.address, alice.address);
 
       //status
       await verifyVaultStatus({
@@ -345,7 +321,7 @@ describe("Vault", function () {
 
   describe("transferValue", function () {
     beforeEach(async () => {
-      await vault.addValue(depositAmount, alice.address, alice.address);
+      await vault.connect(alice).addValue(depositAmount, chad.address, alice.address);
 
       //status
       await verifyVaultStatus({
@@ -409,7 +385,7 @@ describe("Vault", function () {
 
   describe("borrowValue", function () {
     beforeEach(async () => {
-      await vault.addValue(depositAmount, alice.address, alice.address);
+      await vault.connect(alice).addValue(depositAmount, chad.address, alice.address);
 
       //status
       await verifyVaultStatus({
@@ -452,7 +428,7 @@ describe("Vault", function () {
       await verifyBalances({
         token: usdc,
         userBalances: {
-          [alice.address]: initialMint,
+          [alice.address]: initialMint.add(depositAmount),
           [vault.address]: ZERO,
         },
       });
@@ -461,7 +437,7 @@ describe("Vault", function () {
 
   describe("addBalance", function () {
     it("should increase balance", async () => {
-      await vault.addValue(depositAmount, alice.address, alice.address);
+      await vault.connect(alice).addValue(depositAmount, chad.address, alice.address);
       await vault.connect(creator).addBalance(depositAmount);
 
       //status
@@ -480,6 +456,18 @@ describe("Vault", function () {
         underlyingValue: depositAmount.mul(2), //balance added without totalAttribution to be increased.
         debt: ZERO,
       });
+    });
+
+    it("should allow when called from owner", async () => {
+      await vault.connect(creator).addBalance(depositAmount);
+    });
+
+    it("should allow when called from market", async () => {
+      await vault.connect(alice).addBalance(depositAmount);
+    });
+
+    it("should revert when called from neither owner nor admin", async () => {
+      await expect(vault.connect(chad).addBalance(depositAmount)).to.revertedWith("Caller is not allowed to operate");
     });
   });
 });
