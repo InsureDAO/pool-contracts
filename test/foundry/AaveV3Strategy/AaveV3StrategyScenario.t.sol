@@ -23,7 +23,7 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
          * current strategy managing fund shortage: 1_100 = 10% of freeable(2_000) - managing fund(900)
          */
         strategy.adjustFund(); // pull fund to cover shortage(1_100)
-        assertEq(strategy.managingFund(), 2_000 * 1e6);
+        assertApproxEqRel(strategy.managingFund(), 2_000 * 1e6, 0.001e18);
         assertEq(vault.available(), 18_000 * 1e6); // available asset(19_100) - pulled fund(1_100)
         assertEq(vault.balance(), 20_000 * 1e6); // balance(21_100) - pulled fund(1_100)
 
@@ -485,21 +485,33 @@ contract WhenCreateTaskOnGelatoOps is AaveV3StrategySetUp {
         vm.prank(alice);
         _taskTreasury.depositFunds{value: 1 ether}(alice, ETH, 1 ether);
 
-        bytes memory _resolverData = abi.encodeWithSelector(strategy.check.selector);
-        bytes32 _resolverHash = keccak256(abi.encode(address(strategy), _resolverData));
+        bytes memory _resolverData = abi.encode(strategy.check.selector);
+        bytes memory _resolverArgs = abi.encode(address(strategy), _resolverData);
+
+        IOps.Module[] memory _modules = new IOps.Module[](1);
+        _modules[0] = IOps.Module.RESOLVER;
+
+        bytes[] memory _args = new bytes[](1);
+        _args[0] = _resolverArgs;
+
+        IOps.ModuleData memory _moduleData = IOps.ModuleData(_modules, _args);
 
         // create task
         vm.prank(alice);
-        _gelatoOps.createTask(address(strategy), strategy.compound.selector, address(strategy), _resolverData);
+        _gelatoOps.createTask(address(strategy), abi.encode(strategy.compound.selector), _moduleData, address(0));
         skip(1e6);
+
+        (, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        assertGt(_rewards[0], 0);
 
         // gelato ops executes task
         (bool _canExec, bytes memory _execPayload) = strategy.check();
         assertEq(_canExec, true);
-        vm.prank(gelatoNetwork);
-        _gelatoOps.exec(0.01 ether, ETH, alice, true, true, _resolverHash, address(strategy), _execPayload);
 
-        (, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
+        vm.prank(gelatoNetwork);
+        _gelatoOps.exec(alice, address(strategy), _execPayload, _moduleData, 0.01 ether, ETH, true, true);
+
+        (, _rewards) = strategy.getUnclaimedRewards();
 
         assertEq(_rewards[0], 0);
     }
@@ -518,51 +530,86 @@ interface ITaskTreasury {
 }
 
 interface IOps {
-    /// @notice Create a task that tells Gelato to monitor and execute transactions on specific contracts
-    /// @dev Requires funds to be added in Task Treasury, assumes treasury sends fee to Gelato via Ops
-    /// @param _execAddress On which contract should Gelato execute the transactions
-    /// @param _execSelector Which function Gelato should execute on the _execAddress
-    /// @param _resolverAddress On which contract should Gelato check when to execute the tx
-    /// @param _resolverData Which data should be used to check on the Resolver when to execute the tx
-    function createTask(
-        address _execAddress,
-        bytes4 _execSelector,
-        address _resolverAddress,
-        bytes calldata _resolverData
-    ) external returns (bytes32 task);
+    /**
+     * @notice Whitelisted modules that are available for users to customise conditions and specifications of their tasks.
+     *
+     * @param RESOLVER Use dynamic condition & input data for execution. {See ResolverModule.sol}
+     * @param TIME Repeated execution of task at a specified timing and interval. {See TimeModule.sol}
+     * @param PROXY Creates a dedicated caller (msg.sender) to be used when executing the task. {See ProxyModule.sol}
+     * @param SINGLE_EXEC Task is cancelled after one execution. {See SingleExecModule.sol}
+     */
+    enum Module {
+        RESOLVER,
+        TIME,
+        PROXY,
+        SINGLE_EXEC
+    }
 
-    /// @notice Execution API called by Gelato
-    /// @param _txFee Fee paid to Gelato for execution, deducted on the TaskTreasury
-    /// @param _feeToken Token used to pay for the execution. ETH = 0xeeeeee...
-    /// @param _taskCreator On which contract should Gelato check when to execute the tx
-    /// @param _useTaskTreasuryFunds If msg.sender's balance on TaskTreasury should pay for the tx
-    /// @param _revertOnFailure To revert or not if call to execAddress fails
-    /// @param _execAddress On which contract should Gelato execute the tx
-    /// @param _execData Data used to execute the tx, queried from the Resolver by Gelato
+    /**
+     * @notice Struct to contain modules and their relative arguments that are used for task creation.
+     *
+     * @param modules List of selected modules.
+     * @param args Arguments of modules if any. Pass "0x" for modules which does not require args {See encodeModuleArg}
+     */
+    struct ModuleData {
+        Module[] modules;
+        bytes[] args;
+    }
+
+    /**
+     * @notice Initiates a task with conditions which Gelato will monitor and execute when conditions are met.
+     *
+     * @param execAddress Address of contract that should be called by Gelato.
+     * @param execData Execution data to be called with / function selector if execution data is yet to be determined.
+     * @param moduleData Conditional modules that will be used. {See LibDataTypes-ModuleData}
+     * @param feeToken Address of token to be used as payment. Use address(0) if TaskTreasury is being used, 0xeeeeee... for ETH or native tokens.
+     *
+     * @return taskId Unique hash of the task created.
+     */
+    function createTask(
+        address execAddress,
+        bytes calldata execData,
+        ModuleData calldata moduleData,
+        address feeToken
+    ) external returns (bytes32 taskId);
+
+    /**
+     * @notice Execution API called by Gelato.
+     *
+     * @param taskCreator The address which created the task.
+     * @param execAddress Address of contract that should be called by Gelato.
+     * @param execData Execution data to be called with / function selector if execution data is yet to be determined.
+     * @param moduleData Conditional modules that will be used. {See LibDataTypes-ModuleData}
+     * @param txFee Fee paid to Gelato for execution, deducted on the TaskTreasury or transfered to Gelato.
+     * @param feeToken Token used to pay for the execution. ETH = 0xeeeeee...
+     * @param useTaskTreasuryFunds If taskCreator's balance on TaskTreasury should pay for the tx.
+     * @param revertOnFailure To revert or not if call to execAddress fails. (Used for off-chain simulations)
+     */
     function exec(
-        uint256 _txFee,
-        address _feeToken,
-        address _taskCreator,
-        bool _useTaskTreasuryFunds,
-        bool _revertOnFailure,
-        bytes32 _resolverHash,
-        address _execAddress,
-        bytes calldata _execData
+        address taskCreator,
+        address execAddress,
+        bytes memory execData,
+        ModuleData calldata moduleData,
+        uint256 txFee,
+        address feeToken,
+        bool useTaskTreasuryFunds,
+        bool revertOnFailure
     ) external;
 
-    /// @notice Returns TaskId of a task Creator
-    /// @param _taskCreator Address of the task creator
-    /// @param _execAddress Address of the contract to be executed by Gelato
-    /// @param _selector Function on the _execAddress which should be executed
-    /// @param _useTaskTreasuryFunds If msg.sender's balance on TaskTreasury should pay for the tx
-    /// @param _feeToken FeeToken to use, address 0 if task treasury is used
-    /// @param _resolverHash hash of resolver address and data
+    /**
+     * @notice Helper function to compute task id with module arguments
+     *
+     * @param taskCreator The address which created the task.
+     * @param execAddress Address of contract that will be called by Gelato.
+     * @param execSelector Signature of the function which will be called by Gelato.
+     * @param moduleData  Conditional modules that will be used. {See LibDataTypes-ModuleData}
+     * @param feeToken Address of token to be used as payment. Use address(0) if TaskTreasury is being used, 0xeeeeee... for ETH or native tokens.
+     */
     function getTaskId(
-        address _taskCreator,
-        address _execAddress,
-        bytes4 _selector,
-        bool _useTaskTreasuryFunds,
-        address _feeToken,
-        bytes32 _resolverHash
-    ) external pure returns (bytes32);
+        address taskCreator,
+        address execAddress,
+        bytes4 execSelector,
+        ModuleData memory moduleData,
+        address feeToken
+    ) external pure returns (bytes32 taskId);
 }
