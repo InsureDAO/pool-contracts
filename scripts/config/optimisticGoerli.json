@@ -1,0 +1,40 @@
+{
+  "verify": true,
+  "USDC_ADDRESS": "0xf1485Aa729DF94083ab61B2C65EeA99894Aabdb3",
+
+  "Params": {
+    "FeeRate": "100000",
+    "RequestDuration": "300",
+    "WithdrawableDuration": "3000",
+    "MaxList": "100",
+
+    "UnlockGracePeriod": "300",
+    "MaxInsureSpan": "86400",
+    "MinInsureSpan": "300",
+
+    "UpperSlack": "100000",
+    "LowerSlack": "100000"
+  },
+
+  "PMV3": {
+    "DefaultRate": "20000",
+    "DefaultRateSlope1": "100000",
+    "DefaultRateSlope2": "400000",
+    "OptimalUtilizeRatio": "900000"
+  },
+
+  "LaunchPools": {
+    "markets": [
+      { "name": "Protocol 1", "address": "0x1000000000000000000000000000000000000000" },
+      { "name": "Protocol 2", "address": "0x2000000000000000000000000000000000000000" },
+      { "name": "Protocol 3", "address": "0x3000000000000000000000000000000000000000" },
+      { "name": "Protocol 4", "address": "0x4000000000000000000000000000000000000000" },
+      { "name": "Protocol 5", "address": "0x5000000000000000000000000000000000000000" },
+      { "name": "Protocol 6", "address": "0x6000000000000000000000000000000000000000" }
+    ],
+    "indicies": [
+      { "name": "Index A", "markets": [0, 1, 2, 3, 4, 5], "leverage": "2000000" },
+      { "name": "Index B", "markets": [0, 1, 2], "leverage": "2000000" }
+    ]
+  }
+}

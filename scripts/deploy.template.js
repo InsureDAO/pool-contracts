@@ -44,7 +44,7 @@ async function main() {
   //
   const LaunchIndicies = [
     {{#LaunchPools.indicies}}
-    {name:"{{name}}", poolListIndex: [ {{#markets}} {{.}}, {{/markets}} ]},
+    {name:"{{name}}", poolListIndex: [ {{#markets}} {{.}}, {{/markets}} ], leverage:"{{leverage}}"},
     {{/LaunchPools.indicies}}
   ];
 

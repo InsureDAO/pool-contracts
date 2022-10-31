@@ -10,7 +10,6 @@ artifacts/
 coverage.json
 info/
 HEAD
-config
 refs
 cache
 hooks
