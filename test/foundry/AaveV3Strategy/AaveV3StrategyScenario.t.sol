@@ -27,6 +27,8 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
         assertEq(vault.available(), 18_000 * 1e6); // available asset(19_100) - pulled fund(1_100)
         assertEq(vault.balance(), 20_000 * 1e6); // balance(21_100) - pulled fund(1_100)
 
+        if (!isRewardActive()) return;
+
         skip(1e6);
         uint256 _fundWithInterest = strategy.managingFund();
         (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
@@ -86,6 +88,8 @@ contract WhenUtilizeVaultAsset is AaveV3StrategySetUp {
         assertEq(strategy.managingFund(), 900 * 1e6); // no change
         assertEq(vault.available(), 4_100 * 1e6); // no change
         assertEq(vault.balance(), 5_100 * 1e6); // no change
+
+        if (!isRewardActive()) return;
 
         skip(1e6);
         uint256 _fundWithInterest = strategy.managingFund();
@@ -277,6 +281,7 @@ contract WhenUnutilizeStrategyAsset is AaveV3StrategySetUp {
 
 contract WhenCompoundAaveReward is AaveV3StrategySetUp {
     function testCompoundedRewardExceedMaxManagingRatio(uint256 _time) public {
+        if (!isRewardActive()) return;
         vm.assume(_time > 60);
         vm.assume(_time <= 3e8); // approximately 10 years
         skip(_time);
@@ -293,6 +298,7 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
     }
 
     function testCompoundedRewardExceedAaveSupplyingRatio() public {
+        if (!isRewardActive()) return;
         uint256 _aaveSupplyThreshold = (IERC20(ausdc).totalSupply() * strategy.aaveMaxOccupancyRatio()) / 1e6;
         // calculate value that is nealy equal to the capacity
         uint256 _addAmount = (_aaveSupplyThreshold * 9e5) / strategy.maxManagingRatio();
@@ -372,6 +378,7 @@ contract WhenCompoundAaveReward is AaveV3StrategySetUp {
     }
 
     function testExchangeLogicUnavailable() public {
+        if (!isRewardActive()) return;
         vm.startPrank(deployer);
         vault = new Vault(usdc, address(registry), address(0), address(ownership));
         strategy = new AaveV3Strategy(
@@ -453,6 +460,7 @@ contract WhenMigrateAsset is AaveV3StrategySetUp {
     }
 
     function testUnclaimedRewardRemaining() public {
+        if (!isRewardActive()) return;
         skip(1e6);
         // unclaimed reward remaining
         (, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
@@ -509,6 +517,8 @@ contract WhenCreateTaskOnGelatoOps is AaveV3StrategySetUp {
     address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     function testExecuteTaskUsingGelatoOps() public {
+        if (!isRewardActive()) return;
+
         // set up
         vm.prank(deployer);
         strategy.setMinOpsTrigger(1);
