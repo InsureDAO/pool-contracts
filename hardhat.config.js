@@ -15,31 +15,26 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 2000,
+        runs: 25000,
       },
     },
   },
   networks: {
     hardhat: {
       initialBaseFeePerGas: 0,
-      /**
       accounts: [
-        //{ privateKey: `0x${DEPLOY_KEY}`, balance: "2903004000000000000000000000000000000" },
-        //{ privateKey: `0x${CONTROL_KEY}`, balance: "2903004000000000000000000000000000000" },
-        // { privateKey: `0x${TEST_KEY}`, balance: "2903004000000000000000000000000000000" },
+        { privateKey: `0x${process.env.DEPLOY_KEY}`, balance: "1000000000000000000000000000000" },
+        { privateKey: `0x${process.env.CONTROL_KEY}`, balance: "1000000000000000000000000000000" },
+        { privateKey: `0x${process.env.TEST_KEY}`, balance: "1000000000000000000000000000000" },
       ],
       forking: {
-        url: GOERLI_URL,
-        enabled: false, // set true when perform fork environment
+        url: process.env.OPTIMISM_URL,
+        enabled: true, // set true when perform fork environment
       },
-      */
     },
     mainnet: {
       url: `${process.env.MAINNET_URL}`,
       accounts: [`0x${process.env.DEPLOY_KEY}`, `0x${process.env.CONTROL_KEY}`],
-      gas: 6e6,
-      gasPrice: 8e10, //80Gwei
-      timeout: 2000000000,
     },
     astar: {
       url: process.env.ASTAR_URL,
@@ -53,7 +48,6 @@ module.exports = {
     goerli: {
       url: process.env.GOERLI_URL,
       accounts: [`0x${process.env.TEST_KEY}`],
-      gasPrice: 8e10, //80Gwei
     },
     optimisticGoerli: {
       url: process.env.OP_GOERLI_URL,

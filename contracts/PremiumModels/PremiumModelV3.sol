@@ -39,8 +39,6 @@ contract PremiumModelV3 is IPremiumModel {
     ) {
         require(_ownership != address(0), "zero address");
         require(_defaultRate != 0, "rate is zero");
-        require(_defaultRateSlope1 != 0, "slope1 is zero");
-        require(_defaultRateSlope2 != 0, "slope2 is zero");
         require(_optimalUtilizeRatio != 0, "ratio is zero");
         require(_optimalUtilizeRatio <= MAX_RATIO, "exceed max rate");
 
@@ -48,11 +46,11 @@ contract PremiumModelV3 is IPremiumModel {
         rates[address(0)] = Rate(_defaultRate, _defaultRateSlope1, _defaultRateSlope2, _optimalUtilizeRatio);
     }
 
-    function getCurrentPremiumRate(
-        address _market,
-        uint256 _totalLiquidity,
-        uint256 _lockedAmount
-    ) external view returns (uint256) {
+    function getCurrentPremiumRate(address _market, uint256 _totalLiquidity, uint256 _lockedAmount)
+        external
+        view
+        returns (uint256)
+    {
         uint256 _utilizedRate;
 
         if (_lockedAmount != 0 && _totalLiquidity != 0) {
@@ -63,12 +61,11 @@ contract PremiumModelV3 is IPremiumModel {
         return _getPremiumRate(_rate, _utilizedRate);
     }
 
-    function getPremiumRate(
-        address _market,
-        uint256 _amount,
-        uint256 _totalLiquidity,
-        uint256 _lockedAmount
-    ) external view returns (uint256) {
+    function getPremiumRate(address _market, uint256 _amount, uint256 _totalLiquidity, uint256 _lockedAmount)
+        external
+        view
+        returns (uint256)
+    {
         uint256 rate;
         if (_amount != 0 && _totalLiquidity != 0) {
             uint256 premium = getPremium(_market, _amount, 365 days, _totalLiquidity, _lockedAmount);
@@ -78,13 +75,11 @@ contract PremiumModelV3 is IPremiumModel {
         return rate;
     }
 
-    function getPremium(
-        address _market,
-        uint256 _amount,
-        uint256 _term,
-        uint256 _totalLiquidity,
-        uint256 _lockedAmount
-    ) public view returns (uint256) {
+    function getPremium(address _market, uint256 _amount, uint256 _term, uint256 _totalLiquidity, uint256 _lockedAmount)
+        public
+        view
+        returns (uint256)
+    {
         require(_amount + _lockedAmount <= _totalLiquidity, "Amount exceeds total liquidity");
         require(_totalLiquidity != 0, "totalLiquidity is 0");
 
@@ -99,18 +94,8 @@ contract PremiumModelV3 is IPremiumModel {
             _premium += _calcOneSidePremiumAmount(_rate, _totalLiquidity, _utilizedRateBefore, _utilizedRateAfter);
         } else {
             //slope1 & 2
-            _premium += _calcOneSidePremiumAmount(
-                _rate,
-                _totalLiquidity,
-                _utilizedRateBefore,
-                _rate.optimalUtilizeRatio
-            );
-            _premium += _calcOneSidePremiumAmount(
-                _rate,
-                _totalLiquidity,
-                _rate.optimalUtilizeRatio,
-                _utilizedRateAfter
-            );
+            _premium += _calcOneSidePremiumAmount(_rate, _totalLiquidity, _utilizedRateBefore, _rate.optimalUtilizeRatio);
+            _premium += _calcOneSidePremiumAmount(_rate, _totalLiquidity, _rate.optimalUtilizeRatio, _utilizedRateAfter);
         }
 
         _premium = (_premium * _term) / 365 days;
@@ -161,8 +146,7 @@ contract PremiumModelV3 is IPremiumModel {
             unchecked {
                 excessUtilizeRatio = _utilizedRate - _rate.optimalUtilizeRatio;
             }
-            _currentPremiumRate += (_rate.rateSlope1 +
-                ((_rate.rateSlope2 * excessUtilizeRatio) / _maxExcessUtilizeRatio));
+            _currentPremiumRate += (_rate.rateSlope1 + ((_rate.rateSlope2 * excessUtilizeRatio) / _maxExcessUtilizeRatio));
         } else {
             _currentPremiumRate += (_rate.rateSlope1 * _utilizedRate) / _rate.optimalUtilizeRatio;
         }

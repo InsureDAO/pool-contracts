@@ -10,6 +10,7 @@ async function main() {
   const start = process.hrtime();
 
   [creator] = await ethers.getSigners();
+  const etherBefore = await creator.getBalance();
 
   const DEFAULT_RATE = 1e6;
   const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -38,7 +39,7 @@ async function main() {
 
   const LaunchMarkets = [
     {{#LaunchPools.markets}}
-    {name:"{{name}}", address: "{{address}}"},
+    {name:"{{name}}", address: "{{address}}", premium: "{{premium}}"},
     {{/LaunchPools.markets}}
   ];
   //
@@ -219,6 +220,11 @@ async function main() {
 
       markets.push(marketAddress);
       console.log(`\x1b[32m New market at ${marketAddress} \x1b[37m`);
+
+      if(info.premium != ""){
+        tx = await premium.setRate(marketAddress, [info.premium, 0, 0, 0]);
+        await tx.wait();
+      }
   }
 
   for (const info of LaunchIndicies){
@@ -236,6 +242,9 @@ async function main() {
       console.log(`\x1b[32m New index at ${indexAddress} \x1b[37m`);
 
       const index = await IndexTemplate.attach(indexAddress);
+
+      tx= await index.setLeverage(info.leverage);
+      await tx.wait();
 
       for(let i = 0; i<info.poolListIndex.length; i++){
         console.log(`Set${i} market ${markets[i].slice(0,5)}..${markets[i].slice(-3)}`);
@@ -343,6 +352,9 @@ async function main() {
 
   const end = process.hrtime(start);
   console.log("✨ finished (%ds %dms)", end[0], end[1] / 100000);
+
+  const etherAfter = await creator.getBalance();
+  console.log(`Used gas: ${etherBefore.sub(etherAfter)}`)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

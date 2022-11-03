@@ -24,6 +24,7 @@
     "test:forge": "forge test -vvv --watch",
     "cov:forge": "source scripts/test/check-coverage.sh",
     "prepare": "husky install",
+    "deploy:optimisticEthereum": "NETWORK=optimisticEthereum ./deploy.sh",
     "deploy:goerli": "NETWORK=goerli ./deploy.sh",
     "deploy:optimisticGoerli": "NETWORK=optimisticGoerli ./deploy.sh",
     "deploy:arbitrumGoerli": "NETWORK=arbitrumGoerli ./deploy.sh",
