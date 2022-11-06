@@ -137,6 +137,7 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
     }
 
     function testCannotCompoundWithoutOps() public {
+        if (!isRewardActive()) return;
         skip(1e6);
         (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
         address _token = _tokens[0];
@@ -148,6 +149,7 @@ contract AaveV3StrategyErrorTest is AaveV3StrategySetUp {
     }
 
     function testCannotCompoundAmountOrAddressZero() public {
+        if (!isRewardActive()) return;
         skip(1e6);
         (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
         address _token = _tokens[0];

@@ -108,6 +108,7 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
     }
 
     function testCompound() public {
+        if (!isRewardActive()) return;
         skip(1e6);
         (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
         address _token = _tokens[0];
@@ -122,6 +123,7 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
     }
 
     function testGetUnclaimedRewards() public {
+        if (!isRewardActive()) return;
         skip(1e6);
         (address[] memory _tokens, uint256[] memory _rewards) = strategy.getUnclaimedRewards();
         assertEq(_tokens[0], aaveRewardToken);
@@ -129,6 +131,7 @@ contract AaveV3StrategyTest is AaveV3StrategySetUp {
     }
 
     function testCheck() public {
+        if (!isRewardActive()) return;
         (bool _canExec, bytes memory _execPayload) = strategy.check();
         assertEq(_canExec, false);
         assertEq(_execPayload, bytes("No enough reward to withdraw"));
