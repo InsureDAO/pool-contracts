@@ -108,4 +108,19 @@ abstract contract AaveV3StrategySetUp is Test {
         strategy.adjustFund();
         vm.stopPrank();
     }
+
+    function isRewardActive() internal returns (bool _isActive) {
+        address[] memory _supplyingAssets = new address[](1);
+        _supplyingAssets[0] = ausdc;
+        (address[] memory _tokens, uint256[] memory _rewards) = IAaveV3Reward(aaveReward).getAllUserRewards(
+            _supplyingAssets,
+            address(this)
+        );
+        uint256 _lenRewards = _tokens.length;
+
+        for (uint256 i; i < _lenRewards; i++) {
+            (, , , uint256 _distributionEnd) = IAaveV3Reward(aaveReward).getRewardsData(ausdc, _tokens[i]);
+            if (_distributionEnd > block.timestamp) _isActive = true;
+        }
+    }
 }
