@@ -2,6 +2,10 @@ const hre = require("hardhat");
 const ethers = hre.ethers;
 const fs = require("fs");
 
+function timeout(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function main() {
   //deploy exchange logic
   const ExchangeParams = {
@@ -47,6 +51,8 @@ async function main() {
   await strategy.deployed();
   console.log(`AaveV3Strategy is deployed to: ${strategy.address}`);
 
+  {{#verify}}
+  await timeout(15000);
   try {
     await hre.run("verify:verify", {
       address: exchangeLogic.address,
@@ -78,6 +84,7 @@ async function main() {
   } catch {
     console.log("verify for strategy skipped");
   }
+  {{/verify}}
 }
 
 main()

@@ -65,5 +65,22 @@
       { "name": "Popular3", "markets": [0, 2, 3, 1, 5, 4], "leverage": "2000000" },
       { "name": "New", "markets": [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 18, 19], "leverage": "5000000" }
     ]
+  },
+
+  "ExchangeParams": {
+    "uniswapV3Router": "0xE592427A0AEce92De3Edee1F18E0157C05861564",
+    "uniswapV3Quoter": "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6",
+    "fee": "3000",
+    "slippage_tolerance": "997000"
+  },
+
+  "StrategyParams": {
+    "ownership": "0x516E63b87e08231E75472411986653F1d67360b6",
+    "vault": "0xb43182F939b9feD90aCA092373Af92D350Db4C27",
+    "aavePool": "0x794a61358D6845594F94dc1DB02A252b5b4814aD",
+    "aaveReward": "0x929EC64c34a17401F460460D4B9390518E5B473e",
+    "usdc": "0x7F5c764cBc14f9669B88837ca1490cCa17c31607",
+    "ausdc": "0x625E7708f30cA75bfd92586e17077590C60eb4cD",
+    "gelatoOps": "0x340759c8346A1E6Ed92035FB8B6ec57cE1D82c2c"
   }
 }
