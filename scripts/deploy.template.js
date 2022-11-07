@@ -247,11 +247,13 @@ async function main() {
       await tx.wait();
 
       for(let i = 0; i<info.poolListIndex.length; i++){
-        console.log(`Set${i} market ${markets[i].slice(0,5)}..${markets[i].slice(-3)}`);
+        const poolIndex = info.poolListIndex[i];
+        const market = markets[poolIndex];
+        console.log(`Set${i} market${poolIndex}: ${market.slice(0,5)}..${market.slice(-3)}`);
 
         tx = await index["set(uint256,address,uint256)"](
           i,
-          markets[info.poolListIndex[i]],
+          market,
           DEFAULT_RATE
         )
         await tx.wait();
