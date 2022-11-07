@@ -22,6 +22,7 @@ module.exports = {
   networks: {
     hardhat: {
       initialBaseFeePerGas: 0,
+      /*** 
       accounts: [
         { privateKey: `0x${process.env.DEPLOY_KEY}`, balance: "1000000000000000000000000000000" },
         { privateKey: `0x${process.env.CONTROL_KEY}`, balance: "1000000000000000000000000000000" },
@@ -31,6 +32,7 @@ module.exports = {
         url: process.env.OPTIMISM_URL,
         enabled: true, // set true when perform fork environment
       },
+      */
     },
     mainnet: {
       url: `${process.env.MAINNET_URL}`,

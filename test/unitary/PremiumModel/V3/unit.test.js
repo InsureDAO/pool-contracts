@@ -24,13 +24,7 @@ describe("PremiumModelV3", function () {
 
     //deploy
     ownership = await Ownership.deploy();
-    pm = await PMV3.deploy(
-      ownership.address,
-      defaultRate,
-      defaultRateSlope1,
-      defaultRateSlope2,
-      defaultOptimalUtilizeRatio
-    );
+    pm = await PMV3.deploy(ownership.address, defaultRate, defaultRateSlope1, defaultRateSlope2, defaultOptimalUtilizeRatio);
   });
 
   beforeEach(async () => {
@@ -62,21 +56,13 @@ describe("PremiumModelV3", function () {
           PMV3.deploy(ownership.address, ZERO, defaultRateSlope1, defaultRateSlope2, defaultOptimalUtilizeRatio)
         ).to.revertedWith("rate is zero");
 
-        await expect(
-          PMV3.deploy(ownership.address, defaultRate, ZERO, defaultRateSlope2, defaultOptimalUtilizeRatio)
-        ).to.revertedWith("slope1 is zero");
+        await expect(PMV3.deploy(ownership.address, defaultRate, defaultRateSlope1, defaultRateSlope2, ZERO)).to.revertedWith(
+          "ratio is zero"
+        );
 
-        await expect(
-          PMV3.deploy(ownership.address, defaultRate, defaultRateSlope1, ZERO, defaultOptimalUtilizeRatio)
-        ).to.revertedWith("slope2 is zero");
-
-        await expect(
-          PMV3.deploy(ownership.address, defaultRate, defaultRateSlope1, defaultRateSlope2, ZERO)
-        ).to.revertedWith("ratio is zero");
-
-        await expect(
-          PMV3.deploy(ownership.address, defaultRate, defaultRateSlope1, defaultRateSlope2, 1e6 + 1)
-        ).to.revertedWith("exceed max rate");
+        await expect(PMV3.deploy(ownership.address, defaultRate, defaultRateSlope1, defaultRateSlope2, 1e6 + 1)).to.revertedWith(
+          "exceed max rate"
+        );
       });
     });
 

@@ -515,7 +515,7 @@ contract IndexTemplate is InsureDAOERC20, IIndexTemplate, IUniversalPool {
      * @notice Get all indexed markets
      * @return market array
      */
-    function getAllPools() external view returns (address[] memory) {
+    function getAllMarkets() external view returns (address[] memory) {
         return marketList;
     }
 

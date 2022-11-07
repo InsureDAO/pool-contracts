@@ -251,7 +251,7 @@ async function main() {
 
         tx = await index["set(uint256,address,uint256)"](
           i,
-          markets[i],
+          markets[info.poolListIndex[i]],
           DEFAULT_RATE
         )
         await tx.wait();

@@ -301,8 +301,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
      */
     function _unlock(uint256 _id) internal {
         require(
-            insurances[_id].status &&
-                insurances[_id].endTime + parameters.getUnlockGracePeriod(address(this)) < block.timestamp,
+            insurances[_id].status && insurances[_id].endTime + parameters.getUnlockGracePeriod(address(this)) < block.timestamp,
             "ERROR: UNLOCK_BAD_COINDITIONS"
         );
         insurances[_id].status = false;
@@ -353,13 +352,14 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
         uint256 _latestArrayIndex = indexList.length - 1;
 
         //Shift array
-        if (_latestArrayIndex != 0) {
+        if (_latestArrayIndex != 0 && _slot - 1 != _latestArrayIndex) {
             // [A, B, C] => [C, B, C]
             address _latestAddress = indexList[_latestArrayIndex];
 
             indices[_latestAddress].slot = _slot;
             indexList[_slot - 1] = _latestAddress;
         }
+
         indexList.pop();
     }
 
@@ -481,16 +481,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
         //Lock covered amount
         uint256 _id = allInsuranceCount;
         lockedAmount += _amount;
-        insurances[_id] = Insurance(
-            _id,
-            (uint48)(block.timestamp),
-            (uint48)(_endTime),
-            _amount,
-            _target,
-            _for,
-            _agent,
-            true
-        );
+        insurances[_id] = Insurance(_id, (uint48)(block.timestamp), (uint48)(_endTime), _amount, _target, _for, _agent, true);
 
         unchecked {
             ++allInsuranceCount;
@@ -532,12 +523,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
                 _merkleProof,
                 _targets,
                 keccak256(abi.encodePacked(_insurance.target, _insurance.insured, _loss))
-            ) ||
-                MerkleProof.verify(
-                    _merkleProof,
-                    _targets,
-                    keccak256(abi.encodePacked(_insurance.target, address(0), _loss))
-                ),
+            ) || MerkleProof.verify(_merkleProof, _targets, keccak256(abi.encodePacked(_insurance.target, address(0), _loss))),
             "ERROR: INSURANCE_EXEMPTED"
         );
         insurances[_id].status = false;
@@ -602,15 +588,7 @@ contract MarketTemplate is InsureDAOERC20, IMarketTemplate, IUniversalPool {
                 ++i;
             }
         }
-        emit CoverApplied(
-            _pending,
-            _payoutNumerator,
-            _payoutDenominator,
-            _incidentTimestamp,
-            _merkleRoot,
-            _rawdata,
-            _memo
-        );
+        emit CoverApplied(_pending, _payoutNumerator, _payoutDenominator, _incidentTimestamp, _merkleRoot, _rawdata, _memo);
         emit MarketStatusChanged(MarketStatus.Payingout);
     }
 
