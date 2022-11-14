@@ -32,7 +32,8 @@
     "deploy:local": "NETWORK=hardhat ./deploy.sh",
     "deploy-investment:goerli": "NETWORK=goerli ./deploy_investment.sh",
     "deploy-investment:local": "NETWORK=hardhat ./deploy_investment.sh",
-    "deploy-investment:optimisticEthereum": "NETWORK=optimisticEthereum ./deploy_investment.sh"
+    "deploy-investment:optimisticEthereum": "NETWORK=optimisticEthereum ./deploy_investment.sh",
+    "deploy-investment:arbitrumOne": "NETWORK=arbitrumOne ./deploy_investment.sh"
   },
   "devDependencies": {
     "@foundry-rs/hardhat-anvil": "^0.1.7",

@@ -51,6 +51,15 @@ async function main() {
   await strategy.deployed();
   console.log(`AaveV3Strategy is deployed to: ${strategy.address}`);
 
+
+  //attach
+  const Vault = await ethers.getContractFactory("Vault");
+  const vault = await Vault.attach(StrategyParams.vault);
+  let tx = await vault.setController(strategy.address);
+  await tx.wait();
+  console.log("setController() done");
+
+
   {{#verify}}
   await timeout(15000);
   try {
