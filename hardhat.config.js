@@ -28,7 +28,7 @@ module.exports = {
         { privateKey: `0x${process.env.TEST_KEY}`, balance: "1000000000000000000000000000000" },
       ],
       forking: {
-        url: process.env.OPTIMISM_URL,
+        url: process.env.ARBITRUM_URL,
         enabled: true, // set true when perform fork environment
       },
     },
@@ -44,6 +44,10 @@ module.exports = {
     optimisticEthereum: {
       url: `${process.env.OPTIMISM_URL}`,
       accounts: [`0x${process.env.DEPLOY_KEY}`, `0x${process.env.CONTROL_KEY}`],
+    },
+    arbitrumOne: {
+      url: process.env.ARBITRUM_URL,
+      accounts: [`0x${process.env.DEPLOY_KEY}`],
     },
     goerli: {
       url: process.env.GOERLI_URL,
@@ -79,6 +83,7 @@ module.exports = {
       goerli: `${process.env.ETHERSCAN_API}`,
       optimisticEthereum: `${process.env.OPT_ETHERSCAN_API}`,
       optimisticGoerli: `${process.env.OPT_ETHERSCAN_API}`,
+      arbitrumOne: `${process.env.ARB_ETHERSCAN_API}`,
       arbitrumGoerli: `${process.env.ARB_ETHERSCAN_API}`,
     },
     customChains: [
