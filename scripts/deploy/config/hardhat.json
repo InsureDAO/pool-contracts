@@ -36,7 +36,7 @@
       { "id": "8", "name": "Abracadabra", "address": "0x3e6648c5a70a150a88bce65f4ad4d506fe15d2af", "premium": "70000" },
       { "id": "9", "name": "Hop", "address": "0xda7c0de432a9346bb6e96ac74e3b61a36d8a77eb", "premium": "" }
     ],
-    "indicies": [
+    "indices": [
       { "name": "Group1", "markets": [0, 1, 2, 3, 4], "leverage": "1000000" },
       { "name": "Group2", "markets": [5, 6, 7, 8, 9], "leverage": "1000000" }
     ]
