@@ -23,5 +23,6 @@ package-lock.json
 /.idea/
 lcov.info
 out/
-scripts/deploy.js
-scripts/deploy_investment.js
+scripts/deploy/deploy.js
+scripts/deploy/deploy_investment.js
+*.log

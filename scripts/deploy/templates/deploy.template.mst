@@ -42,11 +42,11 @@ async function main() {
     {name:"{{name}}", address: "{{address}}", premium: "{{premium}}"},
     {{/LaunchPools.markets}}
   ];
-  //
-  const LaunchIndicies = [
-    {{#LaunchPools.indicies}}
+
+  const LaunchIndices = [
+    {{#LaunchPools.indices}}
     {name:"{{name}}", poolListIndex: [ {{#markets}} {{.}}, {{/markets}} ], leverage:"{{leverage}}"},
-    {{/LaunchPools.indicies}}
+    {{/LaunchPools.indices}}
   ];
 
   const USDC = await ethers.getContractFactory("ERC20Mock");
@@ -70,7 +70,6 @@ async function main() {
     console.log("usdc attached to:", usdc.address);
   }
 
-  
 
   //----- DEPLOY -----//
   const ownership = await Ownership.deploy();
@@ -200,7 +199,7 @@ async function main() {
   tx = await parameters.setLowerSlack(ZERO_ADDRESS, Params.LowerSlack);
   await tx.wait();
 
-  
+
   //Deploy Markets and Indicies if applicable
   let markets = [];
 
@@ -227,7 +226,7 @@ async function main() {
       }
   }
 
-  for (const info of LaunchIndicies){
+  for (const info of LaunchIndices){
       console.log(`Deploying index ${info.name}`);
       const createIndex = await factory.createPool(
         indexTemplate.address,

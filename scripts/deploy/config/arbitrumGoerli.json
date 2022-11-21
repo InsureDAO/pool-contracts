@@ -32,7 +32,7 @@
       { "name": "Protocol 5", "address": "0x5000000000000000000000000000000000000000" },
       { "name": "Protocol 6", "address": "0x6000000000000000000000000000000000000000" }
     ],
-    "indicies": [
+    "indices": [
       { "name": "Index A", "markets": [0, 1, 2, 3, 4, 5], "leverage": "2000000" },
       { "name": "Index B", "markets": [0, 1, 2], "leverage": "2000000" }
     ]

@@ -1,6 +1,6 @@
 {
   "verify": true,
-  "USDC_ADDRESS": "0xA2025B15a1757311bfD68cb14eaeFCc237AF5b43",
+  "USDC_ADDRESS": "0xA4BFcd2bcEE2755E28Ed7e636461D1E25B44B7E7",
 
   "Params": {
     "FeeRate": "100000",
@@ -32,26 +32,9 @@
       { "name": "Protocol 5", "address": "0x5000000000000000000000000000000000000000" },
       { "name": "Protocol 6", "address": "0x6000000000000000000000000000000000000000" }
     ],
-    "indicies": [
+    "indices": [
       { "name": "Index A", "markets": [0, 1, 2, 3, 4, 5], "leverage": "2000000" },
       { "name": "Index B", "markets": [0, 1, 2], "leverage": "2000000" }
     ]
-  },
-
-  "ExchangeParams": {
-    "uniswapV3Router": "0xE592427A0AEce92De3Edee1F18E0157C05861564",
-    "uniswapV3Quoter": "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6",
-    "fee": "3000",
-    "slippage_tolerance": "997000"
-  },
-
-  "StrategyParams": {
-    "ownership": "0x2D78C205955154Fe58beb123ACE93A8aDca86dBC",
-    "vault": "0x39c04722F1030ACe40d98546883BfB8f919fc837",
-    "aavePool": "0x368EedF3f56ad10b9bC57eed4Dac65B26Bb667f6",
-    "aaveReward": "0x0C501fB73808e1BD73cBDdd0c99237bbc481Bb58",
-    "usdc": "0xA2025B15a1757311bfD68cb14eaeFCc237AF5b43",
-    "ausdc": "0x1Ee669290939f8a8864497Af3BC83728715265FF",
-    "gelatoOps": "0xc1C6805B857Bef1f412519C4A842522431aFed39"
   }
 }

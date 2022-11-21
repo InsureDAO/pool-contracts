@@ -7,8 +7,8 @@ if [ -z "$NETWORK" ]; then
   exit 1
 fi
 
-npx mustache scripts/config/$NETWORK.json scripts/deploy_investment.template.js > scripts/deploy_investment.js
+npx mustache scripts/deploy/config/$NETWORK.json scripts/deploy/templates/deploy_investment.template.mst > scripts/deploy/deploy_investment.js
 
 echo 'generated deploy_investment.js'
 
-npx hardhat run scripts/deploy_investment.js --network $NETWORK
+npx hardhat run scripts/deploy/deploy_investment.js --network $NETWORK

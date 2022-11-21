@@ -1,6 +1,6 @@
 {
   "verify": true,
-  "USDC_ADDRESS": "0x7F5c764cBc14f9669B88837ca1490cCa17c31607",
+  "USDC_ADDRESS": "0xf1485Aa729DF94083ab61B2C65EeA99894Aabdb3",
 
   "Params": {
     "FeeRate": "300000",
@@ -59,7 +59,7 @@
       { "id": "31", "name": "xToken Terminal", "address": "0x090559D58aAB8828C27eE7a7EAb18efD5bB90374", "premium": "25000" },
       { "id": "32", "name": "Angle", "address": "0xfdA462548Ce04282f4B6D6619823a7C64Fdc0185" }
     ],
-    "indicies": [
+    "indices": [
       { "name": "Popular1", "markets": [12, 16, 14, 17, 13, 15], "leverage": "2000000" },
       { "name": "Popular2", "markets": [7, 10, 9, 6, 11, 8], "leverage": "2000000" },
       { "name": "Popular3", "markets": [0, 2, 3, 1, 5, 4], "leverage": "2000000" },
