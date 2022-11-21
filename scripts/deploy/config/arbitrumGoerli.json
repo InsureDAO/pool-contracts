@@ -1,6 +1,6 @@
 {
   "verify": true,
-  "USDC_ADDRESS": "0x6775842AE82BF2F0f987b10526768Ad89d79536E",
+  "USDC_ADDRESS": "0xC1B2CDBfA44Cac348d6eB3aBA50302A590b0c549",
 
   "Params": {
     "FeeRate": "100000",
